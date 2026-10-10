@@ -269,5 +269,7 @@
   "leaveWorkspaceShort": "退出",
   "deleteWorkspaceShort": "删除",
   "workspaceNotEmpty": "请先删除或移走其中的文档；只能删除空的工作区。",
-  "workspaceCleanupPending": "已删除的文档会保留一段时间后才彻底清除。请在那之后再试。"
+  "workspaceCleanupPending": "已删除的文档会保留一段时间后才彻底清除。请在那之后再试。",
+  "shareOpenedInBrowser": "已在浏览器中打开",
+  "openInDesktopApp": "在桌面应用中打开"
 }

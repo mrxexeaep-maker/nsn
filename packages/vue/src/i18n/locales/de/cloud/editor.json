@@ -272,5 +272,7 @@
   "leaveWorkspaceShort": "Verlassen",
   "deleteWorkspaceShort": "Löschen",
   "workspaceNotEmpty": "Lösche oder verschiebe zuerst seine Dokumente; nur ein leerer Arbeitsbereich kann gelöscht werden.",
-  "workspaceCleanupPending": "Seine gelöschten Dokumente werden noch eine Weile aufbewahrt, bevor sie endgültig verschwinden. Versuche es danach erneut."
+  "workspaceCleanupPending": "Seine gelöschten Dokumente werden noch eine Weile aufbewahrt, bevor sie endgültig verschwinden. Versuche es danach erneut.",
+  "shareOpenedInBrowser": "Im Browser geöffnet",
+  "openInDesktopApp": "In der Desktop-App öffnen"
 }

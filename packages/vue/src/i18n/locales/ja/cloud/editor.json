@@ -269,5 +269,7 @@
   "leaveWorkspaceShort": "退出",
   "deleteWorkspaceShort": "削除",
   "workspaceNotEmpty": "先にドキュメントを削除するか移動してください。削除できるのは空のワークスペースだけです。",
-  "workspaceCleanupPending": "削除されたドキュメントは完全に消えるまでしばらく保管されます。その後にもう一度お試しください。"
+  "workspaceCleanupPending": "削除されたドキュメントは完全に消えるまでしばらく保管されます。その後にもう一度お試しください。",
+  "shareOpenedInBrowser": "ブラウザーで開きました",
+  "openInDesktopApp": "デスクトップアプリで開く"
 }

@@ -275,5 +275,7 @@
   "leaveWorkspaceShort": "Opuść",
   "deleteWorkspaceShort": "Usuń",
   "workspaceNotEmpty": "Najpierw usuń lub przenieś jego dokumenty; usunąć można tylko pusty obszar.",
-  "workspaceCleanupPending": "Usunięte dokumenty są jeszcze przez jakiś czas przechowywane. Spróbuj ponownie później."
+  "workspaceCleanupPending": "Usunięte dokumenty są jeszcze przez jakiś czas przechowywane. Spróbuj ponownie później.",
+  "shareOpenedInBrowser": "Otwarto w przeglądarce",
+  "openInDesktopApp": "Otwórz w aplikacji na komputer"
 }

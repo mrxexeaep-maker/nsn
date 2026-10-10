@@ -272,5 +272,7 @@
   "leaveWorkspaceShort": "Quitter",
   "deleteWorkspaceShort": "Supprimer",
   "workspaceNotEmpty": "Supprimez ou déplacez d’abord ses documents ; seul un espace vide peut être supprimé.",
-  "workspaceCleanupPending": "Ses documents supprimés sont conservés un temps avant de disparaître définitivement. Réessayez ensuite."
+  "workspaceCleanupPending": "Ses documents supprimés sont conservés un temps avant de disparaître définitivement. Réessayez ensuite.",
+  "shareOpenedInBrowser": "Ouvert dans le navigateur",
+  "openInDesktopApp": "Ouvrir dans l’application de bureau"
 }

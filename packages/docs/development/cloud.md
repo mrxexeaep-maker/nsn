@@ -254,6 +254,13 @@ config rather than an editor release, and a launch that needs a client change se
 release that has it. A separate flags file or a third-party flag service would be one more thing to
 deploy for one switch.
 
+**2026-10 · Cloud links hand off to the desktop app through `openpencil://cloud`.** Links stay web
+addresses on the server's editor, so they work for anyone; the web editor on a computer offers the
+desktop app, which gets the same path, server, and secret as `openpencil://cloud/<kind>/<id>`.
+The native side checks the ID, secret, and server before the editor sees a link. The secret is
+visible in the launch arguments to other processes on the same computer; pasting links into the
+app would avoid that at the cost of a manual step for everyone.
+
 **2026-10 · Email and password sign in inside the editor.** The connect dialog signs in, signs up,
 and waits for the verification link itself, and keeps a bearer token, so no cookie has to cross
 from the server's address to the editor's; Safari treats sibling `.localhost` hosts as separate

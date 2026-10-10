@@ -8,8 +8,10 @@ type Args = {
   state: CloudInvitationState
   invitation: CloudInvitationSummary | null
   account: { email: string } | null
+  offerDesktop: boolean
   onAccept: () => void
   onSignIn: () => void
+  onOpenInDesktop: () => void
 }
 
 const invitation: CloudInvitationSummary = {
@@ -29,15 +31,17 @@ const meta = {
     state: 'ready',
     invitation,
     account: { email: 'ben@studio.example' },
+    offerDesktop: false,
     onAccept: fn(),
-    onSignIn: fn()
+    onSignIn: fn(),
+    onOpenInDesktop: fn()
   },
   render: (args) => ({
     components: { CloudInvitationDialog },
     setup: () => ({ args }),
     template: `
       <div class="h-[600px]">
-        <CloudInvitationDialog :open="true" :state="args.state" :invitation="args.invitation" :account="args.account" @accept="args.onAccept" @sign-in="args.onSignIn" />
+        <CloudInvitationDialog :open="true" :state="args.state" :invitation="args.invitation" :account="args.account" :offer-desktop="args.offerDesktop" @accept="args.onAccept" @sign-in="args.onSignIn" @open-in-desktop="args.onOpenInDesktop" />
       </div>`
   })
 } satisfies Meta<Args>
@@ -73,5 +77,9 @@ export const JoinWorkspace: Story = {
       host: 'cloud.openpencil.dev'
     }
   }
+}
+export const OfferDesktopApp: Story = { args: { offerDesktop: true } }
+export const OfferDesktopAppBeforeSignIn: Story = {
+  args: { state: 'sign-in', account: null, offerDesktop: true }
 }
 export const Unavailable: Story = { args: { state: 'unavailable' } }
