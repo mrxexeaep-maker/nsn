@@ -62,8 +62,8 @@ describe('paste to replace', () => {
     const created = editor.graph.getNode(createdId)
     expect(created?.name).toBe('Pasted')
     expect(created?.parentId).toBe(pageId)
-    expect(created?.x).toBe(110)
-    expect(created?.y).toBe(110)
+    expect(created?.x).toBe(100)
+    expect(created?.y).toBe(100)
   })
 
   test('undo and redo preserve replaced and pasted subtrees', async () => {
@@ -166,6 +166,30 @@ describe('paste to replace', () => {
 
     editor.undo.redo()
     expect(editor.graph.getNode(frame.id)?.childIds).toEqual([before.id, createdId, after.id])
+  })
+
+  test('starts the replacement where the target started, inside an offset, rotated, or flipped frame', async () => {
+    const html = copiedRectangleHTML()
+    const editor = createEditor()
+    const frame = editor.graph.createNode('FRAME', editor.state.currentPageId, {
+      x: 50,
+      y: 50,
+      width: 300,
+      height: 300
+    })
+    const target = createTarget(editor, frame.id)
+    for (const transform of [{}, { rotation: 90 }, { rotation: 0, flipY: true }]) {
+      editor.graph.updateNode(frame.id, transform)
+      editor.select([target.id])
+      await editor.pasteFromHTML(html, undefined, { replaceSelection: true })
+      // Figma keeps the target's top-left rather than its centre (desktop 126).
+      expect(editor.graph.getNode([...editor.state.selectedIds][0])).toMatchObject({
+        parentId: frame.id,
+        x: 100,
+        y: 100
+      })
+      editor.undo.undo()
+    }
   })
 
   test('preserves pasted child subtrees', async () => {

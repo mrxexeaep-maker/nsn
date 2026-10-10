@@ -188,14 +188,7 @@ export function createClipboardActions(ctx: EditorContext) {
         if (created.length === 0) return null
 
         if (replacementTargets.length > 0) {
-          replaceTargetsWithCreated(
-            ctx,
-            placementActions.centerNodesAt,
-            created,
-            replacementTargets,
-            prevSelection,
-            operation
-          )
+          replaceTargetsWithCreated(ctx, created, replacementTargets, prevSelection, operation)
         } else {
           placementActions.placeForeignPaste(created, pasteTarget, cursorPos)
           computeAllLayouts(ctx.graph, ctx.state.currentPageId)
@@ -277,13 +270,7 @@ export function createClipboardActions(ctx: EditorContext) {
     if (created.length === 0) return created
 
     if (replacementTargets.length > 0) {
-      replaceTargetsWithCreated(
-        ctx,
-        placementActions.centerNodesAt,
-        created,
-        replacementTargets,
-        prevSelection
-      )
+      replaceTargetsWithCreated(ctx, created, replacementTargets, prevSelection)
       return created
     }
 
