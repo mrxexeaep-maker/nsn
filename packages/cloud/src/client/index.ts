@@ -32,6 +32,7 @@ export {
 } from './device-authorization'
 export {
   CloudClientError,
+  type CloudDiscoveryFailure,
   discoverCloud,
   type CloudFetch,
   type DiscoverCloudOptions
