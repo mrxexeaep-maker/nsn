@@ -1,5 +1,6 @@
 import { aiMessageDefaults, aiMessages } from '#vue/i18n/messages/ai'
 import { automationMessageDefaults, automationMessages } from '#vue/i18n/messages/automation'
+import { cloudMessageDefaults, cloudMessages } from '#vue/i18n/messages/cloud'
 import { cloudPortalMessageDefaults, cloudPortalMessages } from '#vue/i18n/messages/cloud-portal'
 import { codeMessageDefaults, codeMessages } from '#vue/i18n/messages/code'
 import {
@@ -59,6 +60,7 @@ export {
   storageMessages,
   toolMessages,
   updatesMessages,
+  cloudMessages,
   cloudPortalMessages,
   variablesMessages,
   variableTypeMessages
@@ -90,6 +92,7 @@ export const messageDefaults = {
   storage: storageMessageDefaults,
   tools: toolMessageDefaults,
   updates: updatesMessageDefaults,
+  cloud: cloudMessageDefaults,
   cloudPortal: cloudPortalMessageDefaults,
   variables: variablesMessageDefaults,
   variableTypes: variableTypeMessageDefaults

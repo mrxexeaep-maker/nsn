@@ -3,6 +3,7 @@ import type { ComponentsJSON } from '@nanostores/i18n'
 import ai from './ai.json'
 import automation from './automation.json'
 import cloudPortal from './cloud-portal.json'
+import cloud from './cloud.json'
 import code from './code.json'
 import collaboration from './collaboration.json'
 import commands from './commands.json'
@@ -32,6 +33,7 @@ import variables from './variables.json'
 export default {
   ai,
   automation,
+  cloud,
   cloudPortal,
   code,
   collaboration,
