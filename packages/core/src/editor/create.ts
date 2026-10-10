@@ -49,6 +49,7 @@ import { createShapeActions } from './shapes'
 import { createDefaultEditorState } from './state'
 import { createStructureActions } from './structure'
 import { createTextActions } from './text'
+import { createPendingTextLayout } from './text/pending-layout'
 import type {
   EditorContext,
   EditorEventName,
@@ -82,6 +83,7 @@ export function createEditor(options?: EditorOptions) {
   let _textEditor: TextEditor | null = null
   const events: Emitter<EditorEvents> = createNanoEvents()
   const stopFontResolutionEvents = fontResolver.subscribe((event, snapshot) => {
+    if (event === 'settled') pendingTextLayout.relayoutReady(_renderer)
     events.emit('font:resolution-changed', event, snapshot)
   })
 
@@ -198,6 +200,11 @@ export function createEditor(options?: EditorOptions) {
 
   const graphReads = createGraphReadActions(() => _graph)
   const { runLayoutForNode, runMutationWithLayout } = createLayoutRunner(() => _graph)
+  const pendingTextLayout = createPendingTextLayout({
+    getGraph: () => _graph,
+    runLayoutForNode,
+    requestRender
+  })
   const { scheduleComponentSync } = createComponentSyncScheduler(() => _graph, requestRender)
 
   const { subscribeToGraph, unsubscribeFromGraph } = createGraphEventSubscription({
@@ -297,7 +304,9 @@ export function createEditor(options?: EditorOptions) {
     uninstallTextMeasurer?.()
     uninstallTextMeasurer =
       typeof renderer.measureTextNode === 'function'
-        ? installTextMeasurer((node, maxWidth) => renderer.measureTextNode(node, maxWidth))
+        ? installTextMeasurer((node, maxWidth) =>
+            pendingTextLayout.measure(renderer, node, maxWidth)
+          )
         : null
   }
 
@@ -318,6 +327,7 @@ export function createEditor(options?: EditorOptions) {
     nodes.cancelNodePreviews()
     undo.discardBatches()
     _graph = newGraph
+    pendingTextLayout.clear()
     subscribeToGraph()
     const previousPageId = state.currentPageId
     state.currentPageId = _graph.getPages()[0]?.id ?? _graph.rootId

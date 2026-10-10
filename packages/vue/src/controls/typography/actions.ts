@@ -157,9 +157,10 @@ export function createTypographyActions({
   async function setWeight(weight: number) {
     const targets = nodes.value
     if (targets.length === 0) return
-    update('Change font weight', { fontWeight: weight })
+    // Load first, as for a family, so the text is laid out once with its new face.
     const style = weightToStyle(weight)
     await Promise.all(targets.map((target) => options.fontLoader?.load(target.fontFamily, style)))
+    update('Change font weight', { fontWeight: weight })
   }
 
   function setAlign(align: TextAlign) {
