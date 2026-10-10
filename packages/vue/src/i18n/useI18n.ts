@@ -30,6 +30,7 @@ import {
   storageMessages,
   toolMessages,
   updatesMessages,
+  cloudPortalMessages,
   variablesMessages,
   variableTypeMessages
 } from '#vue/i18n/messages'
@@ -63,6 +64,7 @@ export const useStatusMessages = () => useI18nNamespace(statusMessages)
 export const useStorageMessages = () => useI18nNamespace(storageMessages)
 export const useToolMessages = () => useI18nNamespace(toolMessages)
 export const useUpdateMessages = () => useI18nNamespace(updatesMessages)
+export const useCloudPortalMessages = () => useI18nNamespace(cloudPortalMessages)
 export const useVariableMessages = () => useI18nNamespace(variablesMessages)
 export const useVariableTypeMessages = () => useI18nNamespace(variableTypeMessages)
 

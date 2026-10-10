@@ -36,3 +36,10 @@ export {
   type CloudFetch,
   type DiscoverCloudOptions
 } from './discovery'
+export {
+  CloudPortalAPIError,
+  createCloudPortalClient,
+  type CloudPortalAPIErrorKind,
+  type CloudPortalClient,
+  type CloudPortalClientOptions
+} from './portal/client'
