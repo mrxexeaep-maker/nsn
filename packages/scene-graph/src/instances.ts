@@ -6,6 +6,7 @@ import {
   hasInstanceOverride as hasNodeInstanceOverride,
   setInstanceOverride
 } from './instance-overrides'
+import { canCreateInstance } from './instances/cycles'
 import { INSTANCE_SYNC_FIELDS, INSTANCE_SYNC_PROPS } from './instances/fields'
 import {
   bindingProtection,
@@ -40,7 +41,8 @@ export function createInstance(
   overrides: Partial<SceneNode> = {}
 ): SceneNode | null {
   const component = graph.nodes.get(componentId)
-  if (component?.type !== 'COMPONENT') return null
+  if (component?.type !== 'COMPONENT' || !canCreateInstance(graph, componentId, parentId))
+    return null
 
   const props: Partial<SceneNode> = {
     ...copyInstanceComponentProps(component),
@@ -112,6 +114,7 @@ export function swapInstanceComponent(
   const instance = graph.nodes.get(instanceId)
   const component = graph.nodes.get(componentId)
   if (!instance || component?.type !== 'COMPONENT' || instance.type !== 'INSTANCE') return
+  if (instance.parentId && !canCreateInstance(graph, componentId, instance.parentId)) return
 
   const previousComponent = instance.componentId ? graph.nodes.get(instance.componentId) : undefined
   recordNestedSwap(graph, instance, componentId)

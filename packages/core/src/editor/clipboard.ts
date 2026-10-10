@@ -1,4 +1,4 @@
-import { CommittedGraphEventError } from '@open-pencil/scene-graph'
+import { CommittedGraphEventError, cycleSafeParent } from '@open-pencil/scene-graph'
 import type { SceneNode } from '@open-pencil/scene-graph'
 import { getAxisAlignedBoundsInParent } from '@open-pencil/scene-graph/coordinate'
 import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
@@ -16,11 +16,7 @@ import { createClipboardFontActions } from './clipboard/fonts'
 import { deleteIds, recreateSnapshots, restoreDeletedEntries } from './clipboard/history'
 import type { PasteHistoryOperation } from './clipboard/paste-replace'
 import { replaceTargetsWithCreated, selectedReplacementTargets } from './clipboard/paste-replace'
-import {
-  instanceSafeParent,
-  pastedComponentIds,
-  resolvePasteTarget
-} from './clipboard/paste-target'
+import { pastedComponentIds, resolvePasteTarget } from './clipboard/paste-target'
 import { createClipboardPlacementActions } from './clipboard/placement'
 import { collectSubtrees, restoreSubtree, snapshotSubtree } from './clipboard/subtree-history'
 import { acceptsChildren, prepareSlotEdits } from './components/slots'
@@ -245,7 +241,7 @@ export function createClipboardActions(ctx: EditorContext) {
     }
 
     const requestedTarget = replacementTargets[0]?.parentId ?? resolvePasteTarget(ctx)
-    const pasteTarget = instanceSafeParent(
+    const pasteTarget = cycleSafeParent(
       ctx.graph,
       requestedTarget,
       pastedComponentIds(ctx.graph, [...nodes, ...dependencies])
