@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "v*"
+      # Pre-releases (vX.Y.Z-beta.N) ship desktop and npm builds only, never production.
+      - "!v*-*"
   workflow_dispatch:
 
 jobs:
