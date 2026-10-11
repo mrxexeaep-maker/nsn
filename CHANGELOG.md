@@ -125,6 +125,7 @@
 - Customize the toolbar in **Settings → Toolbar**, also opened from **Customize toolbar…** when you right-click it: hide tools, reorder them, and choose which share a flyout, on desktop and mobile alike. Hidden tools keep their shortcuts, **Move** always stays, and tools added in later versions join their default flyout in a customized toolbar.
 ### Changed
 
+- The plugin API refuses to move, rotate, constrain, or mask a layer inside an instance, with Figma's errors, such as `in set_x: This property cannot be overridden in an instance: relative-transform`. Those fields always follow the component.
 - A layer dragged out of an auto layout frame leaves it as in Figma, once its edge is 5 px past the frame across the flow or about 15 px along it, instead of after the cursor travels 96 px beyond it.
 - Bound variables show as a neutral chip in the properties panel instead of purple text, so they no longer read as components.
 - Import SVG as editable layers, as pasting it into Figma does, from `import_svg`, dropped files, and pasted markup ([#734](https://github.com/open-pencil/open-pencil/issues/734)). Each `<g>` becomes a group, each shape its own vector, and each `<text>` a text layer with its fonts, `<tspan>` styles, alignment, and rotation, named after its `id`, element opacity is kept, and clipped content sits in a clip path group whose mask is drawn from the clip's shapes. The imported frame is white, clips its content, and is named after the root `<svg>` `id`; an SVG without a size imports as a group. Shapes are no longer merged into one multi-color vector.
@@ -175,6 +176,8 @@
 
 ### Fixed
 
+- Instances opened from a `.fig` file keep the style overrides Figma gives them, such as corner radius, stroke weight and alignment, line height, letter spacing, font, effects, and fill, stroke, and effect styles. Editing their component used to overwrite them on the canvas while the saved file kept them, and a later edit to one of these fields in the instance was not saved.
+- A component edit reaches every field its instances do not override, as in Figma: stroke weight, alignment, caps, joins, and dashes, corner smoothing, blend mode, layout grids, letter spacing, line height, text case, decoration, alignment, truncation, styled ranges, and the position, rotation, and flips of layers outside auto layout. Such a layer is placed by its constraints when the instance has another size than its component.
 - Instances follow their component's structure as in Figma: wrapping a layer of the component in auto layout or a frame, or moving it into another frame of the component, moves the layer's copy in every instance with its overrides instead of adding a fresh copy beside the old one, and moving a layer out of the component or deleting it removes its copy from every instance, while undo brings the copies back with their overrides.
 - Dragging a number field in the properties panel moves its value in whole steps instead of fractions on high-density screens.
 - While text is being edited, its caret and selection follow a property dragged in the panel instead of catching up when the mouse is released.

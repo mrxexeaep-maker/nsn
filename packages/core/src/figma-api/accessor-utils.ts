@@ -36,6 +36,22 @@ export function assertProxyEditable(target: ProxyThis, internals: NodeProxyInter
   assertNodeEditable(graph(target, internals), nodeId(target, internals))
 }
 
+/**
+ * Figma refuses the fields a layer inside an instance always takes from its component, naming
+ * the property it would have overridden (Figma desktop 126).
+ */
+export function assertOverridableInInstance(
+  scene: SceneGraph,
+  node: SceneNode,
+  setter: string,
+  property: 'relative-transform' | 'vertical-constraint' | 'is-mask' | 'mask-type'
+): void {
+  if (node.parentId && scene.closest(node.parentId, (layer) => layer.type === 'INSTANCE'))
+    throw new Error(
+      `in set_${setter}: This property cannot be overridden in an instance: ${property}`
+    )
+}
+
 /** Fields whose change can move a node's bounds, so the groups around it refit. */
 const GEOMETRY_FIELDS: ReadonlySet<string> = new Set([
   'x',
