@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 
-import { sceneNodeToDesignDocument, sceneNodesToTailwindJSX, serializeHTML } from '#dom-css/index'
+import {
+  sceneNodeToDesignDocument,
+  sceneNodesToTailwindJSX,
+  sceneNodesToTailwindJSXWithLayers,
+  serializeHTML
+} from '#dom-css/index'
 
 import { SceneGraph, type Fill, type TextParagraphStyle } from '@open-pencil/scene-graph'
 
@@ -110,5 +115,17 @@ describe('text export', () => {
     expect(jsx).toStartWith('<div ')
     expect(jsx).toContain('<span className="font-bold">Bold</span>')
     expect(jsx).toContain('<ul className="mt-0 mb-0 ps-6 list-disc">')
+  })
+
+  test('lists spans and blocks as elements without a layer, for the Code tab to skip', () => {
+    const { graph, node } = text({
+      text: 'Bold\nItem',
+      styleRuns: [{ start: 0, length: 4, style: { fontWeight: 700 } }],
+      textParagraphs: [PLAIN, { listType: 'UNORDERED', indentation: 1 }]
+    })
+    const { code, layerIds } = sceneNodesToTailwindJSXWithLayers(graph, [node.id])
+    // The text, its paragraph and span, then the list and its item.
+    expect(layerIds).toEqual([node.id, null, null, null, null])
+    expect(code.match(/<(?!\/)[A-Za-z]/g)).toHaveLength(layerIds.length)
   })
 })
