@@ -5,6 +5,7 @@ import {
 } from '@open-pencil/scene-graph'
 import type {
   GroupFitOptions,
+  HyperlinkTarget,
   SceneGraph,
   SceneNode,
   NodeType,
@@ -179,7 +180,10 @@ export class FigmaNodeProxy {
   declare textAutoResize: string
   declare letterSpacing: FigmaLetterSpacing | symbol
   declare lineHeight: FigmaLineHeight | symbol
-  declare textCase: string
+  declare textCase: SceneNode['textCase'] | symbol
+  declare hyperlink: HyperlinkTarget | null | symbol
+  declare textStyleId: string | symbol
+  declare fillStyleId: string | symbol
   declare textDecoration: SceneNode['textDecoration'] | symbol
   declare maxLines: number | null
   declare listSpacing: number | symbol
@@ -226,6 +230,18 @@ export class FigmaNodeProxy {
   declare setRangeParagraphSpacing: TextRangeMethods['setRangeParagraphSpacing']
   declare getRangeParagraphIndent: TextRangeMethods['getRangeParagraphIndent']
   declare setRangeParagraphIndent: TextRangeMethods['setRangeParagraphIndent']
+  declare getRangeTextCase: TextRangeMethods['getRangeTextCase']
+  declare setRangeTextCase: TextRangeMethods['setRangeTextCase']
+  declare getRangeHyperlink: TextRangeMethods['getRangeHyperlink']
+  declare setRangeHyperlink: TextRangeMethods['setRangeHyperlink']
+  declare getRangeTextStyleId: TextRangeMethods['getRangeTextStyleId']
+  declare setRangeTextStyleId: TextRangeMethods['setRangeTextStyleId']
+  declare setRangeTextStyleIdAsync: TextRangeMethods['setRangeTextStyleIdAsync']
+  declare getRangeFillStyleId: TextRangeMethods['getRangeFillStyleId']
+  declare setRangeFillStyleId: TextRangeMethods['setRangeFillStyleId']
+  declare setRangeFillStyleIdAsync: TextRangeMethods['setRangeFillStyleIdAsync']
+  declare getRangeBoundVariable: TextRangeMethods['getRangeBoundVariable']
+  declare setRangeBoundVariable: TextRangeMethods['setRangeBoundVariable']
 
   constructor(id: string, graph: SceneGraph, api: NodeProxyHost) {
     this[INTERNAL_ID] = id
