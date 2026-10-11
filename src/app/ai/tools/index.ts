@@ -21,6 +21,7 @@ import { aiToolDefinitions } from './catalog'
 import { recordToolChange } from './changes/capture'
 import { createMutex } from './mutex'
 import {
+  markRunChange,
   markRunWork,
   moveRunToPage,
   recordRunBaseline,
@@ -111,6 +112,9 @@ export function createAITools(store: EditorStore, diagnosticContext?: AIDiagnost
               // The change record is a review aid; the edit and its undo entry already stand.
               console.warn('Could not record AI tool change', error)
             }
+            // The agent shows where it edited, even on another page; layers the result names
+            // refine this once the call returns.
+            markRunChange(store, change)
           }
           try {
             // `switch_page` moves the run, and the user's view with it.

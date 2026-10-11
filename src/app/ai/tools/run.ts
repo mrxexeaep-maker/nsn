@@ -1,4 +1,4 @@
-import type { PageSnapshot } from '@open-pencil/core/editor'
+import type { DocumentChange, PageSnapshot } from '@open-pencil/core/editor'
 import type { StepBudget } from '@open-pencil/core/tools'
 import type { UndoEntry } from '@open-pencil/scene-graph/undo'
 
@@ -82,6 +82,25 @@ export function markRunWork(store: EditorStore, nodeIds: string[]): void {
   const placement = agentPlacement(store, nodeIds, runPageId(store))
   if (!run.agent || !placement) return
   run.agent.update({ status: 'editing', ...placement })
+}
+
+/**
+ * Point the run's agent at the layers a call changed, on whichever page they are, for calls such
+ * as `eval` whose result names none. Only the outermost of them are outlined.
+ */
+export function markRunChange(store: EditorStore, change: DocumentChange): void {
+  const { graph } = store
+  const layers = new Set(
+    [...change.created.map((node) => node.id), ...change.updated.map((update) => update.id)].filter(
+      // Pages and the document root are where the agent works, not what it works on.
+      (id) => id !== graph.rootId && graph.getNode(id)?.type !== 'CANVAS'
+    )
+  )
+  const outermost = [...layers].filter((id) => {
+    const parentId = graph.getNode(id)?.parentId
+    return !parentId || !layers.has(parentId)
+  })
+  markRunWork(store, outermost)
 }
 
 export function recordStep(store?: EditorStore): void {
