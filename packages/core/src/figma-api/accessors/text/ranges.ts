@@ -179,7 +179,7 @@ function decorationColorFills(method: string, value: unknown): Fill[] {
   if (!color || typeof color !== 'object') {
     issues.push(`Expected object, received ${received(color)} at .value`)
   } else {
-    const paint = color as Record<string, unknown>
+    const paint = color as Partial<Pick<FigmaPaint, 'type' | 'color'>>
     if (paint.type !== 'SOLID')
       issues.push('Invalid literal value, expected "SOLID" at .value.type')
     if (paint.color === undefined) issues.push('Required value missing at .value.color')
