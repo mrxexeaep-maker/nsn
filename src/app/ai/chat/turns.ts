@@ -3,21 +3,15 @@ import { isEqual } from 'es-toolkit'
 import * as v from 'valibot'
 import { shallowReactive, shallowRef, toRaw, type ShallowRef } from 'vue'
 
-import type { UndoEntry } from '@open-pencil/scene-graph/undo'
-
-import type { CallRef, UndoneCalls } from '@/app/ai/chat/context'
-import { currentRun, entryTool } from '@/app/ai/tools'
+import type { UndoneCalls } from '@/app/ai/chat/context'
+import { currentRun } from '@/app/ai/tools'
+import type { RunUndoCall } from '@/app/ai/tools/run'
 import type { EditorStore } from '@/app/editor/active-store'
-
-/** One of a reply's edits: the tool call that made it and the undo entry it pushed. */
-interface TurnCall extends CallRef {
-  entry: UndoEntry
-}
 
 interface TurnRecord {
   store: EditorStore
   /** The reply's edits, oldest first. */
-  calls: readonly TurnCall[]
+  calls: readonly RunUndoCall[]
   /** The calls whose edit is undone, as the undo history last showed them. */
   undone: ReadonlySet<string>
 }
@@ -81,7 +75,7 @@ export function onTurnUndoChanged(
 export function recordTurn(
   messageId: string,
   store: EditorStore,
-  calls: readonly { entry: UndoEntry; toolCallId: string }[]
+  calls: readonly RunUndoCall[]
 ): void {
   if (calls.length === 0) {
     turns.delete(messageId)
@@ -90,7 +84,7 @@ export function recordTurn(
   historyVersion(store)
   const record: TurnRecord = {
     store,
-    calls: calls.map((call) => ({ ...call, tool: entryTool(call.entry) })),
+    calls: [...calls],
     undone: new Set()
   }
   turns.set(messageId, { ...record, undone: undoneNow(record) })
@@ -107,11 +101,7 @@ export async function recordReplyTurn(
 ): Promise<ReplyUndo | null> {
   const run = currentRun(store)
   await run.settled()
-  recordTurn(
-    messageId,
-    store,
-    run.undoEntries.map((entry) => ({ entry, toolCallId: run.entryCalls.get(entry) ?? '' }))
-  )
+  recordTurn(messageId, store, run.undoCalls)
   const turn = turns.get(messageId)
   if (!turn) return null
   return {

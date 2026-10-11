@@ -50,6 +50,7 @@ const partlyUndone = computed(() => undone > 0 && undone < edits)
       <icon-lucide-circle-stop class="size-3" aria-hidden="true" />
       {{ ai.turnStopped }}
     </span>
+    <!-- What is undone shows whether or not Redo can still bring it back. -->
     <span
       v-if="partlyUndone"
       class="inline-flex items-center gap-1 px-2 text-[11px] text-muted"
@@ -57,6 +58,14 @@ const partlyUndone = computed(() => undone > 0 && undone < edits)
     >
       <icon-lucide-undo-2 class="size-3" aria-hidden="true" />
       {{ ai.turnPartlyUndone({ undone, total: edits }) }}
+    </span>
+    <span
+      v-else-if="reverted"
+      class="inline-flex items-center gap-1 px-2 text-[11px] text-muted"
+      data-slot="chat-turn-reverted"
+    >
+      <icon-lucide-undo-2 class="size-3" aria-hidden="true" />
+      {{ ai.turnReverted }}
     </span>
     <AppButton
       v-if="restorable"
@@ -68,15 +77,6 @@ const partlyUndone = computed(() => undone > 0 && undone < edits)
       <template #leading><icon-lucide-redo-2 aria-hidden="true" /></template>
       {{ ai.restoreTurn }}
     </AppButton>
-    <!-- Edits made since the undo closed Redo; the reply stays marked. -->
-    <span
-      v-else-if="reverted"
-      class="inline-flex items-center gap-1 px-2 text-[11px] text-muted"
-      data-slot="chat-turn-reverted"
-    >
-      <icon-lucide-undo-2 class="size-3" aria-hidden="true" />
-      {{ ai.turnReverted }}
-    </span>
     <AppButton
       v-if="revertable"
       size="xs"

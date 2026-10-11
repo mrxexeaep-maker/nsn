@@ -22,6 +22,7 @@ import { aiToolDefinitions } from './catalog'
 import { recordToolChange } from './changes/capture'
 import { createMutex } from './mutex'
 import {
+  aiUndoLabel,
   currentRun,
   markRunChange,
   markRunWork,
@@ -36,7 +37,6 @@ import {
 
 export {
   currentRun,
-  entryTool,
   didHitStepLimit,
   endRun,
   markRunPreview,
@@ -114,14 +114,14 @@ export function createAITools(store: EditorStore, diagnosticContext?: AIDiagnost
       // Atomic tools record their own undo entry; an edit that changed nothing records none.
       if (!isAtomicTool(def) && !isEmptyDocumentChange(change)) {
         store.pushUndoStep({
-          label: `AI: ${def.name}`,
+          label: aiUndoLabel(def.name),
           forward: () => store.restoreDocumentChange(change, 'after'),
           inverse: () => store.restoreDocumentChange(change, 'before')
         })
       }
       // Every entry the run pushes belongs to its turn; atomic and page edits both label
       // their entries this way. View tools change nothing on the page and push none.
-      recordRunUndoEntry(store, run, { label: `AI: ${def.name}`, toolCallId }, undoBefore)
+      recordRunUndoEntry(store, run, { tool: def.name, toolCallId }, undoBefore)
       // View tools (selection, viewport, pages) cannot change the document.
       if (toolChangesDocument(def)) {
         try {

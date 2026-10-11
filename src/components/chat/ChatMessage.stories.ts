@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import type { UIMessage } from 'ai'
-import { expect, within } from 'storybook/test'
+import { expect } from 'storybook/test'
 
 import ChatMessage from './ChatMessage.vue'
 
@@ -107,17 +107,21 @@ export const Streaming: Story = { args: { message: assistantMessage, streaming: 
 export const Stopped: Story = {
   args: { message: stoppedMessage },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await expect(canvas.getByText('Stopped')).toBeVisible()
-    await expect(canvas.queryByText('Thinking…')).toBeNull()
+    await expect(canvasElement.querySelector('[data-slot="chat-turn-stopped"]')).toBeVisible()
+    // The stopped reply's reasoning no longer reads as running.
+    await expect(
+      canvasElement.querySelector('[data-slot="chat-reasoning-trigger"]')
+    ).not.toHaveAttribute('data-streaming')
   }
 }
 
 export const PartlyUndone: Story = {
   args: { message: partlyUndoneMessage },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await expect(canvas.getByText('1 of 2 changes undone')).toBeVisible()
-    await expect(canvas.getAllByText('Undone')).toHaveLength(1)
+    await expect(canvasElement.querySelector('[data-slot="chat-turn-undone"]')).toBeVisible()
+    const undone = canvasElement.querySelectorAll(
+      '[data-slot="chat-tool-call"][data-undone="true"]'
+    )
+    await expect(undone).toHaveLength(1)
   }
 }

@@ -14,6 +14,16 @@ import { addAgent, agentPlacement, type AgentHandle } from '@/app/presence/regis
  * finished, stopped, or failed; a tool that was already running finishes into the run it
  * started in, even after that run ended, so its edit stays part of that reply.
  */
+/** An undo entry one of a run's tool calls pushed. */
+export interface RunUndoCall extends CallRef {
+  entry: UndoEntry
+}
+
+/** The label of an AI tool call's undo entry, which Edit → Undo shows. */
+export function aiUndoLabel(tool: string): string {
+  return `AI: ${tool}`
+}
+
 export class Run {
   currentSteps = 0
   /** Captured for the message in progress; settings changes apply to the next one. */
@@ -22,10 +32,8 @@ export class Run {
   pageId: string
   /** Each page as it was before the run first edited it, for `diff_changes`. */
   readonly baselines = new Map<string, PageSnapshot>()
-  /** Undo entries the run's edits pushed, oldest first, so its turn can be reverted. */
-  readonly undoEntries: UndoEntry[] = []
-  /** The tool call that pushed each of `undoEntries`, so the chat can tell which were undone. */
-  readonly entryCalls = new Map<UndoEntry, string>()
+  /** Undo entries the run's edits pushed, oldest first, with the calls that pushed them. */
+  readonly undoCalls: RunUndoCall[] = []
   /** The run's own calls the model was told the user undid while the run went on. */
   readonly reportedUndone = new Set<string>()
   /** Tool calls that changed the document, which a stopped reply's transcript reports. */
@@ -211,23 +219,22 @@ export function runBaseline(store: EditorStore, pageId: string): PageSnapshot | 
 export function recordRunUndoEntry(
   store: EditorStore,
   run: Run,
-  call: { label: string; toolCallId: string },
+  call: CallRef,
   previous: UndoEntry | undefined
 ): void {
   const entry = store.undo.peekUndo()
-  if (entry !== previous && entry?.label === call.label && !run.undoEntries.includes(entry)) {
-    run.undoEntries.push(entry)
-    run.entryCalls.set(entry, call.toolCallId)
+  if (
+    entry &&
+    entry !== previous &&
+    entry.label === aiUndoLabel(call.tool) &&
+    !run.undoCalls.some((recorded) => recorded.entry === entry)
+  ) {
+    run.undoCalls.push({ ...call, entry })
   }
 }
 
 export function runUndoEntries(store: EditorStore): readonly UndoEntry[] {
-  return getRunState(store).run.undoEntries
-}
-
-/** The tool that pushed an AI undo entry, from its `AI: <tool>` label. */
-export function entryTool(entry: UndoEntry): string {
-  return entry.label.replace(/^AI: /, '')
+  return getRunState(store).run.undoCalls.map(({ entry }) => entry)
 }
 
 /**
@@ -237,16 +244,13 @@ export function entryTool(entry: UndoEntry): string {
 export function takeRunUndoNote(store: EditorStore, run = currentRun(store)): string {
   const undone: CallRef[] = []
   const redone: CallRef[] = []
-  for (const entry of run.undoEntries) {
-    const toolCallId = run.entryCalls.get(entry)
+  for (const { entry, tool, toolCallId } of run.undoCalls) {
     const state = store.undo.stateOf(entry)
-    if (!toolCallId || state === null) continue
-    const call = { tool: entryTool(entry), toolCallId }
     if (state === 'undone' && !run.reportedUndone.has(toolCallId)) {
-      undone.push(call)
+      undone.push({ tool, toolCallId })
       run.reportedUndone.add(toolCallId)
     } else if (state === 'applied' && run.reportedUndone.has(toolCallId)) {
-      redone.push(call)
+      redone.push({ tool, toolCallId })
       run.reportedUndone.delete(toolCallId)
     }
   }
