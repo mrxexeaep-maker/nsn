@@ -44,7 +44,6 @@ export const automationMessageDefaults = {
   mcpFailureUnknownHint: 'Start it again, or check the diagnostic details below.',
   mcpFailureDetails: 'Details',
   mcpFailureCopy: 'Copy details',
-  mcpFailureCopied: 'Diagnostic details copied.',
   localServer: 'Local server',
   localServerDesktopOnly:
     'The local MCP server runs with the OpenPencil desktop app. In the browser, use WebMCP below.',

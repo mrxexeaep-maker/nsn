@@ -89,6 +89,5 @@
   "mcpFailureUnknown": "MCP サーバーを起動できませんでした",
   "mcpFailureUnknownHint": "もう一度起動するか、以下の技術的な詳細を確認してください。",
   "mcpFailureDetails": "詳細",
-  "mcpFailureCopy": "詳細をコピー",
-  "mcpFailureCopied": "技術的な詳細をコピーしました。"
+  "mcpFailureCopy": "詳細をコピー"
 }

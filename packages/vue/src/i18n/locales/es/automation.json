@@ -89,6 +89,5 @@
   "mcpFailureUnknown": "No se pudo iniciar el servidor MCP",
   "mcpFailureUnknownHint": "Vuelve a iniciarlo o revisa los detalles técnicos de abajo.",
   "mcpFailureDetails": "Detalles",
-  "mcpFailureCopy": "Copiar detalles",
-  "mcpFailureCopied": "Detalles técnicos copiados."
+  "mcpFailureCopy": "Copiar detalles"
 }

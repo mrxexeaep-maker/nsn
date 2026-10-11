@@ -9,7 +9,6 @@ import { mcpServerSetupView, type MCPServerSetupState } from '@/app/ai/agents/se
 import { type MCPFailure, type MCPFailureCode } from '@/app/automation/mcp/failure'
 import { mcpServerSetupPrompt, needsMCPInstall } from '@/app/automation/mcp/setup-prompt'
 import { APP_VERSION } from '@/app/runtime/version'
-import { toast } from '@/app/shell/ui'
 import { useSetupProblemMessage } from '@/components/settings/agents/problem'
 import SettingsLink from '@/components/settings/layout/SettingsLink.vue'
 import AppButton from '@/components/ui/button/AppButton.vue'
@@ -41,7 +40,7 @@ const emit = defineEmits<{ install: [] }>()
 const automation = useAutomationMessages()
 const { ai, common } = useI18n()
 const setupProblemMessage = useSetupProblemMessage()
-const { copy } = useClipboard()
+const { copy: copyDetailsText, copied: detailsCopied } = useClipboard({ copiedDuring: 1500 })
 const { copy: copyPrompt, copied: promptCopied } = useClipboard({ copiedDuring: 1500 })
 const detailsOpen = ref(false)
 
@@ -119,10 +118,7 @@ async function copyDetails(): Promise<void> {
     `code=${failure.code}`,
     failure.detail ? `detail=${failure.detail}` : null
   ]).join('\n')
-  // VueUse falls back to a legacy write and never rejects, so awaiting the write
-  // is what keeps the confirmation honest.
-  await copy(payload)
-  toast.info(automation.value.mcpFailureCopied)
+  await copyDetailsText(payload)
 }
 </script>
 
@@ -191,8 +187,11 @@ async function copyDetails(): Promise<void> {
         {{ promptCopied ? common.copied : automation.mcpCopyAgentPrompt }}
       </AppButton>
       <AppButton size="xs" variant="outline" @click="copyDetails">
-        <template #leading><icon-lucide-copy class="size-3" /></template>
-        {{ automation.mcpFailureCopy }}
+        <template #leading>
+          <icon-lucide-check v-if="detailsCopied" class="size-3" />
+          <icon-lucide-copy v-else class="size-3" />
+        </template>
+        {{ detailsCopied ? common.copied : automation.mcpFailureCopy }}
       </AppButton>
     </template>
   </AppAlert>

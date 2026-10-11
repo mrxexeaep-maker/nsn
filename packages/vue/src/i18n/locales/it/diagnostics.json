@@ -28,7 +28,6 @@
   "clear": "Cancella",
   "clearDescription": "Questa operazione rimuove da questo dispositivo gli eventi diagnostici archiviati localmente.",
   "cleared": "Diagnostica cancellata.",
-  "copied": "Diagnostica copiata negli appunti.",
   "copyFailed": "Impossibile copiare la diagnostica negli appunti.",
   "retentionCustom": "Personalizzato…",
   "retentionRange": "Inserisci un numero intero da {min} a {max}.",

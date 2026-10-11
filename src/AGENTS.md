@@ -76,7 +76,7 @@ The supported browser baseline lives in `src/app/shell/support/baseline.ts` and 
 ### Feedback and forms
 
 - `AppAlert` (`src/components/ui/feedback/AppAlert.vue`, theme `src/theme/feedback/alert.ts`) for persistent contextual errors, warnings, recovery guidance, and informative results, with translated `heading`/`description` and an `actions` slot. Do not hand-roll alert markup or colored error paragraphs. Alerts announce changes without taking keyboard focus.
-- The toast service is for transient confirmations such as copying or completing an action after its view closes. Never show a toast and an alert for the same event; partial saves and actionable failures must not disappear in a toast.
+- The toast service is for transient confirmations without a visible control to carry them, such as a copy from a menu or shortcut, or an action completed after its view closes. A copy button confirms in place instead: a leading copy icon that turns into a check and the label `common.copied` (`src/components/ui/input/AppCopyField.vue`). Never show a toast and an alert for the same event; partial saves and actionable failures must not disappear in a toast.
 - Field validation stays inline in the shared field component with `aria-invalid`, error text before hints, and first-invalid-field focus.
 - Ordinary labels such as Running/Stopped remain status text or badges. Destructive confirmation belongs in the shared confirmation dialog.
 
