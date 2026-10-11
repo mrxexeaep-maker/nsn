@@ -10,6 +10,7 @@ import SettingsLink from '@/components/settings/layout/SettingsLink.vue'
 import SettingsRow from '@/components/settings/layout/SettingsRow.vue'
 import SettingsSection from '@/components/settings/layout/SettingsSection.vue'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
+import AppStatus from '@/components/ui/feedback/AppStatus.vue'
 import AppSelect from '@/components/ui/select/AppSelect.vue'
 import { WEBMCP_DOCS_URL } from '@/constants'
 
@@ -44,6 +45,9 @@ const detail = computed(() => {
   if (state.status === 'ready') return `${automation.value.tools}: ${state.toolCount}`
   return undefined
 })
+const statusTone = computed(() =>
+  state.status === 'ready' ? 'success' : state.status === 'starting' ? 'pending' : 'neutral'
+)
 /** Unsupported or failed WebMCP is a problem to fix, not a status to read. */
 const problem = computed(() => state.status === 'unsupported' || state.status === 'error')
 const status = computed(
@@ -70,7 +74,7 @@ const status = computed(
         <AppSelect v-model="mode" :options="options" :label="automation.browserAccess" />
       </SettingsRow>
       <SettingsRow v-if="!problem" :label="automation.status" :description="detail">
-        <span class="text-xs text-surface" role="status">{{ status }}</span>
+        <AppStatus :tone="statusTone">{{ status }}</AppStatus>
       </SettingsRow>
     </SettingsGroup>
     <AppAlert v-if="problem" :tone="tone" :heading="status" :description="detail" />

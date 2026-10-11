@@ -25,6 +25,7 @@ import SettingsRow from '@/components/settings/layout/SettingsRow.vue'
 import SettingsSection from '@/components/settings/layout/SettingsSection.vue'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
+import AppStatus from '@/components/ui/feedback/AppStatus.vue'
 import AppCopyField from '@/components/ui/input/AppCopyField.vue'
 import AppSwitch from '@/components/ui/toggle/AppSwitch.vue'
 import { DESKTOP_DOWNLOAD_URL, MCP_SERVER_DOCS_URL } from '@/constants'
@@ -46,6 +47,18 @@ const statusMessage = computed(
       stopped: automation.value.statusStopped,
       error: automation.value.statusError
     })[mcpRuntime.status]
+)
+const statusTone = computed(
+  () =>
+    (
+      ({
+        idle: 'neutral',
+        starting: 'pending',
+        running: 'success',
+        stopped: 'neutral',
+        error: 'error'
+      }) as const
+    )[mcpRuntime.status]
 )
 const { restart, chooseRootDirectory } = useMCPSettings()
 // Checked only while the failure is one an install fixes.
@@ -80,7 +93,7 @@ const serverSetup = useMCPServerSetup(() =>
     <template v-else>
       <SettingsGroup>
         <SettingsRow :label="automation.status">
-          <span class="text-xs text-surface" role="status">{{ statusMessage }}</span>
+          <AppStatus :tone="statusTone">{{ statusMessage }}</AppStatus>
         </SettingsRow>
         <SettingsRow :label="automation.address">
           <!-- Below the label on one line, so a long address truncates instead of overflowing. -->
