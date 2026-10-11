@@ -16,6 +16,7 @@ import {
 import { resolveNodeTextDirection } from '@open-pencil/scene-graph/text-direction'
 
 import { TextLayout, type TextLayoutBlock, type TextLayoutMarker } from '#core/canvas/text/layout'
+import type { LineHeightRun, TextLayoutBlockLines } from '#core/canvas/text/layout/lines'
 import type { ParagraphBuildOptions } from '#core/canvas/text/paint'
 import {
   buildSkParagraph,
@@ -56,6 +57,68 @@ function sliceStyleRuns(runs: readonly StyleRun[], start: number, end: number): 
     if (to > from) sliced.push({ start: from - start, length: to - from, style: run.style })
   }
   return sliced
+}
+
+/** Line heights by paragraph index, `lead` places before the text: each run's, the text's elsewhere. */
+function lineHeightRuns(node: ParagraphNode, lead: number): LineHeightRun[] {
+  const own = node.lineHeight || null
+  const runs: LineHeightRun[] = []
+  let position = 0
+  for (const run of node.styleRuns) {
+    if (position < run.start) runs.push({ start: position, end: run.start, lineHeight: own })
+    const lineHeight = run.style.lineHeight !== undefined ? run.style.lineHeight || null : own
+    runs.push({ start: run.start, end: run.start + run.length, lineHeight })
+    position = run.start + run.length
+  }
+  if (position < node.text.length) {
+    runs.push({ start: position, end: node.text.length, lineHeight: own })
+  }
+  return runs.map((run) => ({ ...run, start: run.start + lead, end: run.end + lead }))
+}
+
+/**
+ * What placing a paragraph's lines as Figma does needs: its line heights, and its lines laid
+ * out one by one from `node`'s text, the first after its indent and the last truncated as the
+ * paragraph is.
+ */
+function paragraphLines(
+  r: TextRenderer,
+  node: ParagraphNode,
+  color: Float32Array | undefined,
+  options: ParagraphBuildOptions,
+  firstLineIndent = 0
+): TextLayoutBlockLines | undefined {
+  // Lines are cut by character index, which the text's case must keep.
+  if (transformTextCase(node.text, node.textCase).length !== node.text.length) return undefined
+  const lead = firstLineIndent > 0 ? 1 : 0
+  const ellipsis = buildTruncateOpts(node, node.fontSize || DEFAULT_FONT_SIZE).ellipsis
+  // A justified line is stretched only with text after it: it is laid out with the rest of the
+  // paragraph, cut to one line, as a truncated last line is.
+  const justified = node.textAlignHorizontal === 'JUSTIFIED'
+  const lineTruncation = (truncated: boolean) => {
+    if (truncated) return { maxLines: 1, ellipsis }
+    return justified ? { maxLines: 1 } : {}
+  }
+  return {
+    heights: lineHeightRuns(node, lead),
+    // A trimmed edge is laid out by where it stands in the paragraph.
+    build:
+      node.leadingTrim === 'CAP_HEIGHT'
+        ? undefined
+        : (start, end, truncated) => {
+            const from = Math.max(0, start - lead)
+            const to = justified ? node.text.length : end - lead
+            const line: ParagraphNode = {
+              ...node,
+              text: node.text.slice(from, to),
+              styleRuns: sliceStyleRuns(node.styleRuns, from, to)
+            }
+            return buildSkParagraph(r, line, color, options, {
+              firstLineIndent: start === 0 ? firstLineIndent : 0,
+              truncation: lineTruncation(truncated)
+            })
+          }
+  }
 }
 
 /** Whether the text lays out paragraph by paragraph rather than as one native paragraph. */
@@ -223,6 +286,7 @@ function buildBlocks(
           ? 0
           : paragraphSpacingAt(node, index - 1, betweenItems ? 'listSpacing' : 'paragraphSpacing'),
       marker,
+      lines: paragraphLines(r, blockNode, color, options, firstLineIndent),
       x: 0,
       y: 0,
       visible: true
@@ -283,7 +347,8 @@ export function buildParagraph(
     : TextLayout.ofParagraph(
         r.ck,
         buildSkParagraph(r, node, color, options),
-        transformTextCase(node.text, node.textCase).length
+        transformTextCase(node.text, node.textCase).length,
+        paragraphLines(r, node, color, options)
       )
   try {
     layoutForNode(layout, node)
