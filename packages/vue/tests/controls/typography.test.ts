@@ -13,8 +13,11 @@ function setup() {
   const first = editor.graph.createNode('TEXT', page, { name: 'First', text: 'a' })
   const second = editor.graph.createNode('TEXT', page, { name: 'Second', text: 'b' })
   const selection = shallowRef<SceneNode[]>([first])
-  let finishLoading = () => {}
-  const loading = new Promise<void>((resolve) => (finishLoading = resolve))
+  let resolveLoading: (() => void) | undefined
+  const loading = new Promise<void>((resolve) => {
+    resolveLoading = resolve
+  })
+  const finishLoading = () => resolveLoading?.()
   const actions = createTypographyActions({
     editor,
     nodes: computed(() => selection.value),
