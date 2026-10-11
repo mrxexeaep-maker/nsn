@@ -177,6 +177,7 @@
 
 ### Fixed
 
+- Text that mixes font sizes keeps its auto line height when a `.fig` file OpenPencil saved is reopened. Every line took the height of the first, which pushed later lines down and cut them off.
 - Dragging a number field in the properties panel moves its value in whole steps instead of fractions on high-density screens.
 - While text is being edited, its caret and selection follow a property dragged in the panel instead of catching up when the mouse is released.
 - Outline text, flatten, and boolean operations on text place glyphs where the canvas draws them; lines sat lower by about a quarter of the font size.
