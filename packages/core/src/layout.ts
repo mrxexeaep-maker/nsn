@@ -106,7 +106,7 @@ export function layoutAuthoredNodes(graph: SceneGraph, rootIds: Iterable<string>
   for (const id of roots) {
     sizeAutoResizingText(graph, id)
     const page = graph.pageOf(id)
-    if (page) pageIds.add(page)
+    if (page !== null) pageIds.add(page)
     else outsidePages = true
   }
   const layout = () => {

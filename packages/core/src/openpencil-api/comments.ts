@@ -50,7 +50,7 @@ function author(name: string | undefined): CommentAuthor {
 
 function pageOf(graph: SceneGraph, nodeId: string): string {
   const page = graph.pageOf(nodeId)
-  if (!page) throw new Error(`${graph.getNode(nodeId)?.name ?? nodeId} is not on a page`)
+  if (page === null) throw new Error(`${graph.getNode(nodeId)?.name ?? nodeId} is not on a page`)
   return page
 }
 
