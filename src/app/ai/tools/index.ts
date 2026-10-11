@@ -1,6 +1,6 @@
 import { tool } from 'ai'
 
-import { graphFromPageSnapshot, isEmptyPageChange } from '@open-pencil/core/editor'
+import { graphFromPageSnapshot, isEmptyDocumentChange } from '@open-pencil/core/editor'
 import type { FigmaAPI } from '@open-pencil/core/figma-api'
 import {
   registerComponentCatalog,
@@ -21,6 +21,8 @@ import { aiToolDefinitions } from './catalog'
 import { recordToolChange } from './changes/capture'
 import { createMutex } from './mutex'
 import {
+  currentRun,
+  markRunChange,
   markRunWork,
   moveRunToPage,
   recordRunBaseline,
@@ -31,6 +33,7 @@ import {
 } from './run'
 
 export {
+  currentRun,
   didHitStepLimit,
   endRun,
   markRunPreview,
@@ -80,29 +83,38 @@ export function createAITools(store: EditorStore, diagnosticContext?: AIDiagnost
       executeTool: async (def, figma, args, { toolCallId }) => {
         const pageId = figma.currentPageId
         if (!def.mutates) return def.execute(figma, args)
+        // The call belongs to the reply that made it, even if a later one starts meanwhile.
+        const run = currentRun(store)
         // A step's calls may run concurrently; whole-page snapshots must not interleave.
         const release = await acquireMutation()
+        // Stopped while waiting for its turn: the reply is over, so nothing more is edited.
+        if (!run.active) {
+          release()
+          return { error: 'Stopped before this call ran; nothing was changed.' }
+        }
+        run.beginTool()
         // The run's first edit to a page keeps the whole page, which `changeBaseline` diffs.
-        if (toolChangesDocument(def) && !runBaseline(store, pageId)) {
-          recordRunBaseline(store, store.snapshotPage(pageId))
+        if (toolChangesDocument(def) && !run.baselines.has(pageId)) {
+          recordRunBaseline(run, store.snapshotPage(pageId))
         }
         const undoBefore = store.undo.peekUndo()
-        const finishChange = store.capturePageChange(pageId)
+        const finishChange = store.captureDocumentChange(pageId)
         try {
           return await runTool(def, figma, args, pageId)
         } finally {
           const change = finishChange()
+          if (!isEmptyDocumentChange(change)) run.changedCalls.add(toolCallId)
           // Atomic tools record their own undo entry; an edit that changed nothing records none.
-          if (!isAtomicTool(def) && !isEmptyPageChange(change)) {
-            store.pushUndoEntry({
+          if (!isAtomicTool(def) && !isEmptyDocumentChange(change)) {
+            store.pushUndoStep({
               label: `AI: ${def.name}`,
-              forward: () => store.restorePageChange(change, 'after'),
-              inverse: () => store.restorePageChange(change, 'before')
+              forward: () => store.restoreDocumentChange(change, 'after'),
+              inverse: () => store.restoreDocumentChange(change, 'before')
             })
           }
           // Every entry the run pushes belongs to its turn; atomic and page edits both label
           // their entries this way. View tools change nothing on the page and push none.
-          recordRunUndoEntry(store, `AI: ${def.name}`, undoBefore)
+          recordRunUndoEntry(store, run, `AI: ${def.name}`, undoBefore)
           // View tools (selection, viewport, pages) cannot change the document.
           if (toolChangesDocument(def)) {
             try {
@@ -111,12 +123,18 @@ export function createAITools(store: EditorStore, diagnosticContext?: AIDiagnost
               // The change record is a review aid; the edit and its undo entry already stand.
               console.warn('Could not record AI tool change', error)
             }
+            // The agent shows where it edited, even on another page; layers the result names
+            // refine this once the call returns.
+            markRunChange(store, change)
           }
           try {
             // `switch_page` moves the run, and the user's view with it.
-            if (figma.currentPageId !== pageId) await moveRunToPage(store, figma.currentPageId)
+            if (figma.currentPageId !== pageId) {
+              await moveRunToPage(store, run, figma.currentPageId)
+            }
           } finally {
             release()
+            run.endTool()
           }
         }
       },

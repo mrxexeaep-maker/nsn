@@ -233,6 +233,8 @@ describe('text preparation cache', () => {
         textDecorationFills: [
           { type: 'SOLID', color: { r: 1, g: 0, b: 0, a: 1 }, opacity: 1, visible: true }
         ],
+        textDecorationSkipInk: false,
+        textUnderlineOffset: 4,
         textTruncation: 'ENDING',
         maxLines: 2,
         textParagraphs: [{ listType: 'UNORDERED', indentation: 1 }],

@@ -182,6 +182,7 @@ describe('@open-pencil/fig SceneGraph export policy', () => {
     })
     const blobs: Uint8Array[] = []
     const runtime: FigNodeChangeExportRuntime = {
+      textDecorations: () => [],
       shapeText: () => ({
         glyphs: [
           {
