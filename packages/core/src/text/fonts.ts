@@ -5,6 +5,7 @@ import type { CanvasKit, TypefaceFontProvider } from 'canvaskit-wasm'
 import type { FontVariation, SceneGraph } from '@open-pencil/scene-graph'
 
 import { DEFAULT_FONT_FAMILY, IS_BROWSER } from '#core/constants'
+import { facesFromStyles, hasFamilyFace, type FamilyFace } from '#core/text/font/faces'
 import {
   chooseLocalFontMatch,
   normalizeFontFamily,
@@ -57,6 +58,9 @@ export class FontManager {
   private registrationGeneration = 0
   private providerRegistrations = new WeakMap<TypefaceFontProvider, Map<string, Set<ArrayBuffer>>>()
   private localFonts: FontInfo[] | null = null
+  private hostStyles = new Map<string, readonly string[]>()
+  private familyFaceLoads = new Map<string, Promise<FamilyFace[] | null>>()
+  private knownFamilyFaces = new Map<string, FamilyFace[] | null>()
   private localFontAccessState: LocalFontAccessState = IS_BROWSER ? 'prompt' : 'unsupported'
   private downloadedFontCache: DownloadedFontCache | null = null
   private fallbackUserAgent: string | undefined
@@ -144,6 +148,59 @@ export class FontManager {
 
   setOnlineFontProviders(settings: Partial<Record<WebFontProviderId, boolean>>): void {
     this.webFonts.setEnabled(settings)
+    this.forgetFamilyFaces()
+  }
+
+  /** The system fonts a desktop host lists, by family, with the style names of their faces. */
+  setHostFontCatalog(fonts: readonly { family: string; styles: readonly string[] }[]): void {
+    this.hostStyles = new Map(fonts.map((font) => [font.family, [...font.styles]]))
+    this.forgetFamilyFaces()
+  }
+
+  /**
+   * The faces a family has: its installed fonts', else a web provider's, else the bundled ones;
+   * `null` when nothing says, so a caller offers every weight.
+   */
+  familyFaces(family: string): Promise<FamilyFace[] | null> {
+    let load = this.familyFaceLoads.get(family)
+    if (!load) {
+      load = this.loadFamilyFaces(family).then((faces) => {
+        this.knownFamilyFaces.set(family, faces)
+        return faces
+      })
+      this.familyFaceLoads.set(family, load)
+    }
+    return load
+  }
+
+  /** The faces `familyFaces` found for a family, once it has; `undefined` before. */
+  loadedFamilyFaces(family: string): FamilyFace[] | null | undefined {
+    return this.knownFamilyFaces.get(family)
+  }
+
+  /** Whether a family has this face, or nothing found so far says it has not. */
+  offersFace(family: string, weight: number, italic: boolean): boolean {
+    const faces = this.knownFamilyFaces.get(family)
+    return !faces || hasFamilyFace(faces, weight, italic)
+  }
+
+  private async loadFamilyFaces(family: string): Promise<FamilyFace[] | null> {
+    const installed =
+      this.hostStyles.get(family) ??
+      this.localFonts?.filter((font) => font.family === family).map((font) => font.style) ??
+      []
+    if (installed.length > 0) return facesFromStyles(installed)
+    const web = await this.webFonts.familyFaces(family)
+    if (web.length > 0) return web
+    const bundled = Object.keys(BUNDLED_FONTS)
+      .filter((key) => key.startsWith(`${family}|`))
+      .map((key) => key.slice(family.length + 1))
+    return bundled.length > 0 ? facesFromStyles(bundled) : null
+  }
+
+  private forgetFamilyFaces(): void {
+    this.familyFaceLoads.clear()
+    this.knownFamilyFaces.clear()
   }
 
   setWebFontFetch(fetcher: WebFontFetch | null): void {
@@ -195,6 +252,7 @@ export class FontManager {
       }
       this.localFonts = result
       this.localFontAccessState = 'granted'
+      this.forgetFamilyFaces()
       return result
     } catch {
       this.localFonts = []

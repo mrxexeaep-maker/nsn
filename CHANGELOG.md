@@ -4,6 +4,7 @@
 
 ### Breaking changes
 
+- `useTypography().weights` and the `weights` slot prop of `TypographyControlsRoot` in `@open-pencil/vue` are a computed list of the weights the selected layers' families have, instead of a fixed list of all nine, so read them with `.value`.
 - In scripts, a text node's `fontSize`, `fontName`, `fontWeight`, `fills`, `letterSpacing`, `lineHeight`, and `textDecoration` read `figma.mixed` while its characters differ, as in Figma, instead of the text's first value, and setting one restyles every character instead of only characters without a style of their own. `fills` is typed `readonly Fill[] | symbol`, so scripts that index it narrow it first.
 - `SceneNode` from `@open-pencil/scene-graph` has `textParagraphs`, `listSpacing`, `paragraphSpacing`, `paragraphIndent`, and `hangingList`, so code that builds `SceneNode` objects itself must include them. `SkiaRenderer.buildParagraph` returns a `TextLayout`, which answers the `Paragraph` queries the renderer and text editor use for the whole text and draws with `draw(canvas, x, y)`, instead of a CanvasKit `Paragraph`.
 - `AUTO_LAYOUT_BREAK_THRESHOLD` is removed from `@open-pencil/core/constants`: a layer dragged out of auto layout now leaves by how far its own edge is past the frame, not by a cursor margin.
@@ -130,6 +131,7 @@
 - Customize the toolbar in **Settings → Toolbar**, also opened from **Customize toolbar…** when you right-click it: hide tools, reorder them, and choose which share a flyout, on desktop and mobile alike. Hidden tools keep their shortcuts, **Move** always stays, and tools added in later versions join their default flyout in a customized toolbar.
 ### Changed
 
+- The font weight list offers only the weights the text's family has, as Figma's style list does, read from installed fonts and web font providers; a family whose faces cannot be read still offers all nine. Switching family keeps the weight and italic where the new family has them, otherwise takes the nearest weight with the same slant, so Inter Black becomes Lora Bold, and Bold and Italic toggles leave text alone when its family has no such face.
 - The plugin API refuses to move, rotate, constrain, or mask a layer an instance takes from its component, with Figma's errors, such as `in set_x: This property cannot be overridden in an instance: relative-transform`. Those fields always follow the component. Slot content stays editable, and editing a slot's default content makes the instance own it, as in Figma.
 - A layer dragged out of an auto layout frame leaves it as in Figma, once its edge is 5 px past the frame across the flow or about 15 px along it, instead of after the cursor travels 96 px beyond it.
 - Bound variables show as a neutral chip in the properties panel instead of purple text, so they no longer read as components.
@@ -183,6 +185,7 @@
 
 ### Fixed
 
+- Searching the font picker lists the family the search names first, then families that begin with it, as Figma does: "Lora" puts Lora above Explora.
 - Instances opened from a `.fig` file keep the style overrides Figma gives them, such as corner radius, stroke weight and alignment, line height, letter spacing, font, effects, and fill, stroke, and effect styles. Editing their component used to overwrite them on the canvas while the saved file kept them, and a later edit to one of these fields in the instance was not saved. Text edited in an instance is saved with its styled ranges and list lines, as Figma writes it; saving kept only its characters.
 - A component edit reaches every field its instances do not override, as in Figma: stroke weight, alignment, caps, joins, and dashes, corner smoothing, blend mode, layout grids, letter spacing, line height, text case, decoration, alignment, truncation, styled ranges, and the position, rotation, and flips of layers outside auto layout. Such a layer is placed by its constraints when the instance has another size than its component.
 - Crash recovery, chat history, diagnostics, local files, libraries, saved credentials, and the sync outbox keep saving after Safari suspends the tab. Safari closes their IndexedDB connections without telling the page, and every later write failed with "The database connection is closing" until the page was reloaded.

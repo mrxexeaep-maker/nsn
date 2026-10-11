@@ -1,5 +1,6 @@
 import type { Editor } from '@open-pencil/core/editor'
 import {
+  fontManager,
   toggleBoldInRange,
   toggleDecorationInRange,
   toggleItalicInRange
@@ -14,20 +15,24 @@ export function createTextFormattingActions(store: Editor) {
     store.requestRender()
   }
 
+  // A family without the face the toggle would set is left as it is, as in Figma.
   function toggleBold(node: SceneNode) {
     const editor = store.textEditor
     const range = editor?.getSelectionRange()
     if (range) {
-      const { runs } = toggleBoldInRange(
+      const { runs, newWeight } = toggleBoldInRange(
         node.styleRuns,
         range[0],
         range[1],
         node.fontWeight,
         node.text.length
       )
+      if (!fontManager.offersFace(node.fontFamily, newWeight, node.italic)) return
       applyFormatting(node.id, { styleRuns: runs }, 'Toggle bold')
     } else {
-      applyFormatting(node.id, { fontWeight: node.fontWeight >= 700 ? 400 : 700 }, 'Toggle bold')
+      const fontWeight = node.fontWeight >= 700 ? 400 : 700
+      if (!fontManager.offersFace(node.fontFamily, fontWeight, node.italic)) return
+      applyFormatting(node.id, { fontWeight }, 'Toggle bold')
     }
   }
 
@@ -35,15 +40,17 @@ export function createTextFormattingActions(store: Editor) {
     const editor = store.textEditor
     const range = editor?.getSelectionRange()
     if (range) {
-      const { runs } = toggleItalicInRange(
+      const { runs, newItalic } = toggleItalicInRange(
         node.styleRuns,
         range[0],
         range[1],
         node.italic,
         node.text.length
       )
+      if (!fontManager.offersFace(node.fontFamily, node.fontWeight, newItalic)) return
       applyFormatting(node.id, { styleRuns: runs }, 'Toggle italic')
     } else {
+      if (!fontManager.offersFace(node.fontFamily, node.fontWeight, !node.italic)) return
       applyFormatting(node.id, { italic: !node.italic }, 'Toggle italic')
     }
   }
