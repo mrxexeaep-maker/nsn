@@ -17,7 +17,8 @@ interface UndoBatch {
   coalesceKey?: string
 }
 
-const DEFAULT_HISTORY_LIMIT = 200
+/** How many edits undo keeps by default. */
+export const DEFAULT_HISTORY_LIMIT = 200
 
 export class UndoManager {
   private undoStack: UndoEntry[] = []
@@ -51,6 +52,16 @@ export class UndoManager {
       batch.entries.push(entry)
       return
     }
+    this.pushUndoEntry(entry)
+  }
+
+  /**
+   * Records an entry as a step of its own, outside the batches being built, such as an agent's
+   * edit made while a colour picker is open. Batches settle first, so the step follows the
+   * changes they hold so far.
+   */
+  pushStep(entry: UndoEntry): void {
+    this.settle()
     this.pushUndoEntry(entry)
   }
 
