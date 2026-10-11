@@ -6,7 +6,7 @@ import { resolveParagraphFontFamilies } from '#core/canvas/text/font-families'
 import type { TextLayout, TextLayoutMarker } from '#core/canvas/text/layout'
 import { textFontVariations } from '#core/canvas/text/paragraph'
 import { utf16IndicesByUtf8 } from '#core/canvas/text/utf8'
-import { fontManager, weightToStyle } from '#core/text/fonts'
+import { fontManager, fontWeightMatchOrder, weightToStyle } from '#core/text/fonts'
 import { glyphOutlineSourceSync, type GlyphOutlineSource } from '#core/text/opentype'
 
 type GlyphRun = ReturnType<Paragraph['getShapedLines']>[number]['runs'][number]
@@ -28,26 +28,13 @@ export interface LaidOutGlyph {
   source: GlyphOutlineSource | null
 }
 
-const WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900]
-
-/** Weights in the order CSS font matching tries them for `weight`. */
-function weightsByPreference(weight: number): number[] {
-  const lighter = WEIGHTS.filter((candidate) => candidate < weight).toReversed()
-  const heavier = WEIGHTS.filter((candidate) => candidate > weight)
-  if (weight > 500) return [weight, ...heavier, ...lighter]
-  if (weight < 400) return [weight, ...lighter, ...heavier]
-  // From 400 to 500, the weights up to 500 come first, then lighter ones, then heavier.
-  const upTo500 = heavier.filter((candidate) => candidate <= 500)
-  return [weight, ...upTo500, ...lighter, ...heavier.filter((candidate) => candidate > 500)]
-}
-
 /**
  * The loaded face of a family the paragraph draws a style in: the style itself, or the nearest
  * loaded weight in the same slant, then the other, as font matching picks it.
  */
 function loadedStyle(family: string, weight: number, italic: boolean): string | null {
   for (const slant of [italic, !italic]) {
-    for (const candidate of weightsByPreference(weight)) {
+    for (const candidate of fontWeightMatchOrder(weight)) {
       const style = weightToStyle(candidate, slant)
       if (fontManager.isStyleLoaded(family, style)) return style
     }
