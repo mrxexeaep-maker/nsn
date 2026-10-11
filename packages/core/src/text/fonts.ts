@@ -61,6 +61,7 @@ export class FontManager {
   private hostStyles = new Map<string, readonly string[]>()
   private familyFaceLoads = new Map<string, Promise<FamilyFace[] | null>>()
   private knownFamilyFaces = new Map<string, FamilyFace[] | null>()
+  private familyFacesListeners = new Set<() => void>()
   private localFontAccessState: LocalFontAccessState = IS_BROWSER ? 'prompt' : 'unsupported'
   private downloadedFontCache: DownloadedFontCache | null = null
   private fallbackUserAgent: string | undefined
@@ -164,10 +165,12 @@ export class FontManager {
   familyFaces(family: string): Promise<FamilyFace[] | null> {
     let load = this.familyFaceLoads.get(family)
     if (!load) {
-      load = this.loadFamilyFaces(family).then((faces) => {
-        this.knownFamilyFaces.set(family, faces)
+      const pending = this.loadFamilyFaces(family).then((faces) => {
+        // Faces forgotten while the lookup ran came from the sources it read before.
+        if (this.familyFaceLoads.get(family) === pending) this.knownFamilyFaces.set(family, faces)
         return faces
       })
+      load = pending
       this.familyFaceLoads.set(family, load)
     }
     return load
@@ -182,6 +185,15 @@ export class FontManager {
   offersFace(family: string, weight: number, italic: boolean): boolean {
     const faces = this.knownFamilyFaces.get(family)
     return !faces || hasFamilyFace(faces, weight, italic)
+  }
+
+  /**
+   * Calls the listener whenever the faces found so far are forgotten, as when the host's font
+   * catalog arrives or online providers change, so a caller asks for its families again.
+   */
+  onFamilyFacesReset(listener: () => void): () => void {
+    this.familyFacesListeners.add(listener)
+    return () => this.familyFacesListeners.delete(listener)
   }
 
   private async loadFamilyFaces(family: string): Promise<FamilyFace[] | null> {
@@ -201,6 +213,7 @@ export class FontManager {
   private forgetFamilyFaces(): void {
     this.familyFaceLoads.clear()
     this.knownFamilyFaces.clear()
+    for (const listener of this.familyFacesListeners) listener()
   }
 
   setWebFontFetch(fetcher: WebFontFetch | null): void {

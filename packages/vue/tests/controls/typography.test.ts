@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test'
-import { computed, nextTick, shallowRef } from 'vue'
+
+import { computed, effectScope, nextTick, shallowRef } from 'vue'
 
 import { createEditor } from '@open-pencil/core/editor'
 import { DEFAULT_WEB_FONT_PROVIDER_SETTINGS, fontManager } from '@open-pencil/core/text'
@@ -10,15 +11,25 @@ import { useFamilyFaces } from '#vue/controls/typography/faces'
 
 // The faces Figma lists for these families (desktop 126), given as installed fonts so no test
 // asks a web provider.
-const LORA = ['Regular', 'Medium', 'SemiBold', 'Bold', 'Italic', 'Medium Italic', 'SemiBold Italic', 'Bold Italic']
+const LORA = [
+  'Regular',
+  'Medium',
+  'SemiBold',
+  'Bold',
+  'Italic',
+  'Medium Italic',
+  'SemiBold Italic',
+  'Bold Italic'
+]
 const OSWALD = ['ExtraLight', 'Light', 'Regular', 'Medium', 'SemiBold', 'Bold']
+const CATALOG = [
+  { family: 'Lora', styles: LORA },
+  { family: 'Oswald', styles: OSWALD }
+]
 
 beforeAll(() => {
   fontManager.setOnlineFontProviders({})
-  fontManager.setHostFontCatalog([
-    { family: 'Lora', styles: LORA },
-    { family: 'Oswald', styles: OSWALD }
-  ])
+  fontManager.setHostFontCatalog(CATALOG)
 })
 
 afterAll(() => {
@@ -110,7 +121,10 @@ function styled(...faces: { fontWeight: number; italic?: boolean; fontFamily?: s
     editor.graph.createNode('TEXT', page, { text: 'a', fontFamily: 'Inter', ...face })
   )
   const nodes = computed(() => texts)
-  const { weights, supports } = useFamilyFaces(nodes)
+  const scope = effectScope()
+  const lists = scope.run(() => useFamilyFaces(nodes))
+  if (!lists) throw new Error('Expected family faces')
+  const { weights, supports } = lists
   const actions = createTypographyActions({
     editor,
     nodes,
@@ -118,7 +132,7 @@ function styled(...faces: { fontWeight: number; italic?: boolean; fontFamily?: s
     supports,
     options: {}
   })
-  return { texts, weights, actions }
+  return { texts, weights, actions, stop: () => scope.stop() }
 }
 
 test('a family switch keeps a face the family has, or takes the nearest weight, as in Figma', async () => {
@@ -153,4 +167,17 @@ test('italic does nothing on a family without italics, and bold goes to Bold', a
   actions.toggleBold()
   for (let tick = 0; tick < 5; tick++) await Promise.resolve()
   expect(texts[0].fontWeight).toBe(700)
+})
+
+test('the weight list follows a font catalog that arrives after the first lookup', async () => {
+  const { weights, stop } = styled({ fontWeight: 400, fontFamily: 'Late Sans' })
+  await fontManager.familyFaces('Late Sans')
+  await nextTick()
+  expect(weights.value).toHaveLength(9)
+  fontManager.setHostFontCatalog([...CATALOG, { family: 'Late Sans', styles: ['Regular', 'Bold'] }])
+  await fontManager.familyFaces('Late Sans')
+  await nextTick()
+  expect(weights.value.map((weight) => weight.value)).toEqual([400, 700])
+  stop()
+  fontManager.setHostFontCatalog(CATALOG)
 })
