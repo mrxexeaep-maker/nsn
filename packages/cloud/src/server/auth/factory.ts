@@ -396,6 +396,8 @@ export function createBetterAuthAdapter(
       const page = {
         limit: query?.limit,
         offset: query?.offset,
+        // Better Auth sorts by one field, so accounts created in the same millisecond, such as a
+        // bulk import, can trade places between pages; ordinary sign-ups never collide.
         sortBy: 'createdAt',
         sortDirection: 'asc' as const
       }
