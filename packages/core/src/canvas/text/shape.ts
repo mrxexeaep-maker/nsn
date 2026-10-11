@@ -19,16 +19,12 @@ import { transformTextCase } from '#core/text/case'
 import { fontManager } from '#core/text/fonts'
 
 /**
- * Whether saved glyphs could stand for this text: truncation and case changes that alter its
- * length move glyphs off the characters they came from, and path text is placed along its path.
+ * Whether saved glyphs could stand for this text: case changes that alter its length move
+ * glyphs off the characters they came from, and path text is placed along its path. Truncated
+ * text saves the characters it shows and the ellipsis after them.
  */
 function canShape(node: SceneNode, text: string): boolean {
-  return (
-    node.text.length > 0 &&
-    node.textTruncation !== 'ENDING' &&
-    text.length === node.text.length &&
-    !node.textPathData
-  )
+  return node.text.length > 0 && text.length === node.text.length && !node.textPathData
 }
 
 /** Characters inside a glyph cluster or without a glyph take the offset of the one before. */
