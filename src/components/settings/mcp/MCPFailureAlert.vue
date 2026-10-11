@@ -3,17 +3,20 @@ import { useClipboard } from '@vueuse/core'
 import { compact } from 'es-toolkit/array'
 import { computed, ref } from 'vue'
 
-import { useAutomationMessages } from '@open-pencil/vue'
+import { useAutomationMessages, useI18n } from '@open-pencil/vue'
 
 import {
+  MCP_INSTALL_COMMAND,
   MCP_INSTALL_TARGET,
   type MCPFailure,
   type MCPFailureCode
 } from '@/app/automation/mcp/failure'
+import { mcpServerSetupPrompt, needsMCPInstall } from '@/app/automation/mcp/setup-prompt'
 import { toast } from '@/app/shell/ui'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import AppCollapsible from '@/components/ui/collapsible/AppCollapsible.vue'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
+import AppCopyField from '@/components/ui/input/AppCopyField.vue'
 
 const {
   failure,
@@ -27,8 +30,11 @@ const {
 const emit = defineEmits<{ restart: [] }>()
 
 const automation = useAutomationMessages()
+const { common } = useI18n()
 const { copy } = useClipboard()
+const { copy: copyPrompt, copied: promptCopied } = useClipboard({ copiedDuring: 1500 })
 const detailsOpen = ref(false)
+const install = computed(() => needsMCPInstall(failure))
 
 /** Translated copy for each reason; the technical detail stays secondary. */
 const copy$ = computed(() => {
@@ -36,7 +42,14 @@ const copy$ = computed(() => {
   const map: Record<MCPFailureCode, { heading: string; description: string }> = {
     'not-installed': {
       heading: messages.mcpFailureNotInstalled,
-      description: messages.mcpFailureNotInstalledHint({ package: MCP_INSTALL_TARGET })
+      description: messages.mcpFailureNotInstalledHint
+    },
+    outdated: {
+      heading: messages.mcpFailureOutdated,
+      description: messages.mcpFailureOutdatedHint({
+        running: failure.detail ? `v${failure.detail}` : 'an older version',
+        package: MCP_INSTALL_TARGET
+      })
     },
     'permission-denied': {
       heading: messages.mcpFailurePermission,
@@ -67,7 +80,11 @@ const copy$ = computed(() => {
  * Reasons whose cause already appears in the guidance, so repeating the same
  * value under Details would only add noise.
  */
-const EXPLAINED_REASONS: ReadonlySet<MCPFailureCode> = new Set(['rejected', 'unreachable'])
+const EXPLAINED_REASONS: ReadonlySet<MCPFailureCode> = new Set([
+  'outdated',
+  'rejected',
+  'unreachable'
+])
 
 const detail = computed(() =>
   EXPLAINED_REASONS.has(failure.code) ? null : failure.detail?.trim() || null
@@ -92,8 +109,16 @@ async function copyDetails(): Promise<void> {
     :description="copy$.description"
     data-test-id="settings-mcp-failure"
   >
-    <template v-if="detail" #details>
+    <template v-if="install || detail" #details>
+      <AppCopyField
+        v-if="install"
+        :value="MCP_INSTALL_COMMAND"
+        :copy-label="common.copy"
+        :copied-label="common.copied"
+        data-test-id="settings-mcp-install-command"
+      />
       <AppCollapsible
+        v-if="detail"
         v-model:open="detailsOpen"
         :label="automation.mcpFailureDetails"
         :ui="{ trigger: 'text-muted hover:text-surface', content: 'mt-1' }"
@@ -106,6 +131,17 @@ async function copyDetails(): Promise<void> {
       </AppCollapsible>
     </template>
     <template #actions>
+      <AppButton
+        v-if="install"
+        size="xs"
+        color="primary"
+        variant="solid"
+        data-test-id="settings-mcp-copy-agent-prompt"
+        @click="copyPrompt(mcpServerSetupPrompt(failure))"
+      >
+        <template #leading><icon-lucide-clipboard-copy class="size-3" /></template>
+        {{ promptCopied ? common.copied : automation.mcpCopyAgentPrompt }}
+      </AppButton>
       <AppButton size="xs" variant="outline" @click="copyDetails">{{
         automation.mcpFailureCopy
       }}</AppButton>

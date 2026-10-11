@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- When the desktop app cannot start the MCP server because it is missing or does not match the app, Settings → MCP explains why the server installs separately, shows the install command for this version of the app instead of the old server's version, and copies a setup prompt to paste into your agent.
+
 ## 0.16.0-beta.1 — 2026-10-11
 
 This is a pre-release: npm packages are published under the `next` tag, and installed apps on the stable release do not update to it. Linux package managers see `0.16.0-beta.1` as newer than `0.16.0`, so `.deb` and `.rpm` users should remove the beta before installing the final 0.16.0.

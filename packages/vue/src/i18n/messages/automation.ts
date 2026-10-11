@@ -16,9 +16,13 @@ export const automationMessageDefaults = {
   aiToolsNotice:
     'Changes apply to your next message. Tool switches are not a sandbox: enabled script tools can still perform other design operations.',
   mcpFailureNotInstalled: 'MCP automation is not installed',
-  mcpFailureNotInstalledHint: params(
-    'Install {package} globally with your package manager, then restart OpenPencil.'
+  mcpFailureNotInstalledHint:
+    'Agents reach OpenPencil through this local server. It runs on Node.js and installs separately from npm, so the app does not ship its own JavaScript runtime. Run the command below, or copy the prompt for your agent.',
+  mcpFailureOutdated: 'MCP server does not match this version of OpenPencil',
+  mcpFailureOutdatedHint: params(
+    'The installed server is {running} and this app needs {package}. It installs separately from npm, so it does not update with the app. Run the command below, or copy the prompt for your agent.'
   ),
+  mcpCopyAgentPrompt: 'Copy prompt for your agent',
   mcpFailurePermission: 'OpenPencil cannot start the MCP server',
   mcpFailurePermissionHint:
     'The system denied the command. Reinstall OpenPencil with its shell permissions, or start the server manually.',

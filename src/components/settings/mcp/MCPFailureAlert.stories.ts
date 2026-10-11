@@ -13,6 +13,7 @@ const reasons: Record<MCPFailureCode, MCPFailure> = {
     code: 'not-installed',
     detail: '/opt/homebrew/bin, /usr/local/bin, /Users/you/.bun/bin'
   },
+  outdated: { code: 'outdated', detail: '0.15.1' },
   'permission-denied': {
     code: 'permission-denied',
     detail: 'shell command openpencil-mcp-http not allowed by ACL'
@@ -51,6 +52,19 @@ type Story = StoryObj<typeof meta>
 
 export const StartupTimeout: Story = {}
 export const NotInstalled: Story = { args: { failure: reasons['not-installed'] } }
+
+/** An older global install: the guidance names both versions and offers the agent prompt. */
+export const Outdated: Story = {
+  args: { failure: reasons.outdated },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByText(/The installed server is v0\.15\.1/)).toBeVisible()
+    await expect(canvas.getByTestId('settings-mcp-install-command')).toBeVisible()
+    await expect(canvas.getByRole('button', { name: 'Copy prompt for your agent' })).toBeVisible()
+    // The running version is already in the guidance, so it is not repeated under Details.
+    await expect(canvas.queryByRole('button', { name: 'Details' })).toBeNull()
+  }
+}
 export const RejectedToken: Story = { args: { failure: reasons.rejected } }
 export const Unreachable: Story = { args: { failure: reasons.unreachable } }
 export const InternallyManaged: Story = { args: { restarting: true } }

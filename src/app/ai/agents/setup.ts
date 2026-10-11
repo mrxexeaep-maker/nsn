@@ -2,8 +2,8 @@ import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
 
 import type { ACPAgentDef } from '@open-pencil/core/constants'
 
-import { MCP_INSTALL_COMMAND } from '@/app/ai/acp/setup-prompt'
 import { readPiAccount } from '@/app/ai/harness/pi-settings'
+import { MCP_INSTALL_COMMAND } from '@/app/automation/mcp/failure'
 
 import { agentDiscovery, type DetectedAgent, type DiscoveryError } from './discovery'
 

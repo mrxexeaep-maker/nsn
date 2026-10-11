@@ -11,6 +11,9 @@ export const MCP_PACKAGE_NAME = '@open-pencil/mcp'
 /** Exact package spec a user should install to match this app. */
 export const MCP_INSTALL_TARGET = `${MCP_PACKAGE_NAME}@${APP_VERSION}`
 
+/** Installs OpenPencil's MCP server at the version that matches the app. */
+export const MCP_INSTALL_COMMAND = `npm i -g ${MCP_INSTALL_TARGET}`
+
 /**
  * Why the local MCP server is unavailable.
  *
@@ -19,6 +22,7 @@ export const MCP_INSTALL_TARGET = `${MCP_PACKAGE_NAME}@${APP_VERSION}`
  */
 export type MCPFailureCode =
   | 'not-installed'
+  | 'outdated'
   | 'permission-denied'
   | 'exited'
   | 'timeout'
@@ -29,7 +33,10 @@ export type MCPFailureCode =
 
 export interface MCPFailure {
   code: MCPFailureCode
-  /** Technical detail such as captured stderr or an HTTP status. Never translated. */
+  /**
+   * Technical detail such as captured stderr or an HTTP status, or the running server's version
+   * for `outdated`. Never translated.
+   */
   detail?: string
 }
 
