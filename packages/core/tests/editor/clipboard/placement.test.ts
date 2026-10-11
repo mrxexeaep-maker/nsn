@@ -368,4 +368,68 @@ describe('paste orientation', () => {
       expect(await pasteInto(await copy(box.id), target.id)).toMatchObject(expected)
     }
   })
+
+  /** Copies layers together and pastes them into a frame, giving their places in it. */
+  async function pasteTogether(layers: SceneNode[], targetId: string) {
+    editor.select(layers.map((layer) => layer.id))
+    const { snapshot } = await editor.prepareCopy()
+    if (!snapshot) throw new Error('Missing snapshot')
+    editor.select([targetId])
+    await editor.pasteSnapshot(snapshot)
+    return [...editor.state.selectedIds].map((id) => {
+      const pasted = editor.graph.getNode(id)
+      return pasted && [pasted.x, pasted.y]
+    })
+  }
+
+  test('layers from one frame move as a block, to the top-left when larger than the frame', async () => {
+    const page = wideSetup()
+    const source = node('FRAME', page, { x: 1500, y: 100, width: 300, height: 200 })
+    const target = node('FRAME', page, { x: 2000, y: 100, width: 120, height: 80 })
+    const at = (x: number, y: number, height = 20) =>
+      node('RECTANGLE', source.id, { x, y, width: 30, height })
+    // The block starts inside, so it stays.
+    expect(await pasteTogether([at(20, 10), at(200, 10)], target.id)).toEqual([
+      [20, 10],
+      [200, 10]
+    ])
+    // Past the right edge and fitting: centred across only.
+    expect(await pasteTogether([at(200, 10), at(250, 10)], target.id)).toEqual([
+      [20, 10],
+      [70, 10]
+    ])
+    // Past the right edge and taller than the frame: to its top-left.
+    expect(await pasteTogether([at(200, 10), at(200, 150)], target.id)).toEqual([
+      [0, 0],
+      [0, 140]
+    ])
+    expect(await pasteTogether([at(200, 10, 160)], target.id)).toEqual([[0, 0]])
+    const wide = node('RECTANGLE', source.id, { x: 60, y: 100, width: 200, height: 20 })
+    expect(await pasteTogether([wide], target.id)).toEqual([[0, 0]])
+  })
+
+  test('a top-level layer larger than the frame is centred both ways once it misses it', async () => {
+    const page = wideSetup()
+    const target = node('FRAME', page, { x: 100, y: 100, width: 120, height: 80 })
+    const wide = node('RECTANGLE', page, { x: 110, y: 0, width: 200, height: 20 })
+    const tall = node('RECTANGLE', page, { x: 300, y: 110, width: 30, height: 160 })
+    expect(await pasteTogether([wide], target.id)).toEqual([[-40, 30]])
+    expect(await pasteTogether([tall], target.id)).toEqual([[45, -40]])
+  })
+
+  test('a frame child and a page-level layer copied together are placed each from its own place', async () => {
+    const page = wideSetup()
+    const source = node('FRAME', page, { x: 1000, y: 100, width: 300, height: 200 })
+    const child = node('RECTANGLE', source.id, { x: 40, y: 50, width: 60, height: 30 })
+    const loose = node('RECTANGLE', page, { x: 1100, y: 400, width: 60, height: 30 })
+    const target = node('FRAME', page, { x: 1500, y: 100, width: 400, height: 400 })
+    for (const order of [
+      [child, loose],
+      [loose, child]
+    ]) {
+      const places = await pasteTogether(order, target.id)
+      const byName = order.map((layer, index) => [layer.id, places[index]])
+      expect(Object.fromEntries(byName)).toEqual({ [child.id]: [40, 50], [loose.id]: [170, 300] })
+    }
+  })
 })

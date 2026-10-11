@@ -1,3 +1,4 @@
+import { groupBy } from 'es-toolkit'
 import { isNotNil } from 'es-toolkit/predicate'
 
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
@@ -20,12 +21,18 @@ function overlaps(a: Rect, b: Rect) {
   return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
 }
 
+/** The frame or section a layer was copied out of, and its box on the canvas then. */
+export interface ClipboardSource {
+  id: string
+  box: Rect
+}
+
 /** Where copied layers sat on the canvas, which paste keeps as Figma does. */
 export interface ClipboardPlacement {
   /** Each copied layer's canvas transform, in the order of the copied layers. */
   transforms: Mat3[]
-  /** The canvas box of the frame the first layer was copied out of; null for a top-level layer. */
-  sourceBox: Rect | null
+  /** Where each copied layer came from; null for a top-level layer. */
+  sources: Array<ClipboardSource | null>
 }
 
 /**
@@ -40,12 +47,12 @@ export function clipboardPlacement(
   const transforms = roots.map((node) =>
     Matrix.multiply(getParentWorldMatrix(parentOf(node), graph), getNodeLocalMatrix(node))
   )
-  const source = roots[0] && parentOf(roots[0])
-  const sourceBox =
-    source && source.type !== 'CANVAS' && source.id !== graph.rootId
-      ? getAxisAlignedWorldBounds(source, graph)
-      : null
-  return { transforms, sourceBox }
+  const sources = roots.map((node) => {
+    const parent = parentOf(node)
+    if (!parent || parent.type === 'CANVAS' || parent.id === graph.rootId) return null
+    return { id: parent.id, box: getAxisAlignedWorldBounds(parent, graph) }
+  })
+  return { transforms, sources }
 }
 
 /** The canvas box around layers, through every rotation and flip above them. */
@@ -74,21 +81,27 @@ export function translateOnCanvas(
 }
 
 /**
- * How far to move a pasted box along one axis of its frame's canvas box, as Figma centres it.
- * Layers copied out of a frame keep their offset unless it starts at or past the frame's far
- * edge; top-level layers keep their place while it overlaps the frame. Either way an axis that
- * moves is centred, and a box overlapping an edge stays, however large.
+ * How far Figma moves pasted layers that come from one place to keep them in their frame's
+ * canvas box. An axis counts as outside when the layers start at or past the frame's far edge,
+ * or, for top-level layers, when they miss the frame on it; layers overlapping an edge stay. If
+ * an axis is outside, layers that fit in the frame are centred on the outside axes; larger ones
+ * go to the frame's top-left when they came out of a frame, or are centred when top-level.
  */
-function centringShift(
-  start: number,
-  size: number,
-  frameStart: number,
-  frameSize: number,
-  fromFrame: boolean
-) {
-  const offset = start - frameStart
-  const outside = offset >= frameSize || (!fromFrame && offset + size <= 0)
-  return outside ? frameStart + (frameSize - size) / 2 - start : 0
+function frameFitShift(box: Rect, frame: Rect, fromFrame: boolean): Vector {
+  const outside = (start: number, size: number, frameStart: number, frameSize: number) => {
+    const offset = start - frameStart
+    return offset >= frameSize || (!fromFrame && offset + size <= 0)
+  }
+  const outX = outside(box.x, box.width, frame.x, frame.width)
+  const outY = outside(box.y, box.height, frame.y, frame.height)
+  if (!outX && !outY) return { x: 0, y: 0 }
+  const centred = {
+    x: frame.x + (frame.width - box.width) / 2 - box.x,
+    y: frame.y + (frame.height - box.height) / 2 - box.y
+  }
+  if (box.width <= frame.width && box.height <= frame.height)
+    return { x: outX ? centred.x : 0, y: outY ? centred.y : 0 }
+  return fromFrame ? { x: frame.x - box.x, y: frame.y - box.y } : centred
 }
 
 export function createClipboardPlacementActions(ctx: EditorContext) {
@@ -195,9 +208,9 @@ export function createClipboardPlacementActions(ctx: EditorContext) {
   /**
    * Places pasted layers as Figma does, in canvas boxes so a rotated or flipped frame changes
    * nothing. Layers copied out of a frame keep their offset from its box in the box of the frame
-   * they are pasted into; top-level layers keep their place on the canvas. An axis Figma counts as
-   * outside the destination frame is centred in it, and layers that would land out of view are
-   * centred in the view. A paste that could not go into the selected layer (`requestedId`), such
+   * they are pasted into; top-level layers keep their place on the canvas. Layers Figma counts as
+   * outside the destination frame move into it (`frameFitShift`), and layers that would land out
+   * of view are centred in the view. A paste that could not go into the selected layer (`requestedId`), such
    * as an instance into its own main component, lands over that layer.
    */
   function placePasted(
@@ -210,23 +223,25 @@ export function createClipboardPlacementActions(ctx: EditorContext) {
       centerOver(nodeIds, requestedId)
       return
     }
-    const items = nodesOf(nodeIds)
-    if (items.length === 0) return
+    if (nodesOf(nodeIds).length === 0) return
     const target = ctx.graph.getNode(targetId)
     const frame =
       target && target.type !== 'CANVAS' ? getAxisAlignedWorldBounds(target, ctx.graph) : null
-    const { sourceBox } = placement
     if (frame) {
-      if (sourceBox)
-        translateOnCanvas(ctx.graph, nodeIds, frame.x - sourceBox.x, frame.y - sourceBox.y)
-      const box = canvasBounds(ctx.graph, items)
-      const fromFrame = sourceBox !== null
-      translateOnCanvas(
-        ctx.graph,
-        nodeIds,
-        centringShift(box.x, box.width, frame.x, frame.width, fromFrame),
-        centringShift(box.y, box.height, frame.y, frame.height, fromFrame)
+      // Layers from different places, such as a frame's child and a page-level layer, are placed
+      // apart, each set as one block.
+      const groups = groupBy(
+        nodeIds.map((id, index) => ({ id, source: placement.sources.at(index) ?? null })),
+        ({ source }) => source?.id ?? ''
       )
+      for (const group of Object.values(groups)) {
+        const ids = group.map(({ id }) => id)
+        const { source } = group[0]
+        if (source)
+          translateOnCanvas(ctx.graph, ids, frame.x - source.box.x, frame.y - source.box.y)
+        const shift = frameFitShift(canvasBounds(ctx.graph, nodesOf(ids)), frame, source !== null)
+        translateOnCanvas(ctx.graph, ids, shift.x, shift.y)
+      }
     }
 
     const view = viewportRect()
