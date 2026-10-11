@@ -29,4 +29,15 @@ describe('style run references', () => {
     ])
     expect(renamed[2]).toBe(RUNS[2])
   })
+
+  test('rename linked layers only when given a renaming for them', () => {
+    const linked: StyleRun[] = [
+      { start: 0, length: 4, style: { hyperlink: { type: 'NODE', value: 'frame' } } }
+    ]
+    const rename = { variable: (id: string) => id, style: (id: string) => id }
+    expect(remapStyleRunReferences(linked, rename)[0]).toBe(linked[0])
+    expect(
+      remapStyleRunReferences(linked, { ...rename, node: (id) => `new-${id}` })[0].style
+    ).toEqual({ hyperlink: { type: 'NODE', value: 'new-frame' } })
+  })
 })

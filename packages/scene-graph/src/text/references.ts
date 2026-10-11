@@ -20,15 +20,26 @@ export function styleRunReferences(runs: readonly StyleRun[]): StyleRunReference
   return { variables: [...variables], styles: [...styles] }
 }
 
-/** Runs whose variables and styles are renamed, as a copy into another document renames them. */
+/**
+ * Runs whose variables, styles, and linked layers are renamed, as a copy into another document
+ * renames them. Layers are renamed only when given, since a link may name a layer left behind.
+ */
 export function remapStyleRunReferences(
   runs: readonly StyleRun[],
-  rename: { variable: (id: string) => string; style: (id: string) => string }
+  rename: {
+    variable: (id: string) => string
+    style: (id: string) => string
+    node?: (id: string) => string
+  }
 ): StyleRun[] {
   return runs.map((run) => {
-    const { boundVariables, textStyleId, fillStyleId } = run.style
-    if (!boundVariables && !textStyleId && !fillStyleId) return run
+    const { boundVariables, textStyleId, fillStyleId, hyperlink } = run.style
+    const linksLayer = hyperlink?.type === 'NODE' && rename.node !== undefined
+    if (!boundVariables && !textStyleId && !fillStyleId && !linksLayer) return run
     const style = { ...run.style }
+    if (hyperlink?.type === 'NODE' && rename.node) {
+      style.hyperlink = { type: 'NODE', value: rename.node(hyperlink.value) }
+    }
     if (boundVariables) {
       style.boundVariables = mapValues(boundVariables, (id) => (id ? rename.variable(id) : id))
     }

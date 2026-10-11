@@ -37,10 +37,8 @@ function applyRunReferences(
     context.graph,
     context.varIdToGuid
   )
-  if (entries.length > 0) {
-    override.variableConsumptionMap = { entries }
-    override.parameterConsumptionMap = { entries }
-  }
+  // Figma writes a range's bindings as parameters only.
+  if (entries.length > 0) override.parameterConsumptionMap = { entries }
 }
 
 /**

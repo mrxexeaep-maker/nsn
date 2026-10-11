@@ -190,6 +190,40 @@ describe('fig-import: text properties', () => {
     expect(style).toMatchObject({ name: 'Body style', sharedStyleType: 'TEXT', internalOnly: true })
   })
 
+  test('points ranges at the styles and layers imported with them', () => {
+    const graph = materializeDocument([
+      doc(),
+      canvas(),
+      node('TEXT', 20, 1, {
+        name: 'Heading style',
+        styleType: 'TEXT',
+        fontSize: 24,
+        fontName: { family: 'Inter', style: 'Regular' }
+      } as Partial<NodeChange>),
+      node('FRAME', 30, 1, { name: 'Target' } as Partial<NodeChange>),
+      node('TEXT', 10, 1, {
+        name: 'Linked',
+        fontSize: 16,
+        textData: {
+          characters: 'styled link',
+          characterStyleIDs: [1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2],
+          styleOverrideTable: [
+            { styleID: 1, styleIdForText: { guid: { sessionID: 1, localID: 20 } } },
+            { styleID: 2, hyperlink: { guid: { sessionID: 1, localID: 30 } } }
+          ]
+        }
+      } as Partial<NodeChange>)
+    ]).graph
+    const nodes = graph.getChildren(graph.getPages()[0].id)
+    const text = nodes.find((child) => child.name === 'Linked')
+    const target = nodes.find((child) => child.name === 'Target')
+    const style = [...graph.getAllNodes()].find((child) => child.name === 'Heading style')
+    expect(text?.styleRuns.map((run) => run.style)).toEqual([
+      expect.objectContaining({ textStyleId: style?.id }),
+      { hyperlink: { type: 'NODE', value: target?.id } }
+    ])
+  })
+
   test('applies shared fill style refs', () => {
     const graph = materializeDocument([
       doc(),

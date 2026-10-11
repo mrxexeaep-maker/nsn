@@ -94,7 +94,12 @@ export function prepareNodeTransfer(
     result[field] = source[field] ? style(source[field]) : null
   }
   if (result.styleRuns) {
-    result.styleRuns = remapStyleRunReferences(result.styleRuns, { variable, style })
+    // A link to a layer the transfer leaves behind keeps naming it.
+    result.styleRuns = remapStyleRunReferences(result.styleRuns, {
+      variable,
+      style,
+      node: (id) => refs.nodes.get(id) ?? id
+    })
   }
   for (const paths of [result.fillGeometry, result.strokeGeometry]) {
     for (const path of paths ?? []) if (path.fillStyleId) path.fillStyleId = style(path.fillStyleId)

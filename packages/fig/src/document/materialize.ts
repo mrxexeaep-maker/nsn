@@ -1,5 +1,10 @@
 import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
-import { generateId, SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
+import {
+  generateId,
+  remapStyleRunReferences,
+  SceneGraph,
+  type SceneNode
+} from '@open-pencil/scene-graph'
 
 import {
   reconcileLiveComponentEdits,
@@ -399,6 +404,15 @@ function materializeReaderInto(
     ] as const) {
       const id = node[field]
       if (id && sources.has(id)) node[field] = sources.get(id) ?? id
+    }
+    // Ranges name their styles and linked layers by record too; a layer left out stays named.
+    if (node.styleRuns.length > 0) {
+      const source = (id: string) => sources.get(id) ?? id
+      node.styleRuns = remapStyleRunReferences(node.styleRuns, {
+        variable: (id) => id,
+        style: source,
+        node: source
+      })
     }
   }
   // These passes apply to the nodes this page added, not to the whole graph.
