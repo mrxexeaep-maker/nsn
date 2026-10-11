@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test'
 
 import type { UIMessage } from 'ai'
+import { reactive, toRaw } from 'vue'
 
 import { settleMessage, wasStopped } from '@/app/ai/chat/settle'
 
@@ -71,4 +72,20 @@ test('a finished reply is left as it is', () => {
     }
   ])
   expect(settleMessage(finished, { stopped: false })).toBe(finished)
+})
+
+test("a reply settled from the chat's reactive state can still be saved", () => {
+  const chat = reactive({
+    messages: [
+      reply([
+        { type: 'reasoning', text: 'Planning', state: 'streaming' },
+        call('c', 'input-available')
+      ])
+    ]
+  })
+  const [message] = chat.messages
+  if (!message) throw new Error('No message')
+  const settled = settleMessage(message, { stopped: true, changed: () => false })
+  // Conversations are saved with `structuredClone`, which cannot copy Vue's proxies.
+  expect(() => structuredClone(toRaw(settled))).not.toThrow()
 })

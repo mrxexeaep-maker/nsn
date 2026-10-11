@@ -1,5 +1,6 @@
 import { isReasoningUIPart, isTextUIPart, isToolUIPart, type UIMessage } from 'ai'
 import * as v from 'valibot'
+import { toRaw } from 'vue'
 
 /** A reply the user stopped is marked in its metadata, which conversations store. */
 const StoppedMetadata = v.object({ stopped: v.literal(true) })
@@ -27,7 +28,10 @@ function unfinishedCallError(toolCallId: string, changed: SettleOptions['changed
  * reads as running. Reasoning and text are done, and a call that never reported back fails
  * with what happened to the document, which the model reads on the next request.
  */
-export function settleMessage(message: UIMessage, { stopped, changed }: SettleOptions): UIMessage {
+export function settleMessage(live: UIMessage, { stopped, changed }: SettleOptions): UIMessage {
+  // The chat's messages are reactive; the settled one is built from plain values, so the
+  // conversation can still be saved with `structuredClone`.
+  const message = toRaw(live)
   const parts = message.parts.map((part): UIMessage['parts'][number] => {
     if ((isReasoningUIPart(part) || isTextUIPart(part)) && part.state === 'streaming') {
       return { ...part, state: 'done' }
@@ -46,7 +50,7 @@ export function settleMessage(message: UIMessage, { stopped, changed }: SettleOp
     return part
   })
   const unchanged = parts.every((part, index) => part === message.parts[index])
-  if (unchanged && (!stopped || wasStopped(message))) return message
+  if (unchanged && (!stopped || wasStopped(message))) return live
   const metadata = v.is(v.record(v.string(), v.unknown()), message.metadata) ? message.metadata : {}
   return { ...message, parts, metadata: stopped ? { ...metadata, stopped: true } : metadata }
 }
