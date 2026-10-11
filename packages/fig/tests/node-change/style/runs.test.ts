@@ -74,7 +74,7 @@ describe('character ranges in .fig style overrides', () => {
     const runs = importStyleRuns(
       textChange([{ styleID: 1, fontSize: 20 }], [1, 1], { hyperlink: { url: 'https://a.b' } })
     )
-    const link = { type: 'URL', value: 'https://a.b' }
+    const link = { type: 'URL' as const, value: 'https://a.b' }
     expect(runs).toEqual([
       { start: 0, length: 2, style: { fontSize: 20, hyperlink: link } },
       { start: 2, length: 9, style: { hyperlink: link } }

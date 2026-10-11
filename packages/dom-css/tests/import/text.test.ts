@@ -157,7 +157,7 @@ describe('rich text import', () => {
     const [text] = await texts(
       '<p>Read <a href="https://openpencil.dev/docs">the <b>docs</b></a> now</p>'
     )
-    const link = { type: 'URL', value: 'https://openpencil.dev/docs' }
+    const link = { type: 'URL' as const, value: 'https://openpencil.dev/docs' }
     expect(text?.styleRuns).toEqual([
       { start: 5, length: 4, style: { hyperlink: link } },
       { start: 9, length: 4, style: { hyperlink: link, fontWeight: 700 } }

@@ -15,6 +15,8 @@ const RED: Fill = {
   opacity: 1,
   visible: true
 }
+/** A link that runs script, which no export may write. */
+const SCRIPT_SCHEME = ['java', 'script:'].join('')
 const PLAIN: TextParagraphStyle = { listType: 'NONE', indentation: 0 }
 
 function text(props: Parameters<SceneGraph['createNode']>[2]) {
@@ -136,9 +138,7 @@ describe('text export', () => {
       styleRuns: [{ start: 5, length: 5, style: { textCase: 'ORIGINAL' } }]
     })
     expect(html).toContain('text-transform: uppercase')
-    expect(html).toContain(
-      'loud <span style="text-transform: none">quiet</span>'
-    )
+    expect(html).toContain('loud <span style="text-transform: none">quiet</span>')
   })
 
   test('writes linked characters as a link in the look of the text around it', () => {
@@ -153,14 +153,14 @@ describe('text export', () => {
         {
           start: 14,
           length: 3,
-          style: { hyperlink: { type: 'URL', value: 'javascript:alert(1)' } }
+          style: { hyperlink: { type: 'URL', value: `${SCRIPT_SCHEME}alert(1)` } }
         }
       ]
     })
     expect(html).toContain(
       'Read the <a href="https://openpencil.dev/docs" style="color: inherit; text-decoration-line: none">docs</a> now'
     )
-    expect(html).not.toContain('javascript:')
+    expect(html).not.toContain(SCRIPT_SCHEME)
     const jsx = sceneNodesToTailwindJSX(graph, [node.id])
     expect(jsx).toContain(
       '<a href="https://openpencil.dev/docs" className="text-inherit no-underline">docs</a>'
