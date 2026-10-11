@@ -129,26 +129,27 @@ describe('text shaping for saved glyphs', () => {
   })
 
   test('outlines characters a fallback font draws from that font', async () => {
-    const cjk = await Bun.file(testFont('NotoSansCJK-Test.otf')).arrayBuffer()
-    fontManager.markLoaded('Shape Test CJK', 'Regular', cjk)
-    fontManager.setCJKFallbackFamily('Shape Test CJK')
-    const shaped = expectDefined(await shape({ text: 'Hi 你好' }), 'shaped text')
-    const ni = expectDefined(
-      shaped.glyphs.find((glyph) => glyph.firstCharacter === 3),
-      'glyph of 你'
-    )
+    const fallbackFamilies = fontManager.getCJKFallbackFamilies()
+    const originalFallbacks = [...fallbackFamilies]
+    fallbackFamilies.length = 0
+    try {
+      const cjk = await Bun.file(testFont('NotoSansCJK-Test.otf')).arrayBuffer()
+      fontManager.markLoaded('Shape Test CJK', 'Regular', cjk)
+      fontManager.setCJKFallbackFamily('Shape Test CJK')
+      const shaped = expectDefined(await shape({ text: 'Hi 你好' }), 'shaped text')
+      const ni = expectDefined(
+        shaped.glyphs.find((glyph) => glyph.firstCharacter === 3),
+        'glyph of 你'
+      )
 
-    // Another test may have set a fallback first; the paragraph draws from the first that has it.
-    const fallback = expectDefined(
-      fontManager
-        .getCJKFallbackFamilies()
-        .find((family) => getGlyphOutlineMetricsSync(family, 'Regular', '你', 13)),
-      'CJK fallback'
-    )
-    expect(shaped.glyphs.every((glyph) => glyph.commands !== null)).toBe(true)
-    expect(ni.commands).toEqual(
-      expectDefined(getGlyphOutlineMetricsSync(fallback, 'Regular', '你', 13)?.[0]).commands
-    )
+      expect(shaped.glyphs.every((glyph) => glyph.commands !== null)).toBe(true)
+      expect(ni.commands).toEqual(
+        expectDefined(getGlyphOutlineMetricsSync('Shape Test CJK', 'Regular', '你', 13)?.[0])
+          .commands
+      )
+    } finally {
+      fallbackFamilies.splice(0, fallbackFamilies.length, ...originalFallbacks)
+    }
   })
 
   test('outlines a variable font at the instance the text is set in', async () => {
