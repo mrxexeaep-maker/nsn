@@ -30,9 +30,16 @@ export function companionPackageManager(executablePath?: string | null): Package
   return executablePath && BUN_GLOBAL_BIN.test(executablePath) ? 'bun' : 'npm'
 }
 
-/** The command that replaces a global package with the package manager that installed it. */
-export function globalInstallCommand(target: string, executablePath?: string | null): string {
-  return companionPackageManager(executablePath) === 'bun'
-    ? `bun add -g ${target}`
-    : `npm i -g ${target}`
+/**
+ * The command that installs a global package by hand. npm whose global folder needs
+ * administrator rights runs through sudo on macOS and Linux; Windows keeps npm per user.
+ */
+export function globalInstallCommand(
+  target: string,
+  manager: PackageManager,
+  options: { admin?: boolean; windows?: boolean } = {}
+): string {
+  if (manager === 'bun') return `bun add -g ${target}`
+  const command = `npm i -g ${target}`
+  return options.admin && !options.windows ? `sudo ${command}` : command
 }

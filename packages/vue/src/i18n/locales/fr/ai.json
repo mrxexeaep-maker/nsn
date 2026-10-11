@@ -279,6 +279,7 @@
   "aiSetupAgentInstalling": "Installation…",
   "aiSetupAgentGetCLI": "Installer {agent}",
   "aiSetupAgentNeedsNpm": "L’installation nécessite npm, fourni avec Node.js. Installez Node.js, puis vérifiez à nouveau.",
+  "aiSetupAgentNeedsAdmin": "L’installation nécessite des droits administrateur, car npm place les paquets globaux dans un dossier protégé. Exécutez la commande ci-dessous dans un terminal, ou laissez votre agent configurer un dossier qui vous appartient.",
   "aiSetupAgentInstallFailed": "L’installation n’a pas abouti. Vérifiez votre connexion ou exécutez la commande vous-même.",
   "aiSetupAgentMCPStartFailed": "Le serveur MCP est installé mais n’a pas démarré. Redémarrez OpenPencil, puis vérifiez à nouveau.",
   "aiSetupAgentLookupFailed": "Impossible de vérifier cet ordinateur. Réessayez.",

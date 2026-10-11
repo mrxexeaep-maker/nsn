@@ -13,6 +13,7 @@ import {
   HARNESS_PACKAGE
 } from '@/app/ai/harness/companion'
 import { MCP_EXECUTABLE, MCP_INSTALL_TARGET, MCP_PACKAGE_NAME } from '@/app/automation/mcp/failure'
+import { detectUserAgent } from '@/app/tauri/command'
 
 import {
   companionPackageManager,
@@ -57,6 +58,8 @@ export type DiscoveryError =
   | 'canvas-install'
   | 'canvas-start'
   | 'harness-install'
+  /** npm's global folder needs administrator rights, which the app never asks for. */
+  | 'npm-admin'
 
 export function createAgentDiscovery(options: {
   enabled: boolean
@@ -89,13 +92,35 @@ export function createAgentDiscovery(options: {
   function canInstallWith(manager: PackageManager): boolean {
     return Boolean(snapshot.value?.executables[manager])
   }
+  /** npm installs global packages where this user cannot write, so only an administrator can. */
+  function npmNeedsAdmin(): boolean {
+    return snapshot.value?.npmGlobalWritable === false
+  }
   /**
    * The package manager that installed a companion updates it, so the new copy replaces the
-   * old one on PATH; npm installs anything new, or when that manager is not found.
+   * old one on PATH. A new install uses npm, or Bun when npm would need administrator rights.
    */
   function managerFor(executable: string): PackageManager {
-    const installedWith = companionPackageManager(snapshot.value?.executables[executable])
-    return canInstallWith(installedWith) ? installedWith : 'npm'
+    const path = snapshot.value?.executables[executable]
+    if (path) {
+      const installedWith = companionPackageManager(path)
+      return canInstallWith(installedWith) ? installedWith : 'npm'
+    }
+    return npmNeedsAdmin() && canInstallWith('bun') ? 'bun' : 'npm'
+  }
+  /** Installing this companion would need administrator rights. */
+  function needsAdmin(executable: string): boolean {
+    return managerFor(executable) === 'npm' && npmNeedsAdmin()
+  }
+  function installCommand(target: string, executable: string): string {
+    // Run by hand in the person's own terminal, so an installed copy names its own manager even
+    // when the app cannot find it.
+    const path = snapshot.value?.executables[executable]
+    const manager = path ? companionPackageManager(path) : managerFor(executable)
+    return globalInstallCommand(target, manager, {
+      admin: needsAdmin(executable),
+      windows: detectUserAgent().includes('Windows')
+    })
   }
   function hasHarness(): boolean {
     return Boolean(snapshot.value?.executables[HARNESS_EXECUTABLE])
@@ -109,12 +134,12 @@ export function createAgentDiscovery(options: {
   const harnessAvailable = computed(hasHarness)
   const harnessOutdatedVersion = computed(harnessOutdated)
   /** Commands to install or update a companion by hand, for the package manager that has it. */
-  const canvasBridgeCommand = computed(() =>
-    globalInstallCommand(MCP_INSTALL_TARGET, snapshot.value?.executables[MCP_EXECUTABLE])
-  )
-  const harnessCommand = computed(() =>
-    globalInstallCommand(HARNESS_INSTALL_TARGET, snapshot.value?.executables[HARNESS_EXECUTABLE])
-  )
+  const canvasBridgeCommand = computed(() => installCommand(MCP_INSTALL_TARGET, MCP_EXECUTABLE))
+  const harnessCommand = computed(() => installCommand(HARNESS_INSTALL_TARGET, HARNESS_EXECUTABLE))
+  const canvasBridgeNeedsAdmin = computed(() => needsAdmin(MCP_EXECUTABLE))
+  const harnessNeedsAdmin = computed(() => needsAdmin(HARNESS_EXECUTABLE))
+  /** Agent adapters always come from npm. */
+  const adapterNeedsAdmin = computed(npmNeedsAdmin)
 
   function refresh(force = false): Promise<void> {
     if (!options.enabled) return Promise.resolve()
@@ -145,6 +170,10 @@ export function createAgentDiscovery(options: {
       error.value = 'npm'
       return
     }
+    if (npmNeedsAdmin()) {
+      error.value = 'npm-admin'
+      return
+    }
     installing.value = id
     error.value = null
     try {
@@ -168,6 +197,10 @@ export function createAgentDiscovery(options: {
     const manager = managerFor(MCP_EXECUTABLE)
     if (!installed && !canInstallWith(manager)) {
       error.value = 'npm'
+      return
+    }
+    if (!installed && needsAdmin(MCP_EXECUTABLE)) {
+      error.value = 'npm-admin'
       return
     }
     installing.value = 'canvas'
@@ -197,6 +230,10 @@ export function createAgentDiscovery(options: {
       error.value = 'npm'
       return
     }
+    if (needsAdmin(HARNESS_EXECUTABLE)) {
+      error.value = 'npm-admin'
+      return
+    }
     installing.value = 'harness'
     error.value = null
     try {
@@ -223,9 +260,12 @@ export function createAgentDiscovery(options: {
     canvasBridgeAvailable,
     canvasBridgeOutdated,
     canvasBridgeCommand,
+    canvasBridgeNeedsAdmin,
     harnessAvailable,
     harnessOutdated: harnessOutdatedVersion,
     harnessCommand,
+    harnessNeedsAdmin,
+    adapterNeedsAdmin,
     setupCanvasBridge,
     setupHarness,
     refresh,

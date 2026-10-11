@@ -31,8 +31,9 @@ export function codingAgentSetupPrompt(agentID: ACPAgentID): string {
 
     1. If \`${agent.command}\` is not on my PATH, install it: \`${install}\`
     2. If \`openpencil-mcp-http\` is not on my PATH, install OpenPencil's MCP server: \`${MCP_INSTALL_COMMAND}\`
-    3. Confirm both commands are found, for example with \`which ${agent.command}\` and \`which openpencil-mcp-http\` (\`where\` on Windows). If a global npm folder is missing from my PATH, tell me how to add it.
-    4. ${SIGN_IN[agentID]}
+    3. If npm fails with a permission error (EACCES), set up a global npm folder in my home directory (for example \`npm config set prefix ~/.npm-global\` and add \`~/.npm-global/bin\` to my PATH) and install again; use sudo only if I agree.
+    4. Confirm both commands are found, for example with \`which ${agent.command}\` and \`which openpencil-mcp-http\` (\`where\` on Windows). If a global npm folder is missing from my PATH, tell me how to add it.
+    5. ${SIGN_IN[agentID]}
 
     Then tell me what you installed and anything I still need to do myself. I will press "Check again" in OpenPencil's AI setup afterwards.
 

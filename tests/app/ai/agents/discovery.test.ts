@@ -80,6 +80,46 @@ describe('local agent discovery', () => {
     expect(discovery.error.value).toBeNull()
   })
 
+  test('installs a new server with Bun when npm would need administrator rights', async () => {
+    const installBridge = mock(async () => undefined)
+    const discovery = createAgentDiscovery({
+      enabled: true,
+      lookup: async () => ({
+        ...lookup('npm', 'bun'),
+        npmGlobalWritable: false
+      }),
+      install: async () => undefined,
+      installBridge,
+      restartBridge: async () => undefined
+    })
+    await discovery.refresh()
+    expect(discovery.canvasBridgeNeedsAdmin.value).toBe(false)
+    await discovery.setupCanvasBridge()
+    expect(installBridge).toHaveBeenCalledWith('/test/bin', 'bun')
+  })
+
+  test('never runs an npm install that needs administrator rights', async () => {
+    const installBridge = mock(async () => undefined)
+    const install = mock(async () => undefined)
+    const discovery = createAgentDiscovery({
+      enabled: true,
+      lookup: async () => ({ ...lookup('npm', 'claude'), npmGlobalWritable: false }),
+      install,
+      installBridge,
+      restartBridge: async () => undefined
+    })
+    await discovery.refresh()
+    expect(discovery.canvasBridgeNeedsAdmin.value).toBe(true)
+    // Outside Windows the command an administrator runs goes through sudo.
+    expect(discovery.canvasBridgeCommand.value).toStartWith('sudo npm i -g @open-pencil/mcp@')
+    await discovery.setupCanvasBridge()
+    expect(installBridge).not.toHaveBeenCalled()
+    expect(discovery.error.value).toBe('npm-admin')
+    await discovery.install('claude-code')
+    expect(install).not.toHaveBeenCalled()
+    expect(discovery.error.value).toBe('npm-admin')
+  })
+
   test('retries bridge startup without reinstalling a successfully installed companion', async () => {
     const installBridge = mock(async () => undefined)
     const restartBridge = mock(async (): Promise<void> => {

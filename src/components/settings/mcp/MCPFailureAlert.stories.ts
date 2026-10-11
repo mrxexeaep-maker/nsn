@@ -115,6 +115,26 @@ export const NeedsNode: Story = {
   }
 }
 
+/** npm keeps global packages in a protected folder, so the app offers the admin command instead. */
+export const NeedsAdmin: Story = {
+  args: {
+    failure: reasons['not-installed'],
+    setup: {
+      ...oneClick,
+      bridge: false,
+      bridgeOutdated: false,
+      bridgeNeedsAdmin: true,
+      bridgeCommand: `sudo ${MCP_INSTALL_COMMAND}`
+    }
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.queryByRole('button', { name: 'Install MCP server' })).toBeNull()
+    await expect(canvas.getByText(/needs administrator rights/)).toBeVisible()
+    await expect(canvas.getByRole('button', { name: 'Copy prompt for your agent' })).toBeVisible()
+  }
+}
+
 /** A failed one-click install keeps the retry and adds the command to run by hand. */
 export const InstallFailed: Story = {
   args: { failure: reasons.outdated, setup: { ...oneClick, error: 'canvas-install' } }

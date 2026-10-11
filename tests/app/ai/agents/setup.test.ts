@@ -262,6 +262,15 @@ describe('mcpServerSetupView', () => {
     expect(view.manualCommand).not.toBeNull()
   })
 
+  test('asks for administrator rights instead of a one-click install npm cannot finish', () => {
+    const view = mcpServerSetupView(
+      mcpServerState({ bridgeNeedsAdmin: true, bridgeCommand: 'sudo npm i -g x' })
+    )
+    expect(view.bridge.action).toBeNull()
+    expect(view.problem).toBe('needs-admin')
+    expect(view.manualCommand).toBe('sudo npm i -g x')
+  })
+
   test('gives only the command where the app cannot install', () => {
     const view = mcpServerSetupView(mcpServerState({ supported: false }))
     expect(view.bridge.action).toBeNull()
