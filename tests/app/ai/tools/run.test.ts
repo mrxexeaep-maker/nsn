@@ -162,31 +162,42 @@ test("the agent's switch_page moves the run and the user's view", async () => {
   })
 })
 
-test('the agent shows on the page a script edited, while the run and the view stay', async () => {
-  await withStore(async (store, { a, b }) => {
-    aiToolOverrides.value = { ...aiToolOverrides.value, eval: true }
-    const card = store.graph.createNode('FRAME', b, { name: 'Card', x: 40, y: 20, width: 80 })
-    const title = store.graph.createNode('TEXT', card.id, { name: 'Title', text: 'Hi' })
-    let during: ReturnType<typeof presenceOf>['agents']['value'] = []
-    await runMessage(store, [
-      {
-        toolName: 'eval',
-        input: {
-          code: `const card = figma.getNodeById('${card.id}'); card.opacity = 0.5; figma.getNodeById('${title.id}').visible = false`
+test.each([
+  { followAgents: false, followed: null },
+  { followAgents: true, followed: 'b' }
+] as const)(
+  'the agent shows on the page a script edited, and only following takes the view there (%p)',
+  async ({ followAgents, followed }) => {
+    await withStore(async (store, { a, b }) => {
+      appPreferences.value.chat.followAgents = followAgents
+      aiToolOverrides.value = { ...aiToolOverrides.value, eval: true }
+      const card = store.graph.createNode('FRAME', b, { name: 'Card', x: 40, y: 20, width: 80 })
+      const title = store.graph.createNode('TEXT', card.id, { name: 'Title', text: 'Hi' })
+      let during: ReturnType<typeof presenceOf>['agents']['value'] = []
+      let followPage: string | null = null
+      await runMessage(store, [
+        {
+          toolName: 'eval',
+          input: {
+            code: `const card = figma.getNodeById('${card.id}'); card.opacity = 0.5; figma.getNodeById('${title.id}').visible = false`
+          }
+        },
+        async (editor) => {
+          during = presenceOf(editor).agents.value
+          followPage = presenceOf(editor).followPage
         }
-      },
-      async (editor) => {
-        during = presenceOf(editor).agents.value
-      }
-    ])
+      ])
 
-    expect(during).toMatchObject([
-      { status: 'editing', pageId: b, cursor: { x: 40, y: 20, pageId: b }, selection: [card.id] }
-    ])
-    expect(runPageId(store)).toBe(a)
-    expect(store.state.currentPageId).toBe(a)
-  })
-})
+      expect(during).toMatchObject([
+        { status: 'editing', pageId: b, cursor: { x: 40, y: 20, pageId: b }, selection: [card.id] }
+      ])
+      expect(runPageId(store)).toBe(a)
+      // Following switches pages as it does for any followed agent; without it the view stays.
+      expect(followPage).toBe(followed && b)
+      if (!followAgents) expect(store.state.currentPageId).toBe(a)
+    })
+  }
+)
 
 test('a run falls back to the page on screen when its page is deleted', async () => {
   await withStore(async (store, { a, b }) => {
