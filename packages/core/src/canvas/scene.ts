@@ -41,6 +41,7 @@ import {
   normalizeDashPattern
 } from './strokes'
 import { textVerticalOffset, withTextParagraph } from './text'
+import { drawTextLayout } from './text/decorations'
 import {
   canDrawSavedText,
   drawDerivedText,
@@ -922,7 +923,8 @@ function drawPaintedText(r: SkiaRenderer, canvas: Canvas, node: SceneNode): bool
       foregroundPaint: r.fillPaint
     },
     (paragraph) => {
-      paragraph.draw(canvas, 0, textVerticalOffset(node, paragraph.getHeight()))
+      const y = textVerticalOffset(node, paragraph.getHeight())
+      drawTextLayout(r.ck, canvas, node, paragraph, y, r.fillPaint)
       return true
     }
   )
@@ -997,7 +999,7 @@ export function renderText(r: SkiaRenderer, canvas: Canvas, node: SceneNode, fil
   if (r.fontsLoaded && r.fontProvider) {
     withTextParagraph(r, node, r.fillPaint.getColor(), { halfLeading: true }, (paragraph) => {
       const paragraphY = textVerticalOffset(node, paragraph.getHeight())
-      paragraph.draw(canvas, 0, paragraphY)
+      drawTextLayout(r.ck, canvas, node, paragraph, paragraphY, r.fillPaint)
     })
   } else if (r.textFont) {
     const fontSize = node.fontSize || r.DEFAULT_FONT_SIZE

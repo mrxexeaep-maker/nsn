@@ -178,6 +178,7 @@
 
 ### Fixed
 
+- Underlines and strikethroughs are drawn where and as Figma draws them, from the font's own metrics: underlines break around descenders, dotted ones are round dots, and a set offset or thickness is kept, in reopened `.fig` files too, which drew no strikethroughs and misplaced the other styles. Text saved to `.fig` or copied to Figma keeps its decorations there, where Figma showed underlined text without them and underlined text over several lines not at all.
 - Text that mixes font sizes keeps its auto line height when a `.fig` file OpenPencil saved is reopened. Every line took the height of the first, which pushed later lines down and cut them off.
 - Dragging a number field in the properties panel moves its value in whole steps instead of fractions on high-density screens.
 - While text is being edited, its caret and selection follow a property dragged in the panel instead of catching up when the mouse is released.

@@ -81,6 +81,10 @@ Canvas is CanvasKit (Skia WASM) on a WebGL surface, not DOM.
 - Paragraph construction is typed against `packages/core/src/canvas/text/paragraph/inputs.ts`; the same inputs drive preparation-cache invalidation. Add a mutation case when extending that contract. Drawing borrows native paragraphs; the renderer owns their bounded cache and destruction.
 - Text lays out through `buildParagraph` into a `TextLayout` (`packages/core/src/canvas/text/layout/`): one native paragraph for plain text, or one per paragraph with its list indent, marker, and spacing, since Skia has no hanging indent. Drawing, measurement, the text editor, saved glyphs (`shapeText`), and text outlines all read that layout rather than laying text out again (`packages/core/tests/canvas/text/lists.test.ts`).
 
+### Text decorations
+
+- Underlines and strikethroughs come from `textDecorationRects` (`packages/core/src/canvas/text/decorations.ts`), Figma's geometry over laid-out or saved glyphs, both for drawing and for the rects `.fig` files save, which Figma draws decorations from; Skia's paragraph decorations stay off (`packages/core/tests/canvas/text/decorations.test.ts`).
+
 ### Geometry and overlays
 
 - Use `@open-pencil/core/geometry` for world/screen transforms, inverses, bounds, and handle placement instead of interpreting ancestor rotations or reflections independently.
