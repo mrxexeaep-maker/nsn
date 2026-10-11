@@ -134,33 +134,36 @@ async function copyDetails(): Promise<void> {
     data-test-id="settings-mcp-failure"
   >
     <template v-if="problem || manualCommand || detail" #details>
-      <p v-if="problem" data-test-id="settings-mcp-install-problem">
-        {{ setupProblemMessage(problem) }}
-        <SettingsLink v-if="problem === 'needs-npm'" :href="NODE_DOWNLOAD_URL"
-          >Node.js</SettingsLink
+      <!-- Guidance reads like the description; only the heading carries the error colour. -->
+      <div class="flex flex-col gap-2 leading-relaxed text-surface">
+        <p v-if="problem" data-test-id="settings-mcp-install-problem">
+          {{ setupProblemMessage(problem) }}
+          <SettingsLink v-if="problem === 'needs-npm'" :href="NODE_DOWNLOAD_URL"
+            >Node.js</SettingsLink
+          >
+        </p>
+        <template v-if="manualCommand">
+          <p>{{ automation.mcpInstallByHand }}</p>
+          <AppCopyField
+            :value="manualCommand"
+            :copy-label="common.copy"
+            :copied-label="common.copied"
+            data-test-id="settings-mcp-install-command"
+          />
+        </template>
+        <AppCollapsible
+          v-if="detail"
+          v-model:open="detailsOpen"
+          :label="automation.mcpFailureDetails"
+          :ui="{ trigger: 'text-muted hover:text-surface', content: 'mt-1' }"
+          data-test-id="settings-mcp-failure-details"
         >
-      </p>
-      <template v-if="manualCommand">
-        <p>{{ automation.mcpInstallByHand }}</p>
-        <AppCopyField
-          :value="manualCommand"
-          :copy-label="common.copy"
-          :copied-label="common.copied"
-          data-test-id="settings-mcp-install-command"
-        />
-      </template>
-      <AppCollapsible
-        v-if="detail"
-        v-model:open="detailsOpen"
-        :label="automation.mcpFailureDetails"
-        :ui="{ trigger: 'text-muted hover:text-surface', content: 'mt-1' }"
-        data-test-id="settings-mcp-failure-details"
-      >
-        <pre
-          class="max-h-40 overflow-auto rounded border border-border bg-input p-2 font-mono text-[11px] whitespace-pre-wrap text-muted"
-          data-test-id="settings-mcp-failure-detail"
-          >{{ detail }}</pre>
-      </AppCollapsible>
+          <pre
+            class="max-h-40 overflow-auto rounded border border-border bg-input p-2 font-mono text-[11px] whitespace-pre-wrap text-muted"
+            data-test-id="settings-mcp-failure-detail"
+            >{{ detail }}</pre>
+        </AppCollapsible>
+      </div>
     </template>
     <template #actions>
       <AppButton
@@ -174,19 +177,23 @@ async function copyDetails(): Promise<void> {
         >{{ installAction }}</AppButton
       >
       <AppButton
-        v-else-if="manualCommand"
+        v-if="manualCommand"
         size="xs"
-        color="primary"
-        variant="solid"
+        :color="installAction ? 'neutral' : 'primary'"
+        :variant="installAction ? 'outline' : 'solid'"
         data-test-id="settings-mcp-copy-agent-prompt"
         @click="copyPrompt(mcpServerSetupPrompt(failure, manualCommand))"
       >
-        <template #leading><icon-lucide-clipboard-copy class="size-3" /></template>
+        <template #leading>
+          <icon-lucide-check v-if="promptCopied" class="size-3" />
+          <icon-lucide-copy v-else class="size-3" />
+        </template>
         {{ promptCopied ? common.copied : automation.mcpCopyAgentPrompt }}
       </AppButton>
-      <AppButton size="xs" variant="outline" @click="copyDetails">{{
-        automation.mcpFailureCopy
-      }}</AppButton>
+      <AppButton size="xs" variant="outline" @click="copyDetails">
+        <template #leading><icon-lucide-copy class="size-3" /></template>
+        {{ automation.mcpFailureCopy }}
+      </AppButton>
     </template>
   </AppAlert>
 </template>

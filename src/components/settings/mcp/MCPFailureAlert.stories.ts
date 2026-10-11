@@ -2,7 +2,11 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { expect, userEvent, within } from 'storybook/test'
 
 import type { MCPServerSetupState } from '@/app/ai/agents/setup'
-import type { MCPFailure, MCPFailureCode } from '@/app/automation/mcp/failure'
+import {
+  MCP_INSTALL_COMMAND,
+  type MCPFailure,
+  type MCPFailureCode
+} from '@/app/automation/mcp/failure'
 
 import MCPFailureAlert from './MCPFailureAlert.vue'
 
@@ -36,7 +40,7 @@ const oneClick: MCPServerSetupState = {
   checked: true,
   bridge: true,
   bridgeOutdated: true,
-  bridgeCommand: 'npm i -g @open-pencil/mcp@0.16.0',
+  bridgeCommand: MCP_INSTALL_COMMAND,
   npm: true,
   installingBridge: false,
   error: null
