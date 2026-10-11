@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { sceneNodeToJSX } from '#design-jsx/index'
+import { designJSXElement, sceneNodeToJSX } from '#design-jsx/index'
 
 import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
 import { colorToFill } from '@open-pencil/scene-graph/color'
@@ -145,5 +145,44 @@ describe('rich text export', () => {
       styleRuns: [{ start: 0, length: 3, style: { fontWeight: 400 } }]
     })
     expect(code).toBe('<Text name="Note" color="#000000">{"One\\nTwo"}</Text>')
+  })
+})
+
+describe('designJSXElement', () => {
+  function describeText(fields: Partial<SceneNode>) {
+    const graph = new SceneGraph()
+    const node = graph.createNode('TEXT', graph.getPages()[0].id, { name: 'Note', ...fields })
+    return { element: designJSXElement(node.id, graph), code: sceneNodeToJSX(node.id, graph) }
+  }
+
+  /** What the exported element holds between its opening and closing tags. */
+  function between(code: string): string {
+    return code.slice(code.indexOf('>') + 1, code.lastIndexOf('</Text>'))
+  }
+
+  test('describes plain text as before', () => {
+    expect(describeText({ text: 'One\nTwo' }).element?.text).toBe('{"One\\nTwo"}')
+    expect(describeText({ text: '' }).element?.text).toBeNull()
+  })
+
+  test('describes spans and paragraphs as the export writes them', () => {
+    const spans = describeText({
+      text: 'Hello world',
+      styleRuns: [{ start: 6, length: 5, style: { fontWeight: 700 } }]
+    })
+    expect(spans.element?.text).toBe('Hello <Span weight="bold">world</Span>')
+    expect(spans.element?.text).toBe(between(spans.code))
+
+    const paragraphs = describeText({
+      text: 'a\nb',
+      textParagraphs: [
+        { listType: 'UNORDERED', indentation: 1 },
+        { listType: 'UNORDERED', indentation: 1 }
+      ]
+    })
+    expect(paragraphs.element?.text).toBe(
+      '\n  <Paragraph list="unordered">a</Paragraph>\n  <Paragraph list="unordered">b</Paragraph>\n'
+    )
+    expect(paragraphs.element?.text).toBe(between(paragraphs.code))
   })
 })
