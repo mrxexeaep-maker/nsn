@@ -45,8 +45,17 @@ const detail = computed(() => {
   if (state.status === 'ready') return `${automation.value.tools}: ${state.toolCount}`
   return undefined
 })
-const statusTone = computed(() =>
-  state.status === 'ready' ? 'success' : state.status === 'starting' ? 'pending' : 'neutral'
+const statusTone = computed(
+  () =>
+    (
+      ({
+        off: 'neutral',
+        starting: 'pending',
+        ready: 'success',
+        unsupported: 'neutral',
+        error: 'neutral'
+      }) as const
+    )[state.status]
 )
 /** Unsupported or failed WebMCP is a problem to fix, not a status to read. */
 const problem = computed(() => state.status === 'unsupported' || state.status === 'error')
