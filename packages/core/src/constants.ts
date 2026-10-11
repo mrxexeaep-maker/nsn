@@ -565,7 +565,6 @@ export const ZOOM_SCALE_MAX = 1.25
 
 export const PEN_CLOSE_THRESHOLD = 8
 export const ROTATION_SNAP_DEGREES = 15
-export const CORNER_ROTATE_ZONE = 16
 export const HANDLE_HIT_RADIUS = 6
 export const ROTATION_HANDLE_DISTANCE = 24
 export const DEFAULT_TEXT_WIDTH = 200
