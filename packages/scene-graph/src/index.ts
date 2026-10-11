@@ -876,6 +876,10 @@ export class SceneGraph {
     Instances.syncInstances(this, componentId)
   }
 
+  syncInstancesTogether(componentIds: Iterable<string>): void {
+    Instances.syncInstancesTogether(this, componentIds)
+  }
+
   syncInstance(instanceId: string): void {
     Instances.syncInstance(this, instanceId)
   }

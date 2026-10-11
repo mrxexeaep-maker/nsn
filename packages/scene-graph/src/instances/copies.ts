@@ -132,15 +132,11 @@ function removedCopyStore(graph: SceneGraph): RemovedCopyStore {
   return store
 }
 
-export function createCopyRemovals(): CopyRemovals {
-  return { keys: [] }
-}
-
 /**
- * Keeps one sync's removed copies restorable. Only as many syncs as undo keeps edits are kept,
- * so copies no undo can bring back are forgotten, oldest first.
+ * Keeps one edit's removed copies restorable. Only as many edits as undo keeps are kept, so
+ * copies no undo can bring back are forgotten, oldest first.
  */
-export function keepCopyRemovals(graph: SceneGraph, removals: CopyRemovals): void {
+function keepCopyRemovals(graph: SceneGraph, removals: CopyRemovals): void {
   if (removals.keys.length === 0) return
   const store = removedCopyStore(graph)
   store.removals.push(removals)
@@ -153,6 +149,25 @@ export function keepCopyRemovals(graph: SceneGraph, removals: CopyRemovals): voi
       copies.delete(layerId)
       if (copies.size === 0) store.byInstance.delete(instanceId)
     }
+  }
+}
+
+const activeRemovals = new WeakMap<SceneGraph, CopyRemovals>()
+
+/**
+ * Runs `fn` with every copy the syncs inside it remove kept as one group: one edit's syncs, however
+ * many components they reach, take one place in the history of removals.
+ */
+export function groupCopyRemovals<T>(graph: SceneGraph, fn: (removals: CopyRemovals) => T): T {
+  const active = activeRemovals.get(graph)
+  if (active) return fn(active)
+  const removals: CopyRemovals = { keys: [] }
+  activeRemovals.set(graph, removals)
+  try {
+    return fn(removals)
+  } finally {
+    activeRemovals.delete(graph)
+    keepCopyRemovals(graph, removals)
   }
 }
 
