@@ -131,6 +131,7 @@ interface SyncedFieldsInput {
 /** The fields a copy takes from its component's layer, placed in the copy's parent. */
 function copySyncedFields(
   updates: Partial<SceneNode>,
+  copy: SceneNode,
   source: SceneNode,
   { compParent, instParent, factor, skip }: SyncedFieldsInput
 ): void {
@@ -145,7 +146,10 @@ function copySyncedFields(
     if (skip(key)) continue
     const owner = INSTANCE_SYNC_FIELD_OWNERS[key]
     if (owner && skip(owner)) continue
-    copyProp(updates, PLACEMENT_FIELDS.has(key) ? placed : source, key)
+    const from = PLACEMENT_FIELDS.has(key) ? placed : source
+    // Most fields already match: comparing first spares cloning them for nothing.
+    if (isEqual(copy[key], from[key])) continue
+    copyProp(updates, from, key)
   }
 }
 
@@ -570,7 +574,7 @@ export function syncChildren(
       componentPropertyReferences: structuredClone(compChild.componentPropertyReferences)
     }
     syncBindingFields(instChild, source, updates, protectedField)
-    copySyncedFields(updates, source, {
+    copySyncedFields(updates, instChild, source, {
       compParent,
       instParent,
       factor: componentScale / compChild.componentScale,
