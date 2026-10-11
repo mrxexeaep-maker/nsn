@@ -20,9 +20,19 @@ export function isOutdatedCompanion(
 
 const BUN_GLOBAL_BIN = /[\\/]\.bun[\\/]/
 
+export type PackageManager = 'npm' | 'bun'
+
+/**
+ * The package manager that installed a global companion. Updating it with another one would
+ * leave the old copy first on PATH, so installs and commands follow this.
+ */
+export function companionPackageManager(executablePath?: string | null): PackageManager {
+  return executablePath && BUN_GLOBAL_BIN.test(executablePath) ? 'bun' : 'npm'
+}
+
 /** The command that replaces a global package with the package manager that installed it. */
 export function globalInstallCommand(target: string, executablePath?: string | null): string {
-  return executablePath && BUN_GLOBAL_BIN.test(executablePath)
+  return companionPackageManager(executablePath) === 'bun'
     ? `bun add -g ${target}`
     : `npm i -g ${target}`
 }

@@ -14,7 +14,12 @@ import {
 } from '@/app/ai/harness/companion'
 import { MCP_EXECUTABLE, MCP_INSTALL_TARGET, MCP_PACKAGE_NAME } from '@/app/automation/mcp/failure'
 
-import { globalInstallCommand, isOutdatedCompanion } from './companions'
+import {
+  companionPackageManager,
+  globalInstallCommand,
+  isOutdatedCompanion,
+  type PackageManager
+} from './companions'
 import {
   installAgentAdapter,
   installCanvasBridge,
@@ -57,9 +62,9 @@ export function createAgentDiscovery(options: {
   enabled: boolean
   lookup: () => Promise<AgentLookup>
   install: (agent: ACPAgentDef, searchPath: string) => Promise<void>
-  installBridge?: (searchPath: string) => Promise<void>
+  installBridge?: (searchPath: string, manager: PackageManager) => Promise<void>
   restartBridge?: () => Promise<void>
-  installHarness?: (searchPath: string) => Promise<void>
+  installHarness?: (searchPath: string, manager: PackageManager) => Promise<void>
 }) {
   const snapshot = shallowRef<AgentLookup | null>(null)
   const scanning = ref(false)
@@ -80,6 +85,17 @@ export function createAgentDiscovery(options: {
   /** An installed MCP server whose version does not match the app. */
   function bridgeOutdated(): boolean {
     return hasBridge() && isOutdatedCompanion(snapshot.value?.versions[MCP_PACKAGE_NAME])
+  }
+  function canInstallWith(manager: PackageManager): boolean {
+    return Boolean(snapshot.value?.executables[manager])
+  }
+  /**
+   * The package manager that installed a companion updates it, so the new copy replaces the
+   * old one on PATH; npm installs anything new, or when that manager is not found.
+   */
+  function managerFor(executable: string): PackageManager {
+    const installedWith = companionPackageManager(snapshot.value?.executables[executable])
+    return canInstallWith(installedWith) ? installedWith : 'npm'
   }
   function hasHarness(): boolean {
     return Boolean(snapshot.value?.executables[HARNESS_EXECUTABLE])
@@ -149,7 +165,8 @@ export function createAgentDiscovery(options: {
   async function setupCanvasBridge(): Promise<void> {
     if (!options.enabled || installing.value || !snapshot.value) return
     let installed = hasBridge() && !bridgeOutdated()
-    if (!installed && !npmAvailable.value) {
+    const manager = managerFor(MCP_EXECUTABLE)
+    if (!installed && !canInstallWith(manager)) {
       error.value = 'npm'
       return
     }
@@ -158,7 +175,7 @@ export function createAgentDiscovery(options: {
     try {
       if (!installed) {
         if (!options.installBridge) throw new Error('Canvas bridge setup is unavailable.')
-        await options.installBridge(snapshot.value.searchPath)
+        await options.installBridge(snapshot.value.searchPath, manager)
         await refresh(true)
         if (!hasBridge() || bridgeOutdated())
           throw new Error('A matching MCP server was not found.')
@@ -175,7 +192,8 @@ export function createAgentDiscovery(options: {
   async function setupHarness(): Promise<void> {
     if (!options.enabled || installing.value || !snapshot.value) return
     if (hasHarness() && !harnessOutdated()) return
-    if (!npmAvailable.value) {
+    const manager = managerFor(HARNESS_EXECUTABLE)
+    if (!canInstallWith(manager)) {
       error.value = 'npm'
       return
     }
@@ -183,7 +201,7 @@ export function createAgentDiscovery(options: {
     error.value = null
     try {
       if (!options.installHarness) throw new Error('Harness companion setup is unavailable.')
-      await options.installHarness(snapshot.value.searchPath)
+      await options.installHarness(snapshot.value.searchPath, manager)
       await refresh(true)
       if (!hasHarness() || harnessOutdated()) error.value = 'harness-install'
     } catch {

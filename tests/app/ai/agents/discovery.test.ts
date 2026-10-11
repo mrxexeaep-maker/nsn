@@ -53,6 +53,33 @@ describe('local agent discovery', () => {
     expect(discovery.error.value).toBeNull()
   })
 
+  test('updates a server installed with Bun through Bun, even without npm', async () => {
+    let version = '0.15.1'
+    const installBridge = mock(async () => {
+      version = '0.0.0-test'
+    })
+    const discovery = createAgentDiscovery({
+      enabled: true,
+      lookup: async () => ({
+        searchPath: '/home/test/.bun/bin',
+        versions: { '@open-pencil/mcp': version },
+        executables: {
+          bun: '/home/test/.bun/bin/bun',
+          'openpencil-mcp-http': '/home/test/.bun/bin/openpencil-mcp-http'
+        }
+      }),
+      install: async () => undefined,
+      installBridge,
+      restartBridge: async () => undefined
+    })
+    await discovery.refresh()
+    expect(discovery.canvasBridgeOutdated.value).toBe(true)
+    await discovery.setupCanvasBridge()
+    // npm would install beside the Bun copy, which stays first on PATH.
+    expect(installBridge).toHaveBeenCalledWith('/home/test/.bun/bin', 'bun')
+    expect(discovery.error.value).toBeNull()
+  })
+
   test('retries bridge startup without reinstalling a successfully installed companion', async () => {
     const installBridge = mock(async () => undefined)
     const restartBridge = mock(async (): Promise<void> => {
@@ -206,7 +233,7 @@ describe('Harness companion setup', () => {
     await discovery.refresh()
     expect(discovery.harnessAvailable.value).toBe(false)
     await discovery.setupHarness()
-    expect(installHarness).toHaveBeenCalledWith('/test/bin')
+    expect(installHarness).toHaveBeenCalledWith('/test/bin', 'npm')
     expect(discovery.harnessAvailable.value).toBe(true)
     expect(discovery.error.value).toBeNull()
   })

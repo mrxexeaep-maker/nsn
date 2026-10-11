@@ -15,6 +15,7 @@ const EXECUTABLES: &[&str] = &[
     "openpencil-mcp-http",
     "openpencil-harness",
     "npm",
+    "bun",
 ];
 
 // OpenPencil's own companions, whose installed version must match the app.

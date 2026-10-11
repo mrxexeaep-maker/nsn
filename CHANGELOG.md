@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- Settings → MCP installs or updates a missing or outdated MCP server with one click, explains that it installs separately to keep the download small, and falls back to the install command and a prompt for your agent when npm is missing or the install fails; it no longer suggests reinstalling the old server's own version.
+- Settings → MCP installs or updates a missing or outdated MCP server with one click, through Bun when Bun installed it, explains that it installs separately to keep the download small, and falls back to the install command and a prompt for your agent when npm is missing or the install fails; it no longer suggests reinstalling the old server's own version.
 - Settings → Tool access lists the local MCP server's tools while the server is stopped, instead of an empty list saying no tools match the search.
 - Settings → MCP shows the local server in the desktop app and WebMCP in the browser, where each works, instead of a WebMCP section the desktop app can never use and a local server the browser reports as unreachable.
 
