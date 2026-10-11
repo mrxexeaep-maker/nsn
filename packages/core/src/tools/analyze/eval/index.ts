@@ -17,9 +17,8 @@ export const evalCode = defineTool({
 
   execute: async (figma, { code }) => {
     const result: unknown = await compileScript(code)(figma)
-    if (result === undefined || result === null) {
-      return { ok: true, message: 'Code executed (no return value)' }
-    }
+    // `null` is a result, such as a lookup that found nothing; only nothing returned is not.
+    if (result === undefined) return { ok: true, message: 'Code executed (no return value)' }
     // JSON has no text for these; their description is the closest.
     if (typeof result === 'function' || typeof result === 'symbol') return String(result)
     // Callers read a result as JSON: MCP and the CLI print it, and the AI chat's model takes
