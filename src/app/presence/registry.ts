@@ -412,8 +412,7 @@ export function agentPlacement(
   const bounds = computeContentBounds(store.graph, present)
   if (!bounds) return null
   const [first] = present
-  const pageId =
-    (first && store.graph.closest(first, (node) => node.type === 'CANVAS')?.id) ?? fallbackPageId
+  const pageId = (first && store.graph.pageOf(first)) ?? fallbackPageId
   return {
     pageId,
     cursor: { x: bounds.minX, y: bounds.minY, pageId },
