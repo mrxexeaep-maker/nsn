@@ -32,8 +32,13 @@ test('an arrow function called in place can hold statements', async () => {
   expect(root.childIds.map((id) => graph.getNode(id)?.name)).toEqual(['Mo', 'Tu', 'We'])
 })
 
-test('a statement before the JSX says how to compute values inside it', async () => {
-  const failure = render(`const days = ['Mo']
-<Frame>{days.map((day) => <Text>{day}</Text>)}</Frame>`)
-  await expect(failure).rejects.toThrow('A JSX string is one expression')
+test('a statement before the JSX fails with guidance added to the undefined name', async () => {
+  const error = await render(`const days = ['Mo']
+<Frame>{days.map((day) => <Text>{day}</Text>)}</Frame>`).catch((thrown: unknown) => thrown)
+
+  if (!(error instanceof Error) || !(error.cause instanceof ReferenceError)) {
+    throw new Error('Expected guidance wrapping the ReferenceError')
+  }
+  expect(error.message).toStartWith(error.cause.message)
+  expect(error.message.length).toBeGreaterThan(error.cause.message.length)
 })
