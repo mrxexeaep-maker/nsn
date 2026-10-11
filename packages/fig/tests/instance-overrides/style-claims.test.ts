@@ -8,6 +8,7 @@ import { mapInstanceSourceChildren } from '#fig/instance-overrides/source-childr
 
 import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
 import { SceneGraph } from '@open-pencil/scene-graph'
+import { copyStyleRuns } from '@open-pencil/scene-graph/copy'
 
 test('style claims read from a file survive edits to the component, as in Figma', () => {
   const changes: NodeChange[] = [
@@ -65,4 +66,53 @@ test('style claims read from a file survive edits to the component, as in Figma'
     'OUTSIDE'
   ])
   expect([copyText.fontWeight, copyText.lineHeight, copyText.letterSpacing]).toEqual([700, 32, 1])
+})
+
+test('styled ranges claimed with the characters stay when the component restyles its text', () => {
+  // The claim Figma desktop 126 writes when a script restyles the first word of a copy.
+  const changes: NodeChange[] = [
+    { guid: guid(1, 5), type: 'SYMBOL' },
+    {
+      guid: guid(2, 5),
+      type: 'TEXT',
+      parentIndex: { guid: guid(1, 5), position: '!' },
+      fontSize: 12,
+      textData: { characters: 'Hello world' }
+    },
+    {
+      guid: guid(3, 5),
+      type: 'INSTANCE',
+      symbolData: {
+        symbolID: guid(1, 5),
+        symbolOverrides: [
+          {
+            guidPath: { guids: [guid(2, 5)] },
+            textData: {
+              characters: 'Hello world',
+              characterStyleIDs: [1, 1, 1, 1, 1],
+              styleOverrideTable: [{ styleID: 1, fontSize: 30 }]
+            }
+          }
+        ]
+      }
+    } as NodeChange
+  ]
+  const graph = new SceneGraph()
+  const page = graph.getPages()[0]
+  const occurrence = interpretInstance(changes, '5:3')
+  const closure = materializeComponentClosure(graph, page.id, changes, occurrence)
+  const ids = new Map([...closure].map(([id, value]) => [id, value.materialized.root.id]))
+  const result = materializeInstance(graph, page.id, occurrence, ids, {
+    sourceChildren: mapInstanceSourceChildren(occurrence, closure)
+  })
+  const component = closure.get('5:1')
+  if (!component) throw new Error('Missing component')
+  const [copy] = graph.getChildren(result.root.id)
+  const claimed = copyStyleRuns(copy.styleRuns)
+  expect(claimed).toEqual([expect.objectContaining({ start: 0, length: 5 })])
+
+  const [text] = graph.getChildren(component.materialized.root.id)
+  graph.updateNode(text.id, { styleRuns: [{ start: 6, length: 5, style: { fontSize: 8 } }] })
+  graph.syncInstances(component.materialized.root.id)
+  expect(copy.styleRuns).toEqual(claimed)
 })

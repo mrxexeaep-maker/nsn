@@ -141,8 +141,11 @@ function rawClaim(
       return { [raw]: target[field] }
     case 'visible':
       return { visible: target.visible }
-    case 'text':
-      return { textData: { characters: typeof value === 'string' ? value : target.text } }
+    case 'text': {
+      // The characters with their styled ranges and lines, as the layer's own record writes them.
+      const characters = field === 'text' && typeof value === 'string' ? value : target.text
+      return { textData: { ...nodeFields().textData, characters } }
+    }
     case 'text-style':
       return target.textStyleId
         ? { styleIdForText: exportedTextStyleReference(context, target.textStyleId) }
