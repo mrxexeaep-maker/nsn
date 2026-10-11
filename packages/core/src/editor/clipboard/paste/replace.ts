@@ -4,11 +4,15 @@ import type { SceneNode } from '@open-pencil/scene-graph'
 import { getAxisAlignedBoundsInParent } from '@open-pencil/scene-graph/coordinate'
 
 import { getNodeEditCapability } from '#core/editor/capabilities'
+import {
+  deleteIds,
+  type DeletedEntry,
+  recreateSnapshots,
+  restoreDeletedEntries
+} from '#core/editor/clipboard/history'
+import { collectSubtrees, snapshotSubtree } from '#core/editor/history/subtree'
 import type { EditorContext } from '#core/editor/types'
 import { computeAllLayouts } from '#core/layout'
-
-import { deleteIds, type DeletedEntry, recreateSnapshots, restoreDeletedEntries } from './history'
-import { collectSubtrees, snapshotSubtree } from './subtree-history'
 
 export interface PasteHistoryOperation {
   capture: () => void
