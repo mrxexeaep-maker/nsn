@@ -5,6 +5,12 @@ type CasedText = Pick<SceneNode, 'text' | 'textCase' | 'styleRuns'>
 const WORD = /[\p{L}\p{N}][\p{L}\p{M}\p{N}]*/gu
 const WORD_END = /[\p{L}\p{M}\p{N}]$/u
 
+/** A word with its first character, which may be astral, in upper case and the rest in lower. */
+function capitalized(word: string): string {
+  const first = String.fromCodePoint(word.codePointAt(0) ?? 0)
+  return first.toLocaleUpperCase() + word.slice(first.length).toLocaleLowerCase()
+}
+
 /**
  * `text` in `textCase`. Title case capitalizes each word; a stretch that `continuesWord` starts
  * inside a word, so its first word goes on in lower case.
@@ -14,9 +20,7 @@ export function transformTextCase(text: string, textCase: TextCase, continuesWor
   if (textCase === 'LOWER') return text.toLocaleLowerCase()
   if (textCase === 'TITLE') {
     return text.replace(WORD, (word, offset: number) =>
-      continuesWord && offset === 0
-        ? word.toLocaleLowerCase()
-        : word.charAt(0).toLocaleUpperCase() + word.slice(1).toLocaleLowerCase()
+      continuesWord && offset === 0 ? word.toLocaleLowerCase() : capitalized(word)
     )
   }
   return text
@@ -81,22 +85,40 @@ export function shownText(node: CasedText): string {
 
 /**
  * Each character of the shown text with the index of the character of `text` it comes from;
- * a case can give one character several, as `ß` upper-cases to `SS`.
+ * a case can give one character several, as `ß` upper-cases to `SS`. Each stretch is cased as
+ * a whole, as `shownText` cases it, so a letter that depends on its word, such as a final `ς`,
+ * is the one shown.
  */
 export function shownCharacters(
   node: CasedText
 ): Array<{ character: string; sourceIndex: number }> {
   const result: Array<{ character: string; sourceIndex: number }> = []
   for (const segment of textCaseSegments(node)) {
+    const slice = node.text.slice(segment.start, segment.end)
+    const whole = Array.from(
+      transformTextCase(slice, segment.textCase, continuesWord(node.text, segment.start))
+    )
+    const sources: Array<{ shown: string[]; sourceIndex: number }> = []
     let sourceIndex = segment.start
-    for (const sourceCharacter of node.text.slice(segment.start, segment.end)) {
+    for (const sourceCharacter of slice) {
       const shown = transformTextCase(
         sourceCharacter,
         segment.textCase,
         continuesWord(node.text, sourceIndex)
       )
-      for (const character of shown) result.push({ character, sourceIndex })
+      sources.push({ shown: Array.from(shown), sourceIndex })
       sourceIndex += sourceCharacter.length
+    }
+    // Where casing the stretch whole shows as many characters as casing each one, each source
+    // character takes its own share of the whole; otherwise each keeps its own casing.
+    const aligned =
+      sources.reduce((count, source) => count + source.shown.length, 0) === whole.length
+    let at = 0
+    for (const source of sources) {
+      for (const character of source.shown) {
+        result.push({ character: aligned ? whole[at] : character, sourceIndex: source.sourceIndex })
+        at++
+      }
     }
   }
   return result

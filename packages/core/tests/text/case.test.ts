@@ -35,4 +35,18 @@ describe('text case by range', () => {
     expect(shownText(node)).toBe('ASS b')
     expect(shownCharacters(node).map((shown) => shown.sourceIndex)).toEqual([0, 1, 1, 2, 3])
   })
+
+  test('show each character as its whole word is cased, final sigma and astral letters too', () => {
+    const greek = text('AΟΣ', [{ start: 0, length: 3, style: { textCase: 'TITLE' } }])
+    expect(shownText(greek)).toBe('Aος')
+    expect(
+      shownCharacters(greek)
+        .map((shown) => shown.character)
+        .join('')
+    ).toBe('Aος')
+
+    const deseret = text('𐐨𐐨', [{ start: 0, length: 4, style: { textCase: 'TITLE' } }])
+    expect(shownText(deseret)).toBe('𐐀𐐨')
+    expect(shownCharacters(deseret).map((shown) => shown.sourceIndex)).toEqual([0, 2])
+  })
 })
