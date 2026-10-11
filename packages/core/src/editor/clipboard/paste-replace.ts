@@ -36,6 +36,9 @@ function reorderCreatedAtReplacementIndex(
   if (!insertParentId) return
   const insertIndex = deleted[0]?.index ?? 0
   for (let i = 0; i < created.length; i++) {
+    // A paste that could not go into the target's parent, such as an instance of a component
+    // the parent is inside, stays in the ancestor it went to.
+    if (ctx.graph.getNode(created[i])?.parentId !== insertParentId) continue
     ctx.graph.reorderChild(created[i], insertParentId, insertIndex + i)
   }
 }

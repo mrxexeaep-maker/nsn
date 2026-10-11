@@ -131,8 +131,11 @@ export function createTypographyActions({
   const beforePreview = new Map<string, Preview>()
 
   /** Applies one change per text layer in one undo step. */
-  function updateEach(label: string, changes: (node: SceneNode) => Partial<SceneNode>) {
-    const targets = nodes.value
+  function updateEach(
+    label: string,
+    changes: (node: SceneNode) => Partial<SceneNode>,
+    targets = nodes.value
+  ) {
     if (targets.length === 0) return
     editor.undo.runBatch(label, () => {
       for (const target of targets) editor.updateNodeWithUndo(target.id, changes(target), label)
@@ -143,24 +146,34 @@ export function createTypographyActions({
     updateEach(label, () => changes)
   }
 
-  async function setFamily(family: string) {
+  /**
+   * Applies a change once its faces have loaded, to the layers selected when it was asked for:
+   * the selection may change while the load is pending, and a layer may be deleted.
+   */
+  async function updateAfterLoading(
+    label: string,
+    changes: Partial<SceneNode>,
+    load: (target: SceneNode) => Promise<unknown> | undefined
+  ) {
     const targets = nodes.value
     if (targets.length === 0) return
-    await Promise.all(
-      targets.map((target) =>
-        options.fontLoader?.load(family, FONT_WEIGHT_NAMES[target.fontWeight] ?? 'Regular')
-      )
-    )
-    update('Change font', { fontFamily: family })
+    await Promise.all(targets.map(load))
+    const live = targets.filter((target) => editor.graph.getNode(target.id))
+    updateEach(label, () => changes, live)
   }
 
+  async function setFamily(family: string) {
+    await updateAfterLoading('Change font', { fontFamily: family }, (target) =>
+      options.fontLoader?.load(family, FONT_WEIGHT_NAMES[target.fontWeight] ?? 'Regular')
+    )
+  }
+
+  /** Loads the face first, as for a family, so the text is laid out once with it. */
   async function setWeight(weight: number) {
-    const targets = nodes.value
-    if (targets.length === 0) return
-    // Load first, as for a family, so the text is laid out once with its new face.
     const style = weightToStyle(weight)
-    await Promise.all(targets.map((target) => options.fontLoader?.load(target.fontFamily, style)))
-    update('Change font weight', { fontWeight: weight })
+    await updateAfterLoading('Change font weight', { fontWeight: weight }, (target) =>
+      options.fontLoader?.load(target.fontFamily, style)
+    )
   }
 
   function setAlign(align: TextAlign) {
