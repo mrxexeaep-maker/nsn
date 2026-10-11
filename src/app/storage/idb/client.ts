@@ -38,8 +38,9 @@ function takesTransactions<Database extends DBSchema>(database: IDBPDatabase<Dat
 
 /**
  * Connect to a typed app database through the shared IndexedDB boundary. The connection opens on
- * first use and is kept until it stops taking transactions: the browser closed it, or another tab
- * needs a newer version and this one gave way. The next `open` then connects again.
+ * first use and is kept until it stops taking transactions because the browser closed it; the
+ * next `open` then connects again. It stays open when another tab needs a newer version: this
+ * tab's code cannot reconnect at its older one.
  */
 export function connectAppDatabase<Database extends DBSchema>(
   definition: AppDatabaseDefinition<Database>
@@ -54,11 +55,6 @@ export function connectAppDatabase<Database extends DBSchema>(
       terminated() {
         drop(opening)
         definition.callbacks.terminated?.()
-      },
-      blocking(currentVersion, blockedVersion, event) {
-        drop(opening)
-        void opening.then((database) => database.close())
-        definition.callbacks.blocking?.(currentVersion, blockedVersion, event)
       }
     })
     connection = opening

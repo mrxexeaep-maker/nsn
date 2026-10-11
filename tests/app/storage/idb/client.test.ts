@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto'
 import { expect, test } from 'bun:test'
+
 import type { DBSchema } from 'idb'
 
 import { connectAppDatabase, defineAppDatabase } from '@/app/storage/idb'
@@ -31,7 +32,9 @@ test('a connection the browser closed is replaced on the next use', async () => 
   await first.put('notes', 'kept', 'a')
   // As WebKit does when it suspends a page: the page is not told, every transaction is refused.
   first.close()
-  expect(() => first.transaction('notes')).toThrow(expect.objectContaining({ name: 'InvalidStateError' }))
+  expect(() => first.transaction('notes')).toThrow(
+    expect.objectContaining({ name: 'InvalidStateError' })
+  )
 
   const second = await database.open()
   expect(second).not.toBe(first)
