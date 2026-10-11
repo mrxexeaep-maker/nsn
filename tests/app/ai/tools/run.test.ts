@@ -162,19 +162,16 @@ test("the agent's switch_page moves the run and the user's view", async () => {
   })
 })
 
-test.each([
-  { followAgents: false, followed: null },
-  { followAgents: true, followed: 'b' }
-] as const)(
+test.each([{ followAgents: false }, { followAgents: true }])(
   'the agent shows on the page a script edited, and only following takes the view there (%p)',
-  async ({ followAgents, followed }) => {
+  async ({ followAgents }) => {
     await withStore(async (store, { a, b }) => {
       appPreferences.value.chat.followAgents = followAgents
       aiToolOverrides.value = { ...aiToolOverrides.value, eval: true }
       const card = store.graph.createNode('FRAME', b, { name: 'Card', x: 40, y: 20, width: 80 })
       const title = store.graph.createNode('TEXT', card.id, { name: 'Title', text: 'Hi' })
       let during: ReturnType<typeof presenceOf>['agents']['value'] = []
-      let followPage: string | null = null
+      let followPage = presenceOf(store).followPage
       await runMessage(store, [
         {
           toolName: 'eval',
@@ -193,7 +190,7 @@ test.each([
       ])
       expect(runPageId(store)).toBe(a)
       // Following switches pages as it does for any followed agent; without it the view stays.
-      expect(followPage).toBe(followed && b)
+      expect(followPage).toBe(followAgents ? b : null)
       if (!followAgents) expect(store.state.currentPageId).toBe(a)
     })
   }
