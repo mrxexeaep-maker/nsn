@@ -6,7 +6,7 @@
 
 - Settings → MCP installs or updates a missing or outdated MCP server with one click, explains that it installs separately to keep the download small, and falls back to the install command and a prompt for your agent when npm is missing or the install fails; it no longer suggests reinstalling the old server's own version.
 - Settings → Tool access lists the local MCP server's tools while the server is stopped, instead of an empty list saying no tools match the search.
-- In the browser, Settings → MCP says the local MCP server runs with the desktop app instead of reporting it unreachable.
+- Settings → MCP shows the local server in the desktop app and WebMCP in the browser, where each works, instead of a WebMCP section the desktop app can never use and a local server the browser reports as unreachable.
 
 ## 0.16.0-beta.1 — 2026-10-11
 
