@@ -41,10 +41,15 @@ export const SPAN_STYLE_FIELDS = [
   'textDecorationFills',
   'textDecorationThickness',
   'textUnderlineOffset',
-  'textDecorationSkipInk'
+  'textDecorationSkipInk',
+  'textCase'
 ] as const satisfies readonly (keyof CharacterStyleOverride & keyof SceneNode)[]
 
-export type SpanStyle = Pick<CharacterStyleOverride, (typeof SPAN_STYLE_FIELDS)[number]>
+/** A span's character styles and the URL it links to, which only characters have. */
+export type SpanStyle = Pick<
+  CharacterStyleOverride,
+  (typeof SPAN_STYLE_FIELDS)[number] | 'hyperlink'
+>
 
 /** The fields an element's props set on a text node, as `propsToOverrides` reads them. */
 export type SpanOverrides = (props: Record<string, unknown>) => Partial<SceneNode>
@@ -80,8 +85,16 @@ export function isTextContent(child: TreeNode | string): boolean {
   return isTreeNode(child) && (child.type === SPAN || child.type === PARAGRAPH)
 }
 
+const SpanLink = v.object({ href: v.optional(v.pipe(v.string(), v.trim(), v.nonEmpty())) })
+
 function spanStyle(props: Record<string, unknown>, spanOverrides: SpanOverrides): SpanStyle {
-  return omitBy(pick(spanOverrides(props), SPAN_STYLE_FIELDS), (value) => value === undefined)
+  const style: SpanStyle = omitBy(
+    pick(spanOverrides(props), SPAN_STYLE_FIELDS),
+    (value) => value === undefined
+  )
+  const { href } = parseScriptInput('Invalid <Span> props', SpanLink, props)
+  if (href) style.hyperlink = { type: 'URL', value: href }
+  return style
 }
 
 function appendContent(
