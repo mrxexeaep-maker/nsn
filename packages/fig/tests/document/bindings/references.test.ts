@@ -181,7 +181,7 @@ test('ranges of text resolve the variables and styles they name by library key',
         }
       } as NodeChange
     ],
-    () => {}
+    () => undefined
   )
   const [override] = text.textData?.styleOverrideTable ?? []
   expect(override.styleIdForText?.guid).toEqual(guid(2))
