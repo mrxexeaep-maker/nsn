@@ -160,6 +160,19 @@ describe('document changes', () => {
     expect(after.getNode(pageId)?.childIds).not.toContain(card.id)
   })
 
+  test('the past side of removing the page the edit ran on brings that page back', () => {
+    const { editor, pageId, card } = setup()
+    editor.graph.addPage('Second')
+    const finish = editor.captureDocumentChange(pageId)
+    editor.graph.deleteNode(pageId)
+    const change = finish()
+
+    const before = expectDefined(graphFromDocumentChange(editor.graph, change, 'before'), 'before')
+    const after = expectDefined(graphFromDocumentChange(editor.graph, change, 'after'), 'after')
+    expect(before.getNode(pageId)?.childIds).toContain(card.id)
+    expect(after.getNode(pageId)).toBeUndefined()
+  })
+
   test('a parent cycle in bad data does not hang recording', () => {
     const { editor, pageId, card, title } = setup()
     // Nothing in the graph's API makes a cycle; a damaged file can.

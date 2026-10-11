@@ -44,9 +44,11 @@ export function graphFromDocumentChange(
 ): SceneGraph | null {
   // A page's own id brings its whole subtree; a layer moved between pages can then move back.
   const pageIds = uniq([change.pageId, ...change.pageIds]).filter((id) => source.getNode(id))
-  const [first] = pageIds
-  if (!first) return null
-  const graph = pageContext(source, first, pageIds)
+  // A change that removed every page it touched still needs one to build on; the past side
+  // brings the removed ones back.
+  const host = pageIds[0] ?? source.getPages()[0]?.id
+  if (!host) return null
+  const graph = pageContext(source, host, pageIds)
   if (side === 'before') applyDocumentChange(graph, change, 'before')
   graph.clearAbsPosCache()
   return graph
