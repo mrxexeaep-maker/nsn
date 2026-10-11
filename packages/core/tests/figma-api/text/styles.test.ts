@@ -298,6 +298,26 @@ describe('character style ranges', () => {
     expect(() => text.setRangeFills(0, 1, [null as never])).toThrow(
       fills('Expected object, received null at index 0')
     )
+    const solid = (color: unknown, opacity?: unknown) =>
+      text.setRangeFills(0, 1, [{ type: 'SOLID', color, opacity } as never])
+    expect(() => solid(null)).toThrow(fills('Expected object, received null at [0].color'))
+    expect(() => solid({ r: 0, g: 0 })).toThrow(fills('Required value missing at [0].color.b'))
+    expect(() => solid({ r: -0.1, g: 0, b: 0 })).toThrow(
+      fills('Number must be greater than or equal to 0 at [0].color.r')
+    )
+    expect(() => solid({ r: Number.NaN, g: 0, b: 0 })).toThrow(
+      fills('Expected number, received nan at [0].color.r')
+    )
+    expect(() => solid({ r: '1', g: 0, b: 0 })).toThrow(
+      fills('Expected number, received string at [0].color.r')
+    )
+    expect(() => solid({ r: 0, g: 0, b: 0, a: 2 })).toThrow(
+      fills('Number must be less than or equal to 1 at [0].color.a')
+    )
+    expect(() => solid({ r: 0, g: 0, b: 0 }, 2)).toThrow(
+      fills('Number must be less than or equal to 1 at [0].opacity')
+    )
+    expect(() => solid({ r: 0, g: 0, b: 0, a: 0.5 })).not.toThrow()
 
     text.setRangeTextDecoration(0, 3, 'UNDERLINE')
     const color = (problem: string) =>
@@ -324,5 +344,13 @@ describe('character style ranges', () => {
         value: { type: 'SOLID', color: RGB_BLUE, foo: 1 } as never
       })
     ).toThrow(color("Unrecognized key(s) in object: 'foo' at .value"))
+    expect(() =>
+      text.setRangeTextDecorationColor(0, 1, { value: { type: 'SOLID', color: null } as never })
+    ).toThrow(noneMatched('  Expected object, received null at .value.color'))
+    expect(() =>
+      text.setRangeTextDecorationColor(0, 1, {
+        value: { type: 'SOLID', color: { r: -1, g: 0, b: 0 } } as never
+      })
+    ).toThrow(color('Number must be greater than or equal to 0 at .value.color.r'))
   })
 })

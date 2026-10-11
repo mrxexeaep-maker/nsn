@@ -139,23 +139,40 @@ function fontNameStyle(method: string, value: unknown): CharacterStyleOverride {
   return { fontFamily: fontName.family as string, fontWeight: weight, italic }
 }
 
+/** A number from 0 to 1, as Figma takes colour channels and opacity. */
+function unitProblem(value: unknown, at: string): string | null {
+  const problem = numberProblem(value, ` at ${at}`)
+  if (problem) return problem
+  if ((value as number) < 0) return `Number must be greater than or equal to 0 at ${at}`
+  if ((value as number) > 1) return `Number must be less than or equal to 1 at ${at}`
+  return null
+}
+
+/** A solid paint's colour and opacity as Figma checks them; a colour's alpha may be left out. */
+function solidPaintProblem(paint: { color?: unknown; opacity?: unknown }, at: string) {
+  const { color, opacity } = paint
+  if (color === undefined) return `Required value missing at ${at}.color`
+  if (!color || typeof color !== 'object') {
+    return `Expected object, received ${received(color)} at ${at}.color`
+  }
+  const channels = color as Partial<Record<'r' | 'g' | 'b' | 'a', unknown>>
+  for (const channel of ['r', 'g', 'b', 'a'] as const) {
+    if (channel === 'a' && channels.a === undefined) continue
+    const problem = unitProblem(channels[channel], `${at}.color.${channel}`)
+    if (problem) return problem
+  }
+  return opacity === undefined ? null : unitProblem(opacity, `${at}.opacity`)
+}
+
 function paintProblem(paint: unknown, index: number): string | null {
   if (!paint || typeof paint !== 'object') {
     return `Expected object, received ${received(paint)} at index ${index}`
   }
-  const { type, color } = paint as { type?: unknown; color?: Partial<Record<string, unknown>> }
+  const { type } = paint as { type?: unknown }
   if (!PAINT_TYPES.has(type as string)) {
     return `Invalid discriminator value. Expected ${[...PAINT_TYPES].map((name) => `'${name}'`).join(' | ')} at [${index}].type`
   }
-  if (type !== 'SOLID') return null
-  if (color === undefined) return `Required value missing at [${index}].color`
-  for (const channel of ['r', 'g', 'b', 'a'] as const) {
-    const component = color[channel]
-    if (typeof component === 'number' && component > 1) {
-      return `Number must be less than or equal to 1 at [${index}].color.${channel}`
-    }
-  }
-  return null
+  return type === 'SOLID' ? solidPaintProblem(paint, `[${index}]`) : null
 }
 
 function fillsFromPaints(method: string, value: unknown): CharacterStyleOverride['fills'] {
@@ -178,10 +195,13 @@ function decorationColorFills(method: string, value: unknown): Fill[] {
   if (!color || typeof color !== 'object') {
     issues.push(`Expected object, received ${received(color)} at .value`)
   } else {
-    const paint = color as Partial<Pick<FigmaPaint, 'type' | 'color'>>
+    const paint = color as Partial<Record<'type' | 'color', unknown>>
     if (paint.type !== 'SOLID')
       issues.push('Invalid literal value, expected "SOLID" at .value.type')
     if (paint.color === undefined) issues.push('Required value missing at .value.color')
+    else if (!paint.color || typeof paint.color !== 'object') {
+      issues.push(`Expected object, received ${received(paint.color)} at .value.color`)
+    }
     const unknown = Object.keys(paint).filter((key) => !SOLID_PAINT_KEYS.has(key))
     if (unknown.length > 0) {
       const keys = unknown.map((key) => `'${key}'`).join(', ')
@@ -195,7 +215,12 @@ function decorationColorFills(method: string, value: unknown): Fill[] {
       issues.push(`Unrecognized key(s) in object: ${keys} at .value`)
     }
   }
-  if (issues.length === 0) return fillsFromPaints(method, [color]) ?? []
+  if (issues.length === 0) {
+    // A solid paint whose channels are out of range fails on them alone.
+    const problem = solidPaintProblem(color as { color?: unknown; opacity?: unknown }, '.value')
+    if (problem) throw invalid(method, problem, 'textDecorationColor')
+    return [figmaPaintToFill(color as FigmaPaint)]
+  }
   const paintIssues =
     issues.length === 1
       ? `  ${issues[0]}`
