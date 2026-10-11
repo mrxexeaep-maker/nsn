@@ -28,6 +28,11 @@ export interface AgentSetupState {
   npm: boolean
   /** Installing the MCP server or the agent's adapter needs administrator rights; absent means no. */
   bridgeNeedsAdmin?: boolean
+  /**
+   * One click can install or update the MCP server with the package manager that would run,
+   * which may be Bun without npm; absent means npm decides.
+   */
+  bridgeInstallable?: boolean
   adapterNeedsAdmin?: boolean
   installingAgent: boolean
   installingBridge: boolean
@@ -50,6 +55,9 @@ export interface PiSetupState {
   /** Installing the companion or the MCP server needs administrator rights; absent means no. */
   companionNeedsAdmin?: boolean
   bridgeNeedsAdmin?: boolean
+  /** One click can install or update each, as `AgentSetupState.bridgeInstallable` says. */
+  companionInstallable?: boolean
+  bridgeInstallable?: boolean
   installingCompanion: boolean
   installingBridge: boolean
   /** The default model set in Pi, used unless OpenPencil names another. */
@@ -67,6 +75,7 @@ export type MCPServerSetupState = Pick<
   | 'bridgeCommand'
   | 'npm'
   | 'bridgeNeedsAdmin'
+  | 'bridgeInstallable'
   | 'installingBridge'
   | 'error'
 >
@@ -98,6 +107,15 @@ function companionCheck(
   const ready = installed && !outdated
   if (ready || !npm) return { ready, outdated, installing, action: null }
   return { ready, outdated, installing, action: outdated ? 'update' : 'install' }
+}
+
+/** One-click availability: what discovery reports, or npm without administrator rights. */
+function oneClickInstallable(
+  installable: boolean | undefined,
+  npm: boolean,
+  admin: boolean
+): boolean {
+  return installable ?? (npm && !admin)
 }
 
 function setupProblem(
@@ -140,22 +158,27 @@ function manualAgentCommand(agent: ACPAgentDef, setup: AgentSetupState): string 
 /** The MCP server's install command to run by hand, or null where one click installs it. */
 function manualBridgeCommand(setup: AgentSetupState, bridge: CompanionCheck): string | null {
   if (!setup.supported) return MCP_INSTALL_COMMAND
-  const oneClick = setup.npm && setup.bridgeNeedsAdmin !== true && setup.error !== 'canvas-install'
+  const oneClick =
+    oneClickInstallable(setup.bridgeInstallable, setup.npm, setup.bridgeNeedsAdmin === true) &&
+    setup.error !== 'canvas-install'
   return bridge.ready || oneClick ? null : setup.bridgeCommand
 }
 
 export function agentSetupView(agent: ACPAgentDef, setup: AgentSetupState): AgentSetupView {
   const bridgeAdmin = setup.bridgeNeedsAdmin === true
   const adapterAdmin = setup.adapterNeedsAdmin === true
+  const bridgeInstallable = oneClickInstallable(setup.bridgeInstallable, setup.npm, bridgeAdmin)
   const bridge = companionCheck(
     setup.bridge,
     setup.bridgeOutdated,
     setup.installingBridge,
-    setup.npm && !bridgeAdmin
+    bridgeInstallable
   )
   const status = setup.detected?.status
   const bridgeMissing = setup.detected !== null && !bridge.ready
-  const needsNpm = !setup.npm && (status === 'needs-adapter' || bridgeMissing)
+  const needsNpm =
+    !setup.npm &&
+    (status === 'needs-adapter' || (bridgeMissing && !bridgeInstallable && !bridgeAdmin))
   const needsAdmin = (status === 'needs-adapter' && adapterAdmin) || (bridgeMissing && bridgeAdmin)
   return {
     bridge,
@@ -177,13 +200,15 @@ export interface MCPServerSetupView {
 
 export function mcpServerSetupView(setup: MCPServerSetupState): MCPServerSetupView {
   const admin = setup.bridgeNeedsAdmin === true
+  const installable =
+    setup.supported && oneClickInstallable(setup.bridgeInstallable, setup.npm, admin)
   const bridge = companionCheck(
     setup.bridge,
     setup.bridgeOutdated,
     setup.installingBridge,
-    setup.supported && setup.npm && !admin
+    installable
   )
-  const oneClick = setup.supported && setup.npm && !admin && setup.error !== 'canvas-install'
+  const oneClick = installable && setup.error !== 'canvas-install'
   let manualCommand: string | null = null
   if (!setup.supported) manualCommand = MCP_INSTALL_COMMAND
   else if (setup.checked && !bridge.ready && !oneClick) manualCommand = setup.bridgeCommand
@@ -193,7 +218,7 @@ export function mcpServerSetupView(setup: MCPServerSetupState): MCPServerSetupVi
     problem: setup.supported
       ? setupProblem(
           setup.error,
-          setup.checked && !setup.npm && !bridge.ready,
+          setup.checked && !setup.npm && !bridge.ready && !installable && !admin,
           ['canvas-install'],
           setup.checked && admin && !bridge.ready
         )
@@ -211,43 +236,62 @@ export interface PiSetupView {
   manualCommands: string[]
 }
 
+/** One companion as Pi's setup weighs it: its check and what blocks a one-click install. */
+function piCompanion(
+  installed: boolean,
+  outdated: boolean,
+  installing: boolean,
+  installable: boolean | undefined,
+  npm: boolean,
+  needsAdmin: boolean | undefined
+) {
+  const admin = needsAdmin === true
+  const oneClick = oneClickInstallable(installable, npm, admin)
+  const check = companionCheck(installed, outdated, installing, oneClick)
+  return {
+    check,
+    /** Missing, and nothing that runs without npm can install it. */
+    needsNpm: !check.ready && !oneClick && !admin,
+    needsAdmin: !check.ready && admin,
+    /** Missing, and only a command run by hand installs it. */
+    manual: !check.ready && !oneClick
+  }
+}
+
 export function piSetupView(setup: PiSetupState): PiSetupView {
-  const companionAdmin = setup.companionNeedsAdmin === true
-  const bridgeAdmin = setup.bridgeNeedsAdmin === true
-  const companion = companionCheck(
+  const harness = piCompanion(
     setup.companion,
     setup.companionOutdated,
     setup.installingCompanion,
-    setup.npm && !companionAdmin
+    setup.companionInstallable,
+    setup.npm,
+    setup.companionNeedsAdmin
   )
-  const bridge = companionCheck(
+  const server = piCompanion(
     setup.bridge,
     setup.bridgeOutdated,
     setup.installingBridge,
-    setup.npm && !bridgeAdmin
+    setup.bridgeInstallable,
+    setup.npm,
+    setup.bridgeNeedsAdmin
   )
-  const missing = !companion.ready || !bridge.ready
-  const needsAdmin =
-    setup.checked && ((!companion.ready && companionAdmin) || (!bridge.ready && bridgeAdmin))
-  const manual =
-    !setup.npm ||
-    needsAdmin ||
-    setup.error === 'harness-install' ||
-    setup.error === 'canvas-install'
+  const needsAdmin = setup.checked && (harness.needsAdmin || server.needsAdmin)
+  const failed = setup.error === 'harness-install' || setup.error === 'canvas-install'
+  const manual = harness.manual || server.manual || needsAdmin || failed
   return {
-    companion,
-    bridge,
+    companion: harness.check,
+    bridge: server.check,
     busy: setup.installingCompanion || setup.installingBridge,
     problem: setupProblem(
       setup.error,
-      setup.checked && !setup.npm && missing,
+      setup.checked && !setup.npm && (harness.needsNpm || server.needsNpm),
       ['harness-install', 'canvas-install'],
       needsAdmin
     ),
     manualCommands: manual
       ? [
-          ...(companion.ready ? [] : [setup.companionCommand]),
-          ...(bridge.ready ? [] : [setup.bridgeCommand])
+          ...(harness.check.ready ? [] : [setup.companionCommand]),
+          ...(server.check.ready ? [] : [setup.bridgeCommand])
         ]
       : []
   }
@@ -277,6 +321,7 @@ export function useAgentSetup(
       bridgeCommand: discovery.canvasBridgeCommand.value,
       npm: discovery.npmAvailable.value,
       bridgeNeedsAdmin: discovery.canvasBridgeNeedsAdmin.value,
+      bridgeInstallable: discovery.canvasBridgeInstallable.value,
       adapterNeedsAdmin: discovery.adapterNeedsAdmin.value,
       installingAgent: discovery.installing.value === id,
       installingBridge: discovery.installing.value === 'canvas',
@@ -294,11 +339,13 @@ export function useAgentSetup(
       companionOutdated: discovery.harnessOutdated.value,
       companionCommand: discovery.harnessCommand.value,
       companionNeedsAdmin: discovery.harnessNeedsAdmin.value,
+      companionInstallable: discovery.harnessInstallable.value,
       bridge: discovery.canvasBridgeAvailable.value,
       bridgeOutdated: discovery.canvasBridgeOutdated.value,
       bridgeCommand: discovery.canvasBridgeCommand.value,
       npm: discovery.npmAvailable.value,
       bridgeNeedsAdmin: discovery.canvasBridgeNeedsAdmin.value,
+      bridgeInstallable: discovery.canvasBridgeInstallable.value,
       installingCompanion: discovery.installing.value === 'harness',
       installingBridge: discovery.installing.value === 'canvas',
       defaultModel: piDefaultModel.value,
@@ -315,6 +362,7 @@ export function useAgentSetup(
       bridgeCommand: discovery.canvasBridgeCommand.value,
       npm: discovery.npmAvailable.value,
       bridgeNeedsAdmin: discovery.canvasBridgeNeedsAdmin.value,
+      bridgeInstallable: discovery.canvasBridgeInstallable.value,
       installingBridge: discovery.installing.value === 'canvas',
       error: discovery.error.value
     }

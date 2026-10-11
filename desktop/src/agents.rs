@@ -102,15 +102,17 @@ fn run_for_output(
 
 /// The folder `npm install --global` writes packages into, below the prefix npm reports.
 fn npm_global_packages(prefix: &Path) -> PathBuf {
-    let candidates = if cfg!(windows) {
-        vec![prefix.join("node_modules")]
+    if cfg!(windows) {
+        prefix.join("node_modules")
     } else {
-        vec![prefix.join("lib").join("node_modules"), prefix.join("lib")]
-    };
-    candidates
-        .into_iter()
-        .find(|dir| dir.is_dir())
-        .unwrap_or_else(|| prefix.to_path_buf())
+        prefix.join("lib").join("node_modules")
+    }
+}
+
+/// The closest folder that exists at or above `path`. npm creates the missing ones, so writing
+/// there is what decides whether an install can succeed.
+fn nearest_existing(path: &Path) -> Option<&Path> {
+    path.ancestors().find(|dir| dir.is_dir())
 }
 
 /// Whether this process can create files in `dir`, checked by creating and removing one, since
@@ -136,7 +138,9 @@ fn npm_global_writable(npm: &Path, search_path: &str, timeout: Duration) -> Opti
     if prefix.is_empty() {
         return None;
     }
-    Some(can_write(&npm_global_packages(Path::new(prefix))))
+    Some(can_write(nearest_existing(&npm_global_packages(
+        Path::new(prefix),
+    ))?))
 }
 
 fn lookup_with(
@@ -238,8 +242,12 @@ mod tests {
         } else {
             prefix.join("lib").join("node_modules")
         };
-        std::fs::create_dir_all(&packages).expect("create package folder");
+        // A fresh user prefix has no package folder yet; npm creates it, so the prefix decides.
+        std::fs::create_dir_all(&prefix).expect("create prefix");
         assert_eq!(npm_global_packages(&prefix), packages);
+        assert_eq!(nearest_existing(&packages), Some(prefix.as_path()));
+        std::fs::create_dir_all(&packages).expect("create package folder");
+        assert_eq!(nearest_existing(&packages), Some(packages.as_path()));
         assert!(can_write(&packages));
         // The probe leaves nothing behind.
         assert_eq!(

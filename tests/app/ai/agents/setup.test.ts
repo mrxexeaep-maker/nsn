@@ -262,6 +262,15 @@ describe('mcpServerSetupView', () => {
     expect(view.manualCommand).not.toBeNull()
   })
 
+  test('offers the update one click can make with Bun, even without npm', () => {
+    const view = mcpServerSetupView(
+      mcpServerState({ bridge: true, bridgeOutdated: true, npm: false, bridgeInstallable: true })
+    )
+    expect(view.bridge.action).toBe('update')
+    expect(view.problem).toBeNull()
+    expect(view.manualCommand).toBeNull()
+  })
+
   test('asks for administrator rights instead of a one-click install npm cannot finish', () => {
     const view = mcpServerSetupView(
       mcpServerState({ bridgeNeedsAdmin: true, bridgeCommand: 'sudo npm i -g x' })

@@ -138,6 +138,12 @@ export function createAgentDiscovery(options: {
   const harnessCommand = computed(() => installCommand(HARNESS_INSTALL_TARGET, HARNESS_EXECUTABLE))
   const canvasBridgeNeedsAdmin = computed(() => needsAdmin(MCP_EXECUTABLE))
   const harnessNeedsAdmin = computed(() => needsAdmin(HARNESS_EXECUTABLE))
+  /** One click can install or update it, with the package manager that would run. */
+  function installable(executable: string): boolean {
+    return canInstallWith(managerFor(executable)) && !needsAdmin(executable)
+  }
+  const canvasBridgeInstallable = computed(() => installable(MCP_EXECUTABLE))
+  const harnessInstallable = computed(() => installable(HARNESS_EXECUTABLE))
   /** Agent adapters always come from npm. */
   const adapterNeedsAdmin = computed(npmNeedsAdmin)
 
@@ -261,10 +267,12 @@ export function createAgentDiscovery(options: {
     canvasBridgeOutdated,
     canvasBridgeCommand,
     canvasBridgeNeedsAdmin,
+    canvasBridgeInstallable,
     harnessAvailable,
     harnessOutdated: harnessOutdatedVersion,
     harnessCommand,
     harnessNeedsAdmin,
+    harnessInstallable,
     adapterNeedsAdmin,
     setupCanvasBridge,
     setupHarness,
