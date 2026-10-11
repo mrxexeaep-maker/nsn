@@ -5,22 +5,9 @@ import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 
 import { rekaExport, type RekaExport } from './behaviours'
 import { iconProps } from './icons'
-import { collectProps, NODE_TYPE_TO_TAG, type JSXProp } from './props'
-import { valueSyntax } from './value'
-
-function propValue(value: JSXProp[1]): SyntaxNode | null {
-  if (value === true) return null
-  if (typeof value === 'string') return jsx.stringValue(value)
-  return jsx.container(valueSyntax(value))
-}
-
-/**
- * A prop as a JSX attribute: `true` prints the bare name, strings as attribute strings, and
- * other values as expressions, with paint and effect helpers as calls.
- */
-function propAttribute([name, value]: JSXProp): SyntaxNode {
-  return jsx.attribute(name, propValue(value))
-}
+import { collectProps, NODE_TYPE_TO_TAG } from './props'
+import { textChildren } from './text'
+import { propAttribute } from './value'
 
 /** Design JSX with the layer behind each element, in the order elements open. */
 export interface DesignJSXWithLayers {
@@ -73,7 +60,8 @@ function nodeToJSX(
     return [jsx.element(tag, ownProps.map(propAttribute), [], depth)]
   const attributes = [...collectProps(node, graph), ...(ownProps ?? [])].map(propAttribute)
   if (node.type === 'TEXT') {
-    return [jsx.element(tag, attributes, node.text ? [jsx.text(node.text)] : [], depth, true)]
+    const { children: content, inline } = textChildren(node, depth)
+    return [jsx.element(tag, attributes, content, depth, inline)]
   }
   return [jsx.element(tag, attributes, children(depth + 1), depth)]
 }
