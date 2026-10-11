@@ -90,7 +90,6 @@ ja:automation.localMCP
 ja:automation.localServerDesktopOnly
 ja:automation.mcpFailureExited
 ja:automation.mcpFailureMalformed
-ja:automation.mcpFailureMalformedHint
 ja:automation.mcpFailureNotInstalled
 ja:automation.mcpFailureNotInstalledHint
 ja:automation.mcpFailureOutdated
@@ -112,6 +111,7 @@ ja:automation.serverURLHint
 ja:automation.toolAccessDescription
 ja:automation.toolsRestartNotice
 ja:automation.webmcpDescription
+ja:automation.webmcpFailed
 ja:automation.webmcpUnsupported
 ja:code.copyJSXReference
 ja:code.editorHTMLCSSLabel
@@ -291,7 +291,6 @@ zh-cn:automation.localMCP
 zh-cn:automation.localServerDesktopOnly
 zh-cn:automation.mcpFailureExited
 zh-cn:automation.mcpFailureMalformed
-zh-cn:automation.mcpFailureMalformedHint
 zh-cn:automation.mcpFailureNotInstalled
 zh-cn:automation.mcpFailureNotInstalledHint
 zh-cn:automation.mcpFailureOutdated
@@ -313,6 +312,7 @@ zh-cn:automation.serverURLHint
 zh-cn:automation.toolAccessDescription
 zh-cn:automation.toolsRestartNotice
 zh-cn:automation.webmcpDescription
+zh-cn:automation.webmcpFailed
 zh-cn:automation.webmcpUnsupported
 zh-cn:code.copyJSXReference
 zh-cn:code.editorHTMLCSSLabel

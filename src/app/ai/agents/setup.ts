@@ -162,9 +162,10 @@ export function mcpServerSetupView(setup: MCPServerSetupState): MCPServerSetupVi
   else if (setup.checked && !bridge.ready && !oneClick) manualCommand = setup.bridgeCommand
   return {
     bridge,
-    problem: setupProblem(setup.error, setup.checked && !setup.npm && !bridge.ready, [
-      'canvas-install'
-    ]),
+    // Where the app cannot install at all, npm and install problems are not the person's to fix.
+    problem: setup.supported
+      ? setupProblem(setup.error, setup.checked && !setup.npm && !bridge.ready, ['canvas-install'])
+      : null,
     manualCommand
   }
 }
@@ -341,6 +342,7 @@ export function useMCPServerSetup(
   )
   return {
     state: computed(() => setup.mcpServerSetup()),
-    install: () => discovery.setupCanvasBridge()
+    install: () => discovery.setupCanvasBridge(),
+    check: () => discovery.refresh(true)
   }
 }

@@ -266,6 +266,8 @@ describe('mcpServerSetupView', () => {
     const view = mcpServerSetupView(mcpServerState({ supported: false }))
     expect(view.bridge.action).toBeNull()
     expect(view.manualCommand).toBe(MCP_INSTALL_COMMAND)
+    // Nothing to install with, so no npm problem to report.
+    expect(view.problem).toBeNull()
   })
 })
 

@@ -72,7 +72,12 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const StartupTimeout: Story = {}
-export const NotInstalled: Story = { args: { failure: reasons['not-installed'] } }
+export const NotInstalled: Story = {
+  args: {
+    failure: reasons['not-installed'],
+    setup: { ...oneClick, bridge: false, bridgeOutdated: false }
+  }
+}
 
 /** An older server with npm available: one click updates it, with no commands to run. */
 export const Outdated: Story = {
@@ -106,6 +111,7 @@ export const NeedsNode: Story = {
     await expect(canvas.getByRole('link', { name: 'Node.js' })).toBeVisible()
     await expect(canvas.getByTestId('settings-mcp-install-command')).toBeVisible()
     await expect(canvas.getByRole('button', { name: 'Copy prompt for your agent' })).toBeVisible()
+    await expect(canvas.getByRole('button', { name: 'Check again' })).toBeVisible()
   }
 }
 

@@ -185,6 +185,7 @@ const serverSetup = useMCPServerSetup(() =>
         :externally-managed="mcpRuntime.externallyManaged"
         @install="serverSetup.install"
         @restart="restart"
+        @check="serverSetup.check"
       />
     </template>
   </SettingsSection>

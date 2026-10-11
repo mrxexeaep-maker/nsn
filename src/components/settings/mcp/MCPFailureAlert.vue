@@ -47,7 +47,7 @@ const {
   restarting?: boolean
   externallyManaged?: boolean
 }>()
-const emit = defineEmits<{ install: []; restart: [] }>()
+const emit = defineEmits<{ install: []; restart: []; check: [] }>()
 const restartFixes = computed(() => restartFixesMCPFailure(failure))
 
 const automation = useAutomationMessages()
@@ -64,7 +64,11 @@ const installView = computed(() =>
 const installAction = computed(() => {
   const bridge = installView.value?.bridge
   if (!bridge?.action) return null
-  if (bridge.installing) return ai.value.aiSetupAgentInstalling
+  if (bridge.installing) {
+    return bridge.action === 'update'
+      ? automation.value.mcpUpdating
+      : ai.value.aiSetupAgentInstalling
+  }
   return bridge.action === 'update'
     ? ai.value.aiSetupAgentUpdateMCP
     : ai.value.aiSetupAgentInstallMCP
@@ -209,6 +213,14 @@ async function copyDetails(): Promise<void> {
         data-test-id="settings-mcp-restart"
         @click="emit('restart')"
         >{{ externallyManaged ? automation.externallyManaged : automation.restart }}</AppButton
+      >
+      <AppButton
+        v-if="problem === 'needs-npm'"
+        size="xs"
+        variant="outline"
+        data-test-id="settings-mcp-check-again"
+        @click="emit('check')"
+        >{{ ai.aiSetupAgentCheckAgain }}</AppButton
       >
       <AppButton size="xs" variant="outline" @click="copyDetails">
         <template #leading>

@@ -82,10 +82,19 @@ const status = computed(
       <SettingsRow :label="automation.browserAccess" :description="descriptions[mode]">
         <AppSelect v-model="mode" :options="options" :label="automation.browserAccess" />
       </SettingsRow>
-      <SettingsRow v-if="!problem" :label="automation.status" :description="detail">
+      <SettingsRow
+        v-if="!problem && state.status !== 'off'"
+        :label="automation.status"
+        :description="detail"
+      >
         <AppStatus :tone="statusTone">{{ status }}</AppStatus>
       </SettingsRow>
     </SettingsGroup>
-    <AppAlert v-if="problem" :tone="tone" :heading="status" :description="detail" />
+    <AppAlert
+      v-if="problem"
+      :tone="tone"
+      :heading="state.status === 'error' ? automation.webmcpFailed : status"
+      :description="detail"
+    />
   </SettingsSection>
 </template>
