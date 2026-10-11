@@ -8,6 +8,8 @@ export const guideSidebar = (prefix: string, labels: SidebarLabels): DefaultThem
       { text: labels.gettingStarted, link: `${prefix}/getting-started` },
       { text: labels.features, link: `${prefix}/overview/features` },
       { text: labels.comparison, link: `${prefix}/overview/comparison` },
+      // English only until translated; locales link to the canonical page.
+      { text: labels.privacy, link: '/overview/privacy' },
     ],
   },
 ]

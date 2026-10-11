@@ -11,6 +11,8 @@
 
 - Text keeps a case, a link, text and fill styles, and variable bindings for any range of its characters, as in Figma: the canvas draws each range in its own case, `.fig` files and the Figma clipboard keep them, apart from font weight bindings, HTML, Tailwind, and JSX exports write links as `<a href>` and cases as `text-transform` and HTML import reads them back, Design JSX `<Span>` takes `textCase` and `href`, and the Typography section's text case changes the selected characters while text is edited. Scripts read and set them with `getRangeTextCase`, `setRangeTextCase`, `getRangeHyperlink`, `setRangeHyperlink`, `getRangeTextStyleId`, `setRangeTextStyleIdAsync`, `getRangeFillStyleId`, `setRangeFillStyleIdAsync`, `getRangeBoundVariable`, `setRangeBoundVariable`, and the text's `hyperlink`.
 
+- Official builds send one anonymous ping a day, with the app version, operating system, architecture, and desktop or web, and no ID; turn it off in Settings → Diagnostics or with `OPENPENCIL_TELEMETRY=0` or `DO_NOT_TRACK=1` in the desktop app's environment. Usage stats (launches, file formats opened and exported, and which AI provider answered) are sent only after you agree on the welcome screen or in a one-time prompt. The [privacy page](https://openpencil.dev/overview/privacy) lists every field.
+
 ### Changed
 
 - **Settings…** (<kbd>⌘</kbd><kbd>,</kbd>) is in the **OpenPencil** menu on macOS and at the end of the **File** menu elsewhere, instead of under **View → Preferences**.
