@@ -17,6 +17,8 @@ import { copyFills } from '@open-pencil/scene-graph/copy'
 import { parsePluginVectorPath } from '@open-pencil/scene-graph/parse-path'
 
 import {
+  graph,
+  prepareFollowedFieldEdit,
   raw,
   updateNode,
   type NodeProxyInternals,
@@ -144,6 +146,15 @@ function setGeometry(
   })
 }
 
+/** A vector inside an instance draws its component's path, which Figma refuses to override. */
+function prepareVectorDataEdit(
+  target: ProxyThis,
+  internals: NodeProxyInternals,
+  setter: string | null
+): void {
+  prepareFollowedFieldEdit(graph(target, internals), raw(target, internals), setter, 'vector-data')
+}
+
 function assignVectorNetwork(
   target: ProxyThis,
   internals: NodeProxyInternals,
@@ -266,6 +277,7 @@ export function installVectorNodeProxyAccessors(
       },
       set(this: ProxyThis, value: readonly FigmaVectorPath[]) {
         if (!Array.isArray(value)) throw new TypeError('vectorPaths must be an array')
+        prepareVectorDataEdit(this, internals, 'vectorPaths')
         setGeometry(this, internals, networkFromVectorPaths(value), [])
       },
       enumerable: true,
@@ -276,6 +288,7 @@ export function installVectorNodeProxyAccessors(
         return readVectorNetwork(this, internals)
       },
       set(this: ProxyThis, value: FigmaVectorNetwork) {
+        prepareVectorDataEdit(this, internals, 'vectorNetwork')
         assignVectorNetwork(this, internals, value)
       },
       enumerable: true,
@@ -283,7 +296,13 @@ export function installVectorNodeProxyAccessors(
     },
     setVectorNetworkAsync: {
       value(this: ProxyThis, value: FigmaVectorNetwork): Promise<void> {
-        return Promise.resolve().then(() => assignVectorNetwork(this, internals, value))
+        try {
+          prepareVectorDataEdit(this, internals, null)
+          assignVectorNetwork(this, internals, value)
+          return Promise.resolve()
+        } catch (error) {
+          return Promise.reject(error instanceof Error ? error : new Error(String(error)))
+        }
       },
       enumerable: true,
       configurable: true
@@ -297,6 +316,12 @@ export function installVectorNodeProxyAccessors(
           throw new TypeError(`Invalid handleMirroring: ${String(value)}`)
         }
         const node = raw(this, internals)
+        prepareFollowedFieldEdit(
+          graph(this, internals),
+          node,
+          'handleMirroring',
+          'handle-mirroring'
+        )
         updateNode(this, internals, {
           handleMirroring: value,
           vectorNetwork: node.vectorNetwork

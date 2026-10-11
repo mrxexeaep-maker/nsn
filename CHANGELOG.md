@@ -10,6 +10,11 @@
 
 - A selected layer resizes and rotates where Figma's does: every edge resizes along its whole length within 7.5 px outside it and up to a tenth of the side inside it, corners within 7.5 px, and the area outside a corner within 16 px rotates; a frame's name takes a press before rotation but not before resizing. Layers under 24 px keep these zones outside them, and a layer under 10 px on both sides has none, taking presses within 16 px across its centre instead. A selection draws Figma's four corner handles, without the edge midpoints, and none on such a small layer.
 - Pasted layers keep how they were turned and flipped on the canvas, as in Figma, so a layer copied out of a rotated frame stays at its angle in an upright one, and paste to replace keeps the copied layer's angle too. Layers copied out of a frame or section keep their offset from its box on the canvas, and move into the frame only when they start past its far edge, or, for top-level layers, miss it: then layers that fit are centred on that axis, and larger ones go to the frame's top-left, or are centred if top-level. Layers overlapping an edge stay where they are, and layers copied from different places are placed each from its own.
+- In scripts, a vector inside an instance refuses `vectorPaths`, `vectorNetwork`, `setVectorNetworkAsync`, and `handleMirroring` with Figma's errors, such as `in set_vectorPaths: This property cannot be overridden in an instance: vector-data`, since its path always follows the component.
+
+### Fixed
+
+- A path edited in a component reaches its instances, as in Figma, scaled with each copy where constraints or a resized instance changed its size; copies whose instance overrides their fill or stroke keep those. A vector inside an instance no longer opens for path editing, which would have been undone by the next component edit.
 
 ## 0.16.0-beta.1 — 2026-10-11
 

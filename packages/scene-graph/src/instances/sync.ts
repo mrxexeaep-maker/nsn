@@ -22,6 +22,7 @@ import {
 } from './copies'
 import { INSTANCE_SYNC_FIELD_OWNERS, INSTANCE_SYNC_FIELDS } from './fields'
 import { PLACEMENT_FIELDS, placedByConstraints } from './placement'
+import { followVectorGeometry } from './vector-geometry'
 
 function setSceneProp<K extends keyof SceneNode>(
   target: Partial<SceneNode>,
@@ -151,6 +152,7 @@ function copySyncedFields(
     if (isEqual(copy[key], from[key])) continue
     copyProp(updates, from, key)
   }
+  followVectorGeometry(updates, copy, source)
 }
 
 export function updateSyncedProps(
@@ -519,9 +521,8 @@ export function syncChildren(
   overrides: InstanceOverrideState,
   context: InstanceSyncContext = createInstanceSyncContext(instParentId, overrides)
 ): void {
-  // Guard against cyclic sync: if the instance parent is inside the component's own
-  // subtree, syncing would clone the component into itself — a self-referential cycle
-  // that causes unbounded recursion and OOM.
+  // An instance inside its own component's subtree would clone the component into itself and
+  // recurse without end.
   if (isCyclicSync(graph, compParentId, instParentId)) return
 
   const compParent = graph.nodes.get(compParentId)
