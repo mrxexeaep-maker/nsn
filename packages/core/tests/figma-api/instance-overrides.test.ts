@@ -3,7 +3,7 @@ import { expect, test } from 'bun:test'
 import { expectDefined } from '#core-tests/helpers/assert'
 
 import { FigmaAPI, type FigmaNodeProxy } from '@open-pencil/core/figma-api'
-import { hasInstanceOverride, SceneGraph } from '@open-pencil/scene-graph'
+import { createComponentPropertyId, hasInstanceOverride, SceneGraph } from '@open-pencil/scene-graph'
 
 // Recorded with the same script in Figma desktop 126.
 
@@ -46,24 +46,41 @@ test('a layer inside an instance can be locked and restyled, each recorded as an
   expect(instance.x).toBe(40)
 })
 
-test('slot content is the instance’s own and keeps its position and constraints', () => {
+/** A Card component whose Body slot shows a default Note layer, and an instance of it. */
+function slotSetup() {
   const graph = new SceneGraph()
   const figma = new FigmaAPI(graph)
   const page = graph.getPages()[0].id
+  const body = createComponentPropertyId()
   const card = graph.createNode('COMPONENT', page, {
-    componentPropertyDefinitions: [{ id: 'card:body', name: 'Body', type: 'SLOT', defaultValue: '' }]
+    componentPropertyDefinitions: [{ id: body, name: 'Body', type: 'SLOT', defaultValue: '' }]
   })
-  graph.createNode('FRAME', card.id, {
+  const frame = graph.createNode('FRAME', card.id, {
     name: 'Body',
     width: 200,
     height: 100,
-    componentPropertyReferences: [{ propertyId: 'card:body', field: 'SLOT_CONTENT' }]
+    componentPropertyReferences: [{ propertyId: body, field: 'SLOT_CONTENT' }]
   })
+  const note = graph.createNode('RECTANGLE', frame.id, { name: 'Note', x: 10, y: 10 })
   const instance = expectDefined(graph.createInstance(card.id, page))
   const slot = expectDefined(figma.getNodeById(graph.getChildren(instance.id)[0].id))
+  return { graph, figma, card, note, slot }
+}
+
+test('slot content is the instance’s own and keeps its position and constraints', () => {
+  const { figma, slot } = slotSetup()
   const added = figma.createRectangle()
   slot.appendChild(added)
   added.x = 12
   added.constraints = { horizontal: 'MAX', vertical: 'MIN' }
   expect([added.x, added.constraints.horizontal]).toEqual([12, 'MAX'])
+})
+
+test('moving default slot content claims the slot, so the component no longer moves it', () => {
+  const { graph, card, note, slot } = slotSetup()
+  const [copy] = slot.children as FigmaNodeProxy[]
+  copy.x = 40
+  graph.updateNode(note.id, { x: 90 })
+  graph.syncInstances(card.id)
+  expect(copy.x).toBe(40)
 })

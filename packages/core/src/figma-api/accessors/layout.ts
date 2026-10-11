@@ -12,7 +12,7 @@ import {
 } from '@open-pencil/scene-graph'
 
 import {
-  assertOverridableInInstance,
+  prepareFollowedFieldEdit,
   assertProxyEditable,
   graph,
   raw,
@@ -70,7 +70,7 @@ export function installLayoutNodeProxyAccessors(
         return { horizontal: node.horizontalConstraint, vertical: node.verticalConstraint }
       },
       set(this: ProxyThis, value: { horizontal: string; vertical: string }) {
-        assertOverridableInInstance(
+        prepareFollowedFieldEdit(
           graph(this, internals),
           raw(this, internals),
           'constraints',

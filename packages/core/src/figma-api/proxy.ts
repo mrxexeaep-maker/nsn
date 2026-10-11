@@ -24,7 +24,7 @@ import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
 import { assertNodeEditable } from '#core/editor/capabilities'
 import type { FigmaEffect } from '#core/figma-api/effects'
 
-import { assertOverridableInInstance, fitGroupsAround } from './accessor-utils'
+import { prepareFollowedFieldEdit, fitGroupsAround } from './accessor-utils'
 import { installBasicNodeProxyAccessors } from './accessors/basic'
 import { installLayoutNodeProxyAccessors } from './accessors/layout'
 import { installStrokeNodeProxyAccessors } from './accessors/strokes'
@@ -267,7 +267,7 @@ export class FigmaNodeProxy {
   }
 
   set isMask(v: boolean) {
-    assertOverridableInInstance(this[INTERNAL_GRAPH], this._raw(), 'isMask', 'is-mask')
+    prepareFollowedFieldEdit(this[INTERNAL_GRAPH], this._raw(), 'isMask', 'is-mask')
     this._update({ isMask: v })
   }
 
@@ -276,7 +276,7 @@ export class FigmaNodeProxy {
   }
 
   set maskType(v: string) {
-    assertOverridableInInstance(this[INTERNAL_GRAPH], this._raw(), 'maskType', 'mask-type')
+    prepareFollowedFieldEdit(this[INTERNAL_GRAPH], this._raw(), 'maskType', 'mask-type')
     this._update({ maskType: v as SceneNode['maskType'] })
   }
 

@@ -16,7 +16,7 @@ import type { Rect } from '@open-pencil/scene-graph/primitives'
 
 import { assertNodeEditable } from '#core/editor/capabilities'
 import {
-  assertOverridableInInstance,
+  prepareFollowedFieldEdit,
   fitGroupsAround,
   graph,
   hostFitOptions,
@@ -123,7 +123,7 @@ export function installBasicNodeProxyAccessors(
         return containerTransform(raw(this, internals), graph(this, internals))[2]
       },
       set(this: ProxyThis, value: number) {
-        assertOverridableInInstance(
+        prepareFollowedFieldEdit(
           graph(this, internals),
           raw(this, internals),
           'x',
@@ -138,7 +138,7 @@ export function installBasicNodeProxyAccessors(
         return containerTransform(raw(this, internals), graph(this, internals))[5]
       },
       set(this: ProxyThis, value: number) {
-        assertOverridableInInstance(
+        prepareFollowedFieldEdit(
           graph(this, internals),
           raw(this, internals),
           'y',
@@ -170,7 +170,7 @@ export function installBasicNodeProxyAccessors(
       },
       // Figma turns a node counterclockwise about its top-left corner.
       set(this: ProxyThis, value: number) {
-        assertOverridableInInstance(
+        prepareFollowedFieldEdit(
           graph(this, internals),
           raw(this, internals),
           'rotation',
@@ -200,7 +200,7 @@ export function installBasicNodeProxyAccessors(
         return figmaTransform(containerTransform(node, scene))
       },
       set(this: ProxyThis, value: FigmaTransform) {
-        assertOverridableInInstance(
+        prepareFollowedFieldEdit(
           graph(this, internals),
           raw(this, internals),
           'relativeTransform',
