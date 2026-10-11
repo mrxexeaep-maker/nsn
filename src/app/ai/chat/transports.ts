@@ -37,6 +37,7 @@ import type { AIDiagnosticContext } from '@/app/diagnostics/events/ai'
 import type { getActiveEditorStore } from '@/app/editor/active-store'
 
 import { resumableTransport } from './history/continuation'
+import { updateMessage } from './metadata'
 import { maxAgentSteps } from './preferences'
 import { settleMessage } from './settle'
 
@@ -210,13 +211,8 @@ async function settleEndedReply(
 ): Promise<void> {
   const run = currentRun(store)
   await run.settled()
-  chat.messages = chat.messages.map((message) =>
-    message.id === messageId
-      ? settleMessage(message, {
-          stopped,
-          changed: (toolCallId) => run.changedCalls.has(toolCallId)
-        })
-      : message
+  updateMessage(chat, messageId, (message) =>
+    settleMessage(message, { stopped, changed: (toolCallId) => run.changedCalls.has(toolCallId) })
   )
 }
 

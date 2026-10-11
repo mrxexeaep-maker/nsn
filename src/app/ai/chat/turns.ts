@@ -1,9 +1,9 @@
 import type { UIMessage } from 'ai'
 import { isEqual } from 'es-toolkit'
-import * as v from 'valibot'
-import { shallowReactive, shallowRef, toRaw, type ShallowRef } from 'vue'
+import { shallowReactive, shallowRef, type ShallowRef } from 'vue'
 
 import type { UndoneCalls } from '@/app/ai/chat/context'
+import { undoOf, type ReplyUndo } from '@/app/ai/chat/metadata'
 import { currentRun } from '@/app/ai/tools'
 import type { RunUndoCall } from '@/app/ai/tools/run'
 import type { EditorStore } from '@/app/editor/active-store'
@@ -165,32 +165,6 @@ export function restoreTurn(messageId: string): boolean {
 
 export function clearTurns(): void {
   turns.clear()
-}
-
-/**
- * A reply's edits and which of them are undone, kept in its message metadata, which
- * conversations store, so the chat still shows them after reopening. `reported` is what the
- * model was last told and the message that carried it.
- */
-const ReplyUndoSchema = v.object({
-  edits: v.array(v.object({ tool: v.string(), toolCallId: v.string() })),
-  undone: v.array(v.string()),
-  reported: v.optional(v.object({ undone: v.array(v.string()), in: v.string() }))
-})
-
-export type ReplyUndo = v.InferOutput<typeof ReplyUndoSchema>
-
-export function undoOf(message: UIMessage): ReplyUndo | null {
-  const metadata = v.is(v.record(v.string(), v.unknown()), message.metadata) ? message.metadata : {}
-  const parsed = v.safeParse(ReplyUndoSchema, metadata.undo)
-  return parsed.success ? parsed.output : null
-}
-
-/** The message with `undo` in its metadata, keeping the rest; built from plain values. */
-export function withUndo(message: UIMessage, undo: ReplyUndo): UIMessage {
-  const raw = toRaw(message)
-  const metadata = v.is(v.record(v.string(), v.unknown()), raw.metadata) ? raw.metadata : {}
-  return { ...raw, metadata: { ...metadata, undo: structuredClone(undo) } }
 }
 
 /** A reply whose undone edits changed since the model last heard, and how. */

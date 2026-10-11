@@ -3,14 +3,12 @@ import type { UIMessage } from 'ai'
 import type { Ref } from 'vue'
 
 import { appendUndoneCallsContext } from '@/app/ai/chat/context'
+import { undoOf, updateMessage, withUndo, type ReplyUndo } from '@/app/ai/chat/metadata'
 import type { ChatInstance } from '@/app/ai/chat/submission/types'
 import {
   onTurnUndoChanged,
   recordReplyTurn,
-  undoOf,
   undoToReport,
-  withUndo,
-  type ReplyUndo,
   type UndoReport
 } from '@/app/ai/chat/turns'
 import type { EditorStore } from '@/app/editor/active-store'
@@ -32,10 +30,8 @@ export function useUndoRecords(options: UndoRecordOptions) {
     messageId: string,
     change: (undo: ReplyUndo) => ReplyUndo
   ): void {
-    // The chat's messages are reactive; `withUndo` builds the new one from plain values, so
-    // saving the conversation can clone it.
-    chat.messages = chat.messages.map((message) => {
-      const undo = message.id === messageId ? undoOf(message) : null
+    updateMessage(chat, messageId, (message) => {
+      const undo = undoOf(message)
       return undo ? withUndo(message, change(undo)) : message
     })
   }
@@ -60,9 +56,7 @@ export function useUndoRecords(options: UndoRecordOptions) {
     if (!reply || reply === previous) return
     const undo = await recordReplyTurn(reply, options.getEditor())
     if (!undo) return
-    chat.messages = chat.messages.map((message) =>
-      message.id === reply ? withUndo(message, undo) : message
-    )
+    updateMessage(chat, reply, (message) => withUndo(message, undo))
   }
 
   /** `text` with a note about the undone edits `history` has not reported, and those reports. */

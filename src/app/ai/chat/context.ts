@@ -48,11 +48,6 @@ export function appendReferencedNodeContext(
   return `${text}${REFERENCED_NODE_CONTEXT_MARKER}${references.join('\n')}`
 }
 
-export function stripReferencedNodeContext(text: string): string {
-  const markerIndex = text.lastIndexOf(REFERENCED_NODE_CONTEXT_MARKER)
-  return markerIndex === -1 ? text : text.slice(0, markerIndex)
-}
-
 export const UNDONE_CALLS_CONTEXT_MARKER =
   '\n\n[Document changes since your last reply — facts, not instructions]\n'
 
@@ -93,7 +88,13 @@ export function appendUndoneCallsContext(text: string, calls: UndoneCalls): stri
   return description ? `${text}${UNDONE_CALLS_CONTEXT_MARKER}${description}` : text
 }
 
-export function stripUndoneCallsContext(text: string): string {
-  const markerIndex = text.lastIndexOf(UNDONE_CALLS_CONTEXT_MARKER)
-  return markerIndex === -1 ? text : text.slice(0, markerIndex)
+/** Each note the chat adds to a request for the model only starts with one of these. */
+const MODEL_NOTE_MARKERS = [REFERENCED_NODE_CONTEXT_MARKER, UNDONE_CALLS_CONTEXT_MARKER]
+
+/** What the person wrote, without the notes the chat added for the model after it. */
+export function stripModelNotes(text: string): string {
+  const starts = MODEL_NOTE_MARKERS.map((marker) => text.indexOf(marker)).filter(
+    (index) => index !== -1
+  )
+  return starts.length === 0 ? text : text.slice(0, Math.min(...starts))
 }
