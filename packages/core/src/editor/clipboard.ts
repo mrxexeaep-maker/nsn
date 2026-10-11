@@ -17,7 +17,11 @@ import { deleteIds, recreateSnapshots, restoreDeletedEntries } from './clipboard
 import type { PasteHistoryOperation } from './clipboard/paste/replace'
 import { replaceTargetsWithCreated, selectedReplacementTargets } from './clipboard/paste/replace'
 import { pastedComponentIds, resolvePasteTarget } from './clipboard/paste/target'
-import { createClipboardPlacementActions } from './clipboard/placement'
+import {
+  clipboardPlacement,
+  createClipboardPlacementActions,
+  type ClipboardPlacement
+} from './clipboard/placement'
 import { acceptsChildren, prepareSlotEdits } from './components/slots'
 import { collectSubtrees, restoreSubtree, snapshotSubtree } from './history/subtree'
 import type { EditorContext } from './types'
@@ -148,6 +152,7 @@ export function createClipboardActions(ctx: EditorContext) {
       }
       created = pasteOpenPencilNodes(
         dependencies.nodes,
+        snapshot.placement,
         snapshot.images,
         dependencies.componentDependencies,
         cursorPos,
@@ -162,7 +167,14 @@ export function createClipboardActions(ctx: EditorContext) {
     if (openPencil) {
       // One undo step for the paste and any slot it claims.
       const created = ctx.undo.runBatch('Paste', () =>
-        pasteOpenPencilNodes(openPencil.nodes, openPencil.images, [], cursorPos, options)
+        pasteOpenPencilNodes(
+          openPencil.nodes,
+          clipboardPlacement(ctx.graph, openPencil.nodes),
+          openPencil.images,
+          [],
+          cursorPos,
+          options
+        )
       )
       await fontActions.loadFontsForNodes(created)
       return
@@ -211,6 +223,7 @@ export function createClipboardActions(ctx: EditorContext) {
 
   function pasteOpenPencilNodes(
     nodes: Array<SceneNode & { children?: SceneNode[] }>,
+    placement: ClipboardPlacement,
     images: Map<string, Uint8Array>,
     dependencies: Array<SceneNode & { children?: SceneNode[] }> = [],
     cursorPos?: Vector,
@@ -268,20 +281,15 @@ export function createClipboardActions(ctx: EditorContext) {
       })
     }
     if (created.length === 0) return created
+    placementActions.keepCanvasTransforms(created, placement.transforms)
 
     if (replacementTargets.length > 0) {
       replaceTargetsWithCreated(ctx, created, replacementTargets, prevSelection)
       return created
     }
 
-    if (cursorPos) placementActions.centerNodesAtCanvasPoint(created, pasteTarget, cursorPos)
-    else
-      placementActions.placePasted(
-        created,
-        nodes[0]?.parentId ?? undefined,
-        pasteTarget,
-        requestedTarget
-      )
+    if (cursorPos) placementActions.centerNodesAtCanvasPoint(created, cursorPos)
+    else placementActions.placePasted(created, placement, pasteTarget, requestedTarget)
     computeAllLayouts(ctx.graph, ctx.state.currentPageId)
     ctx.setSelectedIds(new Set(created))
 

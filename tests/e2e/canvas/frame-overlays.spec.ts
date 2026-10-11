@@ -1,6 +1,6 @@
 import { writeFile } from 'node:fs/promises'
 
-import { CORNER_ROTATE_ZONE, HANDLE_HIT_RADIUS } from '@open-pencil/core/constants'
+import { TRANSFORM_ZONE } from '@open-pencil/core/geometry'
 
 import { expect, test, useEditorSetupWithClear } from '#tests/e2e/fixtures'
 import { expectDefined } from '#tests/helpers/assert'
@@ -178,7 +178,8 @@ for (const angle of [-32, 32]) {
       if (!store) throw new Error('Editor unavailable')
       return { zoom: store.state.zoom, panX: store.state.panX, panY: store.state.panY }
     })
-    const cornerOffset = (HANDLE_HIT_RADIUS + CORNER_ROTATE_ZONE) / (2 * Math.SQRT2)
+    const cornerOffset =
+      (TRANSFORM_ZONE.resizeReach + TRANSFORM_ZONE.rotateReach) / (2 * Math.SQRT2)
     const centerX = bounds.x + viewport.panX + 390 * viewport.zoom
     const centerY = bounds.y + viewport.panY + 310 * viewport.zoom
     const dx = -150 * viewport.zoom - cornerOffset

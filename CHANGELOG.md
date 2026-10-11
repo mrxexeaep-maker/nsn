@@ -2,9 +2,15 @@
 
 ## Unreleased
 
+### Breaking changes
+
+- `CORNER_ROTATE_ZONE` is removed from `@open-pencil/core/constants`; the selection's resize and rotation zones are `TRANSFORM_ZONE` and `transformZoneAt` in `@open-pencil/core/geometry`, which also owns the `HandlePosition` and `CornerPosition` types.
+
 ### Changed
 
 - **Settings…** (<kbd>⌘</kbd><kbd>,</kbd>) is in the **OpenPencil** menu on macOS and at the end of the **File** menu elsewhere, instead of under **View → Preferences**.
+- A selected layer resizes and rotates where Figma's does: every edge resizes along its whole length within 7.5 px outside it and up to a tenth of the side inside it, corners within 7.5 px, and the area outside a corner within 16 px rotates; a frame's name takes a press before rotation but not before resizing. Layers under 24 px keep these zones outside them, and a layer under 10 px on both sides has none, taking presses within 16 px across its centre instead. A selection draws Figma's four corner handles, without the edge midpoints, and none on such a small layer.
+- Pasted layers keep how they were turned and flipped on the canvas, as in Figma, so a layer copied out of a rotated frame stays at its angle in an upright one, and paste to replace keeps the copied layer's angle too. Layers copied out of a frame or section keep their offset from its box on the canvas, and move into the frame only when they start past its far edge, or, for top-level layers, miss it: then layers that fit are centred on that axis, and larger ones go to the frame's top-left, or are centred if top-level. Layers overlapping an edge stay where they are, and layers copied from different places are placed each from its own.
 
 ### Fixed
 

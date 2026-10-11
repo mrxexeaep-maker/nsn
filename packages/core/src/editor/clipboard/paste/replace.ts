@@ -10,6 +10,7 @@ import {
   recreateSnapshots,
   restoreDeletedEntries
 } from '#core/editor/clipboard/history'
+import { translateOnCanvas } from '#core/editor/clipboard/placement'
 import { collectSubtrees, snapshotSubtree } from '#core/editor/history/subtree'
 import type { EditorContext } from '#core/editor/types'
 import { computeAllLayouts } from '#core/layout'
@@ -81,16 +82,14 @@ function pushPasteReplaceUndo(
 }
 
 /**
- * Moves the replacement so its box starts where the targets' box did, as Figma does, in the axes
- * of the parent it went into, so an offset, rotated, or flipped frame keeps it in their place.
+ * Moves the replacement so its canvas box starts where the targets' did, as Figma does, so an
+ * offset, rotated, or flipped frame keeps it in their place.
  */
 function alignWithTargets(ctx: EditorContext, created: string[], targets: SceneNode[]) {
   const nodes = created.map((id) => ctx.graph.getNode(id)).filter(isNotNil)
-  const parentId = nodes[0]?.parentId ?? ctx.state.currentPageId
-  const from = getAxisAlignedBoundsInParent(nodes, parentId, ctx.graph)
-  const to = getAxisAlignedBoundsInParent(targets, parentId, ctx.graph)
-  for (const node of nodes)
-    ctx.graph.updateNode(node.id, { x: node.x + to.x - from.x, y: node.y + to.y - from.y })
+  const from = getAxisAlignedBoundsInParent(nodes, ctx.graph.rootId, ctx.graph)
+  const to = getAxisAlignedBoundsInParent(targets, ctx.graph.rootId, ctx.graph)
+  translateOnCanvas(ctx.graph, created, to.x - from.x, to.y - from.y)
 }
 
 export function replaceTargetsWithCreated(

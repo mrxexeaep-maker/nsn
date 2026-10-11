@@ -1,5 +1,6 @@
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 
+import { clipboardPlacement, type ClipboardPlacement } from './placement'
 import { captureClipboardVariables, type ClipboardVariables } from './variables'
 
 export type ClipboardNodeTree = SceneNode & { children?: ClipboardNodeTree[] }
@@ -10,6 +11,8 @@ export interface ClipboardSnapshot {
   styleDefinitions: SceneNode[]
   variableDependencies: ClipboardVariables
   nodes: ClipboardNodeTree[]
+  /** Where the copied layers sat on the canvas when they were copied. */
+  placement: ClipboardPlacement
   images: Map<string, Uint8Array>
 }
 
@@ -72,6 +75,7 @@ export function captureClipboardSnapshot(
     styleDefinitions,
     variableDependencies: captureClipboardVariables(graph, capturedNodes),
     nodes,
+    placement: clipboardPlacement(graph, roots),
     images
   }
 }
