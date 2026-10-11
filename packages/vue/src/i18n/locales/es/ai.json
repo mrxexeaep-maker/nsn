@@ -262,7 +262,6 @@
   "aiSetupAgentPromptHint": "¿Ya usas {agent} u otro agente de programación? Copia el prompt de configuración y pégalo allí; instalará lo que OpenPencil necesita.",
   "aiSetupAgentCopyPrompt": "Copiar prompt de configuración",
   "aiSetupAgentCheckAgain": "Comprobar de nuevo",
-  "aiSetupAgentGuide": "Guía de configuración",
   "aiSetupPiDescription": "OpenPencil ejecuta Pi mediante su complemento Harness y usa los proveedores en los que iniciaste sesión en Pi.",
   "aiSetupPiCompanion": "Complemento Harness",
   "aiSetupPiInstallCompanion": "Instalar complemento",

@@ -12,7 +12,7 @@ import {
   HARNESS_INSTALL_TARGET,
   HARNESS_PACKAGE
 } from '@/app/ai/harness/companion'
-import { MCP_INSTALL_TARGET, MCP_PACKAGE_NAME } from '@/app/automation/mcp/failure'
+import { MCP_EXECUTABLE, MCP_INSTALL_TARGET, MCP_PACKAGE_NAME } from '@/app/automation/mcp/failure'
 
 import { globalInstallCommand, isOutdatedCompanion } from './companions'
 import {
@@ -22,8 +22,6 @@ import {
   lookupAgents,
   type AgentLookup
 } from './native'
-
-const MCP_EXECUTABLE = 'openpencil-mcp-http'
 
 export type DetectedAgent = {
   definition: ACPAgentDef

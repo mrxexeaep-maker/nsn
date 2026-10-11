@@ -275,7 +275,6 @@ export const aiMessageDefaults = {
   aiSetupAgentLookupFailed: 'Couldn’t check this computer. Try again.',
   aiSetupAgentCopyPrompt: 'Copy setup prompt',
   aiSetupAgentCheckAgain: 'Check again',
-  aiSetupAgentGuide: 'Setup guide',
   aiSetupPiDescription:
     'OpenPencil runs Pi through its Harness companion and uses the providers you signed in to in Pi.',
   aiSetupPiCompanion: 'Harness companion',

@@ -3,9 +3,7 @@ import dedent from 'dedent'
 import { ACP_AGENTS, type ACPAgentID } from '@open-pencil/core/constants'
 
 import { MCP_INSTALL_COMMAND } from '@/app/automation/mcp/failure'
-
-/** The public guide for connecting a coding agent, one section per agent. */
-export const CODING_AGENTS_GUIDE_URL = 'https://openpencil.dev/programmable/coding-agents'
+import { CODING_AGENTS_GUIDE_URL } from '@/constants'
 
 const SIGN_IN: Record<ACPAgentID, string> = {
   'claude-code':

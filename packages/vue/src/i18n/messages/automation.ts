@@ -17,11 +17,12 @@ export const automationMessageDefaults = {
     'Changes apply to your next message. Tool switches are not a sandbox: enabled script tools can still perform other design operations.',
   mcpFailureNotInstalled: 'MCP automation is not installed',
   mcpFailureNotInstalledHint:
-    'Agents reach OpenPencil through this local server. It runs on Node.js and installs separately from npm, so the app does not ship its own JavaScript runtime. Run the command below, or copy the prompt for your agent.',
+    'To keep the OpenPencil download small, the MCP server is installed separately.',
   mcpFailureOutdated: 'MCP server does not match this version of OpenPencil',
   mcpFailureOutdatedHint: params(
-    'The installed server is {running} and this app needs {package}. It installs separately from npm, so it does not update with the app. Run the command below, or copy the prompt for your agent.'
+    'The installed MCP server is {running}, and this version of OpenPencil needs {version}. The server is installed separately to keep the download small, so it does not update with the app.'
   ),
+  mcpInstallByHand: 'Install it from a terminal, or copy a prompt that asks your agent to do it.',
   mcpCopyAgentPrompt: 'Copy prompt for your agent',
   mcpFailurePermission: 'OpenPencil cannot start the MCP server',
   mcpFailurePermissionHint:
@@ -45,6 +46,8 @@ export const automationMessageDefaults = {
   mcpFailureCopy: 'Copy details',
   mcpFailureCopied: 'Diagnostic details copied.',
   localServer: 'Local server',
+  localServerDesktopOnly:
+    'The local MCP server runs with the OpenPencil desktop app. In the browser, use WebMCP below.',
   webmcpDescription:
     'Let browser agents use this document directly, without a local MCP server or bearer token. Local server settings do not apply here.',
   browserAccess: 'Browser agent access',
@@ -57,7 +60,6 @@ export const automationMessageDefaults = {
     'Agents can also edit existing properties, text, and variable values. Edits are undoable; creating or deleting content, scripts, and file access are excluded.',
   webmcpUnsupported:
     'This browser does not expose WebMCP. Use a supported Chrome version and enable WebMCP testing, then relaunch the browser.',
-  webmcpSetup: 'WebMCP setup guide',
   noMatchingTools: 'No tools match your search.',
   connections: 'MCP connections',
   connectionsDescription: 'Give ACP agents access to trusted remote tools and services.',

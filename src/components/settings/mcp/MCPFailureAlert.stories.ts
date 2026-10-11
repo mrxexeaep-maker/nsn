@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { expect, userEvent, within } from 'storybook/test'
 
+import type { MCPServerSetupState } from '@/app/ai/agents/setup'
 import type { MCPFailure, MCPFailureCode } from '@/app/automation/mcp/failure'
 
 import MCPFailureAlert from './MCPFailureAlert.vue'
@@ -29,10 +30,22 @@ const reasons: Record<MCPFailureCode, MCPFailure> = {
   unknown: { code: 'unknown', detail: 'Failed to fetch' }
 }
 
+/** The desktop app with npm available, so one click installs or updates the server. */
+const oneClick: MCPServerSetupState = {
+  supported: true,
+  checked: true,
+  bridge: true,
+  bridgeOutdated: true,
+  bridgeCommand: 'npm i -g @open-pencil/mcp@0.16.0',
+  npm: true,
+  installingBridge: false,
+  error: null
+}
+
 const meta = {
   title: 'App/Settings/MCP/Failure Alert',
   component: MCPFailureAlert,
-  args: { failure: reasons.timeout, restarting: false, externallyManaged: false },
+  args: { failure: reasons.timeout, setup: oneClick },
   render: (args) => ({
     components: { MCPFailureAlert },
     setup: () => ({ args }),
@@ -40,12 +53,14 @@ const meta = {
       <div class="max-w-xl bg-panel p-4 text-surface">
         <MCPFailureAlert
           :failure="args.failure"
-          :restarting="args.restarting"
-          :externally-managed="args.externallyManaged"
+          :setup="args.setup"
         />
       </div>`
   })
-} satisfies Meta<{ failure: MCPFailure; restarting: boolean; externallyManaged: boolean }>
+} satisfies Meta<{
+  failure: MCPFailure
+  setup: MCPServerSetupState
+}>
 
 export default meta
 type Story = StoryObj<typeof meta>
@@ -53,22 +68,46 @@ type Story = StoryObj<typeof meta>
 export const StartupTimeout: Story = {}
 export const NotInstalled: Story = { args: { failure: reasons['not-installed'] } }
 
-/** An older global install: the guidance names both versions and offers the agent prompt. */
+/** An older server with npm available: one click updates it, with no commands to run. */
 export const Outdated: Story = {
   args: { failure: reasons.outdated },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await expect(canvas.getByText(/The installed server is v0\.15\.1/)).toBeVisible()
-    await expect(canvas.getByTestId('settings-mcp-install-command')).toBeVisible()
-    await expect(canvas.getByRole('button', { name: 'Copy prompt for your agent' })).toBeVisible()
+    await expect(canvas.getByText(/The installed MCP server is v0\.15\.1/)).toBeVisible()
+    await expect(canvas.getByRole('button', { name: 'Update MCP server' })).toBeVisible()
+    await expect(canvas.queryByTestId('settings-mcp-install-command')).toBeNull()
+    await expect(canvas.queryByRole('button', { name: 'Copy prompt for your agent' })).toBeNull()
     // The running version is already in the guidance, so it is not repeated under Details.
     await expect(canvas.queryByRole('button', { name: 'Details' })).toBeNull()
   }
 }
+
+export const Updating: Story = {
+  args: { failure: reasons.outdated, setup: { ...oneClick, installingBridge: true } }
+}
+
+/** Without npm the app cannot install, so the command and the agent prompt take over. */
+export const NeedsNode: Story = {
+  args: {
+    failure: reasons['not-installed'],
+    setup: { ...oneClick, bridge: false, bridgeOutdated: false, npm: false }
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.queryByRole('button', { name: 'Install MCP server' })).toBeNull()
+    await expect(canvas.getByRole('link', { name: 'Node.js' })).toBeVisible()
+    await expect(canvas.getByTestId('settings-mcp-install-command')).toBeVisible()
+    await expect(canvas.getByRole('button', { name: 'Copy prompt for your agent' })).toBeVisible()
+  }
+}
+
+/** A failed one-click install keeps the retry and adds the command to run by hand. */
+export const InstallFailed: Story = {
+  args: { failure: reasons.outdated, setup: { ...oneClick, error: 'canvas-install' } }
+}
+
 export const RejectedToken: Story = { args: { failure: reasons.rejected } }
 export const Unreachable: Story = { args: { failure: reasons.unreachable } }
-export const InternallyManaged: Story = { args: { restarting: true } }
-export const ExternallyManaged: Story = { args: { externallyManaged: true } }
 
 /** Every reason side by side: copy, guidance, and whether detail is offered. */
 export const AllReasons: Story = {

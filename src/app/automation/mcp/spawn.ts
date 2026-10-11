@@ -20,6 +20,7 @@ import { DEV_MCP_RESTART_PATH, type DevMCPConfiguration } from './dev-control'
 import {
   classifySpawnFailure,
   mcpFailure,
+  MCP_EXECUTABLE,
   MCP_INSTALL_COMMAND,
   MCP_INSTALL_TARGET,
   MCP_PACKAGE_NAME,
@@ -60,7 +61,6 @@ const DEV_AUTOMATION_AUTH_TOKEN =
     : null
 const noop = () => undefined
 const MAX_STARTUP_STDERR_LENGTH = 8_192
-const MCP_EXECUTABLE = 'openpencil-mcp-http'
 
 interface MCPLookup {
   available: boolean

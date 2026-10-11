@@ -4,7 +4,9 @@
 
 ### Fixed
 
-- When the desktop app cannot start the MCP server because it is missing or does not match the app, Settings → MCP explains why the server installs separately, shows the install command for this version of the app instead of the old server's version, and copies a setup prompt to paste into your agent.
+- Settings → MCP installs or updates a missing or outdated MCP server with one click, explains that it installs separately to keep the download small, and falls back to the install command and a prompt for your agent when npm is missing or the install fails; it no longer suggests reinstalling the old server's own version.
+- Settings → Tool access lists the local MCP server's tools while the server is stopped, instead of an empty list saying no tools match the search.
+- In the browser, Settings → MCP says the local MCP server runs with the desktop app instead of reporting it unreachable.
 
 ## 0.16.0-beta.1 — 2026-10-11
 

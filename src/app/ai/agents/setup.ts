@@ -50,6 +50,19 @@ export interface PiSetupState {
   error: DiscoveryError | null
 }
 
+/** What setup knows about OpenPencil's MCP server on its own, for Settings → MCP. */
+export type MCPServerSetupState = Pick<
+  AgentSetupState,
+  | 'supported'
+  | 'checked'
+  | 'bridge'
+  | 'bridgeOutdated'
+  | 'bridgeCommand'
+  | 'npm'
+  | 'installingBridge'
+  | 'error'
+>
+
 /** An OpenPencil companion as setup presents it, with the one-click fix that applies. */
 export interface CompanionCheck {
   /** Installed and matching this app. */
@@ -125,6 +138,34 @@ export function agentSetupView(agent: ACPAgentDef, setup: AgentSetupState): Agen
     problem: setupProblem(setup.error, needsNpm, ['install', 'canvas-install']),
     manualAgentCommand,
     manualBridgeCommand
+  }
+}
+
+/** The MCP server's setup: the one-click fix, and the command for when one click cannot help. */
+export interface MCPServerSetupView {
+  bridge: CompanionCheck
+  problem: SetupProblem | null
+  /** Installs the server by hand, by the person or their agent, when one click cannot. */
+  manualCommand: string | null
+}
+
+export function mcpServerSetupView(setup: MCPServerSetupState): MCPServerSetupView {
+  const bridge = companionCheck(
+    setup.bridge,
+    setup.bridgeOutdated,
+    setup.installingBridge,
+    setup.supported && setup.npm
+  )
+  const oneClick = setup.supported && setup.npm && setup.error !== 'canvas-install'
+  let manualCommand: string | null = null
+  if (!setup.supported) manualCommand = MCP_INSTALL_COMMAND
+  else if (setup.checked && !bridge.ready && !oneClick) manualCommand = setup.bridgeCommand
+  return {
+    bridge,
+    problem: setupProblem(setup.error, setup.checked && !setup.npm && !bridge.ready, [
+      'canvas-install'
+    ]),
+    manualCommand
   }
 }
 
@@ -218,6 +259,19 @@ export function useAgentSetup(
     }
   }
 
+  function mcpServerSetup(): MCPServerSetupState {
+    return {
+      supported: discovery.supported,
+      checked: discovery.checked.value,
+      bridge: discovery.canvasBridgeAvailable.value,
+      bridgeOutdated: discovery.canvasBridgeOutdated.value,
+      bridgeCommand: discovery.canvasBridgeCommand.value,
+      npm: discovery.npmAvailable.value,
+      installingBridge: discovery.installing.value === 'canvas',
+      error: discovery.error.value
+    }
+  }
+
   function installAgent(providerID: string): Promise<void> {
     if (providerID === 'harness:pi') return discovery.setupHarness()
     const detected = agentSetup(providerID).detected
@@ -238,6 +292,7 @@ export function useAgentSetup(
   return {
     agentSetup,
     piSetup,
+    mcpServerSetup,
     installAgent,
     refreshAgents,
     setupCanvasBridge: () => discovery.setupCanvasBridge()
@@ -265,5 +320,27 @@ export function usePiSetup(active: MaybeRefOrGetter<boolean>, setup = useAgentSe
     refresh: setup.refreshAgents,
     installCompanion: () => setup.installAgent('harness:pi'),
     installBridge: setup.setupCanvasBridge
+  }
+}
+
+/**
+ * The MCP server's setup while `active`, checked each time it becomes active, so Settings → MCP
+ * can install or update the server with one click.
+ */
+export function useMCPServerSetup(
+  active: MaybeRefOrGetter<boolean>,
+  discovery: AgentDiscovery = agentDiscovery
+) {
+  const setup = useAgentSetup(discovery)
+  watch(
+    () => toValue(active),
+    (on) => {
+      if (on) void discovery.refresh(true)
+    },
+    { immediate: true }
+  )
+  return {
+    state: computed(() => setup.mcpServerSetup()),
+    install: () => discovery.setupCanvasBridge()
   }
 }

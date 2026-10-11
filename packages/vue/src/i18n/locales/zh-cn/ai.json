@@ -262,7 +262,6 @@
   "aiSetupAgentPromptHint": "已经在用 {agent} 或其他编程智能体？复制设置提示词并粘贴进去，它会安装 OpenPencil 所需的内容。",
   "aiSetupAgentCopyPrompt": "复制设置提示词",
   "aiSetupAgentCheckAgain": "重新检查",
-  "aiSetupAgentGuide": "设置指南",
   "aiSetupPiDescription": "OpenPencil 通过 Harness 配套程序运行 Pi，并使用你在 Pi 中登录的提供商。",
   "aiSetupPiCompanion": "Harness 配套程序",
   "aiSetupPiInstallCompanion": "安装配套程序",

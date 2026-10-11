@@ -54,7 +54,10 @@ function agentState(): string {
 </script>
 
 <template>
-  <p :class="styles.help()">{{ ai.aiSetupAgentDescription({ agent: agent.name }) }}</p>
+  <p :class="styles.help()">
+    {{ ai.aiSetupAgentDescription({ agent: agent.name }) }}
+    <SettingsLink :href="codingAgentGuideURL(agent.id)">{{ common.learnMore }}</SettingsLink>
+  </p>
 
   <template v-if="setup.supported">
     <p v-if="setup.scanning && !setup.checked" role="status" :class="styles.status()">
@@ -124,6 +127,5 @@ function agentState(): string {
     >
       {{ ai.aiSetupAgentCheckAgain }}
     </AppButton>
-    <SettingsLink :href="codingAgentGuideURL(agent.id)">{{ ai.aiSetupAgentGuide }}</SettingsLink>
   </div>
 </template>

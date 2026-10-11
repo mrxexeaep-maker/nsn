@@ -262,7 +262,6 @@
   "aiSetupAgentPromptHint": "Уже пользуетесь {agent} или другим агентом для программирования? Скопируйте промпт настройки и вставьте его туда — он установит всё нужное OpenPencil.",
   "aiSetupAgentCopyPrompt": "Скопировать промпт настройки",
   "aiSetupAgentCheckAgain": "Проверить снова",
-  "aiSetupAgentGuide": "Руководство по настройке",
   "aiSetupPiDescription": "OpenPencil запускает Pi через компаньон Harness и использует провайдеров, в которые вы вошли в Pi.",
   "aiSetupPiCompanion": "Компаньон Harness",
   "aiSetupPiInstallCompanion": "Установить компаньон",

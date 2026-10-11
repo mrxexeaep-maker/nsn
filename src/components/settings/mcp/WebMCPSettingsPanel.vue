@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { useAutomationMessages } from '@open-pencil/vue'
+import { useAutomationMessages, useCommonMessages } from '@open-pencil/vue'
 
 import type { WebMCPMode } from '@/app/automation/webmcp/policy'
 import type { WebMCPRuntimeState } from '@/app/automation/webmcp/service'
@@ -11,10 +11,12 @@ import SettingsRow from '@/components/settings/layout/SettingsRow.vue'
 import SettingsSection from '@/components/settings/layout/SettingsSection.vue'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 import AppSelect from '@/components/ui/select/AppSelect.vue'
+import { WEBMCP_DOCS_URL } from '@/constants'
 
 const mode = defineModel<WebMCPMode>({ required: true })
 const { state } = defineProps<{ state: WebMCPRuntimeState }>()
 const automation = useAutomationMessages()
+const common = useCommonMessages()
 const options = computed(() => [
   { value: 'off' as const, label: automation.value.accessOff },
   { value: 'inspect' as const, label: automation.value.accessInspect },
@@ -42,6 +44,8 @@ const detail = computed(() => {
   if (state.status === 'ready') return `${automation.value.tools}: ${state.toolCount}`
   return undefined
 })
+/** Unsupported or failed WebMCP is a problem to fix, not a status to read. */
+const problem = computed(() => state.status === 'unsupported' || state.status === 'error')
 const status = computed(
   () =>
     ({
@@ -57,25 +61,18 @@ const status = computed(
 <template>
   <SettingsSection data-slot="webmcp-settings">
     <template #title>WebMCP</template>
-    <template #description>{{ automation.webmcpDescription }}</template>
+    <template #description>
+      {{ automation.webmcpDescription }}
+      <SettingsLink :href="WEBMCP_DOCS_URL">{{ common.learnMore }}</SettingsLink>
+    </template>
     <SettingsGroup>
-      <SettingsRow :label="automation.browserAccess">
+      <SettingsRow :label="automation.browserAccess" :description="descriptions[mode]">
         <AppSelect v-model="mode" :options="options" :label="automation.browserAccess" />
       </SettingsRow>
-      <p class="px-3 py-2.5 text-xs leading-relaxed text-muted">{{ descriptions[mode] }}</p>
+      <SettingsRow v-if="!problem" :label="automation.status" :description="detail">
+        <span class="text-xs text-surface" role="status">{{ status }}</span>
+      </SettingsRow>
     </SettingsGroup>
-    <AppAlert
-      v-if="state.status === 'unsupported' || state.status === 'error'"
-      :tone="tone"
-      :heading="status"
-      :description="detail"
-    />
-    <div v-else class="text-xs leading-relaxed text-surface" role="status">
-      <p>{{ status }}</p>
-      <p v-if="detail" class="mt-1 text-muted">{{ detail }}</p>
-    </div>
-    <SettingsLink href="https://openpencil.dev/programmable/mcp-server#webmcp">
-      {{ automation.webmcpSetup }}
-    </SettingsLink>
+    <AppAlert v-if="problem" :tone="tone" :heading="status" :description="detail" />
   </SettingsSection>
 </template>
