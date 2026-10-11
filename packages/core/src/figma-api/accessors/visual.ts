@@ -16,7 +16,8 @@ import {
   type ProxyThis
 } from '#core/figma-api/accessor-utils'
 import { parseFigmaEffects, toFigmaEffect, type FigmaEffect } from '#core/figma-api/effects'
-import { getTextStyle, textStyleChanges } from '#core/figma-api/text/style'
+import { getTextStyle } from '#core/figma-api/text/style'
+import { textStyleChanges } from '#core/text/character-style'
 
 function styleReference(
   internals: NodeProxyInternals,

@@ -32,13 +32,12 @@ import {
   getRangeTextStyle,
   getStyledTextSegments,
   rangeHasUnderline,
-  styleRunsWithPatch,
   type FigmaDecorationColor,
   type FigmaTextLength,
   type StyledTextSegment,
-  type TextStylePatch,
   type TextSegmentField
 } from '#core/figma-api/text/style'
+import { styleRunsWithPatch, type TextStylePatch } from '#core/text/character-style'
 
 const DECORATIONS = new Set<TextDecoration>(['NONE', 'UNDERLINE', 'STRIKETHROUGH'])
 const DECORATION_STYLES = new Set<TextDecorationStyle>(['SOLID', 'DOTTED', 'WAVY'])

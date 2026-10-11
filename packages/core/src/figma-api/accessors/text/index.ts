@@ -20,7 +20,8 @@ import {
   type FigmaLetterSpacing,
   type FigmaLineHeight
 } from '#core/figma-api/text'
-import { getTextStyle, textStyleChanges, type TextSegmentField } from '#core/figma-api/text/style'
+import { getTextStyle, type TextSegmentField } from '#core/figma-api/text/style'
+import { textStyleChanges } from '#core/text/character-style'
 
 /**
  * Getter/setter pair for a spacing Figma keeps at zero or more. It reads `mixed` while paragraphs
