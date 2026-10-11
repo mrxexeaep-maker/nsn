@@ -4,6 +4,7 @@ import type {
   CharacterStyleOverride,
   Fill,
   HyperlinkTarget,
+  SceneGraph,
   SceneNode,
   TextBindableField,
   TextCase,
@@ -44,6 +45,7 @@ import {
 } from '#core/figma-api/text/style'
 import { styleRunsWithPatch, type TextStylePatch } from '#core/text/character-style'
 
+import { hyperlinkTarget } from './hyperlink'
 import { invalid, received } from './messages'
 import { installTextReferenceMethods } from './references'
 
@@ -53,7 +55,6 @@ const LENGTH_UNITS = new Set(['PIXELS', 'PERCENT'])
 const TEXT_CASES = new Set<TextCase>(['ORIGINAL', 'UPPER', 'LOWER', 'TITLE'])
 /** Text cases Figma takes that OpenPencil cannot draw yet. */
 const SMALL_CAPS = new Set(['SMALL_CAPS', 'SMALL_CAPS_FORCED'])
-const HYPERLINK_TYPES = new Set(['URL', 'NODE'])
 const PAINT_TYPES = new Set([
   'SOLID',
   'SHADER',
@@ -249,7 +250,8 @@ type RangeSetter = (
   node: SceneNode,
   start: number,
   end: number,
-  value: unknown
+  value: unknown,
+  graph: SceneGraph
 ) => TextStylePatch
 
 /** Decoration styles only apply to underlined text; Figma rejects a range with none. */
@@ -322,27 +324,9 @@ const RANGE_SETTERS: Record<string, RangeSetter> = {
     }
     return { textCase: value as TextCase }
   },
-  setRangeHyperlink: (method, _node, _start, _end, value) => ({
-    hyperlink: hyperlinkTarget(method, value)
+  setRangeHyperlink: (method, _node, _start, _end, value, graph) => ({
+    hyperlink: hyperlinkTarget(method, value, graph)
   })
-}
-
-/** A link Figma takes: a URL or a node ID, or `null` to remove one. */
-function hyperlinkTarget(method: string, value: unknown): HyperlinkTarget | null {
-  if (value === null) return null
-  if (typeof value !== 'object' || Array.isArray(value)) {
-    throw invalid(method, `Expected object, received ${received(value)}`)
-  }
-  const target = value as Partial<Record<keyof HyperlinkTarget, unknown>>
-  if (!HYPERLINK_TYPES.has(target.type as string)) {
-    throw invalid(
-      method,
-      `Invalid enum value. Expected 'URL' | 'NODE', received '${String(target.type)}' at .type`
-    )
-  }
-  const problem = stringProblem(target.value, '.value')
-  if (problem) throw invalid(method, problem)
-  return { type: target.type as HyperlinkTarget['type'], value: target.value as string }
 }
 
 /** Range getters by method and the segment field each reads. */
@@ -459,7 +443,7 @@ export function installTextRangeMethods(
       value(this: ProxyThis, start: number, end: number, value: unknown) {
         const node = raw(this, internals)
         assertTextRange(method, node, start, end)
-        const patch = setter(method, node, start, end, value)
+        const patch = setter(method, node, start, end, value, graph(this, internals))
         updateNode(this, internals, { styleRuns: styleRunsWithPatch(node, start, end, patch) })
       }
     }

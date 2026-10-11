@@ -7,6 +7,7 @@ import type {
 } from '@open-pencil/scene-graph'
 
 import {
+  graph,
   raw,
   updateNode,
   type NodeProxyInternals,
@@ -24,6 +25,8 @@ import {
 } from '#core/figma-api/text'
 import { getTextStyle, type TextSegmentField } from '#core/figma-api/text/style'
 import { styleRunsWithPatch, textStyleChanges } from '#core/text/character-style'
+
+import { hyperlinkTarget } from './hyperlink'
 
 /**
  * Getter/setter pair for a spacing Figma keeps at zero or more. It reads `mixed` while paragraphs
@@ -148,7 +151,7 @@ export function installTextNodeProxyAccessors(
       },
       set(this: ProxyThis, value: HyperlinkTarget | null) {
         const node = raw(this, internals)
-        const hyperlink = value ? { type: value.type, value: value.value } : null
+        const hyperlink = hyperlinkTarget('set_hyperlink', value, graph(this, internals))
         const styleRuns = styleRunsWithPatch(node, 0, node.text.length, { hyperlink })
         updateNode(this, internals, { styleRuns })
       }

@@ -88,10 +88,11 @@ describe('hyperlink ranges', () => {
   })
 
   test('link the whole text from the node, to a URL or a node', () => {
-    const { text } = styledText()
-    text.hyperlink = { type: 'NODE', value: '0:1' }
-    expect(text.getRangeHyperlink(0, 11)).toEqual({ type: 'NODE', value: '0:1' })
-    expect(text.hyperlink).toEqual({ type: 'NODE', value: '0:1' })
+    const { api, text } = styledText()
+    const frame = api.createFrame()
+    text.hyperlink = { type: 'NODE', value: frame.id }
+    expect(text.getRangeHyperlink(0, 11)).toEqual({ type: 'NODE', value: frame.id })
+    expect(text.hyperlink).toEqual({ type: 'NODE', value: frame.id })
   })
 
   test('reject links Figma rejects', () => {
@@ -99,16 +100,44 @@ describe('hyperlink ranges', () => {
     expect(() => text.setRangeHyperlink(0, 5, 'https://x' as never)).toThrow(
       'in setRangeHyperlink: Property "value" failed validation: Expected object, received string'
     )
-    expect(() =>
-      text.setRangeHyperlink(0, 5, { type: 'PAGE', value: 'x' } as never)
-    ).toThrow(
+    expect(() => text.setRangeHyperlink(0, 5, { type: 'PAGE', value: 'x' } as never)).toThrow(
       `in setRangeHyperlink: Property "value" failed validation: Invalid enum value. Expected 'URL' | 'NODE', received 'PAGE' at .type`
     )
-    expect(() =>
-      text.setRangeHyperlink(0, 5, { type: 'URL', value: 3 } as never)
-    ).toThrow(
+    expect(() => text.setRangeHyperlink(0, 5, { type: 'URL', value: 3 } as never)).toThrow(
       'in setRangeHyperlink: Property "value" failed validation: Expected string, received number at .value'
     )
+  })
+
+  // Measured in live Figma (2026-10-11).
+  test('link only to web, mail, and phone addresses, and to layers Figma can frame', () => {
+    const { api, text } = styledText()
+    for (const value of ['https://example.com/a?b=1#c', 'http://x.co', 'mailto:a@b.co', 'tel:+1']) {
+      text.setRangeHyperlink(0, 5, { type: 'URL', value })
+      expect(text.getRangeHyperlink(0, 5)).toEqual({ type: 'URL', value })
+    }
+    for (const value of [
+      'example.com',
+      'ftp://x.co',
+      'HTTPS://X.CO',
+      'https://',
+      ' https://x.co'
+    ]) {
+      expect(() => text.setRangeHyperlink(0, 5, { type: 'URL', value })).toThrow(
+        'in setRangeHyperlink: Unsupported or invalid hyperlink url'
+      )
+    }
+    text.setRangeHyperlink(0, 5, { type: 'URL', value: '' })
+    expect(text.getRangeHyperlink(0, 5)).toBeNull()
+
+    for (const layer of [api.createFrame(), api.createSection(), api.currentPage]) {
+      text.setRangeHyperlink(0, 5, { type: 'NODE', value: layer.id })
+      expect(text.getRangeHyperlink(0, 5)).toEqual({ type: 'NODE', value: layer.id })
+    }
+    for (const value of [api.createRectangle().id, text.id, 'missing']) {
+      expect(() => text.setRangeHyperlink(0, 5, { type: 'NODE', value })).toThrow(
+        'in setRangeHyperlink: Invalid hyperlink target node specified'
+      )
+    }
   })
 })
 
