@@ -1,5 +1,7 @@
 import type { CanvasKit, LineMetrics, Paragraph, ShapedLine } from 'canvaskit-wasm'
 
+import type { Vector } from '@open-pencil/scene-graph'
+
 /** A stretch of a paragraph's characters set at one line height, `null` for auto. */
 export interface LineHeightRun {
   start: number
@@ -163,8 +165,8 @@ function firstGlyph(line: ShapedLine | undefined): [number, number] | null {
 function pieceShift(
   shaped: ReadonlyArray<ShapedLine | undefined>,
   own: ReadonlyArray<ShapedLine | undefined>
-): { x: number; y: number; agrees: number } | null {
-  let shift: { x: number; y: number } | null = null
+): (Vector & { agrees: number }) | null {
+  let shift: Vector | null = null
   // Paragraphs snap each line to whole-pixel baselines their own way, so lines of one piece
   // may need different shifts; the piece holds the lines that agree with its first.
   for (const [index, line] of own.entries()) {
@@ -201,7 +203,7 @@ function buildPieces(
   let from = 0
   while (from < lines.length) {
     let to = from + 1
-    while (grouped && to < lines.length && allSame([offsets[from], offsets[to]])) to++
+    if (grouped) while (to < lines.length && allSame([offsets[from], offsets[to]])) to++
     const start = lines[from].startIndex
     const end = to === lines.length ? textEnd : lines[to - 1].endIndex
     // Empty lines draw nothing.
