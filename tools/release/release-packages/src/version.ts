@@ -18,7 +18,9 @@ export function isPrerelease(version: string): boolean {
 
 /**
  * WiX accepts only numeric `major.minor.patch.build` versions, so `x.y.z-beta.N` installs as
- * `x.y.z.N`; the final `x.y.z` still replaces it because Tauri's MSI allows downgrades.
+ * `x.y.z.N`. Windows Installer ignores that fourth field, but Tauri gives every MSI a new
+ * product code and a major upgrade that allows downgrades, so a later beta and the final
+ * `x.y.z` still replace an installed beta.
  */
 export function msiVersion(version: string): string | undefined {
   const [, major, minor, patch, beta] =
