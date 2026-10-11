@@ -307,7 +307,8 @@ export function drawDerivedText(r: SkiaRenderer, canvas: Canvas, node: SceneNode
 
   // Decorations follow horizontal lines; path text has none.
   if (snapBaselines && hasDecoration(node)) {
-    const rects = savedTextDecorationRects(node, node.derivedTextGlyphs)
+    const glyphs = node.derivedTextGlyphs
+    const rects = savedTextDecorationRects(r.derivedDecorationCache, node, glyphs, r.fontGeneration)
     drawTextDecorations(r.ck, canvas, rects, r.fillPaint)
   }
   return true

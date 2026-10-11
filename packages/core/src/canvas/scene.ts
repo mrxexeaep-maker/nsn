@@ -922,9 +922,9 @@ function drawPaintedText(r: SkiaRenderer, canvas: Canvas, node: SceneNode): bool
       halfLeading: true,
       foregroundPaint: r.fillPaint
     },
-    (paragraph) => {
+    (paragraph, prepared) => {
       const y = textVerticalOffset(node, paragraph.getHeight())
-      drawTextLayout(r.ck, canvas, node, paragraph, y, r.fillPaint)
+      drawTextLayout(r.ck, canvas, node, prepared, y, r.fillPaint)
       return true
     }
   )
@@ -997,10 +997,16 @@ export function renderText(r: SkiaRenderer, canvas: Canvas, node: SceneNode, fil
     return
   }
   if (r.fontsLoaded && r.fontProvider) {
-    withTextParagraph(r, node, r.fillPaint.getColor(), { halfLeading: true }, (paragraph) => {
-      const paragraphY = textVerticalOffset(node, paragraph.getHeight())
-      drawTextLayout(r.ck, canvas, node, paragraph, paragraphY, r.fillPaint)
-    })
+    withTextParagraph(
+      r,
+      node,
+      r.fillPaint.getColor(),
+      { halfLeading: true },
+      (paragraph, prepared) => {
+        const paragraphY = textVerticalOffset(node, paragraph.getHeight())
+        drawTextLayout(r.ck, canvas, node, prepared, paragraphY, r.fillPaint)
+      }
+    )
   } else if (r.textFont) {
     const fontSize = node.fontSize || r.DEFAULT_FONT_SIZE
     const paragraphY = textVerticalOffset(node, fontSize)

@@ -13,6 +13,7 @@ const MAX_PREPARED_TEXT_UNITS = 262_144
 // Layout measures a text at a few widths; more than this means the widths are not repeating.
 const MAX_MEASURED_WIDTHS = 16
 
+import type { TextDecorationRect } from '#core/canvas/text/decorations'
 import type { TextLayout } from '#core/canvas/text/layout'
 import { PARAGRAPH_INPUT_KEYS, shapingInputs } from '#core/canvas/text/paragraph/inputs'
 
@@ -21,6 +22,8 @@ type PreparationInput = SceneNode[(typeof PARAGRAPH_INPUT_KEYS)[number]]
 export interface PreparedText {
   paragraph: TextLayout
   missingGlyphs?: ReturnType<typeof missingGlyphOccurrences>
+  /** The underlines and strikethroughs drawn `y` below the text's top, found once per layout. */
+  decorations?: { y: number; rects: TextDecorationRect[] }
 }
 
 /** What shaping a node's text showed, valid while its `shapingInputs` stay the same. */

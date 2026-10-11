@@ -83,7 +83,7 @@ Canvas is CanvasKit (Skia WASM) on a WebGL surface, not DOM.
 
 ### Text decorations
 
-- Underlines and strikethroughs come from `textDecorationRects` (`packages/core/src/canvas/text/decorations.ts`), Figma's geometry over laid-out or saved glyphs, both for drawing and for the rects `.fig` files save, which Figma draws decorations from; Skia's paragraph decorations stay off (`packages/core/tests/canvas/text/decorations.test.ts`).
+- Underlines and strikethroughs come from `textDecorationRects` (`packages/core/src/canvas/text/decorations.ts`), Figma's geometry over laid-out or saved glyphs, both for drawing and for the rects `.fig` files save, which Figma draws decorations from; Skia's paragraph decorations stay off. Drawn decorations are kept with the prepared text, whose paragraph inputs cover them, or by saved glyphs in the renderer's `derivedDecorationCache` (`packages/core/tests/canvas/text/decorations.test.ts`).
 
 ### Geometry and overlays
 
