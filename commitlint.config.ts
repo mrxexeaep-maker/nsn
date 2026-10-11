@@ -24,7 +24,7 @@ export default {
   ignores: [
     (message) =>
       !hasAICoauthor(message) &&
-      (/^Release v\d+\.\d+\.\d+$/.test(message.split('\n')[0] ?? '') ||
+      (/^Release v\d+\.\d+\.\d+(?:-beta\.[1-9]\d*)?$/.test(message.split('\n')[0] ?? '') ||
         (process.env.COMMITLINT_PR_TITLE !== '1' && isIgnored(message)))
   ],
   helpUrl: 'https://github.com/open-pencil/open-pencil/blob/master/CONTRIBUTING.md#commit-messages'
