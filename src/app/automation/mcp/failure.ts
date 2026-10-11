@@ -44,6 +44,23 @@ export interface MCPFailure {
 /** Maximum diagnostic detail length retained for display. */
 export const MCP_FAILURE_DETAIL_LIMIT = 400
 
+/**
+ * Reasons a restart fixes. A missing or outdated server is fixed by installing it, which restarts
+ * it; a refused command needs the app reinstalled with its permissions.
+ */
+const RESTART_FIXES: ReadonlySet<MCPFailureCode> = new Set([
+  'exited',
+  'timeout',
+  'rejected',
+  'malformed',
+  'unreachable',
+  'unknown'
+])
+
+export function restartFixesMCPFailure(failure: MCPFailure): boolean {
+  return RESTART_FIXES.has(failure.code)
+}
+
 export function mcpFailure(code: MCPFailureCode, detail?: string): MCPFailure {
   const trimmed = detail?.trim()
   return trimmed ? { code, detail: trimmed.slice(0, MCP_FAILURE_DETAIL_LIMIT) } : { code }

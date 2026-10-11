@@ -9,6 +9,7 @@ import {
 } from '@open-pencil/vue'
 
 import { useMCPServerSetup } from '@/app/ai/agents/setup'
+import { restartFixesMCPFailure } from '@/app/automation/mcp/failure'
 import {
   mcpAuthenticationEnabled,
   mcpRootDirectory,
@@ -38,6 +39,9 @@ const common = useCommonMessages()
 const ai = useAIMessages()
 const available = localMCPAvailable()
 const restarting = computed(() => mcpRuntime.status === 'starting' || mcpRuntime.checking)
+const alertRestarts = computed(() =>
+  Boolean(mcpRuntime.failure && restartFixesMCPFailure(mcpRuntime.failure))
+)
 const statusMessage = computed(
   () =>
     ({
@@ -74,7 +78,8 @@ const serverSetup = useMCPServerSetup(() =>
       {{ automation.description }}
       <SettingsLink :href="MCP_SERVER_DOCS_URL">{{ common.learnMore }}</SettingsLink>
     </template>
-    <template v-if="available" #actions>
+    <!-- While the alert offers Restart as its fix, it is the only Restart on the page. -->
+    <template v-if="available && !alertRestarts" #actions>
       <AppButton
         variant="outline"
         :disabled="mcpRuntime.externallyManaged"
@@ -176,7 +181,10 @@ const serverSetup = useMCPServerSetup(() =>
         v-if="mcpRuntime.failure"
         :failure="mcpRuntime.failure"
         :setup="serverSetup.state.value"
+        :restarting="restarting"
+        :externally-managed="mcpRuntime.externallyManaged"
         @install="serverSetup.install"
+        @restart="restart"
       />
     </template>
   </SettingsSection>

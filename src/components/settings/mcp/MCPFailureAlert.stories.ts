@@ -49,7 +49,7 @@ const oneClick: MCPServerSetupState = {
 const meta = {
   title: 'App/Settings/MCP/Failure Alert',
   component: MCPFailureAlert,
-  args: { failure: reasons.timeout, setup: oneClick },
+  args: { failure: reasons.timeout, setup: oneClick, restarting: false },
   render: (args) => ({
     components: { MCPFailureAlert },
     setup: () => ({ args }),
@@ -58,12 +58,14 @@ const meta = {
         <MCPFailureAlert
           :failure="args.failure"
           :setup="args.setup"
+          :restarting="args.restarting"
         />
       </div>`
   })
 } satisfies Meta<{
   failure: MCPFailure
   setup: MCPServerSetupState
+  restarting: boolean
 }>
 
 export default meta
@@ -81,6 +83,8 @@ export const Outdated: Story = {
     await expect(canvas.getByRole('button', { name: 'Update MCP server' })).toBeVisible()
     await expect(canvas.queryByTestId('settings-mcp-install-command')).toBeNull()
     await expect(canvas.queryByRole('button', { name: 'Copy prompt for your agent' })).toBeNull()
+    // Updating restarts the server, so Restart is not offered beside it.
+    await expect(canvas.queryByRole('button', { name: 'Restart MCP server' })).toBeNull()
     // The running version is already in the guidance, so it is not repeated under Details.
     await expect(canvas.queryByRole('button', { name: 'Details' })).toBeNull()
   }
@@ -110,7 +114,15 @@ export const InstallFailed: Story = {
   args: { failure: reasons.outdated, setup: { ...oneClick, error: 'canvas-install' } }
 }
 
-export const RejectedToken: Story = { args: { failure: reasons.rejected } }
+/** A rejected token is fixed by restarting, so the alert offers Restart as its action. */
+export const RejectedToken: Story = {
+  args: { failure: reasons.rejected },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByRole('button', { name: 'Restart MCP server' })).toBeVisible()
+  }
+}
+export const Restarting: Story = { args: { failure: reasons.rejected, restarting: true } }
 export const Unreachable: Story = { args: { failure: reasons.unreachable } }
 
 /** Every reason side by side: copy, guidance, and whether detail is offered. */

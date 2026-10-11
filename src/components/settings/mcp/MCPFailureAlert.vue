@@ -6,7 +6,11 @@ import { computed, ref } from 'vue'
 import { useAutomationMessages, useI18n } from '@open-pencil/vue'
 
 import { mcpServerSetupView, type MCPServerSetupState } from '@/app/ai/agents/setup'
-import { type MCPFailure, type MCPFailureCode } from '@/app/automation/mcp/failure'
+import {
+  restartFixesMCPFailure,
+  type MCPFailure,
+  type MCPFailureCode
+} from '@/app/automation/mcp/failure'
 import { mcpServerSetupPrompt, needsMCPInstall } from '@/app/automation/mcp/setup-prompt'
 import { APP_VERSION } from '@/app/runtime/version'
 import { useSetupProblemMessage } from '@/components/settings/agents/problem'
@@ -29,13 +33,22 @@ const MANUAL_SETUP: MCPServerSetupState = {
   error: null
 }
 
-// Restart lives in the Local server section header, so the alert carries only fixes.
-const { failure, setup } = defineProps<{
+// The alert carries the fix: install or update, or restart where that is what fixes it; the
+// section header hides its own Restart while the alert offers one.
+const {
+  failure,
+  setup,
+  restarting = false,
+  externallyManaged = false
+} = defineProps<{
   failure: MCPFailure
   /** The MCP server's install state, for one-click installation on the desktop. */
   setup?: MCPServerSetupState
+  restarting?: boolean
+  externallyManaged?: boolean
 }>()
-const emit = defineEmits<{ install: [] }>()
+const emit = defineEmits<{ install: []; restart: [] }>()
+const restartFixes = computed(() => restartFixesMCPFailure(failure))
 
 const automation = useAutomationMessages()
 const { ai, common } = useI18n()
@@ -186,6 +199,17 @@ async function copyDetails(): Promise<void> {
         </template>
         {{ promptCopied ? common.copied : automation.mcpCopyAgentPrompt }}
       </AppButton>
+      <AppButton
+        v-if="restartFixes"
+        size="xs"
+        color="primary"
+        variant="solid"
+        :disabled="externallyManaged"
+        :loading="restarting"
+        data-test-id="settings-mcp-restart"
+        @click="emit('restart')"
+        >{{ externallyManaged ? automation.externallyManaged : automation.restart }}</AppButton
+      >
       <AppButton size="xs" variant="outline" @click="copyDetails">
         <template #leading>
           <icon-lucide-check v-if="detailsCopied" class="size-3" />
