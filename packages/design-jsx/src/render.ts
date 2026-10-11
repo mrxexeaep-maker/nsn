@@ -103,17 +103,35 @@ export function buildComponent(jsxString: string, warnings: string[] = []): Reac
   }
 
   let code: string
+  let siblings = false
   try {
     code = transform(`${aliases}\nreturn function __render() { return ${trimmed} }`, opts).code
   } catch {
+    siblings = true
     code = transform(`${aliases}\nreturn function __render() { return <>${trimmed}</> }`, opts).code
   }
 
   // eslint-disable-next-line typescript-eslint/no-implied-eval -- sucrase output must be evaluated at runtime
-  return new Function('React', '__helpers', code)(
+  const component = new Function('React', '__helpers', code)(
     React,
     designJSXHelpers(warnings)
   ) as React.ComponentType
+  if (!siblings) return component
+  // Siblings are wrapped in a fragment, where a statement such as `const` is only text, so a
+  // name it meant to declare is undefined where the JSX uses it.
+  return (props) => {
+    try {
+      return component(props)
+    } catch (error) {
+      if (!(error instanceof ReferenceError)) throw error
+      throw new Error(
+        `${error.message}. A JSX string is one expression, so statements before it, such as ` +
+          '`const`, do not run; compute values inside it instead, for example ' +
+          '`{(() => { const days = […]; return days.map((day) => <Text>{day}</Text>) })()}`.',
+        { cause: error }
+      )
+    }
+  }
 }
 
 /**
