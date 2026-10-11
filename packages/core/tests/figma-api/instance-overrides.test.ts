@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test'
 
+import { expectDefined } from '#core-tests/helpers/assert'
+
 import { FigmaAPI, type FigmaNodeProxy } from '@open-pencil/core/figma-api'
 import { hasInstanceOverride, SceneGraph } from '@open-pencil/scene-graph'
 
@@ -42,4 +44,26 @@ test('a layer inside an instance can be locked and restyled, each recorded as an
   // The instance itself still moves.
   instance.x = 40
   expect(instance.x).toBe(40)
+})
+
+test('slot content is the instance’s own and keeps its position and constraints', () => {
+  const graph = new SceneGraph()
+  const figma = new FigmaAPI(graph)
+  const page = graph.getPages()[0].id
+  const card = graph.createNode('COMPONENT', page, {
+    componentPropertyDefinitions: [{ id: 'card:body', name: 'Body', type: 'SLOT', defaultValue: '' }]
+  })
+  graph.createNode('FRAME', card.id, {
+    name: 'Body',
+    width: 200,
+    height: 100,
+    componentPropertyReferences: [{ propertyId: 'card:body', field: 'SLOT_CONTENT' }]
+  })
+  const instance = expectDefined(graph.createInstance(card.id, page))
+  const slot = expectDefined(figma.getNodeById(graph.getChildren(instance.id)[0].id))
+  const added = figma.createRectangle()
+  slot.appendChild(added)
+  added.x = 12
+  added.constraints = { horizontal: 'MAX', vertical: 'MIN' }
+  expect([added.x, added.constraints.horizontal]).toEqual([12, 'MAX'])
 })

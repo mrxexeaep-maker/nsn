@@ -1,7 +1,8 @@
 import {
   fitEnclosingGroups,
   FITTED_CONTAINER_TYPES,
-  recordInstanceOverride
+  recordInstanceOverride,
+  slotScope
 } from '@open-pencil/scene-graph'
 import type { GroupFitOptions, SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 
@@ -38,7 +39,8 @@ export function assertProxyEditable(target: ProxyThis, internals: NodeProxyInter
 
 /**
  * Figma refuses the fields a layer inside an instance always takes from its component, naming
- * the property it would have overridden (Figma desktop 126).
+ * the property it would have overridden (Figma desktop 126). Slot content is the instance's own
+ * and keeps them.
  */
 export function assertOverridableInInstance(
   scene: SceneGraph,
@@ -46,7 +48,7 @@ export function assertOverridableInInstance(
   setter: string,
   property: 'relative-transform' | 'vertical-constraint' | 'is-mask' | 'mask-type'
 ): void {
-  if (node.parentId && scene.closest(node.parentId, (layer) => layer.type === 'INSTANCE'))
+  if (node.parentId && slotScope(scene, node.parentId).kind === 'locked')
     throw new Error(
       `in set_${setter}: This property cannot be overridden in an instance: ${property}`
     )
