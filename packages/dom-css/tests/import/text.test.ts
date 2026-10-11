@@ -170,6 +170,11 @@ describe('rich text import', () => {
         style: { hyperlink: { type: 'URL', value: 'https://openpencil.dev' } }
       }
     ])
+    const [rich] = await texts('<a href="https://openpencil.dev">Go <b>home</b></a>')
+    expect(
+      rich?.styleRuns.every((run) => run.style.hyperlink?.value === 'https://openpencil.dev')
+    ).toBe(true)
+    expect(rich?.styleRuns.reduce((sum, run) => sum + run.length, 0)).toBe(rich?.text.length)
   })
 
   test('reads text-transform on a span as the case of its characters', async () => {

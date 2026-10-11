@@ -422,12 +422,12 @@ function richTextFrom(collector: Collector): RichText {
   }
 }
 
-function collector(base: CSSCharacterStyle): Collector {
+function collector(base: CSSCharacterStyle, link: HyperlinkTarget | null): Collector {
   return {
     base,
     text: '',
     styles: [],
-    link: null,
+    link,
     paragraphs: [],
     spaceAfter: [],
     indents: [],
@@ -442,7 +442,8 @@ export function inlineRichText(
   style: DesignStyleDeclaration,
   base: CSSCharacterStyle
 ): RichText {
-  const text = collector(base)
+  // A link the element is itself, as an `<a>` holding spans, links all its characters.
+  const text = collector(base, elementLink(element))
   addTrimmed(text, element.children, characterDeclarations(element, style))
   return richTextFrom(text)
 }
@@ -453,7 +454,7 @@ export function blockRichText(
   style: DesignStyleDeclaration,
   base: CSSCharacterStyle
 ): RichText {
-  const text = collector(base)
+  const text = collector(base, elementLink(element))
   const around = characterDeclarations(element, style)
   const blocks = LIST_TAGS.has(element.tagName.toLowerCase()) ? [element] : element.children
   for (const block of blocks) {
