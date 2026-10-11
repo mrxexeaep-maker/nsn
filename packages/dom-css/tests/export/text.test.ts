@@ -128,4 +128,42 @@ describe('text export', () => {
     expect(layerIds).toEqual([node.id, null, null, null, null])
     expect(code.match(/<(?!\/)[A-Za-z]/g)).toHaveLength(layerIds.length)
   })
+
+  test('writes a range in its own case as text-transform', () => {
+    const { html } = text({
+      text: 'loud quiet',
+      textCase: 'UPPER',
+      styleRuns: [{ start: 5, length: 5, style: { textCase: 'ORIGINAL' } }]
+    })
+    expect(html).toContain('text-transform: uppercase')
+    expect(html).toContain(
+      'loud <span style="text-transform: none">quiet</span>'
+    )
+  })
+
+  test('writes linked characters as a link in the look of the text around it', () => {
+    const { graph, node, html } = text({
+      text: 'Read the docs now',
+      styleRuns: [
+        {
+          start: 9,
+          length: 4,
+          style: { hyperlink: { type: 'URL', value: 'https://openpencil.dev/docs' } }
+        },
+        {
+          start: 14,
+          length: 3,
+          style: { hyperlink: { type: 'URL', value: 'javascript:alert(1)' } }
+        }
+      ]
+    })
+    expect(html).toContain(
+      'Read the <a href="https://openpencil.dev/docs" style="color: inherit; text-decoration-line: none">docs</a> now'
+    )
+    expect(html).not.toContain('javascript:')
+    const jsx = sceneNodesToTailwindJSX(graph, [node.id])
+    expect(jsx).toContain(
+      '<a href="https://openpencil.dev/docs" className="text-inherit no-underline">docs</a>'
+    )
+  })
 })
