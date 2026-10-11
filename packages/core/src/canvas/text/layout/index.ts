@@ -12,6 +12,7 @@ import type {
 
 import {
   placeLines,
+  shapedLinesByLine,
   type BlockPlacement,
   type TextLayoutBlockLines
 } from '#core/canvas/text/layout/lines'
@@ -160,7 +161,7 @@ export class TextLayout {
 
   private clearPlacements(): void {
     for (const placement of this.placements.values()) {
-      for (const piece of placement.pieces ?? []) piece?.paragraph.delete()
+      for (const piece of placement.pieces ?? []) piece.paragraph.delete()
     }
     this.placements.clear()
     this.placedHeight = null
@@ -415,14 +416,29 @@ export class TextLayout {
   }
 
   /**
-   * Shaped lines of the text in whole-text coordinates; run offsets are UTF-8 byte offsets into
-   * the whole text, as CanvasKit gives them. An empty paragraph's line has no runs.
+   * Shaped lines of the text in whole-text coordinates, one per line; run offsets are UTF-8
+   * byte offsets into the whole text, as CanvasKit gives them. An empty line, which shaping
+   * leaves out, has no runs and starts where the line before it ends.
    */
   getShapedLines(): ShapedLine[] {
     const shaped: ShapedLine[] = []
     for (const block of this.visibleBlocks()) {
-      for (const [lineIndex, line] of block.paragraph.getShapedLines().entries()) {
+      const metrics = block.paragraph.getLineMetrics()
+      for (const [lineIndex, line] of shapedLinesByLine(block.paragraph).entries()) {
         const y = block.y + this.lineOffset(block, lineIndex)
+        if (!line) {
+          const { baseline, ascent, descent } = metrics[lineIndex]
+          const previous = lineIndex > 0 ? shaped.at(-1) : undefined
+          const start = previous?.textRange.last ?? block.utf8Start
+          shaped.push({
+            textRange: { first: start, last: start },
+            top: baseline - ascent + y,
+            bottom: baseline + descent + y,
+            baseline: baseline + y,
+            runs: []
+          })
+          continue
+        }
         shaped.push({
           textRange: {
             first: this.toUtf8(block, line.textRange.first),
@@ -462,8 +478,7 @@ export class TextLayout {
       const pieces = this.placements.get(block)?.pieces
       if (!pieces) canvas.drawParagraph(block.paragraph, x + block.x, y + block.y)
       for (const piece of pieces ?? []) {
-        if (piece)
-          canvas.drawParagraph(piece.paragraph, x + block.x + piece.x, y + block.y + piece.y)
+        canvas.drawParagraph(piece.paragraph, x + block.x + piece.x, y + block.y + piece.y)
       }
       const marker = block.marker
       if (marker) canvas.drawParagraph(marker.paragraph, x + marker.x, y + marker.y)

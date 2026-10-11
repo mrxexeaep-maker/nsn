@@ -63,17 +63,21 @@ function sliceStyleRuns(runs: readonly StyleRun[], start: number, end: number): 
 function lineHeightRuns(node: ParagraphNode, lead: number): LineHeightRun[] {
   const own = node.lineHeight || null
   const runs: LineHeightRun[] = []
+  const add = (start: number, end: number, lineHeight: number | null) => {
+    const last = runs.at(-1)
+    // Runs at one line height measure as one, whatever else they style.
+    if (last && last.end === start && last.lineHeight === lineHeight) last.end = end
+    else runs.push({ start, end, lineHeight })
+  }
   let position = 0
   for (const run of node.styleRuns) {
-    if (position < run.start) runs.push({ start: position, end: run.start, lineHeight: own })
+    if (position < run.start) add(position + lead, run.start + lead, own)
     const lineHeight = run.style.lineHeight !== undefined ? run.style.lineHeight || null : own
-    runs.push({ start: run.start, end: run.start + run.length, lineHeight })
+    add(run.start + lead, run.start + run.length + lead, lineHeight)
     position = run.start + run.length
   }
-  if (position < node.text.length) {
-    runs.push({ start: position, end: node.text.length, lineHeight: own })
-  }
-  return runs.map((run) => ({ ...run, start: run.start + lead, end: run.end + lead }))
+  if (position < node.text.length) add(position + lead, node.text.length + lead, own)
+  return runs
 }
 
 /**
@@ -92,12 +96,12 @@ function paragraphLines(
   if (transformTextCase(node.text, node.textCase).length !== node.text.length) return undefined
   const lead = firstLineIndent > 0 ? 1 : 0
   const ellipsis = buildTruncateOpts(node, node.fontSize || DEFAULT_FONT_SIZE).ellipsis
-  // A justified line is stretched only with text after it: it is laid out with the rest of the
-  // paragraph, cut to one line, as a truncated last line is.
+  // A justified line is stretched only with text after it: lines are laid out with the rest
+  // of the paragraph and cut, as truncated last lines are.
   const justified = node.textAlignHorizontal === 'JUSTIFIED'
-  const lineTruncation = (truncated: boolean) => {
-    if (truncated) return { maxLines: 1, ellipsis }
-    return justified ? { maxLines: 1 } : {}
+  const lineTruncation = (lines: number, truncated: boolean) => {
+    if (truncated) return { maxLines: lines, ellipsis }
+    return justified ? { maxLines: lines } : {}
   }
   return {
     heights: lineHeightRuns(node, lead),
@@ -105,7 +109,7 @@ function paragraphLines(
     build:
       node.leadingTrim === 'CAP_HEIGHT'
         ? undefined
-        : (start, end, truncated) => {
+        : (start, end, lines, truncated) => {
             const from = Math.max(0, start - lead)
             const to = justified ? node.text.length : end - lead
             const line: ParagraphNode = {
@@ -115,7 +119,7 @@ function paragraphLines(
             }
             return buildSkParagraph(r, line, color, options, {
               firstLineIndent: start === 0 ? firstLineIndent : 0,
-              truncation: lineTruncation(truncated)
+              truncation: lineTruncation(lines, truncated)
             })
           }
   }

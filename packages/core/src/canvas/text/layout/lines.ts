@@ -12,11 +12,11 @@ export interface TextLayoutBlockLines {
   /** Line heights by paragraph index, lead included. */
   heights: LineHeightRun[]
   /**
-   * The paragraph's characters from `start` as a paragraph of their own, holding the line
-   * that ends at `end`, and ending in the ellipsis when `truncated`; absent when a line cannot
+   * The paragraph's characters from `start` as a paragraph of their own, holding its `lines`
+   * lines up to `end`, and ending in the ellipsis when `truncated`; absent when lines cannot
    * be drawn apart from the others.
    */
-  build?: (start: number, end: number, truncated: boolean) => Paragraph
+  build?: (start: number, end: number, lines: number, truncated: boolean) => Paragraph
 }
 
 /** What placing a text layout block's lines reads of it. */
@@ -30,7 +30,7 @@ interface LineBlock {
   y: number
 }
 
-/** A line laid out as a paragraph of its own, and where its top left goes in its block. */
+/** Lines laid out as a paragraph of their own, and where its top left goes in its block. */
 export interface LinePiece {
   paragraph: Paragraph
   x: number
@@ -43,11 +43,8 @@ export interface BlockPlacement {
   /** How far each line stands below where the paragraph has it. */
   offsets: number[]
   boxes: LineBox[]
-  /**
-   * One paragraph per line, drawn in place of the block's, when the offsets differ; `null`
-   * for a line with nothing to draw.
-   */
-  pieces: Array<LinePiece | null> | null
+  /** Paragraphs of lines that move together, drawn in place of the block's when lines move apart. */
+  pieces: LinePiece[] | null
 }
 
 /** A line as Figma sets it: its height, and how far its baseline stands below its top. */
@@ -138,52 +135,93 @@ function lineBoxes(
   return boxes
 }
 
+/**
+ * A paragraph's shaped lines by line number. Shaping leaves empty lines out, so each shaped
+ * line goes to the line whose baseline is nearest its own.
+ */
+export function shapedLinesByLine(paragraph: Paragraph): Array<ShapedLine | undefined> {
+  const lines = paragraph.getLineMetrics()
+  const byLine: Array<ShapedLine | undefined> = Array.from({ length: lines.length })
+  for (const shaped of paragraph.getShapedLines()) {
+    let nearest = 0
+    for (const [index, line] of lines.entries()) {
+      const distance = Math.abs(line.baseline - shaped.baseline)
+      if (distance < Math.abs(lines[nearest].baseline - shaped.baseline)) nearest = index
+    }
+    byLine[nearest] = shaped
+  }
+  return byLine
+}
+
 /** Where a shaped line's first glyph stands, if it has one. */
 function firstGlyph(line: ShapedLine | undefined): [number, number] | null {
   const positions = line?.runs.find((run) => run.glyphs.length > 0)?.positions
   return positions ? [positions[0], positions[1]] : null
 }
 
+/** How far glyphs a piece draws must move to land where the block's lines have them. */
+function pieceShift(
+  shaped: ReadonlyArray<ShapedLine | undefined>,
+  own: ReadonlyArray<ShapedLine | undefined>
+): { x: number; y: number; agrees: number } | null {
+  let shift: { x: number; y: number } | null = null
+  // Paragraphs snap each line to whole-pixel baselines their own way, so lines of one piece
+  // may need different shifts; the piece holds the lines that agree with its first.
+  for (const [index, line] of own.entries()) {
+    const glyph = firstGlyph(shaped[index])
+    const ownGlyph = firstGlyph(line)
+    if (!glyph || !ownGlyph) continue
+    const x = glyph[0] - ownGlyph[0]
+    const y = glyph[1] - ownGlyph[1]
+    if (!shift) shift = { x, y }
+    else if (!allSame([shift.x, x]) || !allSame([shift.y, y])) return { ...shift, agrees: index }
+  }
+  return shift && { ...shift, agrees: own.length }
+}
+
 /**
- * One paragraph per line of the block, laid out as its line is, placed so its glyphs land
- * where the block's paragraph has them, moved by the line's offset. Paragraphs snap glyphs to
- * whole-pixel baselines each their own way, so the glyphs, not the baselines, line up.
- * `null` when a line cannot be laid out apart from the others.
+ * The block's lines as paragraphs of their own, one for each run of lines that move by the
+ * same offset, or one per line when not `grouped`, placed so their glyphs land where the
+ * block's paragraph has them, moved by that offset. `null` when lines cannot be laid out
+ * apart from the others.
  */
 function buildPieces(
   block: LineBlock,
   width: number,
-  offsets: readonly number[]
-): Array<LinePiece | null> | null {
+  offsets: readonly number[],
+  grouped = true
+): LinePiece[] | null {
   const build = block.lines?.build
   if (!build) return null
   const lines = block.paragraph.getLineMetrics()
-  const shaped = block.paragraph.getShapedLines()
+  const shaped = shapedLinesByLine(block.paragraph)
   const truncated = block.paragraph.didExceedMaxLines()
   const textEnd = block.lead + block.length
-  const pieces: Array<LinePiece | null> = []
-  for (const [index, line] of lines.entries()) {
-    const last = index === lines.length - 1
-    const end = last ? textEnd : line.endIndex
-    if (end <= line.startIndex) {
-      pieces.push(null)
+  const pieces: LinePiece[] = []
+  let from = 0
+  while (from < lines.length) {
+    let to = from + 1
+    while (grouped && to < lines.length && allSame([offsets[from], offsets[to]])) to++
+    const start = lines[from].startIndex
+    const end = to === lines.length ? textEnd : lines[to - 1].endIndex
+    // Empty lines draw nothing.
+    if (end <= start) {
+      from = to
       continue
     }
-    const paragraph = build(line.startIndex, end, last && truncated)
+    const count = to - from
+    const paragraph = build(start, end, count, to === lines.length && truncated)
     paragraph.layout(Math.max(1, width - block.inset))
-    const own = paragraph.getShapedLines()
-    if (own.length !== 1) {
+    const own = paragraph.getLineMetrics().length === count ? shapedLinesByLine(paragraph) : null
+    const shift = own && pieceShift(shaped.slice(from, to), own)
+    if (!shift || shift.agrees < count) {
       paragraph.delete()
-      for (const piece of pieces) piece?.paragraph.delete()
-      return null
+      for (const piece of pieces) piece.paragraph.delete()
+      // Lines that lay out or snap apart are drawn one by one.
+      return grouped ? buildPieces(block, width, offsets, false) : null
     }
-    const glyph = firstGlyph(shaped[index])
-    const ownGlyph = firstGlyph(own[0])
-    const [x, y] =
-      glyph && ownGlyph
-        ? [glyph[0] - ownGlyph[0], glyph[1] - ownGlyph[1]]
-        : [0, line.baseline - paragraph.getLineMetrics()[0].baseline]
-    pieces.push({ paragraph, x, y: y + offsets[index] })
+    pieces.push({ paragraph, x: shift.x, y: shift.y + offsets[from] })
+    from = to
   }
   return pieces
 }
@@ -244,7 +282,7 @@ export function placeLines<Block extends LineBlock>(
     // Lines that cannot be drawn apart keep the paragraph's placement, and so does the text.
     if (apart && !pieces) {
       for (const placement of placed.values()) {
-        for (const piece of placement.pieces ?? []) piece?.paragraph.delete()
+        for (const piece of placement.pieces ?? []) piece.paragraph.delete()
       }
       return null
     }

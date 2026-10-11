@@ -58,6 +58,31 @@ describe('text shaping for saved glyphs', () => {
     expect(shaped.logicalIndexToCharacterOffsetMap[second.firstCharacter]).toBe(0)
   })
 
+  test('saves text with blank lines and a closing newline, which shaping leaves out', async () => {
+    // Figma draws pasted text only from its saved glyphs, so a text without them is blank.
+    const blank = expectDefined(await shape({ text: 'one\n\nthree' }), 'text with a blank line')
+    expect(blank.baselines.map((line) => [line.firstCharacter, line.endCharacter])).toEqual([
+      [0, 4],
+      [4, 5],
+      [5, 10]
+    ])
+    const [first, , third] = blank.baselines.map((line) => line.position.y)
+    expect(blank.glyphs.map((glyph) => [glyph.firstCharacter, glyph.y])).toEqual([
+      [0, first],
+      [1, first],
+      [2, first],
+      [5, third],
+      [6, third],
+      [7, third],
+      [8, third],
+      [9, third]
+    ])
+
+    const closing = expectDefined(await shape({ text: 'one\n' }), 'text ending in a newline')
+    expect(closing.baselines).toHaveLength(2)
+    expect(closing.glyphs).toHaveLength(3)
+  })
+
   test('places lines by horizontal and vertical alignment', async () => {
     const top = expectDefined(await shape({ text: 'Centered', height: 64 }), 'top')
     const centered = expectDefined(
