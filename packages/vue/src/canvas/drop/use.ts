@@ -28,7 +28,8 @@ function componentDropPlacement(componentId: string, cx: number, cy: number, edi
   if (component?.type !== 'COMPONENT') return null
 
   // An instance never lands inside its own component; Figma puts it in the nearest frame that can hold it.
-  const target = cycleSafeTarget(findMoveDropTarget(cx, cy, editor), [componentId], editor)
+  const dragged = new Set([componentId])
+  const target = cycleSafeTarget(findMoveDropTarget(cx, cy, editor, dragged), [componentId], editor)
   const parentId = target?.id ?? editor.state.currentPageId
   const parentOffset =
     parentId === editor.state.currentPageId

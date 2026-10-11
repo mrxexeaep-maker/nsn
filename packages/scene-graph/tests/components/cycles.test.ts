@@ -66,6 +66,23 @@ describe('instance cycles', () => {
     expect(createsComponentCycle(graph, inIcon.id, button.id)).toBe(false)
   })
 
+  test('overrides cannot swap in a component that would contain itself', () => {
+    const { graph, icon, card, footer } = setup()
+    const instance = graph.createInstance(icon.id, footer.id, { componentId: card.id })
+    expect(instance?.componentId).toBe(icon.id)
+  })
+
+  test('climbing out of a variant passes its set, which holds only variants', () => {
+    const { graph, page } = setup()
+    const set = graph.createNode('COMPONENT_SET', page, { name: 'States' })
+    const variant = graph.createNode('COMPONENT', set.id, { name: 'State=Default' })
+    const inner = graph.createNode('FRAME', variant.id, { name: 'Inner' })
+    const instance = graph.createInstance(variant.id, page)
+    if (!instance) throw new Error('no instance')
+    expect(cycleSafeParent(graph, inner.id, [instance.id])).toBe(page)
+    expect(cycleSafeParent(graph, set.id, [graph.createNode('COMPONENT', page).id])).toBe(set.id)
+  })
+
   test('the safe parent is the nearest ancestor that can hold every layer', () => {
     const { graph, page, button, card, footer } = setup()
     const outer = graph.createNode('FRAME', page, { name: 'Outer' })

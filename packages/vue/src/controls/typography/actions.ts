@@ -146,6 +146,9 @@ export function createTypographyActions({
     updateEach(label, () => changes)
   }
 
+  /** The newest pending change for each layer and field, by `id:field`. */
+  const latestLoadingRequest = new Map<string, symbol>()
+
   /**
    * Applies a change once its faces have loaded, to the layers selected when it was asked for:
    * the selection may change while the load is pending, and a layer may be deleted.
@@ -157,8 +160,17 @@ export function createTypographyActions({
   ) {
     const targets = nodes.value
     if (targets.length === 0) return
+    const request = Symbol(label)
+    const keys = (target: SceneNode) => Object.keys(changes).map((field) => `${target.id}:${field}`)
+    for (const target of targets)
+      for (const key of keys(target)) latestLoadingRequest.set(key, request)
     await Promise.all(targets.map(load))
-    const live = targets.filter((target) => editor.graph.getNode(target.id))
+    // A later choice for the same field wins, even when its face loaded first.
+    const current = targets.filter((target) =>
+      keys(target).every((key) => latestLoadingRequest.get(key) === request)
+    )
+    for (const target of current) for (const key of keys(target)) latestLoadingRequest.delete(key)
+    const live = current.filter((target) => editor.graph.getNode(target.id))
     updateEach(label, () => changes, live)
   }
 

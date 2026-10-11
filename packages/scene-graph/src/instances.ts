@@ -51,11 +51,11 @@ export function createInstance(
 
   const props: Partial<SceneNode> = {
     ...copyInstanceComponentProps(component),
-    name: component.name,
-    componentId
+    name: component.name
   }
 
-  const instance = graph.createNode('INSTANCE', parentId, { ...props, ...overrides })
+  // The component checked above is the one the instance shows, whatever `overrides` holds.
+  const instance = graph.createNode('INSTANCE', parentId, { ...props, ...overrides, componentId })
 
   cloneChildrenWithMapping(graph, component.id, instance.id)
 

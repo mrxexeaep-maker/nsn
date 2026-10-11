@@ -62,8 +62,12 @@ export function cycleSafeParent(
   parentId: string,
   nodeIds: readonly string[]
 ): string {
-  const safe = graph.closest(parentId, (node) =>
-    nodeIds.every((id) => !createsComponentCycle(graph, id, node.id))
+  const safe = graph.closest(
+    parentId,
+    (node) =>
+      // Climbing out of a variant passes its set, which holds only variants.
+      (node.id === parentId || node.type !== 'COMPONENT_SET') &&
+      nodeIds.every((id) => !createsComponentCycle(graph, id, node.id))
   )
   return safe?.id ?? parentId
 }
