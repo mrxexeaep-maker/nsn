@@ -83,12 +83,16 @@ const serverSetup = useMCPServerSetup(() =>
           <span class="text-xs text-surface" role="status">{{ statusMessage }}</span>
         </SettingsRow>
         <SettingsRow :label="automation.address">
-          <AppCopyField
-            look="plain"
-            :value="mcpRuntime.endpoint"
-            :copy-label="common.copy"
-            :copied-label="common.copied"
-          />
+          <!-- Below the label on one line, so a long address truncates instead of overflowing. -->
+          <template #description>
+            <AppCopyField
+              look="plain"
+              :value="mcpRuntime.endpoint"
+              :copy-label="common.copy"
+              :copied-label="common.copied"
+              :ui="{ root: 'mt-1', value: 'truncate' }"
+            />
+          </template>
         </SettingsRow>
         <SettingsRow v-if="mcpRuntime.version" :label="automation.version">
           <code class="text-xs text-surface">{{ mcpRuntime.version }}</code>
