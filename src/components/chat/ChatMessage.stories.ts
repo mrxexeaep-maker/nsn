@@ -47,6 +47,38 @@ const stoppedMessage: UIMessage = {
   ]
 }
 
+/** A reply with one of its two edits undone, by Undo in the editor or the chat's Revert. */
+const partlyUndoneMessage: UIMessage = {
+  id: 'partly-undone-message',
+  role: 'assistant',
+  metadata: {
+    undo: {
+      edits: [
+        { tool: 'node_resize', toolCallId: 'resize' },
+        { tool: 'set_opacity', toolCallId: 'fade' }
+      ],
+      undone: ['fade']
+    }
+  },
+  parts: [
+    {
+      type: 'tool-node_resize',
+      toolCallId: 'resize',
+      state: 'output-available',
+      input: { id: '0:1', width: 200, height: 60 },
+      output: { id: '0:1' }
+    },
+    {
+      type: 'tool-set_opacity',
+      toolCallId: 'fade',
+      state: 'output-available',
+      input: { id: '0:1', value: 0.5 },
+      output: { id: '0:1' }
+    },
+    { type: 'text', text: 'Widened the card and faded it.' }
+  ]
+}
+
 type ChatMessageStoryArgs = {
   message: UIMessage
   streaming?: boolean
@@ -78,5 +110,14 @@ export const Stopped: Story = {
     const canvas = within(canvasElement)
     await expect(canvas.getByText('Stopped')).toBeVisible()
     await expect(canvas.queryByText('Thinking…')).toBeNull()
+  }
+}
+
+export const PartlyUndone: Story = {
+  args: { message: partlyUndoneMessage },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByText('1 of 2 changes undone')).toBeVisible()
+    await expect(canvas.getAllByText('Undone')).toHaveLength(1)
   }
 }

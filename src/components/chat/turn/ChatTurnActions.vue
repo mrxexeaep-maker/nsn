@@ -11,28 +11,34 @@ const {
   canRegenerate = false,
   empty = false,
   reverted = false,
-  stopped = false
+  stopped = false,
+  undone = 0,
+  edits = 0
 } = defineProps<{
   messageId: string
   canRegenerate?: boolean
   /** The reply failed before any content, so asking again is a retry. */
   empty?: boolean
-  /** The reply's edits were reverted; it stays in the chat, marked. */
+  /** Every edit of the reply was undone, by Undo or Revert; it stays in the chat, marked. */
   reverted?: boolean
+  /** How many of the reply's edits are undone, and how many it made. */
+  undone?: number
+  edits?: number
   /** The user stopped the reply before it finished. */
   stopped?: boolean
 }>()
 const emit = defineEmits<{ regenerate: []; revert: []; restore: [] }>()
 const { ai } = useI18n()
 
-const edits = computed(() => turnEdits(messageId))
-const revertable = computed(() => edits.value?.revertable === true)
-const restorable = computed(() => edits.value?.restorable === true)
+const turn = computed(() => turnEdits(messageId))
+const revertable = computed(() => turn.value?.revertable === true)
+const restorable = computed(() => turn.value?.restorable === true)
+const partlyUndone = computed(() => undone > 0 && undone < edits)
 </script>
 
 <template>
   <div
-    v-if="stopped || revertable || reverted || canRegenerate"
+    v-if="stopped || partlyUndone || revertable || reverted || canRegenerate"
     class="flex flex-wrap items-center gap-1"
     data-slot="chat-turn-actions"
   >
@@ -44,8 +50,16 @@ const restorable = computed(() => edits.value?.restorable === true)
       <icon-lucide-circle-stop class="size-3" aria-hidden="true" />
       {{ ai.turnStopped }}
     </span>
+    <span
+      v-if="partlyUndone"
+      class="inline-flex items-center gap-1 px-2 text-[11px] text-muted"
+      data-slot="chat-turn-undone"
+    >
+      <icon-lucide-undo-2 class="size-3" aria-hidden="true" />
+      {{ ai.turnPartlyUndone({ undone, total: edits }) }}
+    </span>
     <AppButton
-      v-if="reverted && restorable"
+      v-if="restorable"
       size="xs"
       variant="ghost"
       data-test-id="chat-restore-turn"
@@ -54,7 +68,7 @@ const restorable = computed(() => edits.value?.restorable === true)
       <template #leading><icon-lucide-redo-2 aria-hidden="true" /></template>
       {{ ai.restoreTurn }}
     </AppButton>
-    <!-- Edits made since the revert closed Redo; the reply stays marked. -->
+    <!-- Edits made since the undo closed Redo; the reply stays marked. -->
     <span
       v-else-if="reverted"
       class="inline-flex items-center gap-1 px-2 text-[11px] text-muted"
@@ -64,7 +78,7 @@ const restorable = computed(() => edits.value?.restorable === true)
       {{ ai.turnReverted }}
     </span>
     <AppButton
-      v-else-if="revertable"
+      v-if="revertable"
       size="xs"
       variant="ghost"
       data-test-id="chat-revert-turn"

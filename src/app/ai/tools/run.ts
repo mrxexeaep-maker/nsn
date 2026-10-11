@@ -2,6 +2,7 @@ import type { DocumentChange, PageSnapshot } from '@open-pencil/core/editor'
 import type { StepBudget } from '@open-pencil/core/tools'
 import type { UndoEntry } from '@open-pencil/scene-graph/undo'
 
+import { describeUndoneCalls, type CallRef } from '@/app/ai/chat/context'
 import { DEFAULT_AGENT_STEPS, resolveAgentStepLimit } from '@/app/ai/chat/step-limit'
 import type { PreviewFocus } from '@/app/ai/preview/canvas'
 import { getActiveEditorStore } from '@/app/editor/active-store'
@@ -23,6 +24,10 @@ export class Run {
   readonly baselines = new Map<string, PageSnapshot>()
   /** Undo entries the run's edits pushed, oldest first, so its turn can be reverted. */
   readonly undoEntries: UndoEntry[] = []
+  /** The tool call that pushed each of `undoEntries`, so the chat can tell which were undone. */
+  readonly entryCalls = new Map<UndoEntry, string>()
+  /** The run's own calls the model was told the user undid while the run went on. */
+  readonly reportedUndone = new Set<string>()
   /** Tool calls that changed the document, which a stopped reply's transcript reports. */
   readonly changedCalls = new Set<string>()
   /** False once the reply finished, was stopped, or failed; its agent no longer moves. */
@@ -206,15 +211,44 @@ export function runBaseline(store: EditorStore, pageId: string): PageSnapshot | 
 export function recordRunUndoEntry(
   store: EditorStore,
   run: Run,
-  label: string,
+  call: { label: string; toolCallId: string },
   previous: UndoEntry | undefined
 ): void {
   const entry = store.undo.peekUndo()
-  if (entry !== previous && entry?.label === label && !run.undoEntries.includes(entry)) {
+  if (entry !== previous && entry?.label === call.label && !run.undoEntries.includes(entry)) {
     run.undoEntries.push(entry)
+    run.entryCalls.set(entry, call.toolCallId)
   }
 }
 
 export function runUndoEntries(store: EditorStore): readonly UndoEntry[] {
   return getRunState(store).run.undoEntries
+}
+
+/** The tool that pushed an AI undo entry, from its `AI: <tool>` label. */
+export function entryTool(entry: UndoEntry): string {
+  return entry.label.replace(/^AI: /, '')
+}
+
+/**
+ * A note for the run's next tool result when the user undid or redid some of the run's own
+ * edits since the model last heard; empty when nothing changed. Taking it counts as telling.
+ */
+export function takeRunUndoNote(store: EditorStore, run = currentRun(store)): string {
+  const undone: CallRef[] = []
+  const redone: CallRef[] = []
+  for (const entry of run.undoEntries) {
+    const toolCallId = run.entryCalls.get(entry)
+    const state = store.undo.stateOf(entry)
+    if (!toolCallId || state === null) continue
+    const call = { tool: entryTool(entry), toolCallId }
+    if (state === 'undone' && !run.reportedUndone.has(toolCallId)) {
+      undone.push(call)
+      run.reportedUndone.add(toolCallId)
+    } else if (state === 'applied' && run.reportedUndone.has(toolCallId)) {
+      redone.push(call)
+      run.reportedUndone.delete(toolCallId)
+    }
+  }
+  return describeUndoneCalls({ undone, redone })
 }
