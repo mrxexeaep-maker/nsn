@@ -28,6 +28,7 @@ import {
   extractPluginRelaunchData,
   readNodeChangePluginData
 } from './plugin-data'
+import { styleRefId } from './style/refs'
 import { importStyleRuns } from './style/runs'
 import { importParagraphStyles } from './text/lines'
 import {
@@ -568,15 +569,6 @@ function getVectorStrokeJoin(nc: NodeChange, vectorNetwork: VectorNetwork | null
   return (nc.strokeJoin ??
     vectorNetwork?.vertices.find((v) => v.strokeJoin)?.strokeJoin ??
     'MITER') as StrokeJoin
-}
-
-function styleRefId(value: unknown): string | null {
-  if (!value || typeof value !== 'object' || !('guid' in value)) return null
-  const guid = value.guid
-  if (!guid || typeof guid !== 'object') return null
-  // The unset GUID denotes an explicitly cleared style reference.
-  if (isUnsetGuid(guid as GUID)) return null
-  return guidToString(guid as GUID)
 }
 
 function sharedStyleType(value: string | undefined): SharedStyleType | null {

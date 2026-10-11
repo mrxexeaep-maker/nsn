@@ -66,6 +66,7 @@ function textStyleOverrideToKiwi(
         : { value: style.lineHeight, units: 'PIXELS' }
   }
   applyTextDecorationOverrideFields(override, style, fillToKiwiPaint)
+  if (style.textCase) override.textCase = style.textCase
   if (style.fills && style.fills.length > 0) {
     override.fillPaints = style.fills.map(fillToKiwiPaint)
   }
@@ -93,6 +94,13 @@ function collectTextStyleOverrides(node: SceneNode): {
   }
 
   return { charIds, styleMap }
+}
+
+/** The character styles written to the override table, each with its index there. */
+export function textStyleOverrides(
+  node: SceneNode
+): { id: number; style: CharacterStyleOverride }[] {
+  return [...collectTextStyleOverrides(node).styleMap.values()]
 }
 
 /** The style each character is written with, as an index into its override table. */

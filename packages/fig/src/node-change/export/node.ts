@@ -29,6 +29,7 @@ import {
   mergePluginData,
   serializePluginRelaunchData
 } from '../plugin-data'
+import { applyTextRunReferences } from '../text/run-references'
 import {
   applyColorVariableBinding,
   createFillPaints,
@@ -816,6 +817,19 @@ function applySharedStyleProps(
   if (node.guides.length > 0) nc.guides = exportCanvasGuides(node.guides)
 }
 
+/** A text's props, and what its ranges refer to, which needs the document's identities. */
+function serializeText(context: SceneNodeToKiwiContext, node: SceneNode, nc: KiwiNodeChange): void {
+  context.serializeTextProps(
+    node,
+    nc,
+    context.graph,
+    context.fontDigestMap,
+    context.blobs,
+    context.glyphBlobMap
+  )
+  if (nc.textData) applyTextRunReferences(context, node, nc.textData)
+}
+
 function applyNodeVisualProps(
   context: SceneNodeToKiwiContext,
   node: SceneNode,
@@ -849,16 +863,7 @@ function applyNodeVisualProps(
     }))
   }
 
-  if (node.type === 'TEXT') {
-    context.serializeTextProps(
-      node,
-      nc,
-      context.graph,
-      context.fontDigestMap,
-      context.blobs,
-      context.glyphBlobMap
-    )
-  }
+  if (node.type === 'TEXT') serializeText(context, node, nc)
 
   if (node.type !== 'VECTOR') nc.frameMaskDisabled = !node.clipsContent
   applySharedStyleProps(context, node, nc)

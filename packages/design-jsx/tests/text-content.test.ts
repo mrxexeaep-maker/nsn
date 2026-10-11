@@ -25,6 +25,27 @@ async function renderText(source: string): Promise<{ node: SceneNode; warnings: 
 }
 
 describe('Span', () => {
+  test('cases and links its characters', async () => {
+    const { node, warnings } = await renderText(
+      '<Text textCase="upper">Read <Span textCase="original" href="https://openpencil.dev">the docs</Span></Text>'
+    )
+    expect(warnings).toEqual([])
+    expect(node.textCase).toBe('UPPER')
+    expect(node.styleRuns).toEqual([
+      {
+        start: 5,
+        length: 8,
+        style: { textCase: 'ORIGINAL', hyperlink: { type: 'URL', value: 'https://openpencil.dev' } }
+      }
+    ])
+  })
+
+  test('rejects an empty link', async () => {
+    await expect(renderText('<Text><Span href="">a</Span></Text>')).rejects.toThrow(
+      'Invalid <Span> props'
+    )
+  })
+
   test('styles its characters with what differs from the text', async () => {
     const { node } = await renderText(
       '<Text size={24} weight="bold">Hello <Span weight="bold" size={24} color="#EE2222">world</Span>!</Text>'

@@ -115,7 +115,8 @@ export function createTextSelectionStyle(
     const range = selectedRange(node.id)
     if (!range) return null
     const [style] = characterStyles(node, range[0], range[0] + 1)
-    return { ...style }
+    // Links, styles, and bindings of characters are not the layer's own properties.
+    return pick(style, TEXT_STYLE_KEYS)
   }
 
   return { updateNode, updateNodeWithUndo, commitNodeUpdate, selectionStyle }

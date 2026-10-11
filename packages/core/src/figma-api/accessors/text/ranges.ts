@@ -3,9 +3,13 @@ import { uniqBy } from 'es-toolkit/array'
 import type {
   CharacterStyleOverride,
   Fill,
+  HyperlinkTarget,
   SceneNode,
+  TextBindableField,
+  TextCase,
   TextDecoration,
-  TextDecorationStyle
+  TextDecorationStyle,
+  Variable
 } from '@open-pencil/scene-graph'
 
 import {
@@ -34,14 +38,22 @@ import {
   rangeHasUnderline,
   type FigmaDecorationColor,
   type FigmaTextLength,
+  type FigmaVariableAlias,
   type StyledTextSegment,
   type TextSegmentField
 } from '#core/figma-api/text/style'
 import { styleRunsWithPatch, type TextStylePatch } from '#core/text/character-style'
 
+import { invalid, received } from './messages'
+import { installTextReferenceMethods } from './references'
+
 const DECORATIONS = new Set<TextDecoration>(['NONE', 'UNDERLINE', 'STRIKETHROUGH'])
 const DECORATION_STYLES = new Set<TextDecorationStyle>(['SOLID', 'DOTTED', 'WAVY'])
 const LENGTH_UNITS = new Set(['PIXELS', 'PERCENT'])
+const TEXT_CASES = new Set<TextCase>(['ORIGINAL', 'UPPER', 'LOWER', 'TITLE'])
+/** Text cases Figma takes that OpenPencil cannot draw yet. */
+const SMALL_CAPS = new Set(['SMALL_CAPS', 'SMALL_CAPS_FORCED'])
+const HYPERLINK_TYPES = new Set(['URL', 'NODE'])
 const PAINT_TYPES = new Set([
   'SOLID',
   'SHADER',
@@ -60,17 +72,6 @@ const SOLID_PAINT_KEYS = new Set([
   'blendMode',
   'boundVariables'
 ])
-
-/** Figma's message for a value its schema rejects. */
-function invalid(method: string, problem: string, property = 'value'): Error {
-  return new Error(`in ${method}: Property "${property}" failed validation: ${problem}`)
-}
-
-function received(value: unknown): string {
-  if (typeof value === 'number' && Number.isNaN(value)) return 'nan'
-  if (Array.isArray(value)) return 'array'
-  return value === null ? 'null' : typeof value
-}
 
 function numberProblem(value: unknown, at = ''): string | null {
   if (value === undefined) return `Required value missing${at}`
@@ -308,7 +309,40 @@ const RANGE_SETTERS: Record<string, RangeSetter> = {
     if (typeof value !== 'boolean')
       throw invalid(method, `Expected boolean, received ${received(value)}`)
     return { textDecorationSkipInk: value }
+  }),
+  setRangeTextCase: (method, _node, _start, _end, value) => {
+    if (SMALL_CAPS.has(value as string)) {
+      throw new Error(`in ${method}: OpenPencil does not support the ${String(value)} text case`)
+    }
+    if (!TEXT_CASES.has(value as TextCase)) {
+      throw invalid(
+        method,
+        `Invalid enum value. Expected ${[...TEXT_CASES, ...SMALL_CAPS].map((name) => `'${name}'`).join(' | ')}, received '${String(value)}'`
+      )
+    }
+    return { textCase: value as TextCase }
+  },
+  setRangeHyperlink: (method, _node, _start, _end, value) => ({
+    hyperlink: hyperlinkTarget(method, value)
   })
+}
+
+/** A link Figma takes: a URL or a node ID, or `null` to remove one. */
+function hyperlinkTarget(method: string, value: unknown): HyperlinkTarget | null {
+  if (value === null) return null
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    throw invalid(method, `Expected object, received ${received(value)}`)
+  }
+  const target = value as Partial<Record<keyof HyperlinkTarget, unknown>>
+  if (!HYPERLINK_TYPES.has(target.type as string)) {
+    throw invalid(
+      method,
+      `Invalid enum value. Expected 'URL' | 'NODE', received '${String(target.type)}' at .type`
+    )
+  }
+  const problem = stringProblem(target.value, '.value')
+  if (problem) throw invalid(method, problem)
+  return { type: target.type as HyperlinkTarget['type'], value: target.value as string }
 }
 
 /** Range getters by method and the segment field each reads. */
@@ -325,7 +359,11 @@ const RANGE_GETTERS: Record<string, TextSegmentField> = {
   getRangeTextDecorationThickness: 'textDecorationThickness',
   getRangeTextDecorationColor: 'textDecorationColor',
   getRangeTextDecorationSkipInk: 'textDecorationSkipInk',
-  getRangeOpenTypeFeatures: 'openTypeFeatures'
+  getRangeOpenTypeFeatures: 'openTypeFeatures',
+  getRangeTextCase: 'textCase',
+  getRangeHyperlink: 'hyperlink',
+  getRangeTextStyleId: 'textStyleId',
+  getRangeFillStyleId: 'fillStyleId'
 }
 
 type RangeGetter<T> = (start: number, end: number) => T | symbol
@@ -363,6 +401,27 @@ export interface TextRangeMethods {
   getRangeTextDecorationSkipInk: RangeGetter<boolean | null>
   setRangeTextDecorationSkipInk: RangeSetterMethod<boolean>
   getRangeOpenTypeFeatures: RangeGetter<Record<string, boolean>>
+  getRangeTextCase: RangeGetter<TextCase>
+  setRangeTextCase: RangeSetterMethod<TextCase>
+  getRangeHyperlink: RangeGetter<HyperlinkTarget | null>
+  setRangeHyperlink: RangeSetterMethod<HyperlinkTarget | null>
+  getRangeTextStyleId: RangeGetter<string>
+  setRangeTextStyleId: RangeSetterMethod<string>
+  setRangeTextStyleIdAsync: (start: number, end: number, styleId: string) => Promise<void>
+  getRangeFillStyleId: RangeGetter<string>
+  setRangeFillStyleId: RangeSetterMethod<string>
+  setRangeFillStyleIdAsync: (start: number, end: number, styleId: string) => Promise<void>
+  getRangeBoundVariable: (
+    start: number,
+    end: number,
+    field: TextBindableField
+  ) => FigmaVariableAlias | null | symbol
+  setRangeBoundVariable: (
+    start: number,
+    end: number,
+    field: TextBindableField,
+    variable: Variable | null
+  ) => void
   getRangeListOptions: RangeGetter<TextListOptions>
   setRangeListOptions: RangeSetterMethod<TextListOptions>
   getRangeIndentation: RangeGetter<number>
@@ -462,5 +521,6 @@ export function installTextRangeMethods(
       }
     }
   }
+  installTextReferenceMethods(methods, internals, mixed)
   Object.defineProperties(prototype, methods)
 }

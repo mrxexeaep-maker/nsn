@@ -1,3 +1,4 @@
+import { mapValues, pickBy } from 'es-toolkit/object'
 import { isEqual } from 'es-toolkit/predicate'
 
 import {
@@ -76,9 +77,19 @@ function spacing(field: 'paragraphSpacing' | 'listSpacing' | 'paragraphIndent') 
   return ({ node, paragraph }: FieldContext) => paragraphSpacingAt(node, paragraph, field)
 }
 
+/** Figma's reference to a variable, as bound fields read it. */
+export function variableAlias(id: string): FigmaVariableAlias {
+  return { type: 'VARIABLE_ALIAS', id }
+}
+
+export interface FigmaVariableAlias {
+  type: 'VARIABLE_ALIAS'
+  id: string
+}
+
 /**
- * Figma's value of each field for one character. Fields the model keeps for the whole text, such
- * as text case, read the text's value; fields it has no place for read Figma's defaults.
+ * Figma's value of each field for one character. Fields the model keeps for the whole text read
+ * the text's value; fields it has no place for read Figma's defaults.
  */
 const FIELD_READERS: Record<TextSegmentField, (context: FieldContext) => unknown> = {
   fontSize: ({ style }) => style.fontSize,
@@ -94,20 +105,21 @@ const FIELD_READERS: Record<TextSegmentField, (context: FieldContext) => unknown
   textDecorationOffset: whenUnderlined((style) => pixels(style.textUnderlineOffset)),
   textDecorationThickness: whenUnderlined((style) => pixels(style.textDecorationThickness)),
   textDecorationColor: whenUnderlined(decorationColor),
-  textCase: ({ node }) => node.textCase,
+  textCase: ({ style }) => style.textCase,
   lineHeight: ({ style }) => pixels(style.lineHeight),
   letterSpacing: ({ style }) => ({ unit: 'PIXELS', value: style.letterSpacing }),
   fills: ({ style }) => copyFills(style.fills),
-  textStyleId: ({ node }) => node.textStyleId ?? '',
-  fillStyleId: ({ node }) => node.fillStyleId ?? '',
+  textStyleId: ({ style }) => style.textStyleId ?? '',
+  fillStyleId: ({ style }) => style.fillStyleId ?? '',
   listOptions: ({ node, paragraph }) => ({
     type: paragraphStyleAt(node.textParagraphs, paragraph).listType
   }),
   indentation: ({ node, paragraph }) =>
     paragraphStyleAt(node.textParagraphs, paragraph).indentation,
-  hyperlink: () => null,
+  hyperlink: ({ style }) => (style.hyperlink ? { ...style.hyperlink } : null),
   openTypeFeatures: ({ style }) => fontFeatureMap(style),
-  boundVariables: () => ({}),
+  boundVariables: ({ style }) =>
+    mapValues(pickBy(style.boundVariables, Boolean), (id) => variableAlias(String(id))),
   textStyleOverrides: () => [],
   paragraphSpacing: spacing('paragraphSpacing'),
   listSpacing: spacing('listSpacing'),

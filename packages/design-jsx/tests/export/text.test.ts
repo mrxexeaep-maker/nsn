@@ -16,6 +16,21 @@ function exportText(fields: Partial<SceneNode>): string {
 }
 
 describe('rich text export', () => {
+  test('writes a range case and a URL link as Span props', () => {
+    const code = exportText({
+      text: 'Read docs',
+      styleRuns: [
+        {
+          start: 5,
+          length: 4,
+          style: { textCase: 'UPPER', hyperlink: { type: 'URL', value: 'https://openpencil.dev' } }
+        },
+        { start: 0, length: 4, style: { hyperlink: { type: 'NODE', value: '1:2' } } }
+      ]
+    })
+    expect(code).toContain('Read <Span textCase="upper" href="https://openpencil.dev">docs</Span>')
+  })
+
   test('writes styled characters as spans with only what differs', () => {
     const code = exportText({
       text: 'Hello world!',
