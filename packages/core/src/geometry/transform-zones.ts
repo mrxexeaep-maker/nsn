@@ -110,6 +110,11 @@ function rotatedCorner(frame: ZoneFrame): CornerPosition | null {
   return nearest && distance(nearest) <= TRANSFORM_ZONE.rotateReach ? nearest.handle : null
 }
 
+/** Whether a layer of this size on screen shows and takes resize and rotation handles. */
+export function hasTransformHandles(width: number, height: number): boolean {
+  return width >= TRANSFORM_ZONE.minSide || height >= TRANSFORM_ZONE.minSide
+}
+
 /**
  * The zone under a point given in the layer's own frame, with the layer's rect in that frame and
  * the zoom that maps it to the screen; `null` where the pointer neither resizes nor rotates.
@@ -117,7 +122,7 @@ function rotatedCorner(frame: ZoneFrame): CornerPosition | null {
 export function transformZoneAt(point: Vector, rect: Rect, zoom: number): TransformZone | null {
   const width = rect.width * zoom
   const height = rect.height * zoom
-  if (width < TRANSFORM_ZONE.minSide && height < TRANSFORM_ZONE.minSide) return null
+  if (!hasTransformHandles(width, height)) return null
   const x = (point.x - rect.x) * zoom
   const y = (point.y - rect.y) * zoom
   const frame: ZoneFrame = {
@@ -144,7 +149,7 @@ export function transformZoneAt(point: Vector, rect: Rect, zoom: number): Transf
 export function pressesTinyLayer(point: Vector, rect: Rect, zoom: number): boolean {
   const width = rect.width * zoom
   const height = rect.height * zoom
-  if (width >= TRANSFORM_ZONE.minSide || height >= TRANSFORM_ZONE.minSide) return false
+  if (hasTransformHandles(width, height)) return false
   const x = (point.x - rect.x) * zoom
   const y = (point.y - rect.y) * zoom
   const half = TRANSFORM_ZONE.tinyHitSpan / 2

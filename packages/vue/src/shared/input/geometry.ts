@@ -3,6 +3,7 @@ import type { Editor } from '@open-pencil/core/editor'
 import {
   createSceneGeometry,
   selectionHandleRect,
+  hasTransformHandles,
   rotationHandleLayout,
   transformZoneAt,
   type CornerPosition,
@@ -202,6 +203,8 @@ export function hitTestTopRotationHandleByMatrix(
   zoom: number = 1,
   preview?: RotationPreview | null
 ): boolean {
+  const rect = selectionHandleRect(node)
+  if (!hasTransformHandles(rect.width * zoom, rect.height * zoom)) return false
   const geometry = createSceneGeometry(graph, preview)
   const handle = geometry.toWorld(node, rotationHandleLayout(node, geometry, zoom).handle)
   const radius = HANDLE_HIT_RADIUS / zoom
