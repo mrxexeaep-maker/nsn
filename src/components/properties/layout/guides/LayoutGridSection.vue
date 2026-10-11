@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { isEqual } from 'es-toolkit/predicate'
 import { computed } from 'vue'
 
-import type { LayoutGrid } from '@open-pencil/scene-graph'
+import type { LayoutGrid, SceneNode } from '@open-pencil/scene-graph'
 import { useEditor, useI18n, useSceneComputed } from '@open-pencil/vue'
 
 import NumberField from '@/components/inputs/NumberField.vue'
@@ -17,8 +18,16 @@ import SegmentedControl from '@/components/ui/select/SegmentedControl.vue'
 const editor = useEditor()
 const { panels } = useI18n()
 
-const selectedNode = useSceneComputed(() => editor.getSelectedNode() ?? null)
-const grids = computed<LayoutGrid[]>(() => selectedNode.value?.layoutGrids ?? [])
+// Every selected frame's guides, as Figma edits several frames at once: the panel lists them
+// while the frames' guides match, and offers only Add, which replaces them, while they differ.
+const targets = useSceneComputed(() => editor.getSelectedNodes())
+const mixed = computed(() => {
+  const [first, ...rest] = targets.value
+  return !!first && rest.some((node) => !isEqual(node.layoutGrids, first.layoutGrids))
+})
+const grids = computed<LayoutGrid[]>(() =>
+  mixed.value ? [] : (targets.value.at(0)?.layoutGrids ?? [])
+)
 
 const patternOptions = computed(() => [
   { value: 'COLUMNS' as const, label: panels.value.gridColumns },
@@ -26,27 +35,35 @@ const patternOptions = computed(() => [
   { value: 'GRID' as const, label: panels.value.gridGrid }
 ])
 
+/** Figma's new guide: a 10 px grid in translucent red. */
 function defaultGrid(): LayoutGrid {
   return {
     visible: true,
     color: { r: 1, g: 0, b: 0, a: 0.1 },
-    pattern: 'COLUMNS',
+    pattern: 'GRID',
     alignment: 'STRETCH',
     count: 5,
     gutterSize: 20,
     offset: 0,
-    sectionSize: 0
+    sectionSize: 10
   }
 }
 
+/** Runs one edit per selected frame, as one undo step. */
+function eachTarget(label: string, edit: (node: SceneNode) => void) {
+  const nodes = targets.value
+  if (nodes.length > 1) editor.undo.runBatch(label, () => nodes.forEach(edit))
+  else if (nodes[0]) edit(nodes[0])
+}
+
 function commit(next: LayoutGrid[], label: string) {
-  const node = selectedNode.value
-  if (!node) return
-  editor.updateNodeWithUndo(node.id, { layoutGrids: next }, label)
+  eachTarget(label, (node) =>
+    editor.updateNodeWithUndo(node.id, { layoutGrids: structuredClone(next) }, label)
+  )
 }
 
 function add() {
-  commit([...grids.value, defaultGrid()], 'Add layout guide')
+  commit(mixed.value ? [defaultGrid()] : [...grids.value, defaultGrid()], 'Add layout guide')
 }
 
 function remove(index: number) {
@@ -65,28 +82,27 @@ function patch(index: number, changes: Partial<LayoutGrid>, label = 'Edit layout
 
 type NumericGridField = 'count' | 'gutterSize' | 'sectionSize' | 'offset'
 
+function withValue(index: number, key: NumericGridField, value: number) {
+  return grids.value.map((grid, i) => (i === index ? { ...grid, [key]: value } : grid))
+}
+
 function updateNumber(index: number, key: NumericGridField, value: number) {
-  const node = selectedNode.value
-  if (!node) return
-  editor.updateNode(node.id, {
-    layoutGrids: grids.value.map((grid, i) => (i === index ? { ...grid, [key]: value } : grid))
-  })
+  const next = withValue(index, key, value)
+  for (const node of targets.value)
+    editor.updateNode(node.id, { layoutGrids: structuredClone(next) })
 }
 
 function commitNumber(index: number, key: NumericGridField, previous: number) {
-  const node = selectedNode.value
-  if (!node) return
-  editor.commitNodeUpdate(
-    node.id,
-    {
-      layoutGrids: grids.value.map((grid, i) => (i === index ? { ...grid, [key]: previous } : grid))
-    },
-    'Edit layout guide'
+  const before = withValue(index, key, previous)
+  eachTarget('Edit layout guide', (node) =>
+    editor.commitNodeUpdate(node.id, { layoutGrids: structuredClone(before) }, 'Edit layout guide')
   )
 }
 
+/** A guide's pattern; one read from a file names stripes along an axis instead. */
 function gridPattern(grid: LayoutGrid): 'COLUMNS' | 'ROWS' | 'GRID' {
-  if (grid.pattern) return grid.pattern
+  if (grid.pattern === 'GRID' || grid.pattern === 'COLUMNS' || grid.pattern === 'ROWS')
+    return grid.pattern
   return grid.axis === 'Y' ? 'ROWS' : 'COLUMNS'
 }
 
@@ -97,7 +113,7 @@ function isGrid(grid: LayoutGrid): boolean {
 
 <template>
   <PanelSection :label="panels.layoutGrids" :empty="grids.length === 0">
-    <SharedStyleField kind="grid" :label="panels.gridStyle" />
+    <SharedStyleField v-if="targets.length === 1" kind="grid" :label="panels.gridStyle" />
     <template #actions>
       <IconButton :label="panels.addLayoutGrid" @click="add">
         <icon-lucide-plus class="size-3.5" />

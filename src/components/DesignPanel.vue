@@ -3,7 +3,7 @@ import { computed } from 'vue'
 
 import { getNodeEditCapability } from '@open-pencil/core/editor'
 import { readIcon } from '@open-pencil/scene-graph'
-import { useI18n, useSelectionState, useEditorCommands } from '@open-pencil/vue'
+import { useI18n, useSceneComputed, useSelectionState, useEditorCommands } from '@open-pencil/vue'
 
 import { useEditorStore } from '@/app/editor/active-store'
 import { COMPONENT_TYPES, sceneNodeIcon } from '@/app/editor/icons'
@@ -75,9 +75,11 @@ function openSelectedInstanceReview() {
     initialInstanceId: instance.id
   })
 }
-const supportsLayoutGuides = computed(() => {
-  const type = node.value?.type
-  return type === 'FRAME' || type === 'COMPONENT' || type === 'COMPONENT_SET' || type === 'INSTANCE'
+const LAYOUT_GUIDE_TYPES = new Set(['FRAME', 'COMPONENT', 'COMPONENT_SET', 'INSTANCE'])
+// Figma offers layout guides while every selected layer is a frame.
+const supportsLayoutGuides = useSceneComputed(() => {
+  const nodes = store.getSelectedNodes()
+  return nodes.length > 0 && nodes.every((selected) => LAYOUT_GUIDE_TYPES.has(selected.type))
 })
 const { panels } = useI18n()
 </script>
@@ -116,6 +118,7 @@ const { panels } = useI18n()
     <TypographySection />
     <FillSection />
     <StrokeSection />
+    <LayoutGridSection v-if="supportsLayoutGuides" />
     <EffectsSection />
     <SelectionColorsSection />
     <ExportSection />
