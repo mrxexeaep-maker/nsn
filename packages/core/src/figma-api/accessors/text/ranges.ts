@@ -43,6 +43,24 @@ import {
 const DECORATIONS = new Set<TextDecoration>(['NONE', 'UNDERLINE', 'STRIKETHROUGH'])
 const DECORATION_STYLES = new Set<TextDecorationStyle>(['SOLID', 'DOTTED', 'WAVY'])
 const LENGTH_UNITS = new Set(['PIXELS', 'PERCENT'])
+const PAINT_TYPES = new Set([
+  'SOLID',
+  'SHADER',
+  'GRADIENT_LINEAR',
+  'GRADIENT_RADIAL',
+  'GRADIENT_ANGULAR',
+  'GRADIENT_DIAMOND',
+  'IMAGE',
+  'VIDEO'
+])
+const SOLID_PAINT_KEYS = new Set([
+  'type',
+  'color',
+  'opacity',
+  'visible',
+  'blendMode',
+  'boundVariables'
+])
 
 /** Figma's message for a value its schema rejects. */
 function invalid(method: string, problem: string, property = 'value'): Error {
@@ -122,20 +140,73 @@ function fontNameStyle(method: string, value: unknown): CharacterStyleOverride {
   return { fontFamily: fontName.family as string, fontWeight: weight, italic }
 }
 
-function fillsFromPaints(method: string, value: unknown): CharacterStyleOverride['fills'] {
-  if (!Array.isArray(value)) throw invalid(method, `Expected array, received ${received(value)}`)
-  for (const [index, paint] of (value as FigmaPaint[]).entries()) {
-    for (const channel of ['r', 'g', 'b', 'a'] as const) {
-      const component = paint.color?.[channel]
-      if (component !== undefined && component > 1) {
-        throw invalid(
-          method,
-          `Number must be less than or equal to 1 at [${index}].color.${channel}`
-        )
-      }
+function paintProblem(paint: unknown, index: number): string | null {
+  if (!paint || typeof paint !== 'object') {
+    return `Expected object, received ${received(paint)} at index ${index}`
+  }
+  const { type, color } = paint as { type?: unknown; color?: Partial<Record<string, unknown>> }
+  if (!PAINT_TYPES.has(type as string)) {
+    return `Invalid discriminator value. Expected ${[...PAINT_TYPES].map((name) => `'${name}'`).join(' | ')} at [${index}].type`
+  }
+  if (type !== 'SOLID') return null
+  if (color === undefined) return `Required value missing at [${index}].color`
+  for (const channel of ['r', 'g', 'b', 'a'] as const) {
+    const component = color[channel]
+    if (typeof component === 'number' && component > 1) {
+      return `Number must be less than or equal to 1 at [${index}].color.${channel}`
     }
   }
+  return null
+}
+
+function fillsFromPaints(method: string, value: unknown): CharacterStyleOverride['fills'] {
+  if (!Array.isArray(value)) throw invalid(method, `Expected array, received ${received(value)}`)
+  for (const [index, paint] of value.entries()) {
+    const problem = paintProblem(paint, index)
+    if (problem) throw invalid(method, problem)
+  }
   return (value as FigmaPaint[]).map(figmaPaintToFill)
+}
+
+/**
+ * A decoration colour Figma takes: `AUTO`, or a solid paint. A paint matching but for keys it
+ * does not know reports only those; any other is reported against both choices.
+ */
+function decorationColorFills(method: string, value: unknown): Fill[] {
+  const color = (value as { value?: unknown } | null)?.value
+  if (color === 'AUTO') return []
+  const issues: string[] = []
+  if (!color || typeof color !== 'object') {
+    issues.push(`Expected object, received ${received(color)} at .value`)
+  } else {
+    const paint = color as Record<string, unknown>
+    if (paint.type !== 'SOLID')
+      issues.push('Invalid literal value, expected "SOLID" at .value.type')
+    if (paint.color === undefined) issues.push('Required value missing at .value.color')
+    const unknown = Object.keys(paint).filter((key) => !SOLID_PAINT_KEYS.has(key))
+    if (unknown.length > 0) {
+      const keys = unknown.map((key) => `'${key}'`).join(', ')
+      if (issues.length === 0) {
+        throw invalid(
+          method,
+          `Unrecognized key(s) in object: ${keys} at .value`,
+          'textDecorationColor'
+        )
+      }
+      issues.push(`Unrecognized key(s) in object: ${keys} at .value`)
+    }
+  }
+  if (issues.length === 0) return fillsFromPaints(method, [color]) ?? []
+  const paintIssues =
+    issues.length === 1
+      ? `  ${issues[0]}`
+      : `  Multiple issues:\n${issues.map((issue) => `    ${issue}`).join('\n')}`
+  throw invalid(
+    method,
+    `Expected one of the following, but none matched:\n${paintIssues}\n` +
+      '  Invalid literal value, expected "AUTO" at .value',
+    'textDecorationColor'
+  )
 }
 
 function enumValue<T extends string>(method: string, value: unknown, allowed: ReadonlySet<T>): T {
@@ -206,20 +277,9 @@ const RANGE_SETTERS: Record<string, RangeSetter> = {
     const length = lengthOrAuto(method, value)
     return (fontSize) => ({ textDecorationThickness: length(fontSize) })
   }),
-  setRangeTextDecorationColor: underlineStyle('color', (method, value) => {
-    const color = (value as { value?: unknown } | null)?.value
-    if (color === 'AUTO') return { textDecorationFills: [] }
-    if (!color || typeof color !== 'object') {
-      throw invalid(
-        method,
-        'Expected one of the following, but none matched:\n' +
-          `  Expected object, received ${received(color)} at .value\n` +
-          '  Invalid literal value, expected "AUTO" at .value',
-        'textDecorationColor'
-      )
-    }
-    return { textDecorationFills: fillsFromPaints(method, [color]) }
-  }),
+  setRangeTextDecorationColor: underlineStyle('color', (method, value) => ({
+    textDecorationFills: decorationColorFills(method, value)
+  })),
   setRangeTextDecorationSkipInk: underlineStyle('skip ink', (method, value) => {
     if (typeof value !== 'boolean')
       throw invalid(method, `Expected boolean, received ${received(value)}`)

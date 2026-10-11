@@ -16,6 +16,7 @@ function styledText(characters = 'Hello world\nSecond') {
 
 const REGULAR = { family: 'Inter', style: 'Regular' }
 const BLUE: Color = { r: 0, g: 0, b: 1, a: 1 }
+const RGB_BLUE = { r: 0, g: 0, b: 1 }
 const BOLD = { family: 'Inter', style: 'Bold' }
 
 describe('styled text segments', () => {
@@ -279,5 +280,49 @@ describe('character style ranges', () => {
     expect(() => text.setRangeTextDecorationSkipInk(0, 1, 'yes' as never)).toThrow(
       message('setRangeTextDecorationSkipInk', 'Expected boolean, received string')
     )
+  })
+
+  test('reject paints Figma rejects, which would not survive saving', () => {
+    const { text } = styledText('Abc')
+    const paintTypes =
+      "'SOLID' | 'SHADER' | 'GRADIENT_LINEAR' | 'GRADIENT_RADIAL' | 'GRADIENT_ANGULAR' | " +
+      "'GRADIENT_DIAMOND' | 'IMAGE' | 'VIDEO'"
+    const fills = (problem: string) =>
+      `in setRangeFills: Property "value" failed validation: ${problem}`
+    expect(() => text.setRangeFills(0, 1, [{ color: BLUE } as never])).toThrow(
+      fills(`Invalid discriminator value. Expected ${paintTypes} at [0].type`)
+    )
+    expect(() => text.setRangeFills(0, 1, [{ type: 'SOLID' } as never])).toThrow(
+      fills('Required value missing at [0].color')
+    )
+    expect(() => text.setRangeFills(0, 1, [null as never])).toThrow(
+      fills('Expected object, received null at index 0')
+    )
+
+    text.setRangeTextDecoration(0, 3, 'UNDERLINE')
+    const color = (problem: string) =>
+      'in setRangeTextDecorationColor: Property "textDecorationColor" failed validation: ' +
+      problem
+    const noneMatched = (issues: string) =>
+      color(
+        `Expected one of the following, but none matched:\n${issues}\n` +
+          '  Invalid literal value, expected "AUTO" at .value'
+      )
+    expect(() => text.setRangeTextDecorationColor(0, 1, { value: BLUE as never })).toThrow(
+      noneMatched(
+        '  Multiple issues:\n' +
+          '    Invalid literal value, expected "SOLID" at .value.type\n' +
+          '    Required value missing at .value.color\n' +
+          "    Unrecognized key(s) in object: 'r', 'g', 'b', 'a' at .value"
+      )
+    )
+    expect(() =>
+      text.setRangeTextDecorationColor(0, 1, { value: { type: 'NOPE', color: RGB_BLUE } as never })
+    ).toThrow(noneMatched('  Invalid literal value, expected "SOLID" at .value.type'))
+    expect(() =>
+      text.setRangeTextDecorationColor(0, 1, {
+        value: { type: 'SOLID', color: RGB_BLUE, foo: 1 } as never
+      })
+    ).toThrow(color("Unrecognized key(s) in object: 'foo' at .value"))
   })
 })
