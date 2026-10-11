@@ -149,7 +149,7 @@ export function keepCopyRemovals(graph: SceneGraph, removals: CopyRemovals): voi
     for (const [instanceId, layerId] of oldest?.keys ?? []) {
       const copies = store.byInstance.get(instanceId)
       // A later sync may have removed the same layer's copy again; that one stays.
-      if (copies?.get(layerId)?.removals !== oldest) continue
+      if (!copies || copies.get(layerId)?.removals !== oldest) continue
       copies.delete(layerId)
       if (copies.size === 0) store.byInstance.delete(instanceId)
     }
