@@ -310,7 +310,13 @@ function convertPolygonProps(
   return props
 }
 
+/**
+ * Figma always writes a line height and lays text out at the one its styles resolve to, which
+ * the saved lines record. OpenPencil writes none for auto, whose lines differ in height when
+ * the text mixes font sizes, so the first of them would fix every line at its height.
+ */
 function importedTextLineHeight(nc: NodeChange): number | null {
+  if (!nc.lineHeight) return null
   const derivedLineHeight = nc.derivedTextData?.baselines?.[0]?.lineHeight
   if (derivedLineHeight !== undefined && Number.isFinite(derivedLineHeight))
     return derivedLineHeight

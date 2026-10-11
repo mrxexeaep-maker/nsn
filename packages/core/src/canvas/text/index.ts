@@ -12,6 +12,7 @@ import {
   missingGlyphsByScript
 } from '#core/text/resolver'
 
+import { drawTextLayout } from './decorations'
 import { buildParagraph } from './layout/build'
 import { resolveParagraphLayoutWidth } from './paragraph'
 import { withPreparedText } from './preparation'
@@ -20,12 +21,7 @@ import type { FontReadinessRenderer, TextRenderer } from './renderer'
 export { buildParagraph } from './layout/build'
 export type { TextLayout } from './layout'
 export type { ParagraphBuildOptions } from './paint'
-export {
-  textDecorationStyleValue,
-  textFontFeatures,
-  textFontVariations,
-  textHeightBehaviorValue
-} from './paragraph'
+export { textFontFeatures, textFontVariations, textHeightBehaviorValue } from './paragraph'
 export { withTextParagraph } from './preparation'
 
 function demandFace(
@@ -236,9 +232,11 @@ export function buildTextPicture(r: TextRenderer, node: SceneNode): Uint8Array |
   const recCanvas = recorder.beginRecording(bounds)
 
   const layout = buildParagraph(r, node)
+  const paint = new ck.Paint()
   try {
-    layout.draw(recCanvas, 0, 0)
+    drawTextLayout(ck, recCanvas, node, { paragraph: layout }, 0, paint)
   } finally {
+    paint.delete()
     layout.delete()
   }
 
