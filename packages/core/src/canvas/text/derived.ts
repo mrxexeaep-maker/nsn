@@ -17,8 +17,8 @@ import { ResourceCache } from '#core/cache/resource'
 import type { SkiaRenderer } from '#core/canvas/renderer'
 import {
   drawTextDecorations,
-  savedDecoratedGlyphs,
-  textDecorationRects
+  hasDecoration,
+  savedTextDecorationRects
 } from '#core/canvas/text/decorations'
 import { geometryBlobToPath } from '#core/vector'
 
@@ -306,8 +306,8 @@ export function drawDerivedText(r: SkiaRenderer, canvas: Canvas, node: SceneNode
   }
 
   // Decorations follow horizontal lines; path text has none.
-  if (snapBaselines) {
-    const rects = textDecorationRects(node, savedDecoratedGlyphs(node.derivedTextGlyphs))
+  if (snapBaselines && hasDecoration(node)) {
+    const rects = savedTextDecorationRects(node, node.derivedTextGlyphs)
     drawTextDecorations(r.ck, canvas, rects, r.fillPaint)
   }
   return true

@@ -60,7 +60,8 @@ export interface TextDecorationRect {
   fills: Fill[]
 }
 
-function hasDecoration(node: SceneNode): boolean {
+/** Whether any character of the text is underlined or struck through. */
+export function hasDecoration(node: SceneNode): boolean {
   return (
     node.textDecoration !== 'NONE' ||
     node.styleRuns.some((run) => run.style.textDecoration && run.style.textDecoration !== 'NONE')
@@ -312,6 +313,76 @@ export function drawTextDecorations(
   }
 }
 
+/**
+ * The fields of a text its decorations depend on: their styles, and what moves the glyphs of a
+ * layout laid out again in place, such as its width.
+ */
+const DECORATION_INPUTS = [
+  'text',
+  'width',
+  'height',
+  'textAlignHorizontal',
+  'textAlignVertical',
+  'letterSpacing',
+  'lineHeight',
+  'textParagraphs',
+  'paragraphSpacing',
+  'listSpacing',
+  'paragraphIndent',
+  'textCase',
+  'styleRuns',
+  'fills',
+  'fontFamily',
+  'fontSize',
+  'fontWeight',
+  'italic',
+  'textDecoration',
+  'textDecorationStyle',
+  'textDecorationThickness',
+  'textDecorationFills',
+  'textDecorationSkipInk',
+  'textUnderlineOffset'
+] as const satisfies readonly (keyof SceneNode)[]
+
+interface CachedDecorations {
+  inputs: unknown[]
+  y: number
+  rects: TextDecorationRect[]
+}
+
+/**
+ * Decorations by the glyphs or layout they were placed over. Graph values are replaced rather
+ * than written into, so the same inputs by identity give the same rects, and redraws, such as
+ * every frame of a zoom, skip finding the ink under each underline again.
+ */
+const decorationCache = new WeakMap<object, CachedDecorations>()
+
+function cachedDecorationRects(
+  key: object,
+  node: SceneNode,
+  y: number,
+  compute: () => TextDecorationRect[]
+): TextDecorationRect[] {
+  const inputs = DECORATION_INPUTS.map((field) => node[field])
+  const cached = decorationCache.get(key)
+  if (cached?.y === y && cached.inputs.every((value, index) => value === inputs[index])) {
+    return cached.rects
+  }
+  const rects = compute()
+  decorationCache.set(key, { inputs, y, rects })
+  return rects
+}
+
+/** The decorations of text drawn from its saved glyphs. */
+export function savedTextDecorationRects(
+  node: SceneNode,
+  glyphs: readonly DerivedTextGlyph[]
+): TextDecorationRect[] {
+  return cachedDecorationRects(glyphs, node, 0, () =>
+    textDecorationRects(node, savedDecoratedGlyphs(glyphs))
+  )
+}
+
 /** Draws laid-out text and its decorations, `y` below the node's top. */
 export function drawTextLayout(
   ck: CanvasKit,
@@ -323,9 +394,9 @@ export function drawTextLayout(
 ): void {
   layout.draw(canvas, 0, y)
   if (!hasDecoration(node)) return
-  const text = transformTextCase(node.text, node.textCase)
-  const glyphs = laidOutGlyphs(node, layout, text, y)
-  if (!glyphs) return
-  const rects = textDecorationRects(node, laidOutDecoratedGlyphs(glyphs))
+  const rects = cachedDecorationRects(layout, node, y, () => {
+    const glyphs = laidOutGlyphs(node, layout, transformTextCase(node.text, node.textCase), y)
+    return glyphs ? textDecorationRects(node, laidOutDecoratedGlyphs(glyphs)) : []
+  })
   drawTextDecorations(ck, canvas, rects, textPaint)
 }
