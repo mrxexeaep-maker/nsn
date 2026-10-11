@@ -13,7 +13,7 @@ import Matrix from '@open-pencil/scene-graph/matrix'
 import type { Color } from '@open-pencil/scene-graph/primitives'
 
 import { createSceneGeometry, nodeOrientationMatrix, projectedNode } from '#core/geometry'
-import { transformTextCase } from '#core/text/case'
+import { shownText } from '#core/text/case'
 import { fontManager } from '#core/text/fonts'
 import { vectorNetworkToCenterlinePath } from '#core/vector'
 
@@ -1010,13 +1010,7 @@ export function renderText(r: SkiaRenderer, canvas: Canvas, node: SceneNode, fil
   } else if (r.textFont) {
     const fontSize = node.fontSize || r.DEFAULT_FONT_SIZE
     const paragraphY = textVerticalOffset(node, fontSize)
-    canvas.drawText(
-      transformTextCase(text, node.textCase),
-      0,
-      paragraphY + fontSize,
-      r.fillPaint,
-      r.textFont
-    )
+    canvas.drawText(shownText(node), 0, paragraphY + fontSize, r.fillPaint, r.textFont)
   }
 
   canvas.restore()

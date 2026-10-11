@@ -1,7 +1,7 @@
 import type { SceneNode } from '@open-pencil/scene-graph'
 
 import { DEFAULT_FONT_FAMILY } from '#core/constants'
-import { transformTextCase } from '#core/text/case'
+import { shownCharacters, shownText } from '#core/text/case'
 import { fontManager, weightToStyle } from '#core/text/fonts'
 import {
   fontCoverageDemand,
@@ -59,15 +59,7 @@ function languageForCharacter(node: SceneNode, sourceIndex: number): string | nu
 }
 
 function transformedSourceOffsets(node: SceneNode): number[] {
-  const offsets: number[] = []
-  let sourceIndex = 0
-  for (const sourceCharacter of node.text) {
-    for (const _character of transformTextCase(sourceCharacter, node.textCase)) {
-      offsets.push(sourceIndex)
-    }
-    sourceIndex += sourceCharacter.length
-  }
-  return offsets
+  return shownCharacters(node).map((shown) => shown.sourceIndex)
 }
 
 export type NodeFontReadiness = 'ready' | 'substituted' | 'pending' | 'exhausted'
@@ -126,7 +118,7 @@ function observedGlyphReadiness(r: TextRenderer, node: SceneNode): NodeFontReadi
       if (!prepared.missingGlyphs) {
         prepared.paragraph.layout(resolveParagraphLayoutWidth(node))
         prepared.missingGlyphs = missingGlyphOccurrences(
-          transformTextCase(node.text, node.textCase),
+          shownText(node),
           prepared.paragraph.getShapedLines(),
           transformedSourceOffsets(node)
         )
