@@ -424,6 +424,14 @@ export class SceneGraph {
     return undefined
   }
 
+  /**
+   * The page a node is on: the node itself for a page, its nearest page ancestor otherwise, and
+   * null for the document root or a node on no page.
+   */
+  pageOf(id: string): string | null {
+    return this.closest(id, (node) => node.type === 'CANVAS')?.id ?? null
+  }
+
   clearAbsPosCache(): void {
     this.absPosCache.clear()
   }
