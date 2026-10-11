@@ -28,6 +28,9 @@ describe('text case by range', () => {
       { start: 8, length: 8, style: { textCase: 'TITLE' } }
     ])
     expect(shownText(node)).toBe('midword And More')
+
+    const marked = text('a\u0301bc de', [{ start: 1, length: 6, style: { textCase: 'TITLE' } }])
+    expect(shownText(marked)).toBe('a\u0301bc De')
   })
 
   test('map every shown character back to the character it comes from', () => {

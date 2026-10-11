@@ -4,6 +4,7 @@ type CasedText = Pick<SceneNode, 'text' | 'textCase' | 'styleRuns'>
 
 const WORD = /[\p{L}\p{N}][\p{L}\p{M}\p{N}]*/gu
 const WORD_END = /[\p{L}\p{M}\p{N}]$/u
+const WORD_REST = /^[\p{L}\p{M}\p{N}]+/u
 
 /** A word with its first character, which may be astral, in upper case and the rest in lower. */
 function capitalized(word: string): string {
@@ -19,9 +20,9 @@ export function transformTextCase(text: string, textCase: TextCase, continuesWor
   if (textCase === 'UPPER') return text.toLocaleUpperCase()
   if (textCase === 'LOWER') return text.toLocaleLowerCase()
   if (textCase === 'TITLE') {
-    return text.replace(WORD, (word, offset: number) =>
-      continuesWord && offset === 0 ? word.toLocaleLowerCase() : capitalized(word)
-    )
+    // The rest of a word the stretch starts inside, marks and all, goes on in lower case.
+    const rest = continuesWord ? (WORD_REST.exec(text)?.[0] ?? '') : ''
+    return rest.toLocaleLowerCase() + text.slice(rest.length).replace(WORD, capitalized)
   }
   return text
 }
