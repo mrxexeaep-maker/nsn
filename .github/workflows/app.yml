@@ -28,6 +28,9 @@ jobs:
       - run: bunx playwright install --with-deps chromium
 
       - run: bun run build
+        env:
+          # Official releases only: lets the app send its daily ping and, with consent, usage stats.
+          VITE_OPENPENCIL_FEEDBACK: "on"
 
       - uses: cloudflare/wrangler-action@v4
         with:

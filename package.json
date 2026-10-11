@@ -134,6 +134,7 @@
     "@open-pencil/core": "workspace:*",
     "@open-pencil/design-jsx": "workspace:*",
     "@open-pencil/dom-css": "workspace:*",
+    "@open-pencil/feedback": "workspace:*",
     "@open-pencil/fig": "workspace:*",
     "@open-pencil/harness": "workspace:*",
     "@open-pencil/kiwi": "workspace:*",

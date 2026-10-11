@@ -72,6 +72,21 @@ fn webview_version() -> Option<String> {
     tauri::webview_version().ok()
 }
 
+/// Whether the environment turns off pings and usage stats: `OPENPENCIL_TELEMETRY` set to
+/// `0`, `false`, or `no`, or `DO_NOT_TRACK` set to anything but `0` or `false`.
+#[tauri::command]
+fn sharing_disabled_by_env() -> bool {
+    let is_off = |name: &str, off: &[&str]| {
+        std::env::var(name)
+            .map(|value| off.contains(&value.trim().to_ascii_lowercase().as_str()))
+            .unwrap_or(false)
+    };
+    let do_not_track = std::env::var("DO_NOT_TRACK")
+        .map(|value| !matches!(value.trim().to_ascii_lowercase().as_str(), "" | "0" | "false"))
+        .unwrap_or(false);
+    is_off("OPENPENCIL_TELEMETRY", &["0", "false", "no"]) || do_not_track
+}
+
 #[tauri::command]
 fn set_recent_files(app: tauri::AppHandle, paths: Vec<String>) -> Result<(), String> {
     install_app_menu(&app, &paths).map_err(|error| error.to_string())
@@ -365,6 +380,7 @@ pub fn run() {
             set_native_menu_checked,
             take_pending_open,
             take_pending_rooms,
+            sharing_disabled_by_env,
             webview_version
         ])
         .plugin(tauri_plugin_opener::init())

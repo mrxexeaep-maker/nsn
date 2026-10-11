@@ -64,5 +64,20 @@
   "categoryRuntime": "ランタイム",
   "noMatchingEvents": "このフィルターに一致するイベントはありません。",
   "showMore": "さらに表示",
-  "showingEvents": "{total} 件中 {shown} 件"
+  "showingEvents": "{total} 件中 {shown} 件",
+  "sharingTitle": "OpenPencil との共有",
+  "sharingDescription": "このアプリが OpenPencil チームに送信する内容です。デザイン、ファイル名、プロンプト、キーは送信されません。",
+  "sharingPing": "毎日の匿名 ping",
+  "sharingPingDescription": "1 日 1 回、アプリのバージョン、OS、デスクトップ版か Web 版かを送信します。ID は含みません。",
+  "sharingUsageStats": "利用統計",
+  "sharingUsageStatsDescription": "使われた機能とファイル形式を、個人を特定しないランダムな ID で送信します。同意しない限りオフです。",
+  "sharingDetails": "送信される内容",
+  "sharingUnofficialBuild": "このビルドは何も送信しません。ping や利用統計を送信するのは OpenPencil の公式リリースだけです。",
+  "sharingDisabledByEnvironment": "環境変数 OPENPENCIL_TELEMETRY または DO_NOT_TRACK によりオフになっています。",
+  "sharingQuestionTitle": "OpenPencil の改善に協力しませんか？",
+  "sharingQuestionDescription": "匿名の利用統計（アプリの起動、ファイル形式、使った機能）を共有します。デザイン、ファイル名、プロンプトは送信されません。次に作るべきものと OpenPencil が使われていることを示し、開発資金の確保に役立ちます。",
+  "sharingQuestionDecline": "共有しない",
+  "sharingQuestionAccept": "統計を共有",
+  "sharingQuestionAccepted": "ありがとうございます。診断の設定でいつでも変更できます。",
+  "sharingQuestionDeclined": "利用統計はオフのままです。診断の設定でいつでも変更できます。"
 }

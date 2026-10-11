@@ -78,6 +78,8 @@ export const ROOM_UNREACHABLE_MS = 20_000
 export const ROOM_STATUS_TICK_MS = 500
 
 export const WEB_APP_ORIGIN = 'https://app.openpencil.dev'
+/** The privacy page: every request the app makes, and every usage event and field. */
+export const PRIVACY_URL = 'https://openpencil.dev/overview/privacy'
 /** Where the desktop app's installers are published. */
 export const DESKTOP_DOWNLOAD_URL = 'https://github.com/open-pencil/open-pencil/releases/latest'
 export const NODE_DOWNLOAD_URL = 'https://nodejs.org/en/download'

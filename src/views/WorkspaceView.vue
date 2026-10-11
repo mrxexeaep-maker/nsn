@@ -37,6 +37,7 @@ import {
   type Tab
 } from '@/app/tabs'
 import { isTauri } from '@/app/tauri/env'
+import { offerUsageStatsPrompt, startSharing } from '@/app/telemetry'
 import ColorSpaceBanner from '@/components/canvas/ColorSpaceBanner.vue'
 import CommandPalette from '@/components/commands/CommandPalette.vue'
 import EditorWorkspace from '@/components/editor/EditorWorkspace.vue'
@@ -84,9 +85,14 @@ function openFirstTab(): Tab {
   }
 }
 
-if (createdInitialTab && route.path === '/' && !appRuntimeConfig.test && !route.meta.demo) {
-  offerAISetupOnFirstRun()
+const offerWelcome =
+  createdInitialTab && route.path === '/' && !appRuntimeConfig.test && !route.meta.demo
+// The welcome waits for sharing to start, which knows whether it may ask about usage stats.
+async function greet(): Promise<void> {
+  await startSharing()
+  offerUsageStatsPrompt({ welcomeShown: offerWelcome && offerAISetupOnFirstRun() })
 }
+void greet()
 
 useHead({ title: route.meta.demo ? 'Demo' : undefined })
 useKeyboard()
