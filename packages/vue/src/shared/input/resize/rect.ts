@@ -1,6 +1,5 @@
+import type { HandlePosition } from '@open-pencil/core/geometry'
 import type { Rect } from '@open-pencil/scene-graph/primitives'
-
-import type { HandlePosition } from '#vue/shared/input/types'
 
 /** `value` at least `min` long, keeping the direction it was dragged in. */
 function atLeast(value: number, min: number): number {

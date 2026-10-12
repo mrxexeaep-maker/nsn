@@ -1,4 +1,4 @@
-import { CommittedGraphEventError } from '@open-pencil/scene-graph'
+import { CommittedGraphEventError, cycleSafeParent } from '@open-pencil/scene-graph'
 import type { SceneNode } from '@open-pencil/scene-graph'
 import { getAxisAlignedBoundsInParent } from '@open-pencil/scene-graph/coordinate'
 import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
@@ -14,16 +14,20 @@ import { importClipboardDependencies } from './clipboard/dependencies'
 import { createClipboardExportActions } from './clipboard/export'
 import { createClipboardFontActions } from './clipboard/fonts'
 import { deleteIds, recreateSnapshots, restoreDeletedEntries } from './clipboard/history'
-import type { PasteHistoryOperation } from './clipboard/paste-replace'
-import { replaceTargetsWithCreated, selectedReplacementTargets } from './clipboard/paste-replace'
+import type { PasteHistoryOperation } from './clipboard/paste/replace'
+import { replaceTargetsWithCreated, selectedReplacementTargets } from './clipboard/paste/replace'
 import {
-  instanceSafeParent,
   pastedComponentIds,
+  requestedPasteTarget,
   resolvePasteTarget
-} from './clipboard/paste-target'
-import { createClipboardPlacementActions } from './clipboard/placement'
-import { collectSubtrees, restoreSubtree, snapshotSubtree } from './clipboard/subtree-history'
+} from './clipboard/paste/target'
+import {
+  clipboardPlacement,
+  createClipboardPlacementActions,
+  type ClipboardPlacement
+} from './clipboard/placement'
 import { acceptsChildren, prepareSlotEdits } from './components/slots'
+import { collectSubtrees, restoreSubtree, snapshotSubtree } from './history/subtree'
 import type { EditorContext } from './types'
 
 type PasteOptions = {
@@ -152,6 +156,7 @@ export function createClipboardActions(ctx: EditorContext) {
       }
       created = pasteOpenPencilNodes(
         dependencies.nodes,
+        snapshot.placement,
         snapshot.images,
         dependencies.componentDependencies,
         cursorPos,
@@ -166,7 +171,14 @@ export function createClipboardActions(ctx: EditorContext) {
     if (openPencil) {
       // One undo step for the paste and any slot it claims.
       const created = ctx.undo.runBatch('Paste', () =>
-        pasteOpenPencilNodes(openPencil.nodes, openPencil.images, [], cursorPos, options)
+        pasteOpenPencilNodes(
+          openPencil.nodes,
+          clipboardPlacement(ctx.graph, openPencil.nodes),
+          openPencil.images,
+          [],
+          cursorPos,
+          options
+        )
       )
       await fontActions.loadFontsForNodes(created)
       return
@@ -192,14 +204,7 @@ export function createClipboardActions(ctx: EditorContext) {
         if (created.length === 0) return null
 
         if (replacementTargets.length > 0) {
-          replaceTargetsWithCreated(
-            ctx,
-            placementActions.centerNodesAt,
-            created,
-            replacementTargets,
-            prevSelection,
-            operation
-          )
+          replaceTargetsWithCreated(ctx, created, replacementTargets, prevSelection, operation)
         } else {
           placementActions.placeForeignPaste(created, pasteTarget, cursorPos)
           computeAllLayouts(ctx.graph, ctx.state.currentPageId)
@@ -222,6 +227,7 @@ export function createClipboardActions(ctx: EditorContext) {
 
   function pasteOpenPencilNodes(
     nodes: Array<SceneNode & { children?: SceneNode[] }>,
+    placement: ClipboardPlacement,
     images: Map<string, Uint8Array>,
     dependencies: Array<SceneNode & { children?: SceneNode[] }> = [],
     cursorPos?: Vector,
@@ -244,8 +250,13 @@ export function createClipboardActions(ctx: EditorContext) {
       return node.id
     }
 
-    const requestedTarget = replacementTargets[0]?.parentId ?? resolvePasteTarget(ctx)
-    const pasteTarget = instanceSafeParent(
+    const { requestedTarget, returningTo } = requestedPasteTarget(
+      ctx,
+      placement.sources.map((source) => source?.id ?? null),
+      replacementTargets[0]?.parentId ?? null,
+      !!cursorPos
+    )
+    const pasteTarget = cycleSafeParent(
       ctx.graph,
       requestedTarget,
       pastedComponentIds(ctx.graph, [...nodes, ...dependencies])
@@ -279,26 +290,16 @@ export function createClipboardActions(ctx: EditorContext) {
       })
     }
     if (created.length === 0) return created
+    placementActions.keepCanvasTransforms(created, placement.transforms)
 
     if (replacementTargets.length > 0) {
-      replaceTargetsWithCreated(
-        ctx,
-        placementActions.centerNodesAt,
-        created,
-        replacementTargets,
-        prevSelection
-      )
+      replaceTargetsWithCreated(ctx, created, replacementTargets, prevSelection)
       return created
     }
 
-    if (cursorPos) placementActions.centerNodesAtCanvasPoint(created, pasteTarget, cursorPos)
-    else
-      placementActions.placePasted(
-        created,
-        nodes[0]?.parentId ?? undefined,
-        pasteTarget,
-        requestedTarget
-      )
+    if (cursorPos) placementActions.centerNodesAtCanvasPoint(created, cursorPos)
+    else if (returningTo === pasteTarget) placementActions.placeReturned(created)
+    else placementActions.placePasted(created, placement, pasteTarget, requestedTarget)
     computeAllLayouts(ctx.graph, ctx.state.currentPageId)
     ctx.setSelectedIds(new Set(created))
 

@@ -19,6 +19,7 @@
     "@open-pencil/brand-tools": "workspace:*",
     "@open-pencil/cli": "workspace:*",
     "@open-pencil/demo-tools": "workspace:*",
+    "@open-pencil/feedback": "workspace:*",
     "@open-pencil/landing-posters-tools": "workspace:*",
     "@open-pencil/vite-config": "workspace:*",
     "@shikijs/vitepress-twoslash": "^4.4.3",

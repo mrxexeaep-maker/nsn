@@ -567,8 +567,13 @@ function interpretRoot(
     }
     applyInstanceLayoutScale(occurrence, source)
     applyPlacedConstraints(occurrence, base, source)
-    if (source.type === 'INSTANCE' && source.size)
+    if (source.type === 'INSTANCE' && source.size) {
       occurrence.properties.size = structuredClone(source.size)
+      // The size the file keeps for the instance is its own content laid out, such as a hug
+      // frame around longer text than its component's, which a sync with the component must
+      // not replace.
+      occurrence.derivedSize = structuredClone(source.size)
+    }
     if (derived) applyDerivedBounds(occurrence, source)
   }
 

@@ -82,6 +82,8 @@ export const aiMessageDefaults = {
   copyResponse: 'Copy response',
   revertTurn: 'Revert changes',
   turnReverted: 'Changes reverted',
+  turnPartlyUndone: params('{undone} of {total} changes undone'),
+  turnStopped: 'Stopped',
   restoreTurn: 'Restore changes',
   regenerate: 'Regenerate',
   revertAndRegenerate: 'Revert and regenerate',
@@ -91,6 +93,7 @@ export const aiMessageDefaults = {
   resendMessage: 'Send again',
   responseCopied: 'Response copied',
   toolFinished: 'Done',
+  toolUndone: 'Undone',
   toolRunning: 'Running…',
   toolError: 'Error',
   toolInput: 'Input',
@@ -216,6 +219,10 @@ export const aiMessageDefaults = {
   aiSetupWelcomeAITitle: 'Design with AI',
   aiSetupWelcomeAIDescription:
     'Connect the AI you already use to edit the canvas and review designs. You can change it later in Settings.',
+  aiSetupWelcomeTourTitle: 'Take the tour',
+  aiSetupWelcomeTourDescription:
+    'A short file that walks through components and slots, working controls, modes, shaders, code, and lint, with a card on each that says what to try.',
+  aiSetupTakeTour: 'Open the tour',
   aiSetupStart: 'Set up AI',
   aiSetupSkip: 'Start designing',
   aiSetupProgress: params('Step {current} of {total}'),
@@ -265,6 +272,8 @@ export const aiMessageDefaults = {
   aiSetupAgentGetCLI: params('Install {agent}'),
   aiSetupAgentNeedsNpm:
     'Installing needs npm, which comes with Node.js. Install Node.js, then check again.',
+  aiSetupAgentNeedsAdmin:
+    'Installing needs administrator rights, because npm keeps global packages in a protected folder. Run the command below in a terminal, or let your agent set up a folder you own.',
   aiSetupAgentInstallFailed:
     'The installation didn’t finish. Check your connection, or run the command yourself.',
   aiSetupAgentMCPStartFailed:
@@ -272,7 +281,6 @@ export const aiMessageDefaults = {
   aiSetupAgentLookupFailed: 'Couldn’t check this computer. Try again.',
   aiSetupAgentCopyPrompt: 'Copy setup prompt',
   aiSetupAgentCheckAgain: 'Check again',
-  aiSetupAgentGuide: 'Setup guide',
   aiSetupPiDescription:
     'OpenPencil runs Pi through its Harness companion and uses the providers you signed in to in Pi.',
   aiSetupPiCompanion: 'Harness companion',

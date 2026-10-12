@@ -22,14 +22,18 @@ export function closeAISetup(): void {
   updateAISetupState('done')
 }
 
-/** Offers the welcome to a fresh install; anyone who already configured AI never sees it. */
-export function offerAISetupOnFirstRun(): void {
+/**
+ * Offers the welcome to a fresh install; anyone who already configured AI never sees it.
+ * Returns whether the welcome opened.
+ */
+export function offerAISetupOnFirstRun(): boolean {
   // The native test binary starts every run with an empty data store.
-  if (import.meta.env.MODE === 'native-test') return
-  if (appPreferences.value.onboarding.aiSetup === 'done') return
+  if (import.meta.env.MODE === 'native-test') return false
+  if (appPreferences.value.onboarding.aiSetup === 'done') return false
   if (!isUnconfiguredModelSettings(aiModelSettings.value)) {
     updateAISetupState('done')
-    return
+    return false
   }
   openAISetup('welcome')
+  return true
 }

@@ -1,11 +1,17 @@
-import { recordInstanceOverride, slotPropertyId } from '@open-pencil/scene-graph'
+import {
+  createsComponentCycle,
+  recordInstanceOverride,
+  slotPropertyId
+} from '@open-pencil/scene-graph'
 import type {
   GroupFitOptions,
+  HyperlinkTarget,
   SceneGraph,
   SceneNode,
   NodeType,
   Fill,
   Stroke,
+  LayoutGrid,
   LayoutMode
 } from '@open-pencil/scene-graph'
 import {
@@ -20,11 +26,12 @@ import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
 import { assertNodeEditable } from '#core/editor/capabilities'
 import type { FigmaEffect } from '#core/figma-api/effects'
 
-import { fitGroupsAround } from './accessor-utils'
+import { prepareFollowedFieldEdit, fitGroupsAround } from './accessor-utils'
 import { installBasicNodeProxyAccessors } from './accessors/basic'
 import { installLayoutNodeProxyAccessors } from './accessors/layout'
 import { installStrokeNodeProxyAccessors } from './accessors/strokes'
 import { installTextNodeProxyAccessors } from './accessors/text'
+import { installTextRangeMethods, type TextRangeMethods } from './accessors/text/ranges'
 import { installVariableModeNodeProxyAccessors } from './accessors/variables'
 import {
   installVectorNodeProxyAccessors,
@@ -66,6 +73,17 @@ export interface NodeProxyHost {
 
 export { MIXED }
 
+/** Figma refuses a move that would make a component contain itself. */
+function assertNoComponentCycle(
+  graph: SceneGraph,
+  parentId: string,
+  childId: string,
+  method: 'appendChild' | 'insertChild'
+): void {
+  if (createsComponentCycle(graph, childId, parentId))
+    throw new Error(`in ${method}: Cannot move node. Reparenting would create a component cycle`)
+}
+
 export class FigmaNodeProxy {
   [INTERNAL_ID]: string;
   [INTERNAL_GRAPH]: SceneGraph;
@@ -89,7 +107,7 @@ export class FigmaNodeProxy {
   declare readonly absoluteBoundingBox: Rect
   declare readonly absoluteRenderBounds: Rect | null
 
-  declare fills: readonly Fill[]
+  declare fills: readonly Fill[] | symbol
   declare strokes: readonly Stroke[]
   declare effects: readonly FigmaEffect[]
   declare opacity: number
@@ -105,6 +123,7 @@ export class FigmaNodeProxy {
   declare cornerSmoothing: number
 
   declare layoutMode: LayoutMode
+  declare layoutGrids: readonly LayoutGrid[]
   declare layoutDirection: string
   declare primaryAxisAlignItems: string
   declare counterAxisAlignItems: string
@@ -154,20 +173,77 @@ export class FigmaNodeProxy {
   declare strokeRightWeight: number
 
   declare characters: string
-  declare fontSize: number
-  declare fontName: FigmaFontName
-  declare fontWeight: number
+  declare fontSize: number | symbol
+  declare fontName: FigmaFontName | symbol
+  declare fontWeight: number | symbol
   declare textAlignHorizontal: string
   declare textAlignVertical: string
   declare textDirection: string
   declare textAutoResize: string
-  declare letterSpacing: FigmaLetterSpacing
-  declare lineHeight: FigmaLineHeight
-  declare textCase: string
-  declare textDecoration: string
+  declare letterSpacing: FigmaLetterSpacing | symbol
+  declare lineHeight: FigmaLineHeight | symbol
+  declare textCase: SceneNode['textCase'] | symbol
+  declare hyperlink: HyperlinkTarget | null | symbol
+  declare textStyleId: string | symbol
+  declare fillStyleId: string | symbol
+  declare textDecoration: SceneNode['textDecoration'] | symbol
   declare maxLines: number | null
+  declare listSpacing: number | symbol
+  declare paragraphSpacing: number | symbol
+  declare paragraphIndent: number | symbol
+  declare hangingList: boolean
   declare textTruncation: string
   declare autoRename: boolean
+
+  // Per-character and per-paragraph methods: accessors/text/ranges.ts.
+  declare getStyledTextSegments: TextRangeMethods['getStyledTextSegments']
+  declare getRangeAllFontNames: TextRangeMethods['getRangeAllFontNames']
+  declare getRangeFontSize: TextRangeMethods['getRangeFontSize']
+  declare setRangeFontSize: TextRangeMethods['setRangeFontSize']
+  declare getRangeFontName: TextRangeMethods['getRangeFontName']
+  declare setRangeFontName: TextRangeMethods['setRangeFontName']
+  declare getRangeFontWeight: TextRangeMethods['getRangeFontWeight']
+  declare getRangeFills: TextRangeMethods['getRangeFills']
+  declare setRangeFills: TextRangeMethods['setRangeFills']
+  declare getRangeLetterSpacing: TextRangeMethods['getRangeLetterSpacing']
+  declare setRangeLetterSpacing: TextRangeMethods['setRangeLetterSpacing']
+  declare getRangeLineHeight: TextRangeMethods['getRangeLineHeight']
+  declare setRangeLineHeight: TextRangeMethods['setRangeLineHeight']
+  declare getRangeTextDecoration: TextRangeMethods['getRangeTextDecoration']
+  declare setRangeTextDecoration: TextRangeMethods['setRangeTextDecoration']
+  declare getRangeTextDecorationStyle: TextRangeMethods['getRangeTextDecorationStyle']
+  declare setRangeTextDecorationStyle: TextRangeMethods['setRangeTextDecorationStyle']
+  declare getRangeTextDecorationOffset: TextRangeMethods['getRangeTextDecorationOffset']
+  declare setRangeTextDecorationOffset: TextRangeMethods['setRangeTextDecorationOffset']
+  declare getRangeTextDecorationThickness: TextRangeMethods['getRangeTextDecorationThickness']
+  declare setRangeTextDecorationThickness: TextRangeMethods['setRangeTextDecorationThickness']
+  declare getRangeTextDecorationColor: TextRangeMethods['getRangeTextDecorationColor']
+  declare setRangeTextDecorationColor: TextRangeMethods['setRangeTextDecorationColor']
+  declare getRangeTextDecorationSkipInk: TextRangeMethods['getRangeTextDecorationSkipInk']
+  declare setRangeTextDecorationSkipInk: TextRangeMethods['setRangeTextDecorationSkipInk']
+  declare getRangeOpenTypeFeatures: TextRangeMethods['getRangeOpenTypeFeatures']
+  declare getRangeListOptions: TextRangeMethods['getRangeListOptions']
+  declare setRangeListOptions: TextRangeMethods['setRangeListOptions']
+  declare getRangeIndentation: TextRangeMethods['getRangeIndentation']
+  declare setRangeIndentation: TextRangeMethods['setRangeIndentation']
+  declare getRangeListSpacing: TextRangeMethods['getRangeListSpacing']
+  declare setRangeListSpacing: TextRangeMethods['setRangeListSpacing']
+  declare getRangeParagraphSpacing: TextRangeMethods['getRangeParagraphSpacing']
+  declare setRangeParagraphSpacing: TextRangeMethods['setRangeParagraphSpacing']
+  declare getRangeParagraphIndent: TextRangeMethods['getRangeParagraphIndent']
+  declare setRangeParagraphIndent: TextRangeMethods['setRangeParagraphIndent']
+  declare getRangeTextCase: TextRangeMethods['getRangeTextCase']
+  declare setRangeTextCase: TextRangeMethods['setRangeTextCase']
+  declare getRangeHyperlink: TextRangeMethods['getRangeHyperlink']
+  declare setRangeHyperlink: TextRangeMethods['setRangeHyperlink']
+  declare getRangeTextStyleId: TextRangeMethods['getRangeTextStyleId']
+  declare setRangeTextStyleId: TextRangeMethods['setRangeTextStyleId']
+  declare setRangeTextStyleIdAsync: TextRangeMethods['setRangeTextStyleIdAsync']
+  declare getRangeFillStyleId: TextRangeMethods['getRangeFillStyleId']
+  declare setRangeFillStyleId: TextRangeMethods['setRangeFillStyleId']
+  declare setRangeFillStyleIdAsync: TextRangeMethods['setRangeFillStyleIdAsync']
+  declare getRangeBoundVariable: TextRangeMethods['getRangeBoundVariable']
+  declare setRangeBoundVariable: TextRangeMethods['setRangeBoundVariable']
 
   constructor(id: string, graph: SceneGraph, api: NodeProxyHost) {
     this[INTERNAL_ID] = id
@@ -209,6 +285,7 @@ export class FigmaNodeProxy {
   }
 
   set isMask(v: boolean) {
+    prepareFollowedFieldEdit(this[INTERNAL_GRAPH], this._raw(), 'isMask', 'is-mask')
     this._update({ isMask: v })
   }
 
@@ -217,6 +294,7 @@ export class FigmaNodeProxy {
   }
 
   set maskType(v: string) {
+    prepareFollowedFieldEdit(this[INTERNAL_GRAPH], this._raw(), 'maskType', 'mask-type')
     this._update({ maskType: v as SceneNode['maskType'] })
   }
 
@@ -300,6 +378,12 @@ export class FigmaNodeProxy {
   appendChild(child: FigmaNodeProxy): void {
     assertNodeEditable(this[INTERNAL_GRAPH], this[INTERNAL_ID])
     assertNodeEditable(this[INTERNAL_GRAPH], child[INTERNAL_ID])
+    assertNoComponentCycle(
+      this[INTERNAL_GRAPH],
+      this[INTERNAL_ID],
+      child[INTERNAL_ID],
+      'appendChild'
+    )
     prepareSlotMove(this[INTERNAL_GRAPH], this[INTERNAL_ID], child[INTERNAL_ID], 'appendChild')
     this._reparentAndFit(child[INTERNAL_ID])
   }
@@ -324,6 +408,12 @@ export class FigmaNodeProxy {
   insertChild(index: number, child: FigmaNodeProxy): void {
     assertNodeEditable(this[INTERNAL_GRAPH], this[INTERNAL_ID])
     assertNodeEditable(this[INTERNAL_GRAPH], child[INTERNAL_ID])
+    assertNoComponentCycle(
+      this[INTERNAL_GRAPH],
+      this[INTERNAL_ID],
+      child[INTERNAL_ID],
+      'insertChild'
+    )
     prepareSlotMove(this[INTERNAL_GRAPH], this[INTERNAL_ID], child[INTERNAL_ID], 'insertChild')
     this._reparentAndFit(child[INTERNAL_ID])
     this[INTERNAL_GRAPH].reorderChild(child[INTERNAL_ID], this[INTERNAL_ID], index)
@@ -477,7 +567,8 @@ const proxyInternals = {
 }
 
 installStrokeNodeProxyAccessors(FigmaNodeProxy.prototype, proxyInternals)
-installTextNodeProxyAccessors(FigmaNodeProxy.prototype, proxyInternals)
+installTextNodeProxyAccessors(FigmaNodeProxy.prototype, proxyInternals, MIXED)
+installTextRangeMethods(FigmaNodeProxy.prototype, proxyInternals, MIXED)
 installLayoutNodeProxyAccessors(FigmaNodeProxy.prototype, proxyInternals)
 installVariableModeNodeProxyAccessors(FigmaNodeProxy.prototype, proxyInternals)
 installComponentPropertyAccessors(FigmaNodeProxy.prototype, proxyInternals)

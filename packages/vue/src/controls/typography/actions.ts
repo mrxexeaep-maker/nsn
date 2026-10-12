@@ -2,11 +2,29 @@ import { computed } from 'vue'
 import type { ComputedRef } from 'vue'
 
 import type { Editor } from '@open-pencil/core/editor'
-import { FONT_WEIGHT_NAMES, weightToStyle } from '@open-pencil/core/text'
-import type { SceneNode, TextDecoration } from '@open-pencil/scene-graph'
+import {
+  FONT_WEIGHT_NAMES,
+  fontManager,
+  nearestFamilyFace,
+  weightToStyle
+} from '@open-pencil/core/text'
+import type {
+  SceneNode,
+  TextDecoration,
+  TextListType,
+  TextParagraphSpacingField
+} from '@open-pencil/scene-graph'
 
+import {
+  createTextListActions,
+  listTypeOf,
+  paragraphSpacingChanges,
+  paragraphSpacingOf
+} from '#vue/canvas/text-edit/paragraphs'
 import { MIXED, type MixedValue } from '#vue/controls/node-props/use'
+import { useFamilyFaces } from '#vue/controls/typography/faces'
 import type { UseTypographyOptions } from '#vue/controls/typography/use'
+import { selectedNodesAsShown } from '#vue/editor/selection-state/nodes'
 import { useSceneComputed } from '#vue/internal/scene-computed/use'
 import { useNodeFontStatus } from '#vue/shared/font-status/use'
 
@@ -15,11 +33,6 @@ type TextDirection = SceneNode['textDirection']
 type TextVerticalAlign = SceneNode['textAlignVertical']
 type TextCase = SceneNode['textCase']
 type TextTruncation = SceneNode['textTruncation']
-
-export const TYPOGRAPHY_WEIGHTS = Object.entries(FONT_WEIGHT_NAMES).map(([value, label]) => ({
-  value: Number(value),
-  label
-}))
 
 function sharedValue<T>(values: readonly T[]): MixedValue<T> {
   const [first] = values
@@ -43,7 +56,7 @@ function sharedFormatting(nodes: readonly SceneNode[]) {
  */
 export function createTypographyState(editor: Editor) {
   const nodes = useSceneComputed<SceneNode[]>(() =>
-    editor.getSelectedNodes().filter((n) => n.type === 'TEXT')
+    selectedNodesAsShown(editor).filter((n) => n.type === 'TEXT')
   )
   const node = computed<SceneNode | null>(() => nodes.value.at(0) ?? null)
   const { missingFonts, hasMissingFonts } = useNodeFontStatus(() => node.value)
@@ -54,10 +67,28 @@ export function createTypographyState(editor: Editor) {
     () => FONT_WEIGHT_NAMES[node.value?.fontWeight ?? 400] ?? 'Regular'
   )
   const activeFormatting = computed(() => sharedFormatting(nodes.value))
+  const { weights, supports } = useFamilyFaces(nodes)
+  /**
+   * The list style every selected text shares, or that of the paragraphs being edited; `null`
+   * when they differ.
+   */
+  const listType = computed(() => {
+    void editor.state.textSelectionVersion
+    const shared = sharedValue(nodes.value.map((n) => listTypeOf(editor, n)))
+    return shared === MIXED ? null : shared
+  })
 
   /** The value every selected text layer shares, or MIXED when they differ. */
   function merged<K extends keyof SceneNode>(key: K): MixedValue<SceneNode[K]> {
     return sharedValue(nodes.value.map((n) => n[key]))
+  }
+
+  /** A spacing every paragraph changes apply to shares, or MIXED when they differ. */
+  function paragraphSpacing(field: TextParagraphSpacingField): MixedValue<number> {
+    void editor.state.textSelectionVersion
+    const values = nodes.value.map((n) => paragraphSpacingOf(editor, n, field))
+    const shared = sharedValue(values)
+    return shared === null ? MIXED : shared
   }
 
   /** Whether one OpenType feature is on for every text layer, MIXED when they differ. */
@@ -71,12 +102,16 @@ export function createTypographyState(editor: Editor) {
     node,
     nodes,
     merged,
+    paragraphSpacing,
     fontFeature,
     fontFamily,
     fontWeight,
     fontSize,
     currentWeightLabel,
     activeFormatting,
+    listType,
+    weights,
+    supports,
     missingFonts,
     hasMissingFonts
   }
@@ -86,6 +121,8 @@ type TypographyActionOptions = {
   editor: Editor
   nodes: ComputedRef<SceneNode[]>
   activeFormatting: ComputedRef<string[]>
+  /** Whether a layer's family has a face; true when nothing says it has not. */
+  supports: (node: SceneNode, weight: number, italic: boolean) => boolean
   options: UseTypographyOptions
 }
 
@@ -93,15 +130,20 @@ export function createTypographyActions({
   editor,
   nodes,
   activeFormatting,
+  supports,
   options
 }: TypographyActionOptions) {
+  const lists = createTextListActions(editor)
   type Preview = { value: SceneNode[keyof SceneNode]; textStyleId: string | null }
   let previewKey: keyof SceneNode | undefined
   const beforePreview = new Map<string, Preview>()
 
   /** Applies one change per text layer in one undo step. */
-  function updateEach(label: string, changes: (node: SceneNode) => Partial<SceneNode>) {
-    const targets = nodes.value
+  function updateEach(
+    label: string,
+    changes: (node: SceneNode) => Partial<SceneNode>,
+    targets = nodes.value
+  ) {
     if (targets.length === 0) return
     editor.undo.runBatch(label, () => {
       for (const target of targets) editor.updateNodeWithUndo(target.id, changes(target), label)
@@ -112,23 +154,69 @@ export function createTypographyActions({
     updateEach(label, () => changes)
   }
 
-  async function setFamily(family: string) {
-    const targets = nodes.value
+  /** The newest pending change for each layer and field, by `id:field`. */
+  const latestLoadingRequest = new Map<string, symbol>()
+
+  /**
+   * Applies each layer's change once its face has loaded, to the layers selected when it was
+   * asked for: the selection may change while the load is pending, and a layer may be deleted.
+   * `prepare` loads a layer's face and returns its change, or null to leave the layer alone.
+   */
+  async function updateAfterLoading(
+    label: string,
+    fields: readonly (keyof SceneNode)[],
+    prepare: (target: SceneNode) => Promise<Partial<SceneNode> | null>,
+    targets = nodes.value
+  ) {
     if (targets.length === 0) return
-    await Promise.all(
-      targets.map((target) =>
-        options.fontLoader?.load(family, FONT_WEIGHT_NAMES[target.fontWeight] ?? 'Regular')
-      )
+    const request = Symbol(label)
+    const keys = (target: SceneNode) => fields.map((field) => `${target.id}:${field}`)
+    for (const target of targets)
+      for (const key of keys(target)) latestLoadingRequest.set(key, request)
+    const changes = await Promise.all(targets.map(prepare))
+    // A later choice for the same field wins, even when its face loaded first.
+    const current = targets.filter((target) =>
+      keys(target).every((key) => latestLoadingRequest.get(key) === request)
     )
-    update('Change font', { fontFamily: family })
+    for (const target of current) for (const key of keys(target)) latestLoadingRequest.delete(key)
+    const changed = new Map(targets.map((target, index) => [target.id, changes[index]]))
+    const live = current.filter(
+      (target) => editor.graph.getNode(target.id) && changed.get(target.id)
+    )
+    updateEach(label, (target) => changed.get(target.id) ?? {}, live)
   }
 
-  async function setWeight(weight: number) {
-    const targets = nodes.value
-    if (targets.length === 0) return
-    update('Change font weight', { fontWeight: weight })
-    const style = weightToStyle(weight)
-    await Promise.all(targets.map((target) => options.fontLoader?.load(target.fontFamily, style)))
+  /**
+   * Keeps each layer's weight and slant where the family has them, otherwise takes the nearest
+   * face, as Figma does: Black goes to Bold in a family that ends at Bold.
+   */
+  async function setFamily(family: string) {
+    const faces = fontManager.familyFaces(family)
+    await updateAfterLoading(
+      'Change font',
+      ['fontFamily', 'fontWeight', 'italic'],
+      async (target) => {
+        const known = await faces
+        const face = known ? nearestFamilyFace(known, target.fontWeight, target.italic) : null
+        const fontWeight = face?.weight ?? target.fontWeight
+        const italic = face?.italic ?? target.italic
+        await options.fontLoader?.load(family, weightToStyle(fontWeight, italic))
+        return { fontFamily: family, fontWeight, italic }
+      }
+    )
+  }
+
+  /** Loads the face first, as for a family, so the text is laid out once with it. */
+  async function setWeight(weight: number, targets = nodes.value) {
+    await updateAfterLoading(
+      'Change font weight',
+      ['fontWeight'],
+      async (target) => {
+        await options.fontLoader?.load(target.fontFamily, weightToStyle(weight, target.italic))
+        return { fontWeight: weight }
+      },
+      targets
+    )
   }
 
   function setAlign(align: TextAlign) {
@@ -160,14 +248,95 @@ export function createTypographyActions({
     }))
   }
 
-  /** Bold unless every text layer already is, as Figma's toggle does for a mixed selection. */
+  function setListType(listType: TextListType) {
+    const targets = nodes.value
+    if (targets.length === 0) return
+    editor.undo.runBatch('Change list style', () => {
+      for (const target of targets) lists.setListType(target, listType)
+    })
+  }
+
+  type SpacingPreview = Pick<SceneNode, TextParagraphSpacingField | 'textParagraphs'>
+  let spacingPreviewField: TextParagraphSpacingField | undefined
+  const beforeSpacing = new Map<string, SpacingPreview>()
+
+  function previewParagraphSpacing(field: TextParagraphSpacingField, value: number) {
+    if (spacingPreviewField !== field) {
+      restoreSpacingPreview()
+      spacingPreviewField = field
+    }
+    for (const target of nodes.value) {
+      if (!beforeSpacing.has(target.id)) {
+        const { listSpacing, paragraphSpacing, paragraphIndent, textParagraphs } = target
+        beforeSpacing.set(target.id, {
+          listSpacing,
+          paragraphSpacing,
+          paragraphIndent,
+          textParagraphs
+        })
+      }
+      editor.updateNode(target.id, paragraphSpacingChanges(editor, target, field, value))
+    }
+    editor.requestRender()
+  }
+
+  function restoreSpacingPreview() {
+    for (const [id, before] of beforeSpacing) editor.updateNode(id, before)
+    beforeSpacing.clear()
+    spacingPreviewField = undefined
+  }
+
+  /**
+   * Sets a spacing for the paragraphs being edited, or for whole text layers, in one undo step;
+   * while text is edited the change is a step of its own after what was typed.
+   */
+  function setParagraphSpacing(field: TextParagraphSpacingField, value: number) {
+    restoreSpacingPreview()
+    const targets = nodes.value
+    if (targets.length === 0) return
+    const label = `Change ${field}`
+    editor.runTextEditStep(() => {
+      editor.undo.runBatch(label, () => {
+        for (const target of targets) {
+          const current = editor.graph.getNode(target.id) ?? target
+          editor.updateNodeWithUndo(
+            target.id,
+            paragraphSpacingChanges(editor, current, field, value),
+            label
+          )
+        }
+      })
+    })
+    editor.requestRender()
+  }
+
+  function setHangingList(hangingList: boolean) {
+    update('Change hanging lists', { hangingList })
+  }
+
+  /**
+   * Bold unless every text layer already is, as Figma's toggle does for a mixed selection. A layer
+   * whose family has no such face is left alone, as Figma leaves it.
+   */
   function toggleBold() {
-    const bold = activeFormatting.value.includes('bold')
-    void setWeight(bold ? 400 : 700)
+    const weight = activeFormatting.value.includes('bold') ? 400 : 700
+    void setWeight(
+      weight,
+      nodes.value.filter((target) => supports(target, weight, target.italic))
+    )
   }
 
   function toggleItalic() {
-    update('Toggle italic', { italic: !activeFormatting.value.includes('italic') })
+    const italic = !activeFormatting.value.includes('italic')
+    void updateAfterLoading(
+      'Toggle italic',
+      ['italic'],
+      async (target) => {
+        await options.fontLoader?.load(target.fontFamily, weightToStyle(target.fontWeight, italic))
+        return { italic }
+      },
+      nodes.value.filter((target) => supports(target, target.fontWeight, italic))
+    )
   }
 
   function toggleDecoration(deco: 'UNDERLINE' | 'STRIKETHROUGH') {
@@ -235,6 +404,10 @@ export function createTypographyActions({
     setTextCase,
     setTruncation,
     setFontFeature,
+    setListType,
+    previewParagraphSpacing,
+    setParagraphSpacing,
+    setHangingList,
     toggleBold,
     toggleItalic,
     toggleDecoration,

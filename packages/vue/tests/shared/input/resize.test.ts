@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
 import { createEditor } from '@open-pencil/core/editor'
-import type { SceneNode } from '@open-pencil/scene-graph'
+import { hasInstanceOverride, type SceneNode } from '@open-pencil/scene-graph'
+import { createResizeSnapshot } from '@open-pencil/scene-graph/resize'
 
 import { applyResize, cancelResizePreview, commitResizePreview } from '#vue/shared/input/resize'
 import type { DragResize } from '#vue/shared/input/types'
@@ -74,7 +75,10 @@ describe('a resize that changes nothing', () => {
     const editor = createEditor()
     try {
       const { graph } = editor
-      const frame = graph.createNode('FRAME', editor.state.currentPageId, { width: 200, height: 40 })
+      const frame = graph.createNode('FRAME', editor.state.currentPageId, {
+        width: 200,
+        height: 40
+      })
       graph.applyImportedStateDuring(() =>
         graph.updateNode(frame.id, { source: { ...frame.source, format: 'fig', id: frame.id } })
       )
@@ -102,9 +106,7 @@ test('a cancelled resize gives a vector back its own geometry', () => {
         { x: 0, y: 0 },
         { x: 100, y: 50 }
       ],
-      segments: [
-        { start: 0, end: 1, tangentStart: { x: 0, y: 0 }, tangentEnd: { x: 0, y: 0 } }
-      ],
+      segments: [{ start: 0, end: 1, tangentStart: { x: 0, y: 0 }, tangentEnd: { x: 0, y: 0 } }],
       regions: []
     }
     const vector = editor.graph.createNode('VECTOR', editor.state.currentPageId, {
@@ -120,4 +122,67 @@ test('a cancelled resize gives a vector back its own geometry', () => {
   } finally {
     editor.dispose()
   }
+})
+
+describe('resizing an instance', () => {
+  test('places its layers by their constraints without making their sizes overrides', () => {
+    // Repeats a Figma desktop 126 script: an instance resized to twice its component's size
+    // claims only its own size, so a later component edit still sizes its layers.
+    const editor = createEditor()
+    try {
+      const { graph } = editor
+      const page = editor.state.currentPageId
+      const card = graph.createNode('COMPONENT', page, {
+        width: 140,
+        height: 140,
+        strokes: [
+          {
+            type: 'SOLID',
+            color: { r: 0, g: 0, b: 0, a: 1 },
+            opacity: 1,
+            visible: true,
+            weight: 1,
+            align: 'INSIDE'
+          }
+        ]
+      })
+      const box = graph.createNode('RECTANGLE', card.id, {
+        x: 20,
+        y: 20,
+        width: 100,
+        height: 100,
+        horizontalConstraint: 'SCALE',
+        verticalConstraint: 'SCALE'
+      })
+      const instance = graph.createInstance(card.id, page, { x: 300 })
+      if (!instance) throw new Error('Expected an instance')
+      const [copy] = graph.getChildren(instance.id)
+      const resize: DragResize = {
+        ...drag(instance),
+        handle: 'se',
+        startX: instance.x + instance.width,
+        startY: instance.y + instance.height,
+        origChildren: new Map([[copy.id, createResizeSnapshot(copy)]])
+      }
+      applyResize(resize, instance.x + 280, instance.y + 280, false, editor, true)
+      commitResizePreview(resize, editor)
+      expect([instance.width, instance.height, copy.width, copy.height]).toEqual([
+        280, 280, 200, 200
+      ])
+      expect(hasInstanceOverride(graph, instance.id, 'width')).toBe(true)
+      expect(hasInstanceOverride(graph, copy.id, 'width')).toBe(false)
+      // A corner drag leaves the instance in place, and resizes no strokes of its own.
+      expect(
+        (['x', 'y', 'strokes'] as const).map((field) =>
+          hasInstanceOverride(graph, instance.id, field)
+        )
+      ).toEqual([false, false, false])
+
+      graph.updateNode(box.id, { width: 115 })
+      graph.syncInstances(card.id)
+      expect(copy.width).toBe(230)
+    } finally {
+      editor.dispose()
+    }
+  })
 })

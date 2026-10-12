@@ -33,6 +33,14 @@ export type SceneGraphEventHandlers = Partial<{
   ) => void
 }>
 
+/** Hears about nodes as an edit adds and changes them, synchronously and before each change. */
+export interface NodeChangeObserver {
+  /** A node is about to change and is still as it was. */
+  before: (node: SceneNode) => void
+  /** A node was just added. */
+  created: (node: SceneNode) => void
+}
+
 export type DocumentColorSpace = 'srgb' | 'display-p3'
 
 export interface FigmaSourcePayload {
@@ -188,12 +196,14 @@ export type MaskType = 'ALPHA' | 'VECTOR' | 'LUMINANCE'
 export interface LayoutGrid {
   visible?: boolean
   color?: Color
-  pattern?: 'COLUMNS' | 'ROWS' | 'GRID'
+  /** `STRIPES` is the archive's name for columns or rows, along `axis`. */
+  pattern?: 'COLUMNS' | 'ROWS' | 'GRID' | 'STRIPES'
   axis?: 'X' | 'Y'
   type?: 'MIN' | 'CENTER' | 'MAX' | 'STRETCH'
   alignment?: 'MIN' | 'CENTER' | 'MAX' | 'STRETCH'
   numSections?: number
-  count?: number
+  /** Figma's plugin API reports an Auto count as `null` and accepts `Infinity` for it. */
+  count?: number | null
   offset?: number
   sectionSize?: number
   gutterSize?: number
@@ -235,6 +245,22 @@ export type TextDecorationStyle = 'SOLID' | 'DOTTED' | 'WAVY'
 export type LeadingTrim = 'NONE' | 'CAP_HEIGHT'
 export type TextDirection = 'AUTO' | 'LTR' | 'RTL'
 export type LayoutDirection = 'AUTO' | 'LTR' | 'RTL'
+/** Whether a paragraph is an item of a numbered list, a bulleted list, or no list. */
+export type TextListType = 'NONE' | 'ORDERED' | 'UNORDERED'
+
+/** How one paragraph of a text node (a line ending at a newline) sits in a list. */
+/** Spacing a text sets for all its paragraphs and a paragraph can set for itself. */
+export type TextParagraphSpacingField = 'listSpacing' | 'paragraphSpacing' | 'paragraphIndent'
+
+export interface TextParagraphStyle {
+  listType: TextListType
+  /** Nesting level: 1–5 for list items; kept but not drawn for plain paragraphs. */
+  indentation: number
+  /** This paragraph's own spacing, in place of the text's; absent ones follow the text. */
+  listSpacing?: number
+  paragraphSpacing?: number
+  paragraphIndent?: number
+}
 
 export interface FontVariation {
   axis: string
@@ -245,6 +271,29 @@ export interface FontFeature {
   tag: string
   enabled: boolean
 }
+
+/** Where a stretch of text links to, as Figma's `HyperlinkTarget`: a URL, or a node by its ID. */
+export interface HyperlinkTarget {
+  type: 'URL' | 'NODE'
+  value: string
+}
+
+/** The text fields a range of characters can bind to a variable, as Figma lists them. */
+export const TEXT_BINDABLE_FIELDS = [
+  'fontFamily',
+  'fontSize',
+  'fontStyle',
+  'fontWeight',
+  'letterSpacing',
+  'lineHeight',
+  'paragraphSpacing',
+  'paragraphIndent'
+] as const
+
+export type TextBindableField = (typeof TEXT_BINDABLE_FIELDS)[number]
+
+/** Variable IDs bound to text fields, by field. */
+export type TextBoundVariables = Partial<Record<TextBindableField, string>>
 
 export interface CharacterStyleOverride {
   fontWeight?: number
@@ -263,6 +312,15 @@ export interface CharacterStyleOverride {
   fontVariations?: FontVariation[]
   fontFeatures?: FontFeature[]
   textLanguage?: string | null
+  textCase?: TextCase
+  /** A link over the characters; `null`, like leaving it out, links nowhere. */
+  hyperlink?: HyperlinkTarget | null
+  /** The text style the characters use in place of the text's own; `null` uses none. */
+  textStyleId?: string | null
+  /** The fill style the characters use in place of the text's own; `null` uses none. */
+  fillStyleId?: string | null
+  /** The characters' text field bindings, in place of the text's own. */
+  boundVariables?: TextBoundVariables
 }
 
 export interface StyleRun {
@@ -526,6 +584,19 @@ export interface SceneNode {
   lineHeight: number | null
   letterSpacing: number
   maxLines: number | null
+  /**
+   * One entry per paragraph of `text`, in order. Missing entries are plain paragraphs, so text
+   * without lists keeps this empty.
+   */
+  textParagraphs: TextParagraphStyle[]
+  /** Space after a list item followed by another; a paragraph's own value comes first. */
+  listSpacing: number
+  /** Space after a paragraph other than between two list items. */
+  paragraphSpacing: number
+  /** Indent of the first line of each plain paragraph. */
+  paragraphIndent: number
+  /** Whether list markers hang outside the text box instead of indenting the items. */
+  hangingList: boolean
 
   styleRuns: StyleRun[]
   fontVariations: FontVariation[]

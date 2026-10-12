@@ -12,7 +12,7 @@ of them in one undo step, so a selection of text and other layers edits only the
 It exposes:
 
 - font family
-- font weight
+- font weight, and `weights`: the weights the selected layers' families have, read from installed fonts and web font providers, every weight while a family's faces are unknown
 - font size
 - formatting state
 - missing-font status
@@ -20,6 +20,7 @@ It exposes:
 - text case and direction
 - ending truncation and maximum lines
 - OpenType feature toggles
+- list style (`listType`, `null` when the paragraphs differ) and hanging lists
 - helpers for changing family, weight, alignment, and decorations
 - `merged(key)` and `fontFeature(tag)`, which return the shared value or `MIXED`
 
@@ -65,6 +66,8 @@ const typography = useTypography({
 
 ### Toggle formatting
 
+As in Figma, a family switch keeps each layer's weight and slant where the new family has them, otherwise the nearest weight with the same slant, and `toggleBold` or `toggleItalic` leave a layer alone when its family has no such face.
+
 ```ts
 typography.toggleBold()
 typography.toggleItalic()
@@ -73,6 +76,16 @@ typography.setTextCase('UPPER')
 typography.setVerticalAlign('CENTER')
 typography.setTruncation('ENDING')
 typography.setFontFeature('LIGA', false)
+```
+
+### Make a list
+
+While the text is being edited, `setListType` and `setParagraphSpacing` change the paragraphs under the caret or selection; otherwise they change the whole text. `paragraphSpacing(field)` reads `listSpacing`, `paragraphSpacing`, or `paragraphIndent` for those paragraphs, `MIXED` when they differ, and `previewParagraphSpacing` shows a value while a field is dragged without an undo step.
+
+```ts
+typography.setListType('UNORDERED')
+typography.setHangingList(true)
+typography.setParagraphSpacing('listSpacing', 8)
 ```
 
 ## Related APIs

@@ -16,17 +16,31 @@ import {
   type ProxyThis
 } from '#core/figma-api/accessor-utils'
 import { parseFigmaEffects, toFigmaEffect, type FigmaEffect } from '#core/figma-api/effects'
+import { getTextStyle } from '#core/figma-api/text/style'
+import { textStyleChanges } from '#core/text/character-style'
 
 function styleReference(
   internals: NodeProxyInternals,
-  field: 'fillStyleId' | 'strokeStyleId' | 'effectStyleId' | 'gridStyleId'
+  field: 'fillStyleId' | 'strokeStyleId' | 'effectStyleId' | 'gridStyleId',
+  mixed: symbol
 ): PropertyDescriptor {
   return {
-    get(this: ProxyThis): string {
-      return raw(this, internals)[field] ?? ''
+    get(this: ProxyThis): string | symbol {
+      const node = raw(this, internals)
+      // Characters of a text can each use a fill style of their own.
+      if (field === 'fillStyleId' && node.type === 'TEXT') {
+        return getTextStyle(node, 'fillStyleId', mixed) as string | symbol
+      }
+      return node[field] ?? ''
     },
     set(this: ProxyThis, value: string) {
-      updateNode(this, internals, { [field]: value || null })
+      const node = raw(this, internals)
+      const changes = { [field]: value || null }
+      updateNode(
+        this,
+        internals,
+        field === 'fillStyleId' && node.type === 'TEXT' ? textStyleChanges(node, changes) : changes
+      )
     }
   }
 }
@@ -65,11 +79,21 @@ export function installVisualNodeProxyAccessors(
 ): void {
   Object.defineProperties(prototype, {
     fills: {
-      get(this: ProxyThis): readonly Fill[] {
-        return Object.freeze(copyFills(raw(this, internals).fills))
+      // Text reads mixed while its characters are filled differently, and setting it fills them all.
+      get(this: ProxyThis): readonly Fill[] | symbol {
+        const node = raw(this, internals)
+        if (node.type !== 'TEXT') return Object.freeze(copyFills(node.fills))
+        const fills = getTextStyle(node, 'fills', mixed)
+        return typeof fills === 'symbol' ? fills : Object.freeze(fills as Fill[])
       },
       set(this: ProxyThis, value: readonly Fill[]) {
-        updateNode(this, internals, { fills: value.map(figmaPaintToFill) })
+        const node = raw(this, internals)
+        const fills = value.map(figmaPaintToFill)
+        updateNode(
+          this,
+          internals,
+          node.type === 'TEXT' ? textStyleChanges(node, { fills }) : { fills }
+        )
       }
     },
     strokes: {
@@ -115,10 +139,10 @@ export function installVisualNodeProxyAccessors(
       }
     },
     // Applied shared styles, as Figma exposes them; an assignment inside an instance is an override.
-    fillStyleId: styleReference(internals, 'fillStyleId'),
-    strokeStyleId: styleReference(internals, 'strokeStyleId'),
-    effectStyleId: styleReference(internals, 'effectStyleId'),
-    gridStyleId: styleReference(internals, 'gridStyleId'),
+    fillStyleId: styleReference(internals, 'fillStyleId', mixed),
+    strokeStyleId: styleReference(internals, 'strokeStyleId', mixed),
+    effectStyleId: styleReference(internals, 'effectStyleId', mixed),
+    gridStyleId: styleReference(internals, 'gridStyleId', mixed),
     opacity: {
       get(this: ProxyThis): number {
         return raw(this, internals).opacity

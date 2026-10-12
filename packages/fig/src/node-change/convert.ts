@@ -28,8 +28,15 @@ import {
   extractPluginRelaunchData,
   readNodeChangePluginData
 } from './plugin-data'
+import { styleRefId } from './style/refs'
 import { importStyleRuns } from './style/runs'
-import { convertLetterSpacing, convertLineHeight, mapTextDecoration } from './text/values'
+import { importParagraphStyles } from './text/lines'
+import {
+  convertLetterSpacing,
+  convertLineHeight,
+  isFigmaAutoLineHeight,
+  mapTextDecoration
+} from './text/values'
 import {
   alignGeometryWindingRules,
   resolveGeometryPaths,
@@ -309,9 +316,21 @@ function convertPolygonProps(
   return props
 }
 
+/**
+ * A text's line height. Figma writes auto as 100 percent, and OpenPencil once wrote none for
+ * it; a text in auto lines up each line at its own font's height. Figma saves each line at the
+ * larger of its line height and its tallest font's height, so a first line shorter than the
+ * text's height in pixels was laid out at another one, which a style the text uses set.
+ */
 function importedTextLineHeight(nc: NodeChange): number | null {
+  if (!nc.lineHeight || isFigmaAutoLineHeight(nc.lineHeight)) return null
   const derivedLineHeight = nc.derivedTextData?.baselines?.[0]?.lineHeight
-  if (derivedLineHeight !== undefined && Number.isFinite(derivedLineHeight))
+  if (
+    nc.lineHeight.units === 'PIXELS' &&
+    derivedLineHeight !== undefined &&
+    Number.isFinite(derivedLineHeight) &&
+    derivedLineHeight < nc.lineHeight.value
+  )
     return derivedLineHeight
   return convertLineHeight(nc.lineHeight, nc.fontSize)
 }
@@ -335,6 +354,11 @@ type TextProps = Pick<
   | 'lineHeight'
   | 'letterSpacing'
   | 'maxLines'
+  | 'textParagraphs'
+  | 'listSpacing'
+  | 'paragraphSpacing'
+  | 'paragraphIndent'
+  | 'hangingList'
   | 'styleRuns'
   | 'fontVariations'
   | 'fontFeatures'
@@ -365,6 +389,21 @@ function convertTextDecorationProps(
   }
 }
 
+function convertParagraphProps(
+  nc: NodeChange
+): Pick<
+  SceneNode,
+  'textParagraphs' | 'listSpacing' | 'paragraphSpacing' | 'paragraphIndent' | 'hangingList'
+> {
+  return {
+    textParagraphs: importParagraphStyles(nc.textData?.lines, nc.textData?.styleOverrideTable),
+    listSpacing: nc.listSpacing ?? 0,
+    paragraphSpacing: nc.paragraphSpacing ?? 0,
+    paragraphIndent: nc.paragraphIndent ?? 0,
+    hangingList: nc.hangingList ?? false
+  }
+}
+
 function convertTextProps(nc: NodeChange, blobs: Uint8Array[]): TextProps {
   return {
     text: nc.textData?.characters ?? '',
@@ -385,6 +424,7 @@ function convertTextProps(nc: NodeChange, blobs: Uint8Array[]): TextProps {
     lineHeight: importedTextLineHeight(nc),
     letterSpacing: convertLetterSpacing(nc.letterSpacing, nc.fontSize),
     maxLines: (nc.maxLines ?? null) as number | null,
+    ...convertParagraphProps(nc),
     styleRuns: importStyleRuns(nc),
     fontVariations: convertFontVariations(nc),
     fontFeatures: convertFontFeatures(nc),
@@ -529,15 +569,6 @@ function getVectorStrokeJoin(nc: NodeChange, vectorNetwork: VectorNetwork | null
   return (nc.strokeJoin ??
     vectorNetwork?.vertices.find((v) => v.strokeJoin)?.strokeJoin ??
     'MITER') as StrokeJoin
-}
-
-function styleRefId(value: unknown): string | null {
-  if (!value || typeof value !== 'object' || !('guid' in value)) return null
-  const guid = value.guid
-  if (!guid || typeof guid !== 'object') return null
-  // The unset GUID denotes an explicitly cleared style reference.
-  if (isUnsetGuid(guid as GUID)) return null
-  return guidToString(guid as GUID)
 }
 
 function sharedStyleType(value: string | undefined): SharedStyleType | null {
