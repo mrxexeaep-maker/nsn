@@ -100,6 +100,7 @@ export interface LintNode {
   componentId?: string
   text: string
   fontSize: number
+  fontWeight?: number
   styleRunCount: number
   boundVariables: Record<string, string>
   fills: Array<{

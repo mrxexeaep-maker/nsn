@@ -111,6 +111,7 @@ export class Linter {
       componentId: raw.componentId || undefined,
       text: raw.text,
       fontSize: raw.fontSize,
+      fontWeight: raw.fontWeight,
       styleRunCount: raw.styleRuns.length,
       boundVariables: raw.boundVariables,
       fills: raw.fills.map((f, index) => ({

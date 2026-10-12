@@ -88,6 +88,25 @@ describe('color-contrast', () => {
       background: '#FFFFFF'
     })
   })
+
+  test('large text needs 3:1, as WCAG AA asks of it', () => {
+    const graph = new SceneGraph()
+    const pageId = graph.getPages()[0].id
+    const card = graph.createNode('FRAME', pageId, { name: 'Card', fills: solid(WHITE) })
+    // 3.2:1 against white.
+    const grey = { r: 0.55, g: 0.55, b: 0.55, a: 1 }
+    const text = (name: string, fontSize: number, fontWeight: number) =>
+      graph.createNode('TEXT', card.id, { name, text: name, fontSize, fontWeight, fills: solid(grey) })
+    const body = text('Body', 16, 400)
+    const boldBody = text('Bold body', 18, 700)
+    text('Display', 24, 400)
+    text('Bold subhead', 19, 700)
+
+    const messages = lint(graph, 'color-contrast')
+
+    expect(messages.map((message) => message.nodeId)).toEqual([body.id, boldBody.id])
+    expect(messages.map((message) => message.data?.minRatio)).toEqual([4.5, 4.5])
+  })
 })
 
 describe('no-deeply-nested', () => {

@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import { computedAsync } from '@vueuse/core'
 import { computed, shallowRef, useTemplateRef, watch } from 'vue'
 
 import { resolvePlayState } from '@open-pencil/core/editor'
+import { vectorElement } from '@open-pencil/core/io'
 import {
   behaviourControls,
   controlRoles,
-  sceneNodeToDesignDocument
+  sceneNodeToDesignDocument,
+  tokenStylesheet
 } from '@open-pencil/dom-css/export'
 
 import { useEditor } from '#vue/editor/context'
@@ -28,7 +31,20 @@ const editor = useEditor()
 
 /** Styles of the island's own document; the app's styles do not reach into it. */
 const ISLAND_CSS = ':host{all:initial;display:block}*,*::before,*::after{box-sizing:border-box}'
-const container = useShadowContainer(useTemplateRef<HTMLElement>('host'), ISLAND_CSS)
+/**
+ * The document's variables as custom properties, which the projection's `var()` references
+ * read, in the modes the island's layers set. The island is a shadow root, so the stylesheet's
+ * `:root` becomes its host.
+ */
+const tokensCSS = computedAsync(async () => {
+  void editor.state.sceneVersion
+  const { css } = await tokenStylesheet(editor.graph, { format: 'css' })
+  return css.replaceAll(':root', ':host')
+}, '')
+const container = useShadowContainer(
+  useTemplateRef<HTMLElement>('host'),
+  () => `${ISLAND_CSS}${tokensCSS.value}`
+)
 
 const controls = computed(() => {
   void editor.state.sceneVersion
@@ -44,7 +60,7 @@ watch(
 const projection = computed(() => {
   void editor.state.sceneVersion
   const graph = resolvePlayState(editor.graph, rootId, instanceStates(controls.value, state.value))
-  const [root] = sceneNodeToDesignDocument(graph, rootId).children
+  const [root] = sceneNodeToDesignDocument(graph, rootId, { vectorElement }).children
   return { graph, root }
 })
 

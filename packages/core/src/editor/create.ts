@@ -272,7 +272,7 @@ export function createEditor(options?: EditorOptions) {
   const icons = createIconActions(ctx)
   const shaders = createShaderActions(ctx, nodes)
   const alignment = createAlignmentActions(ctx)
-  const preview = createPlayActions(ctx)
+  const preview = createPlayActions(ctx, { loadPageNodes: pages.loadPageNodes })
   const clipboardBridge = createClipboardBridge(clipboard, selection)
   const componentBridge = createComponentBridge(components, selection, structure, pages)
   const structureBridge = createStructureBridge(structure, selection)

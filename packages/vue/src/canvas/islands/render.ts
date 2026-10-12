@@ -10,6 +10,7 @@ import {
 import { layerPath, type SceneGraph } from '@open-pencil/scene-graph'
 
 import { wrapRole } from './controls'
+import IslandShader from './IslandShader.vue'
 import type { IslandState } from './state'
 
 export interface IslandRenderContext {
@@ -48,8 +49,16 @@ export function renderElement(
       ...override.style
     }).filter(([key]) => !omitted.has(key))
   )
-  const children =
+  const content =
     override.children ?? (() => element.children.map((child) => renderNode(context, child, path)))
+  // A shader fill plays behind the content, whatever draws the content.
+  const { shader } = element
+  const children = () => [
+    ...(shader
+      ? [h(IslandShader, { key: `${path}\0shader`, preset: shader.preset, frame: shader.frame })]
+      : []),
+    ...content()
+  ]
   const { 'data-open-pencil-node-id': _id, ...attrs } = element.attrs
   return h(
     override.tag ?? element.tagName,
