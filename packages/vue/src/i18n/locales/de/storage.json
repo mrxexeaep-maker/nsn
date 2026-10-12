@@ -21,6 +21,7 @@
   "waitlistEmail": "E-Mail-Adresse",
   "waitlistPlaceholder": "du@example.com",
   "waitlistJoin": "Auf die Warteliste",
+  "waitlistConfirmHuman": "Bestätige, dass du ein Mensch bist",
   "waitlistInvalid": "Gib eine gültige E-Mail-Adresse ein.",
   "waitlistJoined": "Schau in dein Postfach",
   "waitlistJoinedDetail": "Öffne den Link, den wir dir geschickt haben, um deine Adresse zu bestätigen. Wir schreiben dir nur zu OpenPencil Cloud.",

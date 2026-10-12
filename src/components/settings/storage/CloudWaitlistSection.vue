@@ -18,7 +18,7 @@ import { CLOUD_WAITLIST_URL, IS_TAURI } from '@/constants'
  */
 const storage = useStorageMessages()
 const turnstile = useTemplateRef<HTMLElement>('turnstile')
-const { email, status, submitting, edit, submit } = useWaitlistSignup(turnstile)
+const { email, status, submitting, confirming, edit, submit } = useWaitlistSignup(turnstile)
 
 const failure = computed(() => {
   if (status.value === 'refused') return storage.value.waitlistRefused
@@ -68,17 +68,18 @@ const failure = computed(() => {
             @keydown.enter.prevent="submit"
           />
         </ProviderSettingsField>
+        <!-- Turnstile draws here only when it needs a click, above the button it holds up. -->
+        <div ref="turnstile" />
         <AppButton
           class="self-start"
           color="primary"
           variant="solid"
-          :loading="submitting"
+          :loading="submitting && !confirming"
+          :disabled="confirming"
           @click="submit"
         >
-          {{ storage.waitlistJoin }}
+          {{ confirming ? storage.waitlistConfirmHuman : storage.waitlistJoin }}
         </AppButton>
-        <!-- Turnstile draws here only when it needs a click. -->
-        <div ref="turnstile" />
       </div>
       <AppAlert v-if="failure" tone="error" :heading="failure">
         <template v-if="status === 'unavailable'" #actions>

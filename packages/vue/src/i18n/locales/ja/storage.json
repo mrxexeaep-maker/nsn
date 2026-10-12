@@ -21,6 +21,7 @@
   "waitlistEmail": "メールアドレス",
   "waitlistPlaceholder": "you@example.com",
   "waitlistJoin": "ウェイトリストに登録",
+  "waitlistConfirmHuman": "人間であることを確認してください",
   "waitlistInvalid": "有効なメールアドレスを入力してください。",
   "waitlistJoined": "受信トレイを確認してください",
   "waitlistJoinedDetail": "送信したリンクを開いてアドレスを確認してください。OpenPencil Cloud に関するメールのみお送りします。",
