@@ -22,7 +22,8 @@
 - A line height in pixels shorter than the font, such as 24 px on 24 px text, opens from `.fig` files as set instead of as the font's own height.
 - Text with an empty line, or ending in one, saved to `.fig` or copied to Figma shows there, where Figma showed it blank.
 - The properties panel shows the shared styles layers use in opened `.fig` files, where it listed them as missing styles.
-- Styles made in OpenPencil, by importing design tokens or by pasting layers from another document, are saved in `.fig` files, and layers reopen with them. Saving wrote their references empty, and reopening dropped the styles.
+- Styles made in OpenPencil, by importing design tokens or by pasting layers from another document, are saved in `.fig` files as styles, and layers reopen with them. Saving wrote their references empty, so reopening dropped the styles, and saving into an opened file made them layers of the page in Figma.
+- Layers and text that use a library style keep it in Figma after OpenPencil saves them, where Figma showed them with no style.
 
 ## 0.16.0-beta.1 — 2026-10-11
 
