@@ -47,7 +47,10 @@ export function buildStyleReferences(graph: SceneGraph): ReadonlyMap<string, Sty
  * the GUID the ID spells. Styles made in OpenPencil, by token import or by pasting from another
  * document, have IDs that spell no GUID, so only their records can name them.
  */
-export function styleReferenceGuid(context: SceneNodeToKiwiContext, id: string): GUID {
+export function styleReferenceGuid(
+  context: Pick<SceneNodeToKiwiContext, 'graph' | 'nodeIdToGuid' | 'styleNodeIds'>,
+  id: string
+): GUID {
   context.styleNodeIds ??= new Map(
     context.graph
       .getAllNodes()

@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, test } from 'bun:test'
 
-import { exportFigFile, initCodec } from '@open-pencil/core'
+import { exportFigFile, initCodec, parseFigFile } from '@open-pencil/core'
 import { parseFigBuffer } from '@open-pencil/fig'
-import { SceneGraph } from '@open-pencil/scene-graph'
+import { getSharedStyles, SceneGraph } from '@open-pencil/scene-graph'
 
 import { sceneNodeToKiwi } from '#core/kiwi/fig/node-change/serialize'
 
@@ -107,5 +107,36 @@ describe('Figma shared style export', () => {
       expect(definition?.guid).toBeDefined()
       expect(reference?.guid).toEqual(definition?.guid)
     }
+  })
+
+  test('reopen layers and ranges with the styles made in OpenPencil they use', async () => {
+    const graph = new SceneGraph()
+    const page = graph.getPages()[0]
+    const fill = graph.createNode('RECTANGLE', page.id, {
+      name: 'Brand',
+      sharedStyleType: 'FILL',
+      internalOnly: true
+    })
+    fill.source.id = 'style:a1b2c3d4e5f6'
+    const heading = graph.createNode('TEXT', page.id, {
+      name: 'Heading',
+      sharedStyleType: 'TEXT',
+      internalOnly: true,
+      fontSize: 28
+    })
+    heading.source.id = 'style:0f9e8d7c6b5a'
+    graph.createNode('TEXT', page.id, {
+      name: 'Styled',
+      text: 'Title body',
+      fillStyleId: fill.source.id,
+      styleRuns: [{ start: 0, length: 5, style: { textStyleId: heading.source.id, fontSize: 28 } }]
+    })
+
+    const reopened = await parseFigFile(uint8ArrayToArrayBuffer(await exportFigFile(graph)))
+    const styled = [...reopened.getAllNodes()].find((node) => node.name === 'Styled')
+    const named = (kind: 'fill' | 'text', id: string | null | undefined) =>
+      getSharedStyles(reopened, kind).find((style) => style.id === id)?.name
+    expect(named('fill', styled?.fillStyleId)).toBe('Brand')
+    expect(named('text', styled?.styleRuns[0]?.style.textStyleId)).toBe('Heading')
   })
 })

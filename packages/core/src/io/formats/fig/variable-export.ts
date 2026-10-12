@@ -95,7 +95,7 @@ export function assignSharedStyleGuids(
   for (const style of styles) {
     if (nodeIdToGuid.has(style.id)) continue
     const id = style.source.id
-    if (/^\d+:\d+$/.test(id) && !assignedGuidValues.has(id)) {
+    if (id && /^\d+:\d+$/.test(id) && !assignedGuidValues.has(id)) {
       nodeIdToGuid.set(style.id, stringToGuid(id))
       assignedGuidValues.add(id)
       continue
