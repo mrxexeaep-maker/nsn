@@ -4,16 +4,20 @@ import { layoutSizing } from '../layout/sizing'
 
 const METRIC_FIELDS: ReadonlySet<string> = new Set(TEXT_METRIC_FIELDS)
 
-/** The axes along which a copy sizes itself to its own content rather than to its component. */
+/**
+ * The axes along which a copy sizes itself to its own content rather than to its component,
+ * judged by the state the copy is about to have.
+ */
 function contentSizedAxes(
   graph: SceneGraph,
-  copy: SceneNode,
+  current: SceneNode,
   source: SceneNode,
   updates: Partial<SceneNode>
 ): { width: boolean; height: boolean } {
+  const copy: SceneNode = { ...current, ...updates }
   // Text measures its own characters, set on the copy or by a property of an instance around it.
   if (copy.type === 'TEXT') {
-    if ((updates.text ?? copy.text) === source.text) return { width: false, height: false }
+    if (copy.text === source.text) return { width: false, height: false }
     const mode = copy.textAutoResize
     return {
       width: mode === 'WIDTH_AND_HEIGHT',
