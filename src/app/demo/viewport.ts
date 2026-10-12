@@ -10,10 +10,11 @@ const MARGIN = 80
  * opening view fills the screen with the first and the rest follow below it.
  */
 export function showFirstChapter(store: DemoViewportEditor): void {
-  const [first] = store.graph
+  const first = store.graph
     .getChildren(store.state.currentPageId)
     .filter((node) => node.type === 'SECTION')
     .sort((a, b) => a.y - b.y || a.x - b.x)
+    .at(0)
   if (!first) return
   store.zoomToBounds(
     first.x - MARGIN,
