@@ -19,7 +19,7 @@ import {
   type FigExportSetup,
   type KiwiNodeChange
 } from '#core/io/formats/fig/export-setup'
-import { writePatchedFigFile } from '#core/io/formats/fig/patch-export'
+import { writePatchedFigFile } from '#core/io/formats/fig/patch/export'
 import { sceneNodeToKiwi } from '#core/kiwi/fig/node-change/serialize'
 import { cloneSceneGraphForFigExport } from '#core/kiwi/fig/parse/transfer'
 import {

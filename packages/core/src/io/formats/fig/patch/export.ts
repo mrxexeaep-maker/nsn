@@ -19,6 +19,7 @@ import {
   type FigExportSetup,
   type KiwiNodeChange
 } from '#core/io/formats/fig/export-setup'
+import { appendVariableNodeChanges } from '#core/io/formats/fig/variable-export'
 import { sceneNodeToKiwi } from '#core/kiwi/fig/node-change/serialize'
 import { figArchive, type FigArchiveAccess } from '#core/kiwi/fig/session/archive'
 import { archiveChanges, type ArchiveChangeSummary } from '#core/kiwi/fig/session/archive-changes'
@@ -28,8 +29,7 @@ import {
   readerCheckpoint
 } from '#core/kiwi/fig/session/document-state'
 
-import { narrowToChangedFields, type RecordWriter } from './patch-fields'
-import { appendVariableNodeChanges } from './variable-export'
+import { narrowToChangedFields, type RecordWriter } from './fields'
 
 export interface PatchedFigFileOptions {
   ck?: CanvasKit
