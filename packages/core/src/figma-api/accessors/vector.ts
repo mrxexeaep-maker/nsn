@@ -166,8 +166,9 @@ function assignVectorNetwork(
   if (errors.length > 0) throw new TypeError(`Invalid vectorNetwork: ${errors.join('; ')}`)
   validateRegionPaintMetadata(value.regions ?? [])
   const network = normalizeInputNetwork(value)
+  const fillGeometry = geometryForRegions(value.regions ?? [])
   prepareVectorDataEdit(target, internals, setter)
-  setGeometry(target, internals, network, geometryForRegions(value.regions ?? []))
+  setGeometry(target, internals, network, fillGeometry)
 }
 
 function vectorPathsForNetwork(network: SceneVectorNetwork): FigmaVectorPath[] {

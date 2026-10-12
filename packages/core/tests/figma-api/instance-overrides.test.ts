@@ -111,6 +111,36 @@ function slotSetup() {
   return { graph, figma, card, note, slot }
 }
 
+test('a path rejected for a slot’s vector leaves the slot following its component', () => {
+  const { graph, figma, card, slot } = slotSetup()
+  const shape = figma.createVector()
+  const host = expectDefined(figma.getNodeById(graph.getChildren(card.id)[0].id))
+  host.appendChild(shape)
+  shape.vectorPaths = [{ windingRule: 'NONZERO', data: 'M 0 0 L 10 0 L 5 10 Z' }]
+  graph.syncInstances(card.id)
+  const copy = expectDefined(
+    (slot.children as FigmaNodeProxy[]).find((child) => child.type === 'VECTOR')
+  )
+  const broken = {
+    vertices: [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 5, y: 10 }
+    ],
+    segments: [
+      { start: 0, end: 1 },
+      { start: 1, end: 2 },
+      { start: 2, end: 0 }
+    ],
+    regions: [{ windingRule: 'NONZERO' as const, loops: [[0, 1, 2]], fills: [null] }]
+  }
+  expect(() => (copy.vectorNetwork = broken as never)).toThrow()
+  // Unclaimed, the slot's default content still takes the component's next edit.
+  shape.vectorPaths = [{ windingRule: 'NONZERO', data: 'M 0 0 L 20 0 L 10 20 Z' }]
+  graph.syncInstances(card.id)
+  expect(copy.vectorPaths).toEqual(shape.vectorPaths)
+})
+
 test('slot content is the instance’s own and keeps its position and constraints', () => {
   const { figma, slot } = slotSetup()
   const added = figma.createRectangle()
