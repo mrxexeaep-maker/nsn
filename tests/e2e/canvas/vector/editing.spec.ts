@@ -1,4 +1,5 @@
 import { expect, test, useEditorSetupWithClear } from '#tests/e2e/fixtures'
+import { vectorEditDriver } from '#tests/helpers/canvas/vector-edit-driver'
 
 const editor = useEditorSetupWithClear('/?test&no-chrome&no-rulers')
 
@@ -282,51 +283,14 @@ test('dragging a vector point snaps to sibling bounds and clears guides on relea
 })
 
 test('Enter opens a selected vector’s path, but not one an instance draws from its component', async () => {
-  const ids = await editor.page.evaluate(() => {
-    const store = window.openPencil?.getStore?.()
-    if (!store) throw new Error('OpenPencil store not initialized')
-    // An earlier case may leave its path open.
-    store.exitNodeEditMode(false)
-    const pageId = store.state.currentPageId
-    const card = store.graph.createNode('COMPONENT', pageId, {
-      x: 100,
-      y: 100,
-      width: 120,
-      height: 120
-    })
-    const vector = store.graph.createNode('VECTOR', card.id, {
-      x: 10,
-      y: 10,
-      width: 100,
-      height: 100,
-      vectorNetwork: {
-        vertices: [
-          { x: 0, y: 0 },
-          { x: 100, y: 0 },
-          { x: 50, y: 100 }
-        ],
-        segments: [
-          { start: 0, end: 1, tangentStart: { x: 0, y: 0 }, tangentEnd: { x: 0, y: 0 } },
-          { start: 1, end: 2, tangentStart: { x: 0, y: 0 }, tangentEnd: { x: 0, y: 0 } },
-          { start: 2, end: 0, tangentStart: { x: 0, y: 0 }, tangentEnd: { x: 0, y: 0 } }
-        ],
-        regions: []
-      }
-    })
-    const instance = store.graph.createInstance(card.id, pageId, { x: 300, y: 100 })
-    const copy = instance ? store.graph.getChildren(instance.id)[0] : undefined
-    if (!copy) throw new Error('Expected an instance copy')
-    return { vector: vector.id, copy: copy.id }
-  })
+  const scene = vectorEditDriver(() => editor.page)
+  const ids = await scene.build()
   const editedAfterEnter = async (id: string) => {
-    await editor.page.evaluate((nodeId) => window.openPencil?.getStore?.().select([nodeId]), id)
+    await scene.select(id)
     await editor.page.keyboard.press('Enter')
-    return editor.page.evaluate(() => {
-      const store = window.openPencil?.getStore?.()
-      const edited = store?.state.nodeEditState?.nodeId ?? null
-      if (edited) store?.exitNodeEditMode(true)
-      return edited
-    })
+    const edited = await scene.editedNode()
+    await scene.closeEdit()
+    return edited
   }
   expect(await editedAfterEnter(ids.vector)).toBe(ids.vector)
   expect(await editedAfterEnter(ids.copy)).toBeNull()
