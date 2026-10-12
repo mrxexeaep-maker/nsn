@@ -20,7 +20,7 @@ export const de: LandingMessages = {
       title: 'Gestalten mit echten Werkzeugen',
       detail:
         'Auto-Layout, Constraints, Füllungen, Konturen, Effekte und Typografie, mit den Reglern dort, wo du sie erwartest. Komponenten haben Slots: Eine Instanz behält das Design und bringt ihren eigenen Inhalt mit. Alles lässt sich rückgängig machen, und nichts wartet auf einen Server.',
-      hint: 'Der mittlere Player bringt sein eigenes Cover über den Artwork-Slot mit. Wähle eine Ebene und ändere Füllung, Radius oder Abstand.'
+      hint: 'Fahre über das ausgewählte Cover und zieh an einer Ecke, um sie abzurunden. Die anderen Player bringen ihr eigenes Cover über den Artwork-Slot mit.'
     },
     interactive: {
       title: 'Komponenten, die funktionieren',
@@ -247,8 +247,8 @@ export const de: LandingMessages = {
     activate: 'Live ausprobieren',
     terminal: {
       tree: 'Ebenenbaum',
-      restyle: 'Buttons umgestalten',
-      addPlan: 'Tarif hinzufügen',
+      restyle: 'Akzent umfärben',
+      addPlayer: 'Player hinzufügen',
       selection: 'Auswahl',
       export: 'Tailwind-Export'
     },
@@ -256,11 +256,11 @@ export const de: LandingMessages = {
       recorded: 'Aufgezeichneter Durchgang',
       play: 'Abspielen',
       replay: 'Erneut abspielen',
-      request: 'Füge drei Garantien unter den Tarifen hinzu.',
+      request: 'Füge neben dem Player eine Warteschlange „Up next“ hinzu.',
       reasoning:
-        'Die Tarife liegen in einer Auto-Layout-Spalte, also passt eine Reihe mit drei Karten direkt darunter und folgt dem Layout. Jede Karte bekommt einen kurzen Titel und eine Zeile Text, mit Hintergrund und Eckenradius der Tarifkarten, damit die Reihe zur Seite gehört.',
+        'Der Player steht allein im Hero-Rahmen, der seine Kinder in einer Reihe anordnet, also landet eine dort hinzugefügte Karte direkt daneben. Ich binde Hintergrund, Radius und Textfarben der Karte an die Theme-Variablen, die auch der Player nutzt, damit sie mit ihm zwischen Dunkel und Hell wechselt, und liste drei Titel auf, jeweils mit kleinem Cover, Titel und Interpret.',
       reply:
-        'Unter den Tarifen gibt es jetzt eine Reihe **Guarantees**: drei Karten mit dem Hintergrund und Radius der Tarifkarten.'
+        'Neben dem Player gibt es jetzt eine Karte **Up next** mit drei Titeln. Farben und Radius kommen aus den Theme-Variablen, sie folgt dem Player also zwischen Dunkel und Hell.'
     },
     collab: {
       you: 'Du',

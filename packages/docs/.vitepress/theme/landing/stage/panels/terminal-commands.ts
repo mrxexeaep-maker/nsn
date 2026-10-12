@@ -12,6 +12,8 @@ import { makeFigmaFromStore } from '@/app/automation/bridge/figma-factory'
 import { createAutomationCommandHandlers } from '@/app/automation/bridge/handlers'
 import type { EditorStore } from '@/app/editor/active-store'
 
+import { reframeStage } from '../scenes'
+
 /**
  * The CLI reaches a running app through `createAutomationCommandHandlers`. The landing page
  * calls that same handler in-process, so each command below does exactly what
@@ -99,22 +101,21 @@ async function printTailwind(store: EditorStore): Promise<string> {
   return result.jsx
 }
 
-const RESTYLE = `const accent = { r: 0.96, g: 0.33, b: 0.24 }
-for (const node of figma.currentPage.findAll(n => n.name === 'Button')) {
-  node.fills = [{ ...node.fills[0], color: accent }]
-  node.cornerRadius = 22
-}
-return 'Restyled every button'`
+// The players' colors are Theme variables, so one value changes every player in both modes.
+const RECOLOR = `const theme = figma.getLocalVariableCollections().find(c => c.name === 'Theme')
+const accent = figma.getLocalVariables('COLOR')
+  .find(v => v.name === 'Accent' && v.collectionId === theme.id)
+const coral = { r: 0.96, g: 0.33, b: 0.24, a: 1 }
+for (const mode of theme.modes) figma.setVariableValue(accent.id, mode.modeId, coral)
+return 'Accent is coral in ' + theme.modes.map(m => m.name).join(' and ')`
 
-const ADD_PLAN = `const plans = figma.currentPage.findOne(n => n.name === 'Plans')
-const plan = plans.children[0].clone()
-plan.name = 'Plan / Cloud'
-plan.findOne(n => n.name === 'Plan name').characters = 'Cloud'
-plan.findOne(n => n.name === 'Amount').characters = 'Opt-in'
-plan.findOne(n => n.name === 'Period').characters = 'never required'
-plan.findOne(n => n.name === 'Summary').characters = 'Sync and share when you want to.'
-plans.appendChild(plan)
-return plan.name + ' added'`
+const ADD_PLAYER = `const player = figma.currentPage.findOne(n => n.type === 'COMPONENT' && n.name === 'Player')
+const prop = name => Object.keys(player.componentPropertyDefinitions)
+  .find(key => key.startsWith(name + '#'))
+const copy = player.createInstance()
+copy.setProperties({ [prop('Title')]: 'Night Shift', [prop('Artist')]: 'Lumen' })
+figma.currentPage.findOne(n => n.name === 'Players').appendChild(copy)
+return 'Night Shift added'`
 
 /** The real CLI reads the script from stdin, so multi-line code needs no shell quoting. */
 function evalLine(code: string): string {
@@ -123,7 +124,8 @@ function evalLine(code: string): string {
 
 async function runEval(store: EditorStore, code: string): Promise<string> {
   const result = await request(store, 'eval', { code })
-  store.zoomToFit()
+  // The stage shows one chapter of the tour; fitting the page would show all of it.
+  reframeStage(store)
   if (result === null || result === undefined) return ''
   return typeof result === 'string' ? result : JSON.stringify(result, null, 2)
 }
@@ -132,20 +134,20 @@ export const EDITOR_COMMANDS: EditorCommand[] = [
   {
     id: 'tree',
     icon: IconListTree,
-    line: 'openpencil tree --depth 3',
-    run: (store) => printTree(store, 3)
+    line: 'openpencil tree --depth 2',
+    run: (store) => printTree(store, 2)
   },
   {
     id: 'restyle',
     icon: IconWand,
-    line: evalLine(RESTYLE),
-    run: (store) => runEval(store, RESTYLE)
+    line: evalLine(RECOLOR),
+    run: (store) => runEval(store, RECOLOR)
   },
   {
-    id: 'addPlan',
+    id: 'addPlayer',
     icon: IconCopyPlus,
-    line: evalLine(ADD_PLAN),
-    run: (store) => runEval(store, ADD_PLAN)
+    line: evalLine(ADD_PLAYER),
+    run: (store) => runEval(store, ADD_PLAYER)
   },
   {
     id: 'selection',

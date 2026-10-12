@@ -20,7 +20,7 @@ export const pl: LandingMessages = {
       title: 'Projektuj prawdziwymi narzędziami',
       detail:
         'Auto layout, ograniczenia, wypełnienia, obrysy, efekty i typografia, z kontrolkami tam, gdzie ich szukasz. Komponenty mają sloty: instancja zachowuje projekt i wnosi własną treść. Wszystko da się cofnąć i nic nie czeka na serwer.',
-      hint: 'Środkowy odtwarzacz wnosi własną okładkę przez slot Artwork. Zaznacz warstwę i zmień jej wypełnienie, promień lub odstępy.'
+      hint: 'Najedź na zaznaczoną okładkę i przeciągnij róg, aby go zaokrąglić. Pozostałe odtwarzacze wnoszą własne okładki przez slot Artwork.'
     },
     interactive: {
       title: 'Komponenty, które działają',
@@ -246,8 +246,8 @@ export const pl: LandingMessages = {
     activate: 'Wypróbuj na żywo',
     terminal: {
       tree: 'Drzewo warstw',
-      restyle: 'Zmień styl przycisków',
-      addPlan: 'Dodaj plan',
+      restyle: 'Zmień kolor akcentu',
+      addPlayer: 'Dodaj odtwarzacz',
       selection: 'Zaznaczenie',
       export: 'Eksport do Tailwind'
     },
@@ -255,11 +255,11 @@ export const pl: LandingMessages = {
       recorded: 'Nagrana tura',
       play: 'Odtwórz',
       replay: 'Odtwórz ponownie',
-      request: 'Dodaj trzy gwarancje pod planami.',
+      request: 'Dodaj obok odtwarzacza kolejkę „Up next”.',
       reasoning:
-        'Plany leżą w kolumnie z auto-layoutem, więc rząd trzech kart zmieści się tuż pod nimi i dopasuje do układu. Każda karta dostanie krótki tytuł i jedną linijkę opisu, z tłem i zaokrągleniem kart planów, żeby rząd wyglądał jak część strony.',
+        'Odtwarzacz stoi sam w ramce hero, która układa dzieci w rzędzie, więc dodana tam karta trafi tuż obok. Powiążę tło, promień i kolory tekstu karty ze zmiennymi Theme, których używa odtwarzacz, żeby przełączała się razem z nim między ciemnym a jasnym, i wypiszę trzy utwory, każdy z małą okładką, tytułem i wykonawcą.',
       reply:
-        'Dodałem pod planami rząd **Guarantees**: trzy karty z takim samym tłem i promieniem jak karty planów.'
+        'Obok odtwarzacza jest teraz karta **Up next** z trzema utworami. Kolory i promień pochodzą ze zmiennych Theme, więc podąża za odtwarzaczem między ciemnym a jasnym.'
     },
     collab: {
       you: 'Ty',

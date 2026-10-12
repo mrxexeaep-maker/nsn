@@ -3,15 +3,47 @@ import { usePreferredReducedMotion } from '@vueuse/core'
 import type { UIMessage } from 'ai'
 import { computed, onScopeDispose, shallowRef } from 'vue'
 
+import { CHAPTERS } from '@open-pencil/demo-tools/chapters'
+
 import { createToolLoopTransport } from '@/app/ai/chat/transports'
 import type { EditorStore } from '@/app/editor/active-store'
 import { getTabForStore, switchTab } from '@/app/tabs'
 
-import { findByName, GUARANTEES_JSX } from '../scenes'
+import { findByName, reframeStage } from '../scenes'
 import { createRecordedModel, type StreamPace } from './recorded-model'
 
-const ARTBOARD_NAME = 'Pricing'
-const RESULT_NAME = 'Guarantees'
+/** The hero frame, which lays out the player and whatever the turn adds beside it in a row. */
+const ARTBOARD_NAME = CHAPTERS.hello.subject
+const RESULT_NAME = 'Up next'
+
+const UP_NEXT = [
+  { title: 'Side B', artist: 'The Tapes', length: '3:12' },
+  { title: 'Lo-fi Hours', artist: 'Various', length: '4:05' },
+  { title: 'Night Shift', artist: 'Lumen', length: '2:48' }
+]
+
+/**
+ * The card the turn adds. Its colors and radius are the tour's Theme variables, as the player's
+ * are, so it switches between dark and light with the player and the docs site. The hero spaces
+ * its row by nothing, so the card keeps its distance from the player with padding of its own.
+ */
+const UP_NEXT_JSX = [
+  `<Frame name="${RESULT_NAME}" w="hug" h="hug" pl={24}>`,
+  `  <Frame name="Queue" w={280} h="hug" flex="col" gap={14} p={20} bg={designVar('Surface')} rounded={designVar('Radius')}>`,
+  `    <Text name="Heading" size={14} weight={600} color={designVar('Text')}>${RESULT_NAME}</Text>`,
+  ...UP_NEXT.flatMap(({ title, artist, length }) => [
+    '    <Frame name="Track" w="fill" h="hug" flex="row" gap={12} items="center">',
+    `      <Frame name="Cover" w={40} h={40} rounded={designVar('Radius/Control')} bg={designVar('Surface/Raised')} />`,
+    '      <Frame name="Names" grow={1} h="hug" flex="col" gap={2}>',
+    `        <Text name="Title" size={13} weight={500} color={designVar('Text')}>${title}</Text>`,
+    `        <Text name="Artist" size={12} color={designVar('Text/Muted')}>${artist}</Text>`,
+    '      </Frame>',
+    `      <Text name="Length" size={12} color={designVar('Text/Muted')}>${length}</Text>`,
+    '    </Frame>'
+  ]),
+  '  </Frame>',
+  '</Frame>'
+].join('\n')
 /**
  * Slow enough to follow the first time without waiting on the agent: the reasoning streams
  * quickly enough to skim, the cards build up on the canvas over a few seconds, and the reply
@@ -61,7 +93,7 @@ export function useRecordedChat(store: EditorStore, copy: () => RecordedChatCopy
     if (tab) switchTab(tab.id)
     const { request, reasoning, reply } = copy()
     const model = createRecordedModel(
-      { reasoning, reply, render: { parent_id: parentId, jsx: GUARANTEES_JSX } },
+      { reasoning, reply, render: { parent_id: parentId, jsx: UP_NEXT_JSX } },
       reducedMotion.value === 'reduce' ? null : PACE
     )
     chat.value = new Chat<UIMessage>({
@@ -75,9 +107,9 @@ export function useRecordedChat(store: EditorStore, copy: () => RecordedChatCopy
       })
     })
     await chat.value.sendMessage({ text: request })
-    // The view follows the agent while it works; afterwards it shows the whole result, which
-    // also ends following, as any view change of the person's own does in the app.
-    if (!disposed) store.zoomToFit()
+    // The view follows the agent while it works; afterwards it frames the hero with the new card
+    // beside the player, which also ends following, as any view change of the person's own does.
+    if (!disposed) reframeStage(store)
   }
 
   return { messages, status, running, played, play }

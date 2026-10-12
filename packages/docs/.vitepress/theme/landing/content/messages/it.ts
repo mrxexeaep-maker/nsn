@@ -20,7 +20,7 @@ export const it: LandingMessages = {
       title: 'Progetta con strumenti veri',
       detail:
         'Auto layout, vincoli, riempimenti, tratti, effetti e tipografia, con i controlli dove te li aspetti. I componenti hanno slot: un’istanza mantiene il design e porta il proprio contenuto. Tutto si può annullare, e niente aspetta un server.',
-      hint: 'Il lettore al centro porta la propria copertina tramite lo slot Artwork. Seleziona un livello e cambia riempimento, raggio o spaziatura.'
+      hint: 'Passa sopra la copertina selezionata e trascina un angolo per arrotondarlo. Gli altri lettori portano la propria copertina tramite lo slot Artwork.'
     },
     interactive: {
       title: 'Componenti che funzionano',
@@ -247,8 +247,8 @@ export const it: LandingMessages = {
     activate: 'Provalo dal vivo',
     terminal: {
       tree: 'Albero dei livelli',
-      restyle: 'Cambia i pulsanti',
-      addPlan: 'Aggiungi un piano',
+      restyle: 'Ricolora l’accento',
+      addPlayer: 'Aggiungi un lettore',
       selection: 'Selezione',
       export: 'Esporta in Tailwind'
     },
@@ -256,11 +256,11 @@ export const it: LandingMessages = {
       recorded: 'Turno registrato',
       play: 'Riproduci',
       replay: 'Riproduci di nuovo',
-      request: 'Aggiungi tre garanzie sotto i piani.',
+      request: 'Aggiungi una coda «Up next» accanto al lettore.',
       reasoning:
-        'I piani sono in una colonna con auto-layout, quindi una riga di tre schede può stare subito sotto e seguire il layout. Ogni scheda avrà un titolo breve e una riga di dettaglio, con lo sfondo e il raggio degli angoli delle schede dei piani, così la riga sembra parte della pagina.',
+        'Il lettore è da solo nel frame dell’hero, che dispone i figli in riga, quindi una scheda aggiunta lì finisce proprio accanto. Collego sfondo, raggio e colori del testo della scheda alle variabili Theme usate dal lettore, così passa con lui da scuro a chiaro, ed elenco tre brani, ciascuno con una piccola copertina, un titolo e un artista.',
       reply:
-        'Ho aggiunto una riga **Guarantees** sotto i piani: tre schede con lo stesso sfondo e raggio delle schede dei piani.'
+        'Ho aggiunto una scheda **Up next** accanto al lettore con tre brani. Colori e raggio vengono dalle variabili Theme, quindi segue il lettore tra scuro e chiaro.'
     },
     collab: {
       you: 'Tu',

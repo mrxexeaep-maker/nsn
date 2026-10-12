@@ -20,7 +20,7 @@ export const fr: LandingMessages = {
       title: 'Concevez avec de vrais outils',
       detail:
         'Auto layout, contraintes, remplissages, contours, effets et typographie, avec les réglages là où vous les attendez. Les composants ont des slots : une instance garde le design et apporte son propre contenu. Tout s’annule, et rien n’attend un serveur.',
-      hint: 'Le lecteur du milieu apporte sa propre pochette par le slot Artwork. Sélectionnez un calque et changez son remplissage, son rayon ou ses marges.'
+      hint: 'Survolez la pochette sélectionnée et faites glisser un coin pour l’arrondir. Les autres lecteurs apportent leur pochette par le slot Artwork.'
     },
     interactive: {
       title: 'Des composants qui fonctionnent',
@@ -247,8 +247,8 @@ export const fr: LandingMessages = {
     activate: 'Essayer en direct',
     terminal: {
       tree: 'Arborescence des calques',
-      restyle: 'Restyler les boutons',
-      addPlan: 'Ajouter une offre',
+      restyle: 'Changer la couleur d’accent',
+      addPlayer: 'Ajouter un lecteur',
       selection: 'Sélection',
       export: 'Export Tailwind'
     },
@@ -256,11 +256,11 @@ export const fr: LandingMessages = {
       recorded: 'Échange enregistré',
       play: 'Lire',
       replay: 'Rejouer',
-      request: 'Ajoute trois garanties sous les offres.',
+      request: 'Ajoute une file « Up next » à côté du lecteur.',
       reasoning:
-        'Les offres sont dans une colonne en auto-layout, donc une rangée de trois cartes peut se placer juste en dessous et suivre la mise en page. Chaque carte aura un titre court et une ligne de détail, avec le fond et l’arrondi des cartes d’offre, pour que la rangée fasse partie de la page.',
+        'Le lecteur est seul dans le cadre du hero, qui aligne ses enfants en ligne : une carte ajoutée là se place juste à côté. Je lie le fond, le rayon et les couleurs de texte de la carte aux variables Theme qu’utilise le lecteur, pour qu’elle passe du sombre au clair avec lui, et j’y liste trois morceaux, chacun avec une petite pochette, un titre et un artiste.',
       reply:
-        'J’ai ajouté une rangée **Guarantees** sous les offres : trois cartes qui reprennent le fond et le rayon des cartes d’offre.'
+        'J’ai ajouté une carte **Up next** à côté du lecteur, avec trois morceaux. Ses couleurs et son rayon viennent des variables Theme : elle suit le lecteur entre sombre et clair.'
     },
     collab: {
       you: 'Vous',

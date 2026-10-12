@@ -20,7 +20,7 @@ export const es: LandingMessages = {
       title: 'Diseña con herramientas de verdad',
       detail:
         'Auto layout, restricciones, rellenos, trazos, efectos y tipografía, con los controles donde los esperas. Los componentes tienen slots: una instancia conserva el diseño y aporta su propio contenido. Todo se puede deshacer y nada espera a un servidor.',
-      hint: 'El reproductor del medio trae su propia portada a través del slot Artwork. Selecciona una capa y cambia su relleno, radio o espaciado.'
+      hint: 'Pasa el puntero por la portada seleccionada y arrastra una esquina para redondearla. Los otros reproductores traen su propia portada por el slot Artwork.'
     },
     interactive: {
       title: 'Componentes que funcionan',
@@ -247,8 +247,8 @@ export const es: LandingMessages = {
     activate: 'Pruébalo en vivo',
     terminal: {
       tree: 'Árbol de capas',
-      restyle: 'Cambiar los botones',
-      addPlan: 'Añadir un plan',
+      restyle: 'Cambiar el color de acento',
+      addPlayer: 'Añadir un reproductor',
       selection: 'Selección',
       export: 'Exportar a Tailwind'
     },
@@ -256,11 +256,11 @@ export const es: LandingMessages = {
       recorded: 'Turno grabado',
       play: 'Reproducir',
       replay: 'Repetir',
-      request: 'Añade tres garantías debajo de los planes.',
+      request: 'Añade una cola «Up next» junto al reproductor.',
       reasoning:
-        'Los planes están en una columna con auto-layout, así que una fila de tres tarjetas cabe justo debajo y sigue el diseño. Cada tarjeta tendrá un título corto y una línea de detalle, con el fondo y el radio de las tarjetas de los planes, para que la fila parezca parte de la página.',
+        'El reproductor está solo en el marco del hero, que coloca a sus hijos en fila, así que una tarjeta añadida ahí queda justo a su lado. Vincularé el fondo, el radio y los colores de texto de la tarjeta a las variables Theme que usa el reproductor, para que cambie con él entre oscuro y claro, y listaré tres pistas, cada una con una portada pequeña, un título y un artista.',
       reply:
-        'He añadido una fila **Guarantees** debajo de los planes: tres tarjetas con el mismo fondo y radio que las tarjetas de los planes.'
+        'He añadido una tarjeta **Up next** junto al reproductor con tres pistas. Sus colores y su radio vienen de las variables Theme, así que sigue al reproductor entre oscuro y claro.'
     },
     collab: {
       you: 'Tú',

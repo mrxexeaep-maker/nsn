@@ -20,7 +20,7 @@ export const en: LandingMessages = {
       title: 'Design with real tools',
       detail:
         'Auto layout, constraints, fills, strokes, effects, and typography, with the controls where you expect them. Components take slots, so an instance keeps the design and brings its own content. Everything is undoable, and nothing waits on a server.',
-      hint: 'The middle player brings its own cover through the Artwork slot. Select a layer and change its fill, radius, or padding.'
+      hint: 'Hover the selected cover and drag a corner to round it. The other players bring their own covers through the Artwork slot.'
     },
     interactive: {
       title: 'Components that work',
@@ -236,8 +236,8 @@ export const en: LandingMessages = {
     activate: 'Try it live',
     terminal: {
       tree: 'Layer tree',
-      restyle: 'Restyle buttons',
-      addPlan: 'Add a plan',
+      restyle: 'Recolor the accent',
+      addPlayer: 'Add a player',
       selection: 'Selection',
       export: 'Tailwind export'
     },
@@ -245,11 +245,11 @@ export const en: LandingMessages = {
       recorded: 'Recorded turn',
       play: 'Play',
       replay: 'Replay',
-      request: 'Add three guarantees under the plans.',
+      request: 'Add an Up next queue beside the player.',
       reasoning:
-        'The plans sit in an auto-layout column, so a row of three cards can go right below them and follow the layout. I’ll give each card a short title and one line of detail, with the plan cards’ background and corner radius, so the row looks like part of the page.',
+        'The player sits alone in the hero frame, which lays its children out in a row, so a card added there lands right beside it. I’ll bind the card’s background, radius, and text colors to the Theme variables the player uses, so it switches between dark and light with it, and list three tracks, each with a small cover, a title, and an artist.',
       reply:
-        'Added a **Guarantees** row under the plans: three cards that share the plan cards’ background and radius.'
+        'Added an **Up next** card beside the player with three tracks. Its colors and radius come from the Theme variables, so it follows the player between dark and light.'
     },
     collab: {
       you: 'You',

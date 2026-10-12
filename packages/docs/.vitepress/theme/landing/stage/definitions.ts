@@ -39,9 +39,11 @@ export const STAGES: Record<SingleStageKind, StageDefinition> = {
     panel: DesignCheckPanel,
     panelProps: { active: true, initialScope: 'selection' }
   },
-  ai: { scene: SCENES.pricing, panel: AiChatPanel },
+  // The recorded turn adds a card beside the player in the hero.
+  ai: { scene: SCENES.heroStill, panel: AiChatPanel },
   // Opens on the selection as a Vue component; the panel switches to React, HTML, or design JSX.
   code: { scene: SCENES.code, panel: CodePanel, panelProps: { initialSource: 'vue' } },
-  script: { scene: SCENES.pricing, panel: TerminalPanel },
-  sdk: { scene: SCENES.pricing, panel: SdkSnippetPanel, toolbar: true }
+  // The terminal's scripts recolor the players' accent and add a player to the row.
+  script: { scene: SCENES.players, panel: TerminalPanel },
+  sdk: { scene: SCENES.controls, panel: SdkSnippetPanel, toolbar: true }
 }

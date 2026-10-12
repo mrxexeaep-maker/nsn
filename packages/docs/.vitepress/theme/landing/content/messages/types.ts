@@ -95,7 +95,7 @@ export interface LandingMessages {
   stage: {
     /** Starts a stage from its still on a touch screen, where stages wait to be asked. */
     activate: string
-    terminal: Record<'tree' | 'restyle' | 'addPlan' | 'selection' | 'export', string>
+    terminal: Record<'tree' | 'restyle' | 'addPlayer' | 'selection' | 'export', string>
     ai: {
       recorded: string
       play: string

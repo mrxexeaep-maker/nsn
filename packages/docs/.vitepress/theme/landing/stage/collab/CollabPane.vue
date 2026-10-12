@@ -4,6 +4,7 @@ import { until, useMediaQuery } from '@vueuse/core'
 import { onMounted, onScopeDispose, shallowRef, watch } from 'vue'
 import IconSparkles from '~icons/lucide/sparkles'
 
+import { CHAPTERS } from '@open-pencil/demo-tools/chapters'
 import { colorToCSS } from '@open-pencil/scene-graph/color'
 
 import type { useCollabIdentity } from '@/app/collab/identity'
@@ -13,7 +14,7 @@ import type { EditorStore } from '@/app/editor/active-store'
 import AppButton from '@/components/ui/button/AppButton.vue'
 
 import { useRecordedChat } from '../ai/useRecordedChat'
-import { SCENES } from '../scenes'
+import { chapterSubject, frameStage, SCENES } from '../scenes'
 import StageCanvas from '../StageCanvas.vue'
 import { useStageDocument } from '../useStageDocument'
 import { useWheelEngagement } from '../useWheelEngagement'
@@ -48,7 +49,7 @@ function openRoom(store: EditorStore, origin: 'shared' | 'joined'): RoomSession 
 }
 
 async function hostScene(store: EditorStore): Promise<void> {
-  await SCENES.pricing(store)
+  await SCENES.heroStill(store)
   openRoom(store, 'shared').shareDocument()
 }
 
@@ -59,7 +60,7 @@ async function guestScene(store: EditorStore): Promise<void> {
   // The document arrives before its layers reach the page on screen; fit once they have.
   await until(() => store.graph.getChildren(store.state.currentPageId).length > 0).toBe(true)
   await new Promise((resolve) => requestAnimationFrame(resolve))
-  store.zoomToFit()
+  frameStage(store, chapterSubject(store, CHAPTERS.hello))
 }
 
 const { store, build, focus, ready } = useStageDocument(role === 'host' ? hostScene : guestScene)
