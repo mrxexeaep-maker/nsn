@@ -110,6 +110,20 @@ describe('layer type menu', () => {
     expect(canvasBox(editor, frame.id)).toEqual([9020, 130, 220, 150])
   })
 
+  test('undo brings back a frame’s linked fill, stroke, and guide styles', () => {
+    const { editor, frame } = setup()
+    const styles = { fillStyleId: '1:10', strokeStyleId: '1:11', gridStyleId: '1:12' }
+    editor.graph.updateNode(frame.id, styles)
+    editor.convertLayerType(frame.id, 'GROUP')
+    expect(editor.graph.getNode(frame.id)).toMatchObject({
+      fillStyleId: null,
+      strokeStyleId: null,
+      gridStyleId: null
+    })
+    editor.undo.undo()
+    expect(editor.graph.getNode(frame.id)).toMatchObject(styles)
+  })
+
   test('an empty frame has nothing to group', () => {
     const editor = createEditor()
     const frame = editor.graph.createNode('FRAME', editor.state.currentPageId, {

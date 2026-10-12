@@ -45,7 +45,10 @@ const FRAME_ONLY_FIELDS = [
   'independentCorners',
   'layoutMode',
   'clipsContent',
-  'layoutGrids'
+  'layoutGrids',
+  'fillStyleId',
+  'strokeStyleId',
+  'gridStyleId'
 ] as const
 
 export function createStructureActions(ctx: EditorContext) {
@@ -132,7 +135,7 @@ export function createStructureActions(ctx: EditorContext) {
   function convertFrameToGroup(nodeId: string) {
     const frame = ctx.graph.getNode(nodeId)
     if (frame?.type !== 'FRAME' || frame.childIds.length === 0) return
-    const before = pick(frame, FRAME_ONLY_FIELDS)
+    const before = structuredClone(pick(frame, FRAME_ONLY_FIELDS))
     const after: Partial<SceneNode> = {
       type: 'GROUP',
       fills: [],
@@ -145,7 +148,10 @@ export function createStructureActions(ctx: EditorContext) {
       independentCorners: false,
       layoutMode: 'NONE',
       clipsContent: false,
-      layoutGrids: []
+      layoutGrids: [],
+      fillStyleId: null,
+      strokeStyleId: null,
+      gridStyleId: null
     }
     ctx.graph.updateNode(nodeId, after)
     const fit = fitEnclosingGroups(
@@ -153,11 +159,13 @@ export function createStructureActions(ctx: EditorContext) {
       [nodeId],
       groupFitOptions(ctx.getRenderer(), ctx.graph)
     )
+    ctx.runLayoutForNode(nodeId)
     ctx.undo.push({
       label: 'Convert to group',
       forward: () => {
         ctx.graph.updateNode(nodeId, after)
         if (fit) redoGroupFit(ctx.graph, fit)
+        ctx.runLayoutForNode(nodeId)
       },
       inverse: () => {
         if (fit) undoGroupFit(ctx.graph, fit)
