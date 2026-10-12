@@ -1,4 +1,4 @@
-import { useIntersectionObserver, useScriptTag } from '@vueuse/core'
+import { useIntersectionObserver, useResizeObserver, useScriptTag } from '@vueuse/core'
 import { onScopeDispose, ref, type Ref } from 'vue'
 
 import { TURNSTILE_SITE_KEY, WAITLIST_TURNSTILE_ACTION } from '@open-pencil/feedback/contract'
@@ -27,14 +27,17 @@ export type TurnstileState = 'waiting' | 'ready' | 'unavailable'
 
 /**
  * Cloudflare Turnstile for a waitlist form, rendered in `container`. The script loads once the
- * form comes into view, so pages that never show it never fetch it, and the widget stays
- * invisible unless Turnstile needs the visitor to click. It works only on the sites the feedback
- * service accepts; anywhere else, such as a local dev server, it reports `unavailable`.
+ * form comes into view, or when it is submitted before that, so pages that never show it never
+ * fetch it. The widget stays invisible unless Turnstile needs the visitor to click, and is
+ * scrolled into view when it does. It works only on the sites the feedback service accepts;
+ * anywhere else, such as a local dev server, it reports `unavailable`.
  */
 export function useTurnstile(container: Readonly<Ref<HTMLElement | null>>) {
   const state = ref<TurnstileState>('waiting')
   const token = ref<string | null>(null)
   let widget: string | undefined
+  let started = false
+  let rendered = false
   let waiting: ((token: string | null) => void)[] = []
 
   function settle(value: string | null): void {
@@ -42,10 +45,21 @@ export function useTurnstile(container: Readonly<Ref<HTMLElement | null>>) {
     waiting = []
   }
 
+  /** Turnstile cannot run here: every sign-up waiting for a token gets none. */
+  function unavailable(): void {
+    state.value = 'unavailable'
+    settle(null)
+  }
+
   function render(): void {
+    if (rendered) return
+    rendered = true
     const api = window.turnstile
     const element = container.value
-    if (!api || !element || widget !== undefined) return
+    if (!api || !element) {
+      unavailable()
+      return
+    }
     widget = api.render(element, {
       sitekey: TURNSTILE_SITE_KEY,
       action: WAITLIST_TURNSTILE_ACTION,
@@ -60,30 +74,45 @@ export function useTurnstile(container: Readonly<Ref<HTMLElement | null>>) {
         token.value = null
       },
       'error-callback'() {
-        state.value = 'unavailable'
-        settle(null)
+        unavailable()
         return true
       }
     })
+    // A widget that did not render reports no error, so nothing else would answer a sign-up.
+    if (widget === undefined) unavailable()
   }
 
   const { load } = useScriptTag(TURNSTILE_SCRIPT, render, { manual: true })
-  const { stop } = useIntersectionObserver(container, (entries) => {
-    if (!entries.some((entry) => entry.isIntersecting)) return
+
+  /** Loads Turnstile and renders the widget, once. */
+  function start(): void {
+    if (started) return
+    started = true
     stop()
-    // A script another form already loaded resolves at once; rendering is idempotent.
-    load()
-      .then(render)
-      .catch(() => {
-        state.value = 'unavailable'
-        settle(null)
-      })
+    // A script another form already loaded resolves at once; rendering happens once.
+    load().then(render).catch(unavailable)
+  }
+
+  const { stop } = useIntersectionObserver(container, (entries) => {
+    if (entries.some((entry) => entry.isIntersecting)) start()
   })
 
-  /** A token for one sign-up: the one held, or the next Turnstile issues; null if it cannot. */
+  // The widget takes room only to ask for a click, and grows as its check loads: bring it into
+  // view then, so a check below the visible part of the page is not missed.
+  useResizeObserver(container, (entries) => {
+    if (entries.some((entry) => entry.contentRect.height > 0)) {
+      container.value?.scrollIntoView({ block: 'nearest' })
+    }
+  })
+
+  /**
+   * A token for one sign-up: the one held, or the next Turnstile issues; null if it cannot. A
+   * form submitted before it came into view starts Turnstile here.
+   */
   function nextToken(): Promise<string | null> {
     if (token.value) return Promise.resolve(token.value)
     if (state.value === 'unavailable') return Promise.resolve(null)
+    start()
     return new Promise((resolve) => {
       waiting.push(resolve)
     })
