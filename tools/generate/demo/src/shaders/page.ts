@@ -1,6 +1,6 @@
 /**
  * The page `drawShaderStills` opens in a browser: it draws a shader preset's first frame on a
- * WebGPU canvas and hands it back as a WebP data URL. Bundled for the browser at build time.
+ * WebGPU canvas and hands it back as a PNG data URL. Bundled for the browser at build time.
  */
 import { createRendererFromJSON } from 'shaders/core'
 
@@ -9,12 +9,6 @@ import type { ShaderPreset } from '@open-pencil/scene-graph'
 export interface ShaderStillPage {
   renderStill(preset: ShaderPreset, width: number, height: number): Promise<string>
 }
-
-/**
- * WebP keeps a still a fraction of PNG's size, as the editor's image previews do
- * (`packages/vue/src/canvas/surface/image-preview.ts`); the tour carries five stills.
- */
-const STILL_ENCODING = { type: 'image/webp', quality: 0.9 } as const
 
 const page: ShaderStillPage = {
   async renderStill(preset, width, height) {
@@ -27,7 +21,7 @@ const page: ShaderStillPage = {
       // The first frame only prepares the effects' pipelines; the second is the still.
       await renderer.renderFrame({ deltaSeconds: 0, waitForGpu: false })
       await renderer.renderFrame({ deltaSeconds: 0, waitForGpu: false })
-      return canvas.toDataURL(STILL_ENCODING.type, STILL_ENCODING.quality)
+      return canvas.toDataURL('image/png')
     } finally {
       renderer.dispose()
     }
