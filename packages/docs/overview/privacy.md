@@ -47,11 +47,11 @@ POST https://feedback.openpencil.dev/ping
 
 It carries no ID, so pings from the same install cannot be linked. The app stores only the date of its last ping, so it pings once a day. The server adds one to a counter for that day and build, and keeps nothing else. It does not log addresses, and it rejects a ping that carries any other field.
 
-The ping is on by default. Turn it off in **Settings → Diagnostics → Sharing with OpenPencil**.
+The ping is on by default. Turn it off in **Settings → Privacy**.
 
 ## Usage stats
 
-Usage stats are off until you agree. OpenPencil asks once, on the welcome screen or in a small prompt on a later launch, with two equal choices: **No thanks** and **Share stats**. Nothing is selected for you, and you can change your answer later in **Settings → Diagnostics**.
+Usage stats are off until you agree. OpenPencil asks once, on the welcome screen or in a small prompt on a later launch, with two equal choices: **No thanks** and **Share stats**. Nothing is selected for you, and you can change your answer later in **Settings → Privacy**.
 
 When you agree, the app creates a random install ID on your device. It is not linked to an account, an email address, or anything else about you. Usage events are sent with it, together with the build fields above. When you stop sharing, the app deletes the ID; agreeing again creates a new one.
 
@@ -67,7 +67,7 @@ Accepted events go to [PostHog](https://posthog.com), a product analytics servic
 
 ## Turning it all off
 
-- **Settings → Diagnostics → Sharing with OpenPencil** has a switch for the ping and one for usage stats.
+- **Settings → Privacy** has a switch for the ping and one for usage stats.
 - In the desktop app, starting OpenPencil with `OPENPENCIL_TELEMETRY=0` or `DO_NOT_TRACK=1` in its environment turns off both.
 - Only official releases send anything. Development servers, self-built apps, and forks send nothing, because the switch that enables sending is set only when we build a release.
 

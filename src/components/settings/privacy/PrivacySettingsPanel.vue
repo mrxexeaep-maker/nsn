@@ -15,7 +15,7 @@ const { dailyPing, usageStats, unofficialBuild, disabledByEnvironment } = useSha
 </script>
 
 <template>
-  <SettingsSection data-test-id="settings-sharing-section">
+  <SettingsSection data-test-id="settings-privacy-panel">
     <template #title>{{ diagnostics.sharingTitle }}</template>
     <template #description>{{ diagnostics.sharingDescription }}</template>
     <template #actions>
@@ -40,5 +40,6 @@ const { dailyPing, usageStats, unofficialBuild, disabledByEnvironment } = useSha
         <AppSwitch v-model="usageStats" :label="diagnostics.sharingUsageStats" />
       </SettingsRow>
     </SettingsGroup>
+    <p class="text-[11px] text-muted">{{ diagnostics.sharingLocalData }}</p>
   </SettingsSection>
 </template>

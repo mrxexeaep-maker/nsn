@@ -78,6 +78,7 @@
   "sharingQuestionDescription": "Udostępniaj anonimowe statystyki użycia: uruchomienia aplikacji, formaty plików i używane funkcje. Nigdy Twoje projekty, nazwy plików ani prompty. Pokazują nam, co budować dalej i że OpenPencil jest używany, co pomaga go finansować.",
   "sharingQuestionDecline": "Nie, dziękuję",
   "sharingQuestionAccept": "Udostępniaj statystyki",
-  "sharingQuestionAccepted": "Dziękujemy. Możesz to zmienić w ustawieniach diagnostyki.",
-  "sharingQuestionDeclined": "Statystyki użycia pozostaną wyłączone. Możesz to zmienić w ustawieniach diagnostyki."
+  "sharingQuestionAccepted": "Dziękujemy. Możesz to zmienić w ustawieniach prywatności.",
+  "sharingQuestionDeclined": "Statystyki użycia pozostaną wyłączone. Możesz to zmienić w ustawieniach prywatności.",
+  "sharingLocalData": "Użycie i Diagnostyka przechowują dane na tym urządzeniu i nigdy ich nie wysyłają."
 }

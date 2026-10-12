@@ -78,6 +78,7 @@
   "sharingQuestionDescription": "Teile anonyme Nutzungsstatistik: App-Starts, Dateiformate und genutzte Funktionen. Nie deine Designs, Dateinamen oder Prompts. Sie zeigen uns, was wir als Nächstes bauen sollten und dass OpenPencil genutzt wird, was seine Finanzierung sichert.",
   "sharingQuestionDecline": "Nein, danke",
   "sharingQuestionAccept": "Statistik teilen",
-  "sharingQuestionAccepted": "Danke. Du kannst das in den Diagnose-Einstellungen ändern.",
-  "sharingQuestionDeclined": "Die Nutzungsstatistik bleibt aus. Du kannst das in den Diagnose-Einstellungen ändern."
+  "sharingQuestionAccepted": "Danke. Du kannst das in den Datenschutz-Einstellungen ändern.",
+  "sharingQuestionDeclined": "Die Nutzungsstatistik bleibt aus. Du kannst das in den Datenschutz-Einstellungen ändern.",
+  "sharingLocalData": "Nutzung und Diagnose speichern ihre Daten auf diesem Gerät und senden sie nie."
 }

@@ -89,8 +89,9 @@ export const diagnosticsMessageDefaults = {
     'Share anonymous usage stats: app launches, file formats, and features used. Never your designs, file names, or prompts. They show us what to build next and that OpenPencil is used, which keeps it funded.',
   sharingQuestionDecline: 'No thanks',
   sharingQuestionAccept: 'Share stats',
-  sharingQuestionAccepted: 'Thank you. You can change this in Diagnostics settings.',
-  sharingQuestionDeclined: 'Usage stats stay off. You can change this in Diagnostics settings.'
+  sharingQuestionAccepted: 'Thank you. You can change this in Privacy settings.',
+  sharingQuestionDeclined: 'Usage stats stay off. You can change this in Privacy settings.',
+  sharingLocalData: 'Usage and Diagnostics keep their records on this device and never send them.'
 } as const
 
 export const diagnosticsMessages = i18n('diagnostics', diagnosticsMessageDefaults)

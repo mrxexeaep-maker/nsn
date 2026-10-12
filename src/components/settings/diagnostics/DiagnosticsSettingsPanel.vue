@@ -15,7 +15,6 @@ import {
 } from '@/app/diagnostics/settings'
 import { toast } from '@/app/shell/ui'
 import DiagnosticsEventList from '@/components/settings/diagnostics/DiagnosticsEventList.vue'
-import SharingSettingsSection from '@/components/settings/diagnostics/SharingSettingsSection.vue'
 import SettingsGroup from '@/components/settings/layout/SettingsGroup.vue'
 import SettingsRow from '@/components/settings/layout/SettingsRow.vue'
 import SettingsSection from '@/components/settings/layout/SettingsSection.vue'
@@ -67,7 +66,6 @@ async function exportDiagnostics() {
 </script>
 
 <template>
-  <SharingSettingsSection />
   <SettingsSection data-test-id="settings-diagnostics-panel">
     <template #title>{{ diagnosticMessages.title }}</template>
     <template #description>{{ diagnosticMessages.description }}</template>

@@ -78,6 +78,7 @@
   "sharingQuestionDescription": "匿名の利用統計（アプリの起動、ファイル形式、使った機能）を共有します。デザイン、ファイル名、プロンプトは送信されません。次に作るべきものと OpenPencil が使われていることを示し、開発資金の確保に役立ちます。",
   "sharingQuestionDecline": "共有しない",
   "sharingQuestionAccept": "統計を共有",
-  "sharingQuestionAccepted": "ありがとうございます。診断の設定でいつでも変更できます。",
-  "sharingQuestionDeclined": "利用統計はオフのままです。診断の設定でいつでも変更できます。"
+  "sharingQuestionAccepted": "ありがとうございます。プライバシーの設定でいつでも変更できます。",
+  "sharingQuestionDeclined": "利用統計はオフのままです。プライバシーの設定でいつでも変更できます。",
+  "sharingLocalData": "「使用状況」と「診断」の記録はこの端末に保存され、送信されることはありません。"
 }

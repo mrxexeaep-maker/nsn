@@ -78,6 +78,7 @@
   "sharingQuestionDescription": "共享匿名使用统计：应用启动、文件格式和使用的功能。从不包含你的设计、文件名或提示词。它们告诉我们接下来该做什么，也证明 OpenPencil 有人在用，从而帮助它获得资金。",
   "sharingQuestionDecline": "不用了",
   "sharingQuestionAccept": "共享统计",
-  "sharingQuestionAccepted": "谢谢。你可以在诊断设置中更改此选项。",
-  "sharingQuestionDeclined": "使用统计将保持关闭。你可以在诊断设置中更改此选项。"
+  "sharingQuestionAccepted": "谢谢。你可以在隐私设置中更改此选项。",
+  "sharingQuestionDeclined": "使用统计将保持关闭。你可以在隐私设置中更改此选项。",
+  "sharingLocalData": "“使用情况”和“诊断”的记录保存在此设备上，从不发送。"
 }

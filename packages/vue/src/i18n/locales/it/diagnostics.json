@@ -78,6 +78,7 @@
   "sharingQuestionDescription": "Condividi statistiche di utilizzo anonime: avvii dell'app, formati di file e funzioni usate. Mai i tuoi design, nomi dei file o prompt. Ci mostrano cosa costruire dopo e che OpenPencil viene usato, il che aiuta a finanziarlo.",
   "sharingQuestionDecline": "No, grazie",
   "sharingQuestionAccept": "Condividi statistiche",
-  "sharingQuestionAccepted": "Grazie. Puoi cambiare questa scelta nelle impostazioni di Diagnostica.",
-  "sharingQuestionDeclined": "Le statistiche di utilizzo restano disattivate. Puoi cambiare questa scelta nelle impostazioni di Diagnostica."
+  "sharingQuestionAccepted": "Grazie. Puoi cambiare questa scelta nelle impostazioni Privacy.",
+  "sharingQuestionDeclined": "Le statistiche di utilizzo restano disattivate. Puoi cambiare questa scelta nelle impostazioni Privacy.",
+  "sharingLocalData": "Utilizzo e Diagnostica conservano i dati su questo dispositivo e non li inviano mai."
 }

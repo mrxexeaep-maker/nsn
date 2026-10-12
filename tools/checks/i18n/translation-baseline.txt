@@ -225,6 +225,7 @@ it:panels.shader
 it:rendering.settingsTitle
 it:settings.mcp
 it:settings.media
+it:settings.privacy
 it:storage.bucket
 it:storage.endpoint
 it:storage.providerAmazonS3
