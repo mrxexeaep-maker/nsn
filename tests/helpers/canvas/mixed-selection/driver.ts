@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 
-import type * as MixedScene from '#tests/helpers/canvas/mixed-selection'
+import type * as MixedScene from '#tests/helpers/canvas/mixed-selection/scene'
 
 type SceneIds = ReturnType<typeof MixedScene.createMixedSelectionScene>
 export type MixedLayer = keyof SceneIds
@@ -20,7 +20,7 @@ export function mixedSelectionDriver(page: () => Page) {
       ids = await page().evaluate(async () => {
         const store = window.openPencil?.getStore?.()
         if (!store) throw new Error('OpenPencil store not initialized')
-        const fixtureURL = '/tests/helpers/canvas/mixed-selection.ts'
+        const fixtureURL = '/tests/helpers/canvas/mixed-selection/scene.ts'
         const scene: typeof MixedScene = await import(fixtureURL)
         const built = scene.createMixedSelectionScene(store.graph, store.state.currentPageId)
         store.requestRender()

@@ -1,5 +1,5 @@
 import { expect, test, useEditorSetupWithClear } from '#tests/e2e/fixtures'
-import { vectorEditDriver } from '#tests/helpers/canvas/vector-edit-driver'
+import { vectorEditDriver } from '#tests/helpers/canvas/vector-edit/driver'
 
 const editor = useEditorSetupWithClear('/?test&no-chrome&no-rulers')
 
