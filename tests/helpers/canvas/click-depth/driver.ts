@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 
-import type * as ClickDepthScenes from '#tests/helpers/canvas/click-depth'
+import type * as ClickDepthScenes from '#tests/helpers/canvas/click-depth/scene'
 
 type SceneName = 'createClickDepthCards' | 'createNestedBoard'
 
@@ -11,7 +11,7 @@ export function clickDepthDriver(page: () => Page) {
     return page().evaluate(async (scene) => {
       const store = window.openPencil?.getStore?.()
       if (!store) throw new Error('OpenPencil store not initialized')
-      const fixtureURL = '/tests/helpers/canvas/click-depth.ts'
+      const fixtureURL = '/tests/helpers/canvas/click-depth/scene.ts'
       const scenes: typeof ClickDepthScenes = await import(fixtureURL)
       const ids = scenes[scene](store.graph, store.state.currentPageId)
       store.clearSelection()

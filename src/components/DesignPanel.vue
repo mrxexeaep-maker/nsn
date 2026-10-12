@@ -3,7 +3,7 @@ import { computed } from 'vue'
 
 import { getNodeEditCapability } from '@open-pencil/core/editor'
 import { readIcon } from '@open-pencil/scene-graph'
-import { useI18n, useSelectionState, useEditorCommands } from '@open-pencil/vue'
+import { useI18n, useSceneComputed, useSelectionState, useEditorCommands } from '@open-pencil/vue'
 
 import { useEditorStore } from '@/app/editor/active-store'
 import { COMPONENT_TYPES, sceneNodeIcon } from '@/app/editor/icons'
@@ -30,6 +30,7 @@ import FillSection from './properties/FillSection.vue'
 import FramePresetSelect from './properties/frame-presets/FramePresetSelect.vue'
 import FramePresetsSection from './properties/frame-presets/FramePresetsSection.vue'
 import IconSection from './properties/IconSection.vue'
+import LayerTypeMenu from './properties/LayerTypeMenu.vue'
 import LayoutGridSection from './properties/layout/guides/LayoutGridSection.vue'
 import LayoutSection from './properties/layout/LayoutSection.vue'
 import MaskSection from './properties/MaskSection.vue'
@@ -75,9 +76,11 @@ function openSelectedInstanceReview() {
     initialInstanceId: instance.id
   })
 }
-const supportsLayoutGuides = computed(() => {
-  const type = node.value?.type
-  return type === 'FRAME' || type === 'COMPONENT' || type === 'COMPONENT_SET' || type === 'INSTANCE'
+const LAYOUT_GUIDE_TYPES = new Set(['FRAME', 'COMPONENT', 'COMPONENT_SET', 'INSTANCE'])
+// Figma offers layout guides while every selected layer is a frame.
+const supportsLayoutGuides = useSceneComputed(() => {
+  const nodes = store.getSelectedNodes()
+  return nodes.length > 0 && nodes.every((selected) => LAYOUT_GUIDE_TYPES.has(selected.type))
 })
 const { panels } = useI18n()
 </script>
@@ -118,6 +121,7 @@ const { panels } = useI18n()
     <StrokeSection />
     <EffectsSection />
     <SelectionColorsSection />
+    <LayoutGridSection v-if="supportsLayoutGuides" />
     <ExportSection />
   </div>
 
@@ -130,7 +134,12 @@ const { panels } = useI18n()
     >
       <PanelHeader :component="isComponentType">
         <template #icon>
-          <Tip :label="node.type">
+          <LayerTypeMenu
+            v-if="node.type === 'FRAME' || node.type === 'GROUP'"
+            :node="node"
+            :icon="selectedIcon"
+          />
+          <Tip v-else :label="node.type">
             <span role="img" :aria-label="node.type" class="contents">
               <component :is="selectedIcon" class="size-3.5" />
             </span>
@@ -205,9 +214,9 @@ const { panels } = useI18n()
       <TypographySection v-if="node.type === 'TEXT'" />
       <FillSection />
       <StrokeSection />
-      <LayoutGridSection v-if="supportsLayoutGuides" />
       <EffectsSection />
       <SelectionColorsSection />
+      <LayoutGridSection v-if="supportsLayoutGuides" />
 
       <ExportSection />
     </div>

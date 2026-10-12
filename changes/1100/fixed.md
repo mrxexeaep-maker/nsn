@@ -1,3 +1,0 @@
-- The properties panel shows the shared styles layers use in opened `.fig` files, where it listed them as missing styles.
-- Styles made in OpenPencil, by importing design tokens or by pasting layers from another document, are saved in `.fig` files as styles, and layers reopen with them. Saving wrote their references empty, so reopening dropped the styles, and saving into an opened file made them layers of the page in Figma.
-- Layers and text that use a library style keep it in Figma after OpenPencil saves them, where Figma showed them with no style.

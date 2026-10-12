@@ -1,5 +1,5 @@
 import { expect, test, useEditorSetupWithClear } from '#tests/e2e/fixtures'
-import { mixedSelectionDriver } from '#tests/helpers/canvas/mixed-selection-driver'
+import { mixedSelectionDriver } from '#tests/helpers/canvas/mixed-selection/driver'
 import { propertyField, propertySection } from '#tests/helpers/properties'
 
 // Figma desktop 126, probed with the same layers: a multi-selection shows layout, typography for

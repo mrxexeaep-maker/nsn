@@ -11,6 +11,7 @@ import type {
   NodeType,
   Fill,
   Stroke,
+  LayoutGrid,
   LayoutMode
 } from '@open-pencil/scene-graph'
 import {
@@ -122,6 +123,7 @@ export class FigmaNodeProxy {
   declare cornerSmoothing: number
 
   declare layoutMode: LayoutMode
+  declare layoutGrids: readonly LayoutGrid[]
   declare layoutDirection: string
   declare primaryAxisAlignItems: string
   declare counterAxisAlignItems: string

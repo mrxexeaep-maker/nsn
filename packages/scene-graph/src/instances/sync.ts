@@ -13,6 +13,7 @@ import {
 import { scaleNodeChanges } from '../scaling/node'
 import { ownsSlotContent, slotPropertyId } from '../slots/frames'
 import { scaleVariableBindingUnits } from '../variables/units'
+import { keepOwnContentSize, remeasureChangedText } from './content-size'
 import {
   createInstanceSyncContext,
   hasUnplacedCopiesBelow,
@@ -22,6 +23,7 @@ import {
 } from './copies'
 import { INSTANCE_SYNC_FIELD_OWNERS, INSTANCE_SYNC_FIELDS } from './fields'
 import { PLACEMENT_FIELDS, placedByConstraints } from './placement'
+import { followVectorGeometry } from './vector-geometry'
 
 function setSceneProp<K extends keyof SceneNode>(
   target: Partial<SceneNode>,
@@ -151,6 +153,8 @@ function copySyncedFields(
     if (isEqual(copy[key], from[key])) continue
     copyProp(updates, from, key)
   }
+  followVectorGeometry(updates, copy, source)
+  remeasureChangedText(updates, copy)
 }
 
 export function updateSyncedProps(
@@ -187,9 +191,7 @@ export function cloneChildrenWithMapping(
   destParentId: string,
   mode: NodeCloneMode = 'deep'
 ): void {
-  // Guard against cloning a subtree into itself or its own descendant. Without this,
-  // a self-referential or cyclic component (e.g. an INSTANCE whose componentId points
-  // to an ancestor) causes unbounded recursion and eventual stack overflow / OOM.
+  // A cyclic component, such as an instance of an ancestor, would clone itself without end.
   if (sourceParentId === destParentId || graph.isDescendant(destParentId, sourceParentId)) return
 
   const sourceParent = graph.nodes.get(sourceParentId)
@@ -519,9 +521,7 @@ export function syncChildren(
   overrides: InstanceOverrideState,
   context: InstanceSyncContext = createInstanceSyncContext(instParentId, overrides)
 ): void {
-  // Guard against cyclic sync: if the instance parent is inside the component's own
-  // subtree, syncing would clone the component into itself — a self-referential cycle
-  // that causes unbounded recursion and OOM.
+  // An instance inside its own component would clone the component into itself without end.
   if (isCyclicSync(graph, compParentId, instParentId)) return
 
   const compParent = graph.nodes.get(compParentId)
@@ -581,6 +581,7 @@ export function syncChildren(
       skip: (key) => driven.has(key) || isProtectedSyncField(instChild, key, protectedField)
     })
     Object.assign(updates, assignedFieldValues(graph, instChild, compChild))
+    keepOwnContentSize(graph, updates, instChild, source)
     updateSyncedProps(graph, instChild, updates)
 
     if (

@@ -342,3 +342,10 @@ pl:variables.unitAuto
 es:menu.variables
 fr:menu.variables
 fr:variables.collections
+de:panels.gridAuto
+es:panels.gridColor
+es:panels.gridAuto
+fr:panels.gridType
+fr:panels.gridAuto
+it:panels.gridAuto
+pl:panels.gridAuto

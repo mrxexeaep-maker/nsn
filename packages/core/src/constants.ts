@@ -566,6 +566,8 @@ export const ZOOM_SCALE_MAX = 1.25
 export const PEN_CLOSE_THRESHOLD = 8
 export const ROTATION_SNAP_DEGREES = 15
 export const HANDLE_HIT_RADIUS = 6
+/** How far outside a shape, in screen pixels, a click still selects it (Figma desktop 126). */
+export const LAYER_HIT_PAD = 3.5
 export const ROTATION_HANDLE_DISTANCE = 24
 export const DEFAULT_TEXT_WIDTH = 200
 export const DEFAULT_TEXT_HEIGHT = 24

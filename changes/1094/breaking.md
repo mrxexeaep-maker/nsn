@@ -1,1 +1,0 @@
-- In scripts, a text node's `textCase`, `textStyleId`, and `fillStyleId` read `figma.mixed` while its characters differ, as in Figma, instead of the text's own value, and setting one restyles every character.

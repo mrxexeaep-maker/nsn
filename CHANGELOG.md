@@ -2,6 +2,61 @@
 
 ## Unreleased
 
+## 0.16.0-beta.2 — 2026-10-12
+
+This is a pre-release that lists changes since 0.16.0-beta.1: npm packages are published under the `next` tag, and installed apps on the stable release do not update to it. Linux package managers see `0.16.0-beta.2` as newer than `0.16.0`, so `.deb` and `.rpm` users should remove the beta before installing the final 0.16.0.
+
+### Breaking changes
+
+- `CORNER_ROTATE_ZONE` is removed from `@open-pencil/core/constants`; the selection's resize and rotation zones are `TRANSFORM_ZONE` and `transformZoneAt` in `@open-pencil/core/geometry`, which also owns the `HandlePosition` and `CornerPosition` types.
+- In scripts, a text node's `textCase`, `textStyleId`, and `fillStyleId` now also read `figma.mixed` while its characters differ, as in Figma, instead of the text's own value, and setting one restyles every character.
+
+### Added
+
+- Enter opens a selected vector's path for editing, as a double-click does, as in Figma.
+- Text keeps a case, a link, text and fill styles, and variable bindings for any range of its characters, as in Figma: the canvas draws each range in its own case, `.fig` files and the Figma clipboard keep them, apart from font weight bindings, HTML, Tailwind, and JSX exports write links as `<a href>` and cases as `text-transform` and HTML import reads them back, Design JSX `<Span>` takes `textCase` and `href`, and the Typography section's text case changes the selected characters while text is edited. Scripts read and set them with `getRangeTextCase`, `setRangeTextCase`, `getRangeHyperlink`, `setRangeHyperlink`, `getRangeTextStyleId`, `setRangeTextStyleIdAsync`, `getRangeFillStyleId`, `setRangeFillStyleIdAsync`, `getRangeBoundVariable`, `setRangeBoundVariable`, and the text's `hyperlink`.
+- Switch a frame to a group and back from the layer type menu in the properties panel header, as in Figma. A frame becomes a group that keeps its layers, effects, and opacity and fits them; a group becomes a frame of its bounds that clips.
+- Edit the layout guides of several frames at once: the panel lists them while the frames' guides match and edits every frame in one undo step, and while they differ offers Add, which gives each frame one new guide. A new guide is Figma's 10 px grid.
+- Official builds send one anonymous ping a day, with the app version, operating system, architecture, desktop or web, and whether usage stats are shared, and no ID; turn it off in Settings → Privacy or with `OPENPENCIL_TELEMETRY=0` or `DO_NOT_TRACK=1` in the desktop app's environment. Usage stats (launches, file formats opened and exported, and which AI provider answered) are sent only after you agree in a one-time prompt after the welcome screen. The [privacy page](https://openpencil.dev/overview/privacy) lists every field.
+
+### Changed
+
+- The Layout guide section follows Figma: each guide is a row with a summary such as "5 columns" or "Grid 10px" that switches between grid, columns, and rows, and its settings open from the row's icon with Count, Type, Width or Height, Margin or Offset, Gutter, and Color fields. The section now sits after Selection colors.
+- A selected layer resizes and rotates where Figma's does: every edge resizes along its whole length within 7.5 px outside it and up to a tenth of the side inside it, corners within 7.5 px, and the area outside a corner within 16 px rotates; a frame's name takes a press before rotation but not before resizing. Layers under 24 px keep these zones outside them, and a layer under 10 px on both sides has none, taking presses within 16 px across its centre instead. A selection draws Figma's four corner handles, without the edge midpoints, and none on such a small layer.
+- Pasted layers keep how they were turned and flipped on the canvas, as in Figma, so a layer copied out of a rotated frame stays at its angle in an upright one, and paste to replace keeps the copied layer's angle too. Layers copied out of a frame or section keep their offset from its box on the canvas, and move into the frame only when they start past its far edge, or, for top-level layers, miss it: then layers that fit are centred on that axis, and larger ones go to the frame's top-left, or are centred if top-level. Layers overlapping an edge stay where they are, and layers copied from different places are placed each from its own.
+- A click up to 3.5 screen pixels outside a shape selects it, as in Figma, so hairlines and small dots are easy to pick; a frame's edge stays exact.
+- A click on a section's empty area selects the section, while a drag there still selects the layers inside it, and a right-click over the empty area of a frame with layers, or of a section, selects it for the menu. A selection under 10 screen pixels both ways shows no size label, as it shows no handles.
+- With nothing selected, a layer copied out of a frame or section pastes back into it, where it was on the canvas, or onto the page in the middle of the view when that place is out of view, as in Figma.
+- In scripts, `setProperties` switches an instance's variant, alongside its other properties, and fails without changing anything when no variant has the values, with Figma's messages; `resize` places a frame's layers by their constraints while `resizeWithoutConstraints` leaves them, and an instance's layers follow their constraints either way.
+- **Settings…** (<kbd>⌘</kbd><kbd>,</kbd>) is in the **OpenPencil** menu on macOS and at the end of the **File** menu elsewhere, instead of under **View → Preferences**.
+- The demo at `/demo` is a tour of one player card in eight chapters stacked on one canvas, each showing one thing with a numbered card that says what to try and draws the piece of the app to click: preview, the artwork slot, the controls' behaviours, the theme's modes, shader fills, the Code tab, Lint on a card with planted issues, and sharing and opening your own files. It opens on the first chapter with the rest below it and follows the app's light or dark theme. The welcome dialog on first launch offers it next to AI setup, and **File → Open the Tour** opens it any time.
+- In scripts, a vector inside an instance refuses `vectorPaths`, `vectorNetwork`, `setVectorNetworkAsync`, and `handleMirroring` with Figma's errors, such as `in set_vectorPaths: This property cannot be overridden in an instance: vector-data`, since its path always follows the component.
+
+### Fixed
+
+- Preview draws controls as the canvas does: in the variable modes the canvas is showing, also after a mode switch or a variable edit, with icons and vector layers as drawn and shader fills playing behind their layers from the canvas's own shader players.
+- Opening a page also loads the pages holding the component sets its instances use, so the variant picker and preview can switch to any variant of a set kept on a page not opened yet. Library copies on Figma's internal canvas stay as the file stores them, and a page that opens later no longer re-reads components an earlier page already built.
+- A slot frame whose corner radius or other field is bound to a variable stays a slot when the file is saved and reopened.
+- An instance whose own content makes it taller or wider than its component, such as a hug frame around longer text, reopens at its saved size.
+- SVG export, and the HTML, JSX, and preview drawings built on it, draw a vector's open strokes beside its filled regions, such as the bar of a skip icon, instead of the regions alone.
+- The contrast check asks 3:1 of large text, 24 px or 18.66 px bold, as WCAG AA does, and 4.5:1 of the rest, holding a text layer to the strictest threshold any of its style runs needs.
+- When saved credentials are paused, the home screen's storage section offers **Retry access** instead of a raw error that pointed to Settings with no way there.
+- Settings → MCP installs or updates a missing or outdated MCP server with one click, through Bun when Bun installed it, explains that it installs separately to keep the download small, and falls back to the install command and a prompt for your agent when npm is missing or the install fails; it no longer suggests reinstalling the old server's own version.
+- Where npm keeps global packages in a folder that needs administrator rights, as with Node from a Linux distribution or the nodejs.org installer on macOS, setup says so and shows the `sudo` command and a prompt for your agent instead of an install that fails, and installs a new MCP server or Harness with Bun when Bun is available.
+- Settings → Tool access lists the local MCP server's tools while the server is stopped, instead of an empty list saying no tools match the search.
+- Settings → MCP shows the local server in the desktop app and WebMCP in the browser, where each works, instead of a WebMCP section the desktop app can never use and a local server the browser reports as unreachable.
+- Lines of text that mix font sizes or line heights are spaced as in Figma: each line is as tall as the tallest line height on it, with its largest font centred in it, instead of stacking the tallest parts of every style on it, which put lines after a large word or a taller line height up to 10 px off.
+- A line height in pixels shorter than the font, such as 24 px on 24 px text, opens from `.fig` files as set instead of as the font's own height.
+- Text with an empty line, or ending in one, saved to `.fig` or copied to Figma shows there, where Figma showed it blank.
+- Instances keep following their component after being resized: resizing one by a handle no longer makes the sizes of the layers its constraints move into overrides. A component edit no longer gives a copy the component's size where it sizes itself to its own content, such as a badge's count set by an instance property, or an auto layout frame hugging the layers the instance shows, and setting a text property measures the new characters, so the badge fits them at once.
+- `openpencil eval -o` saves a script's edits laid out, though the script never read them back; `@open-pencil/core/figma-api` exports `flushPendingLayout` for hosts that save scripts' results.
+- Saving keeps a fill, stroke, effect, or text style that an instance has cleared, which reopened with the component's style.
+- Layout guides added in the panel or a script save to `.fig` files, where saving failed on them, and a guide read from a file shows as columns or rows in the panel and saves the count edited there. Columns and rows with an Auto count draw as many as fit the frame and read Auto in the panel. Scripts read and set `layoutGrids` in Figma's shape.
+- The properties panel shows the shared styles layers use in opened `.fig` files, where it listed them as missing styles.
+- Styles made in OpenPencil, by importing design tokens or by pasting layers from another document, are saved in `.fig` files as styles, and layers reopen with them. Saving wrote their references empty, so reopening dropped the styles, and saving into an opened file made them layers of the page in Figma.
+- Layers and text that use a library style keep it in Figma after OpenPencil saves them, where Figma showed them with no style.
+- A path edited in a component reaches its instances, as in Figma, scaled with each copy where constraints or a resized instance changed its size; copies whose instance overrides their fill or stroke keep those. A vector inside an instance no longer opens for path editing, which would have been undone by the next component edit. Straight lines in resized instances of `.fig` files open at the length Figma draws them instead of their component's.
+
 ## 0.16.0-beta.1 — 2026-10-11
 
 This is a pre-release: npm packages are published under the `next` tag, and installed apps on the stable release do not update to it. Linux package managers see `0.16.0-beta.1` as newer than `0.16.0`, so `.deb` and `.rpm` users should remove the beta before installing the final 0.16.0.
