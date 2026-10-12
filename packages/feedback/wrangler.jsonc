@@ -16,7 +16,7 @@
     {
       "binding": "DB",
       "database_name": "feedback",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "80bf0aec-f868-4ca0-bea1-d18eaac86ebb",
       "migrations_dir": "migrations"
     }
   ],

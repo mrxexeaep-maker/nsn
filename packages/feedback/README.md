@@ -25,7 +25,7 @@ Apply migrations to the local database with `bunx wrangler d1 migrations apply f
 
 Done once on the Cloudflare account; `.github/workflows/feedback.yml` deploys every change to `master` afterwards.
 
-1. `bunx wrangler d1 create feedback --jurisdiction eu` and put the database ID in `wrangler.jsonc`.
+1. `bunx wrangler d1 create feedback --jurisdiction eu` and put the database ID in `wrangler.jsonc` (done for the production database).
 2. Onboard `openpencil.dev` to Email Service so `hello@openpencil.dev` can send. Sending to addresses outside the account needs the Workers Paid plan; send one confirmation to an outside address before announcing the waitlist.
 3. Create a Turnstile widget for `openpencil.dev`, then `bunx wrangler secret put TURNSTILE_SECRET`.
 4. Create a PostHog EU project with "Discard client IP data" on and data retention at 12 months, as the privacy page promises, then `bunx wrangler secret put POSTHOG_KEY` with its project key.
