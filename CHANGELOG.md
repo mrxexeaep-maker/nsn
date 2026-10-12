@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed
+
+- HTML, Vue, and React exports name a JPEG, GIF, or WebP image fill by its own type in the data URL instead of calling every image PNG.
+
+### Performance
+
+- Shader fills store their still frame as JPEG when no pixel is transparent, about 25 times smaller than PNG, so documents with shaders save and open faster; frames with transparency stay PNG. Figma opens both.
+
 ## 0.16.0-beta.2 — 2026-10-12
 
 This is a pre-release that lists changes since 0.16.0-beta.1: npm packages are published under the `next` tag, and installed apps on the stable release do not update to it. Linux package managers see `0.16.0-beta.2` as newer than `0.16.0`, so `.deb` and `.rpm` users should remove the beta before installing the final 0.16.0.

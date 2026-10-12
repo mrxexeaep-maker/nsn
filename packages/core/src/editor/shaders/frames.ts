@@ -3,6 +3,7 @@ import { isEqual } from 'es-toolkit/predicate'
 import {
   isShaderFrameCurrent,
   readShaderPaints,
+  shaderFramePixels,
   shaderOfPaint,
   shaderPresetKey,
   withShaderPaints,
@@ -15,10 +16,6 @@ import type { EditorContext, EditorOptions } from '#core/editor/types'
 
 import type { ShaderRasterizer } from './types'
 
-/** Frames are drawn at twice the layer's size, for sharp high-density displays. */
-const FRAME_SCALE = 2
-/** The longest side a frame is drawn at, however large the layer. */
-const MAX_FRAME_EDGE = 2048
 /** How long a layer must keep its size before its frames are drawn again. */
 const SETTLE_MS = 150
 
@@ -31,15 +28,6 @@ export interface ShaderFramesProgress {
 
 /** Fields whose change can leave a shader's frame out of date. */
 const FRAME_FIELDS = ['fills', 'strokes', 'pluginData', 'width', 'height'] as const
-
-/** The pixels a layer's frame is drawn at. */
-function framePixels(size: Size): Size {
-  const scale = Math.min(FRAME_SCALE, MAX_FRAME_EDGE / Math.max(size.width, size.height, 1))
-  return {
-    width: Math.max(1, Math.round(size.width * scale)),
-    height: Math.max(1, Math.round(size.height * scale))
-  }
-}
 
 const frameKey = (shader: ShaderPaint, size: Size) =>
   JSON.stringify([shader.preset, Math.round(size.width), Math.round(size.height)])
@@ -102,7 +90,7 @@ export function createShaderFrames(
     const node = graph.getNode(id)
     if (!node) return
     const size = { width: node.width, height: node.height }
-    const bytes = await active.render(shader.preset, framePixels(size))
+    const bytes = await active.render(shader.preset, shaderFramePixels(size))
     // The preset, the layer, or the document may have changed while the frame was drawn.
     const now = graph === ctx.graph ? graph.getNode(id) : undefined
     const current = now && shownShaders(now).find((item) => item.image === shader.image)
