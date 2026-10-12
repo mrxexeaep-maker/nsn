@@ -2,7 +2,7 @@
 import { useElementSize } from '@vueuse/core'
 import { onScopeDispose, useTemplateRef, watch } from 'vue'
 
-import { shaderFrames } from '#vue/canvas/surface/shader-frames'
+import { shaderFrames } from '#vue/canvas/surface/shader/frames'
 import { useEditor } from '#vue/editor/context'
 
 /**

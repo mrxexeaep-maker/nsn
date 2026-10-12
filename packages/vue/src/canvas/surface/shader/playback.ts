@@ -7,8 +7,8 @@ import type { Editor, EditorState } from '@open-pencil/core/editor'
 import { readShaderPaints, shaderOfPaint, type ShaderPreset } from '@open-pencil/scene-graph'
 import type { Rect } from '@open-pencil/scene-graph/primitives'
 
-import { shaderFrames } from '#vue/canvas/surface/shader-frames'
-import { canDrawShaders } from '#vue/canvas/surface/shader-rasterizer'
+import { shaderFrames } from '#vue/canvas/surface/shader/frames'
+import { canDrawShaders } from '#vue/canvas/surface/shader/rasterizer'
 
 /** The longest side a playing shader is drawn at, however large it is on screen. */
 const MAX_PLAY_EDGE = 1024

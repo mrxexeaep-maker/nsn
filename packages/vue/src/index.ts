@@ -126,7 +126,7 @@ export type {
 export { useExport } from '#vue/document/export/use'
 export type { ExportFormatId, ExportFormatOption, ExportSetting } from '#vue/document/export/use'
 export { useFillControls } from '#vue/controls/fill/use'
-export { canDrawShaders, createShaderRasterizer } from '#vue/canvas/surface/shader-rasterizer'
+export { canDrawShaders, createShaderRasterizer } from '#vue/canvas/surface/shader/rasterizer'
 export {
   addShaderEffect,
   DEFAULT_SHADER_EFFECT,
