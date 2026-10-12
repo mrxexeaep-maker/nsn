@@ -4,7 +4,7 @@ export const fr: LandingMessages = {
   hero: {
     title: 'Le design sans verrouillage.',
     lede: 'Un éditeur de design open source qui ouvre vos fichiers Figma, tourne sur votre machine et vous laisse, vous ou votre agent AI, piloter chaque calque.',
-    open: 'Ouvrir l’éditeur',
+    open: 'Faire la visite',
     download: 'Télécharger',
     github: 'GitHub'
   },
@@ -125,13 +125,15 @@ export const fr: LandingMessages = {
         { title: 'Commentaires et appels vocaux dans les salles partagées' },
         { title: "Composants Vue et React dans l'onglet Code" },
         { title: 'Import SVG et HTML en calques modifiables' },
-        { title: 'Remplissages par shaders' }
+        { title: 'Remplissages par shaders' },
+        { title: 'Design tokens W3C' },
+        { title: 'Une visite guidée de l’éditeur' },
+        { title: 'Listes et styles pour n’importe quelle portion de texte' }
       ]
     },
     now: {
       label: 'En cours',
       entries: [
-        { title: 'Design tokens W3C', detail: 'Importer et exporter des tokens au format W3C.' },
         {
           title: 'Storybook à partir de vrais composants',
           detail: 'Des stories qui utilisent Reka UI pour Vue et Radix UI pour React.'

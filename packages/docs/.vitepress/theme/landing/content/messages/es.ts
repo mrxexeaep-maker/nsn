@@ -4,7 +4,7 @@ export const es: LandingMessages = {
   hero: {
     title: 'Diseña sin ataduras.',
     lede: 'Un editor de diseño de código abierto que abre tus archivos de Figma, funciona en tu equipo y permite que tú o tu agente de IA controléis cada capa.',
-    open: 'Abrir el editor',
+    open: 'Hacer el recorrido',
     download: 'Descargar',
     github: 'GitHub'
   },
@@ -125,13 +125,15 @@ export const es: LandingMessages = {
         { title: 'Comentarios y llamadas de voz en salas compartidas' },
         { title: 'Componentes de Vue y React en la pestaña Código' },
         { title: 'Importación de SVG y HTML como capas editables' },
-        { title: 'Rellenos con shaders' }
+        { title: 'Rellenos con shaders' },
+        { title: 'Design tokens W3C' },
+        { title: 'Un recorrido guiado por el editor' },
+        { title: 'Listas y estilos para cualquier tramo de texto' }
       ]
     },
     now: {
       label: 'Ahora',
       entries: [
-        { title: 'Tokens de diseño W3C', detail: 'Importar y exportar tokens en el formato W3C.' },
         {
           title: 'Storybook con componentes reales',
           detail: 'Historias que usan Reka UI en Vue y Radix UI en React.'

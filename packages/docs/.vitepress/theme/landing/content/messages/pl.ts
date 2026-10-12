@@ -4,7 +4,7 @@ export const pl: LandingMessages = {
   hero: {
     title: 'Projektuj bez uzależnienia od dostawcy.',
     lede: 'Edytor graficzny open source, który otwiera pliki Figmy, działa na Twoim komputerze i pozwala Tobie lub Twojemu agentowi AI sterować każdą warstwą.',
-    open: 'Otwórz edytor',
+    open: 'Rozpocznij przewodnik',
     download: 'Pobierz',
     github: 'GitHub'
   },
@@ -125,13 +125,15 @@ export const pl: LandingMessages = {
         { title: 'Komentarze i rozmowy głosowe we wspólnych pokojach' },
         { title: 'Komponenty Vue i React w karcie Kod' },
         { title: 'Import SVG i HTML jako edytowalnych warstw' },
-        { title: 'Wypełnienia shaderami' }
+        { title: 'Wypełnienia shaderami' },
+        { title: 'Design tokeny W3C' },
+        { title: 'Przewodnik po edytorze' },
+        { title: 'Listy i style dla dowolnego fragmentu tekstu' }
       ]
     },
     now: {
       label: 'Teraz',
       entries: [
-        { title: 'Tokeny projektowe W3C', detail: 'Import i eksport tokenów w formacie W3C.' },
         {
           title: 'Storybook z prawdziwych komponentów',
           detail: 'Historie korzystające z Reka UI dla Vue i Radix UI dla React.'

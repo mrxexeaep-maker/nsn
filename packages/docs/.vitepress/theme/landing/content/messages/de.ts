@@ -4,7 +4,7 @@ export const de: LandingMessages = {
   hero: {
     title: 'Design ohne Lock‑in.',
     lede: 'Ein Open-Source-Design-Editor, der deine Figma-Dateien öffnet, auf deinem Rechner läuft und jede Ebene von dir oder deinem KI-Agenten steuern lässt.',
-    open: 'Editor öffnen',
+    open: 'Tour starten',
     download: 'Herunterladen',
     github: 'GitHub'
   },
@@ -125,13 +125,15 @@ export const de: LandingMessages = {
         { title: 'Kommentare und Sprachanrufe in geteilten Räumen' },
         { title: 'Vue- und React-Komponenten im Code-Tab' },
         { title: 'SVG- und HTML-Import als bearbeitbare Ebenen' },
-        { title: 'Shader-Füllungen' }
+        { title: 'Shader-Füllungen' },
+        { title: 'W3C-Design-Tokens' },
+        { title: 'Eine geführte Tour durch den Editor' },
+        { title: 'Listen und Stile für beliebige Textbereiche' }
       ]
     },
     now: {
       label: 'Jetzt',
       entries: [
-        { title: 'W3C-Design-Tokens', detail: 'Tokens im W3C-Format importieren und exportieren.' },
         {
           title: 'Storybook aus echten Komponenten',
           detail: 'Stories mit Reka UI für Vue und Radix UI für React.'
