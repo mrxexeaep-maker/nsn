@@ -90,7 +90,14 @@ const MAX_REPORTED_SEARCH_DIRS: usize = 12;
 /// cover managers that only modify an interactive rc file.
 fn mcp_candidate_dirs() -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = Vec::new();
-    if let Some(home) = std::env::var_os("HOME").map(PathBuf::from) {
+    // Bun, Volta, and npm keep their Windows folders under USERPROFILE, which a HOME set by
+    // Unix-style tools does not always match; HOME remains the fallback there.
+    let home = if cfg!(windows) {
+        std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME"))
+    } else {
+        std::env::var_os("HOME")
+    };
+    if let Some(home) = home.map(PathBuf::from) {
         dirs.push(home.join(".bun/bin"));
         dirs.push(home.join(".local/bin"));
         dirs.push(home.join(".npm-global/bin"));

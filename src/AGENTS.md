@@ -69,11 +69,14 @@ The supported browser baseline lives in `src/app/shell/support/baseline.ts` and 
 - Compose Settings sections with `SettingsSection` and its `title`, `description`, `actions`, and default content slots. It owns heading association and internal spacing; `SettingsGroup` owns bordered row grouping. Do not repeat section, header, or spacing markup per feature.
 - Settings components own layout, translated copy, confirmation visibility, and emits; small presentation-only computed bindings may stay in components. Workflows, persistence, and credentials: `src/AGENTS.md`.
 - `SettingsSaveFeedback` maps domain outcomes (`saved`, `failed`, `partial`) to `AppAlert`. `SettingsLink` owns external-link styling, the icon, and native opening for provider key pages and setup guides; keep arrow glyphs out of translated labels.
+- A section's header-level action (Add, Reset, Restart) goes in its `actions` slot; a link to another settings tab is a `SettingsRow` with an outline `xs` button; status, warning, and error `AppAlert`s come last inside the section they describe, offering only the fix (`src/components/settings/mcp/MCPSettingsPanel.vue`).
+- An integration section links its guide once, as `common.learnMore` at the end of its description; alerts link only to the fix (Node.js, the desktop app), never to docs. Guide URLs live in `src/constants.ts`, except the unsupported-browser guidance, which stays self-contained (`src/app/shell/support/guidance.ts`).
+- Empty lists use `AppPlaceholder`: `size="compact" :fill="false"` for no results or nothing added yet, an icon, description, and action for a feature that still needs setting up (`src/components/assets-panel/AssetsPanel.vue`, `src/components/chat/ProviderSetup.vue`).
 
 ### Feedback and forms
 
 - `AppAlert` (`src/components/ui/feedback/AppAlert.vue`, theme `src/theme/feedback/alert.ts`) for persistent contextual errors, warnings, recovery guidance, and informative results, with translated `heading`/`description` and an `actions` slot. Do not hand-roll alert markup or colored error paragraphs. Alerts announce changes without taking keyboard focus.
-- The toast service is for transient confirmations such as copying or completing an action after its view closes. Never show a toast and an alert for the same event; partial saves and actionable failures must not disappear in a toast.
+- The toast service is for transient confirmations without a visible control to carry them, such as a copy from a menu or shortcut, or an action completed after its view closes. A copy button confirms in place instead: a leading copy icon that turns into a check and the label `common.copied` (`src/components/ui/input/AppCopyField.vue`). Never show a toast and an alert for the same event; partial saves and actionable failures must not disappear in a toast.
 - Field validation stays inline in the shared field component with `aria-invalid`, error text before hints, and first-invalid-field focus.
 - Ordinary labels such as Running/Stopped remain status text or badges. Destructive confirmation belongs in the shared confirmation dialog.
 

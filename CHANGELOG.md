@@ -22,9 +22,22 @@
 - A click on a section's empty area selects the section, while a drag there still selects the layers inside it, and a right-click over the empty area of a frame with layers, or of a section, selects it for the menu. A selection under 10 screen pixels both ways shows no size label, as it shows no handles.
 - With nothing selected, a layer copied out of a frame or section pastes back into it, where it was on the canvas, or onto the page in the middle of the view when that place is out of view, as in Figma.
 - In scripts, `setProperties` switches an instance's variant, alongside its other properties, and fails without changing anything when no variant has the values, with Figma's messages; `resize` places a frame's layers by their constraints while `resizeWithoutConstraints` leaves them, and an instance's layers follow their constraints either way.
+- **Settings…** (<kbd>⌘</kbd><kbd>,</kbd>) is in the **OpenPencil** menu on macOS and at the end of the **File** menu elsewhere, instead of under **View → Preferences**.
+- The demo at `/demo` is a tour of one player card in eight chapters stacked on one canvas, each showing one thing with a numbered card that says what to try and draws the piece of the app to click: preview, the artwork slot, the controls' behaviours, the theme's modes, shader fills, the Code tab, Lint on a card with planted issues, and sharing and opening your own files. It opens on the first chapter with the rest below it and follows the app's light or dark theme. The welcome dialog on first launch offers it next to AI setup, and File > Open the Tour opens it any time.
 
 ### Fixed
 
+- Preview draws controls as the canvas does: in the variable modes the canvas is showing, also after a mode switch or a variable edit, with icons and vector layers as drawn and shader fills playing behind their layers from the canvas's own shader players.
+- Opening a page also loads the pages holding the component sets its instances use, so the variant picker and preview can switch to any variant of a set kept on a page not opened yet. Library copies on Figma's internal canvas stay as the file stores them, and a page that opens later no longer re-reads components an earlier page already built.
+- A slot frame whose corner radius or other field is bound to a variable stays a slot when the file is saved and reopened.
+- An instance whose own content makes it taller or wider than its component, such as a hug frame around longer text, reopens at its saved size.
+- SVG export, and the HTML, JSX, and preview drawings built on it, draw a vector's open strokes beside its filled regions, such as the bar of a skip icon, instead of the regions alone.
+- The contrast check asks 3:1 of large text, 24 px or 18.66 px bold, as WCAG AA does, and 4.5:1 of the rest, holding a text layer to the strictest threshold any of its style runs needs.
+- When saved credentials are paused, the home screen's storage section offers **Retry access** instead of a raw error that pointed to Settings with no way there.
+- Settings → MCP installs or updates a missing or outdated MCP server with one click, through Bun when Bun installed it, explains that it installs separately to keep the download small, and falls back to the install command and a prompt for your agent when npm is missing or the install fails; it no longer suggests reinstalling the old server's own version.
+- Where npm keeps global packages in a folder that needs administrator rights, as with Node from a Linux distribution or the nodejs.org installer on macOS, setup says so and shows the `sudo` command and a prompt for your agent instead of an install that fails, and installs a new MCP server or Harness with Bun when Bun is available.
+- Settings → Tool access lists the local MCP server's tools while the server is stopped, instead of an empty list saying no tools match the search.
+- Settings → MCP shows the local server in the desktop app and WebMCP in the browser, where each works, instead of a WebMCP section the desktop app can never use and a local server the browser reports as unreachable.
 - Lines of text that mix font sizes or line heights are spaced as in Figma: each line is as tall as the tallest line height on it, with its largest font centred in it, instead of stacking the tallest parts of every style on it, which put lines after a large word or a taller line height up to 10 px off.
 - A line height in pixels shorter than the font, such as 24 px on 24 px text, opens from `.fig` files as set instead of as the font's own height.
 - Text with an empty line, or ending in one, saved to `.fig` or copied to Figma shows there, where Figma showed it blank.
@@ -32,6 +45,9 @@
 - `openpencil eval -o` saves a script's edits laid out, though the script never read them back; `@open-pencil/core/figma-api` exports `flushPendingLayout` for hosts that save scripts' results.
 - Saving keeps a fill, stroke, effect, or text style that an instance has cleared, which reopened with the component's style.
 - Layout guides added in the panel or a script save to `.fig` files, where saving failed on them, and a guide read from a file shows as columns or rows in the panel and saves the count edited there. Columns and rows with an Auto count draw as many as fit the frame and read Auto in the panel. Scripts read and set `layoutGrids` in Figma's shape.
+- The properties panel shows the shared styles layers use in opened `.fig` files, where it listed them as missing styles.
+- Styles made in OpenPencil, by importing design tokens or by pasting layers from another document, are saved in `.fig` files as styles, and layers reopen with them. Saving wrote their references empty, so reopening dropped the styles, and saving into an opened file made them layers of the page in Figma.
+- Layers and text that use a library style keep it in Figma after OpenPencil saves them, where Figma showed them with no style.
 
 ## 0.16.0-beta.1 — 2026-10-11
 

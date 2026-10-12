@@ -124,6 +124,7 @@
     "tests/helpers/tauri/native-global.d.ts"
   ],
   "exclude": [
-    "tests/e2e/native/**"
+    "tests/e2e/native/**",
+    "packages/feedback/**"
   ]
 }

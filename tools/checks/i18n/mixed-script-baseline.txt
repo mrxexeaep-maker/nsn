@@ -7,6 +7,7 @@ ja:ai.aiSetupAgentMCP
 ja:ai.aiSetupAgentMCPInstall
 ja:ai.aiSetupAgentMCPStartFailed
 ja:ai.aiSetupAgentNeedsAdapter
+ja:ai.aiSetupAgentNeedsAdmin
 ja:ai.aiSetupAgentNeedsNpm
 ja:ai.aiSetupAgentPromptHint
 ja:ai.aiSetupConnectTitle
@@ -87,11 +88,13 @@ ja:automation.description
 ja:automation.editConnection
 ja:automation.enableConnection
 ja:automation.localMCP
+ja:automation.localServerDesktopOnly
 ja:automation.mcpFailureExited
 ja:automation.mcpFailureMalformed
-ja:automation.mcpFailureMalformedHint
 ja:automation.mcpFailureNotInstalled
 ja:automation.mcpFailureNotInstalledHint
+ja:automation.mcpFailureOutdated
+ja:automation.mcpFailureOutdatedHint
 ja:automation.mcpFailurePermission
 ja:automation.mcpFailurePermissionHint
 ja:automation.mcpFailureRejected
@@ -109,7 +112,7 @@ ja:automation.serverURLHint
 ja:automation.toolAccessDescription
 ja:automation.toolsRestartNotice
 ja:automation.webmcpDescription
-ja:automation.webmcpSetup
+ja:automation.webmcpFailed
 ja:automation.webmcpUnsupported
 ja:code.copyJSXReference
 ja:code.editorHTMLCSSLabel
@@ -204,6 +207,7 @@ zh-cn:ai.aiSetupAgentMCP
 zh-cn:ai.aiSetupAgentMCPInstall
 zh-cn:ai.aiSetupAgentMCPStartFailed
 zh-cn:ai.aiSetupAgentNeedsAdapter
+zh-cn:ai.aiSetupAgentNeedsAdmin
 zh-cn:ai.aiSetupAgentNeedsNpm
 zh-cn:ai.aiSetupAgentPromptHint
 zh-cn:ai.aiSetupConnectTitle
@@ -286,11 +290,13 @@ zh-cn:automation.description
 zh-cn:automation.editConnection
 zh-cn:automation.enableConnection
 zh-cn:automation.localMCP
+zh-cn:automation.localServerDesktopOnly
 zh-cn:automation.mcpFailureExited
 zh-cn:automation.mcpFailureMalformed
-zh-cn:automation.mcpFailureMalformedHint
 zh-cn:automation.mcpFailureNotInstalled
 zh-cn:automation.mcpFailureNotInstalledHint
+zh-cn:automation.mcpFailureOutdated
+zh-cn:automation.mcpFailureOutdatedHint
 zh-cn:automation.mcpFailurePermission
 zh-cn:automation.mcpFailurePermissionHint
 zh-cn:automation.mcpFailureRejected
@@ -308,7 +314,7 @@ zh-cn:automation.serverURLHint
 zh-cn:automation.toolAccessDescription
 zh-cn:automation.toolsRestartNotice
 zh-cn:automation.webmcpDescription
-zh-cn:automation.webmcpSetup
+zh-cn:automation.webmcpFailed
 zh-cn:automation.webmcpUnsupported
 zh-cn:code.copyJSXReference
 zh-cn:code.editorHTMLCSSLabel

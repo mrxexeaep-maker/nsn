@@ -28,7 +28,6 @@
   "clear": "Wyczyść",
   "clearDescription": "Spowoduje to usunięcie lokalnie zapisanych zdarzeń diagnostycznych z tego urządzenia.",
   "cleared": "Wyczyszczono dane diagnostyczne.",
-  "copied": "Skopiowano dane diagnostyczne do schowka.",
   "copyFailed": "Nie można skopiować danych diagnostycznych do schowka.",
   "retentionCustom": "Własna wartość…",
   "retentionRange": "Wpisz liczbę całkowitą od {min} do {max}.",

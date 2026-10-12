@@ -6,6 +6,7 @@ import {
   buildComponentPropIndex,
   exportCanvasGuides,
   importCanvasGuides,
+  parseGuidOrNull,
   stringToGuid,
   type FigNodeChangeExportRuntime
 } from '@open-pencil/fig/node-change'
@@ -18,7 +19,8 @@ import {
   renameBehaviourProperties,
   withBehaviour,
   type PluginDataEntry,
-  type SceneGraph
+  type SceneGraph,
+  type SceneNode
 } from '@open-pencil/scene-graph'
 import { fractionalPosition } from '@open-pencil/scene-graph/order-keys'
 import type { GUID } from '@open-pencil/scene-graph/primitives'
@@ -102,6 +104,15 @@ function ownGuid(
   return sourceGuidValues.has(key) || assignedGuidValues.has(key) ? null : guid
 }
 
+/**
+ * Whether a layer was opened from a file. A style keeps an ID of its own in `source.id`, which
+ * only names a saved record when it spells a GUID; one made by token import or paste does not.
+ */
+function savedFromFile(node: SceneNode): boolean {
+  if (!node.source.id) return false
+  return node.sharedStyleType === null || parseGuidOrNull(node.source.id) !== null
+}
+
 function assignOwnLayerGuids(
   graph: SceneGraph,
   sourceGuidValues: ReadonlySet<string>,
@@ -109,7 +120,7 @@ function assignOwnLayerGuids(
   assignedGuidValues: Set<string>
 ): void {
   for (const node of graph.nodes.values()) {
-    if (node.source.id || node.id === graph.rootId || nodeIdToGuid.has(node.id)) continue
+    if (savedFromFile(node) || node.id === graph.rootId || nodeIdToGuid.has(node.id)) continue
     const guid = ownGuid(node.id, sourceGuidValues, assignedGuidValues)
     if (!guid) continue
     nodeIdToGuid.set(node.id, guid)

@@ -2,15 +2,15 @@ import type { GUID, NodeChange } from '@open-pencil/kiwi/fig/codec'
 import { stringToGuid, UNSET_GUID } from '@open-pencil/kiwi/fig/guid'
 import type { CharacterStyleOverride, SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 
+import { exportedStyleReference, type SceneNodeToKiwiContext } from '../export/context'
 import { textRunVariableEntries } from '../variable/bindings'
 import { textStyleOverrides } from './data-export'
 
 /** The identities a document's records are written with. */
-export interface TextRunReferenceContext {
-  graph: SceneGraph
-  nodeIdToGuid?: Map<string, GUID>
-  varIdToGuid?: Map<string, GUID>
-}
+export type TextRunReferenceContext = Pick<
+  SceneNodeToKiwiContext,
+  'graph' | 'nodeIdToGuid' | 'varIdToGuid' | 'styleNodeIds' | 'styleReferences'
+>
 
 function applyRunReferences(
   context: TextRunReferenceContext,
@@ -23,14 +23,14 @@ function applyRunReferences(
     override.hyperlink = link.type === 'URL' ? { url: link.value } : { guid: guid(link.value) }
   // The unset GUID writes a range that leaves the text's style.
   if (style.textStyleId !== undefined) {
-    override.styleIdForText = {
-      guid: style.textStyleId ? guid(style.textStyleId) : { ...UNSET_GUID }
-    }
+    override.styleIdForText = style.textStyleId
+      ? exportedStyleReference(context, style.textStyleId)
+      : { guid: { ...UNSET_GUID } }
   }
   if (style.fillStyleId !== undefined) {
-    override.styleIdForFill = {
-      guid: style.fillStyleId ? guid(style.fillStyleId) : { ...UNSET_GUID }
-    }
+    override.styleIdForFill = style.fillStyleId
+      ? exportedStyleReference(context, style.fillStyleId)
+      : { guid: { ...UNSET_GUID } }
   }
   const entries = textRunVariableEntries(
     style.boundVariables ?? {},

@@ -69,7 +69,6 @@ export const diagnosticsMessageDefaults = {
   clear: 'Clear',
   clearDescription: 'This removes locally stored diagnostic events from this device.',
   cleared: 'Diagnostics cleared.',
-  copied: 'Diagnostics copied to clipboard.',
   copyFailed: 'Could not copy diagnostics to the clipboard.'
 } as const
 
