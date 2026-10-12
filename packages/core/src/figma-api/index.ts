@@ -62,6 +62,7 @@ import type { ExportImageOptions } from './types'
 const noop = () => undefined
 
 export { FigmaNodeProxy } from './proxy'
+export { flushPendingLayout } from './pending-layout'
 export type { FigmaEffect } from './effects'
 export type { ExportImageOptions } from './types'
 export type {
