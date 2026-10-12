@@ -54,6 +54,8 @@ test('frames with the same guides list them, and an edit changes every frame in 
 }) => {
   const { frames } = await setup(page, [[COLUMNS], [COLUMNS]])
   await select(page, frames)
+  await expect(page.locator('[data-property="layout-guide-pattern"]')).toHaveText('5 columns')
+  await page.locator('[data-property="layout-guide-settings"]').click()
   const count = page.getByRole('spinbutton', { name: 'Count', exact: true })
   await expect(count).toBeVisible()
   await count.dblclick()
@@ -71,9 +73,18 @@ test('frames with different guides show none, and Add gives each one 10 px grid'
   const { frames } = await setup(page, [[COLUMNS], []])
   await select(page, frames)
   await expect(heading(page)).toBeVisible()
-  await expect(page.getByRole('spinbutton', { name: 'Count', exact: true })).toHaveCount(0)
+  await expect(page.locator('[data-property="layout-guide-settings"]')).toHaveCount(0)
   await page.getByRole('button', { name: 'Add layout guide' }).click()
   await expect.poll(() => guidesOf(page, frames)).toEqual([['GRID 5 10'], ['GRID 5 10']])
+})
+
+test('switching a guide to rows keeps its count and names the new pattern', async ({ page }) => {
+  const { frames } = await setup(page, [[COLUMNS]])
+  await select(page, frames)
+  await page.locator('[data-property="layout-guide-pattern"]').click()
+  await page.getByRole('option', { name: 'Rows', exact: true }).click()
+  await expect.poll(() => guidesOf(page, frames)).toEqual([['ROWS 5']])
+  await expect(page.locator('[data-property="layout-guide-pattern"]')).toHaveText('5 rows')
 })
 
 test('a selection with a layer that is not a frame has no layout guides', async ({ page }) => {

@@ -119,9 +119,9 @@ const { panels } = useI18n()
     <TypographySection />
     <FillSection />
     <StrokeSection />
-    <LayoutGridSection v-if="supportsLayoutGuides" />
     <EffectsSection />
     <SelectionColorsSection />
+    <LayoutGridSection v-if="supportsLayoutGuides" />
     <ExportSection />
   </div>
 
@@ -214,9 +214,9 @@ const { panels } = useI18n()
       <TypographySection v-if="node.type === 'TEXT'" />
       <FillSection />
       <StrokeSection />
-      <LayoutGridSection v-if="supportsLayoutGuides" />
       <EffectsSection />
       <SelectionColorsSection />
+      <LayoutGridSection v-if="supportsLayoutGuides" />
 
       <ExportSection />
     </div>
