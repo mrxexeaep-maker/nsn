@@ -9,6 +9,7 @@
 
 ### Added
 
+- Drop design token files, `.tokens`, `.tokens.json`, or `.resolver.json`, on the editor to import them into the document's variables, as the Variables dialog's Import button does.
 - Text keeps a case, a link, text and fill styles, and variable bindings for any range of its characters, as in Figma: the canvas draws each range in its own case, `.fig` files and the Figma clipboard keep them, apart from font weight bindings, HTML, Tailwind, and JSX exports write links as `<a href>` and cases as `text-transform` and HTML import reads them back, Design JSX `<Span>` takes `textCase` and `href`, and the Typography section's text case changes the selected characters while text is edited. Scripts read and set them with `getRangeTextCase`, `setRangeTextCase`, `getRangeHyperlink`, `setRangeHyperlink`, `getRangeTextStyleId`, `setRangeTextStyleIdAsync`, `getRangeFillStyleId`, `setRangeFillStyleIdAsync`, `getRangeBoundVariable`, `setRangeBoundVariable`, and the text's `hyperlink`.
 
 ### Changed
