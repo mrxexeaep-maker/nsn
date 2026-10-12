@@ -64,6 +64,8 @@ test('styles added to an opened file are written on the internal canvas, not as 
   const internal = records.find((record) => record.type === 'CANVAS' && record.internalOnly)
   const definition = records.find((record) => record.name === 'Brand')
   expect(definition?.parentIndex?.guid).toEqual(expectDefined(internal?.guid))
+  // A style made in OpenPencil is saved under its own ID, as a new layer is.
+  expect(guidToString(expectDefined(definition?.guid))).toBe(style.id)
   // The page's layers keep their records: the style takes no place among them.
   const before = recordsOf(bytes)
   for (const name of ['Frame', 'Dot']) {
