@@ -163,4 +163,26 @@ describe('Figma shared style export', () => {
     expect(styled?.styleIdForText).toEqual(library)
     expect(styled?.textData?.styleOverrideTable?.[0]?.styleIdForText).toEqual(library)
   })
+
+  test('gives styles whose ids spell one GUID records of their own', async () => {
+    const graph = new SceneGraph()
+    const page = graph.getPages()[0]
+    for (const [name, id] of [
+      ['Plain', '1:10'],
+      ['Padded', '01:010']
+    ]) {
+      const style = graph.createNode('RECTANGLE', page.id, {
+        name,
+        sharedStyleType: 'FILL',
+        internalOnly: true
+      })
+      style.source.id = id
+    }
+
+    const parsed = parseFigBuffer(uint8ArrayToArrayBuffer(await exportFigFile(graph)))
+    const guids = ['Plain', 'Padded'].map((name) =>
+      JSON.stringify(parsed.nodeChanges.find((change) => change.name === name)?.guid)
+    )
+    expect(new Set(guids).size).toBe(2)
+  })
 })

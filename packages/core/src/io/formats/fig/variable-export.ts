@@ -1,5 +1,6 @@
 import {
   collectionPluginDataNodeChange,
+  parseGuidOrNull,
   variableMetadataNodeChange
 } from '@open-pencil/fig/node-change'
 import type { GUID, NodeChange, VariableDataEntry } from '@open-pencil/kiwi/fig/codec'
@@ -94,10 +95,12 @@ export function assignSharedStyleGuids(
 ): void {
   for (const style of styles) {
     if (nodeIdToGuid.has(style.id)) continue
-    const id = style.source.id
-    if (id && /^\d+:\d+$/.test(id) && !assignedGuidValues.has(id)) {
-      nodeIdToGuid.set(style.id, stringToGuid(id))
-      assignedGuidValues.add(id)
+    // A style read from Figma keeps its GUID, compared in the form the ID parses to.
+    const imported = style.source.id ? parseGuidOrNull(style.source.id) : null
+    const value = imported ? guidToString(imported) : null
+    if (imported && value && !assignedGuidValues.has(value)) {
+      nodeIdToGuid.set(style.id, imported)
+      assignedGuidValues.add(value)
       continue
     }
     let guid: GUID
