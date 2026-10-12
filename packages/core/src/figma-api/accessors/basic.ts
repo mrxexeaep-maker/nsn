@@ -1,3 +1,5 @@
+import { pickBy } from 'es-toolkit'
+
 import {
   getAxisAlignedWorldBounds,
   getWorldMatrix,
@@ -289,10 +291,19 @@ function resizeNode(
     (node.textAutoResize === 'WIDTH_AND_HEIGHT' || node.textAutoResize === 'HEIGHT')
   // A locked ratio does not hold here; it takes the new size, as in Figma.
   const recaptured = recapturedAspectRatio(node, width, height)
+  // Auto layout given a size keeps it, as in Figma: hugging axes become fixed.
+  const fixed = node.layoutMode === 'HORIZONTAL' || node.layoutMode === 'VERTICAL'
+  const sizing = fixed
+    ? pickBy(
+        { primaryAxisSizing: 'FIXED' as const, counterAxisSizing: 'FIXED' as const },
+        (value, key) => node[key] !== value
+      )
+    : {}
   scene.updateNode(node.id, {
     width,
     height,
     ...recaptured,
+    ...sizing,
     ...(fixesText ? { textAutoResize: 'NONE' as const } : {})
   })
   if (placed.size > 0 && size.width > 0 && size.height > 0) {
@@ -303,6 +314,7 @@ function resizeNode(
     'width',
     'height',
     ...Object.keys(recaptured),
+    ...Object.keys(sizing),
     ...(fixesText ? ['textAutoResize'] : [])
   ])
   setTransform(target, internals, () => before)
