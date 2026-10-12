@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from 'bun:test'
 
 import { guid } from '#fig-tests/helpers/guid'
-import { figComponentUsePages, patchFigMessage, patchFigRecords } from '#fig/record-patch'
+import { figComponentUsePages, patchFigMessage, patchFigRecords } from '#fig/record-patch/index'
 import { deflateSync } from 'fflate'
 
 import {

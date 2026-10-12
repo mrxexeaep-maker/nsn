@@ -1,9 +1,15 @@
 import { uniq } from 'es-toolkit/array'
 import { isEqual } from 'es-toolkit/predicate'
 
-import type { FigArchiveRecordInfo, FigRecordFieldPatch } from '@open-pencil/fig'
+import {
+  entryPathKey,
+  type FigArchiveRecordInfo,
+  type FigEntryListPatch,
+  type FigRecordFieldPatch
+} from '@open-pencil/fig'
+import { derivedSymbolDataOf, symbolDataOf } from '@open-pencil/fig/instance-overrides'
 import type { FigNodeChangeExportRuntime } from '@open-pencil/fig/node-change'
-import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
+import type { GUID, NodeChange } from '@open-pencil/kiwi/fig/codec'
 import { guidToString } from '@open-pencil/kiwi/fig/guid'
 import type { SceneGraph } from '@open-pencil/scene-graph'
 
@@ -76,17 +82,93 @@ async function baselineRecords(
   )
 }
 
-/** The fields of `record` that differ from the `saved` one, or null when none does. */
+interface PathEntry {
+  guidPath?: { guids?: GUID[] }
+}
+
+/**
+ * What changed between two lists of entries addressed by layer path, or undefined when nothing
+ * did. A list naming one path twice cannot be matched entry by entry, which `null` reports.
+ */
+function entryListPatch(
+  before: readonly PathEntry[],
+  after: readonly PathEntry[]
+): FigEntryListPatch | null | undefined {
+  const saved = new Map(before.map((entry) => [entryPathKey(entry.guidPath?.guids), entry]))
+  const current = new Map(after.map((entry) => [entryPathKey(entry.guidPath?.guids), entry]))
+  if (saved.size !== before.length || current.size !== after.length) return null
+  const entries: FigEntryListPatch['entries'] = []
+  for (const [key, entry] of current) {
+    const { guidPath, ...fields } = entry as PathEntry & Record<string, unknown>
+    const previous = saved.get(key) as (PathEntry & Record<string, unknown>) | undefined
+    const set = Object.fromEntries(
+      Object.entries(fields).filter(([field, value]) => !isEqual(previous?.[field], value))
+    )
+    const unset = previous
+      ? Object.keys(previous).filter((field) => field !== 'guidPath' && !(field in fields))
+      : []
+    if (Object.keys(set).length > 0 || unset.length > 0)
+      entries.push({ path: guidPath?.guids ?? [], set, unset })
+  }
+  const removed = [...saved].flatMap(([key, entry]) =>
+    current.has(key) ? [] : [entry.guidPath?.guids ?? []]
+  )
+  return entries.length > 0 || removed.length > 0 ? { entries, removed } : undefined
+}
+
+/**
+ * Whether `field` is one of an instance's lists addressed by layer path, compared entry by
+ * entry into `patch`. A list that cannot be, or overrides whose component changed, are not.
+ */
+function patchEntryList(
+  field: string,
+  saved: NodeChange,
+  record: NodeChange,
+  patch: FigRecordFieldPatch
+): boolean {
+  if (field === 'symbolData') {
+    const before = symbolDataOf(saved)
+    const after = symbolDataOf(record)
+    if (!before || !after) return false
+    const { symbolOverrides: savedOverrides = [], ...savedRest } = before
+    const { symbolOverrides: overrides = [], ...rest } = after
+    if (!isEqual(savedRest, rest)) return false
+    const changed = entryListPatch(savedOverrides, overrides)
+    if (changed === null) return false
+    if (changed) patch.symbolOverrides = changed
+    return true
+  }
+  if (field === 'derivedSymbolData' && saved.derivedSymbolData && record.derivedSymbolData) {
+    const changed = entryListPatch(derivedSymbolDataOf(saved), derivedSymbolDataOf(record))
+    if (changed === null) return false
+    if (changed) patch.derivedSymbolData = changed
+    return true
+  }
+  return false
+}
+
+/**
+ * The fields of `record` that differ from the `saved` one, or null when none does. An
+ * instance's overrides and derived values are compared entry by entry, so an edit to one layer
+ * leaves the entries of the others as the archive saved them.
+ */
 function changedFields(saved: NodeChange, record: NodeChange): FigRecordFieldPatch | null {
+  if (!record.guid) return null
   const set: Partial<NodeChange> = {}
   const unset: string[] = []
-  const fields = uniq([...Object.keys(saved), ...Object.keys(record)])
-  for (const field of fields) {
+  const patch: FigRecordFieldPatch = { guid: record.guid, set, unset }
+  for (const field of uniq([...Object.keys(saved), ...Object.keys(record)])) {
     if (!(field in record)) unset.push(field)
-    else if (!isEqual(saved[field], record[field])) Object.assign(set, { [field]: record[field] })
+    else if (isEqual(saved[field], record[field])) continue
+    else if (!patchEntryList(field, saved, record, patch))
+      Object.assign(set, { [field]: record[field] })
   }
-  if (!record.guid || (Object.keys(set).length === 0 && unset.length === 0)) return null
-  return { guid: record.guid, set, unset }
+  const changed =
+    Object.keys(set).length > 0 ||
+    unset.length > 0 ||
+    patch.symbolOverrides ||
+    patch.derivedSymbolData
+  return changed ? patch : null
 }
 
 /**

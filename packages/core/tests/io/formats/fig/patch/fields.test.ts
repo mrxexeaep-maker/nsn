@@ -5,9 +5,11 @@ import { readFixtureArrayBuffer } from '#core-tests/helpers/fig/fixtures'
 import { uniq } from 'es-toolkit/array'
 import { isEqual } from 'es-toolkit/predicate'
 
+import { createEditor } from '@open-pencil/core/editor'
 import { exportFigFile, parseFigFile } from '@open-pencil/core/io'
 import { initCodec } from '@open-pencil/core/kiwi'
 import { parseFigBuffer } from '@open-pencil/fig'
+import { symbolOverridesOf } from '@open-pencil/fig/instance-overrides'
 import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
 import { guidToString } from '@open-pencil/kiwi/fig/guid'
 import type { SceneGraph } from '@open-pencil/scene-graph'
@@ -53,6 +55,35 @@ test('an edit rewrites only the fields it changed, keeping those OpenPencil does
   const changed = changes(recordsOf(bytes), recordsOf(await exportFigFile(graph)))
   // Figma's own fields, its library links, and the overrides it saved all stay.
   expect([...changed.values()]).toEqual([['name']])
+})
+
+test('renaming an instance adds its name to the overrides Figma saved, and changes no other', async () => {
+  const { bytes, graph } = await openGoldPreview()
+  const list = expectDefined([...graph.nodes.values()].find((node) => node.name === 'Checked List'))
+  const [instance] = graph.getChildren(list.id)
+  const saved = recordsOf(bytes)
+  const listGuid = [...saved].find(([, record]) => record.name === 'Checked List')?.[0]
+  const [guid] = expectDefined(
+    [...saved]
+      .filter(([, record]) => record.type === 'INSTANCE' && record.parentIndex?.guid)
+      .filter(([, record]) => guidToString(expectDefined(record.parentIndex?.guid)) === listGuid)
+      .toSorted(([, a], [, b]) =>
+        (a.parentIndex?.position ?? '').localeCompare(b.parentIndex?.position ?? '')
+      )
+      .at(0)
+  )
+  createEditor({ graph }).updateNodeWithUndo(instance.id, { name: 'Lists renamed' }, 'Rename')
+
+  const before = expectDefined(saved.get(guid))
+  const after = expectDefined(recordsOf(await exportFigFile(graph)).get(guid))
+  type Override = [path: string, fields: object]
+  const overrides = (record: NodeChange): Override[] =>
+    symbolOverridesOf(record).map(({ guidPath, ...fields }) => [JSON.stringify(guidPath), fields])
+  // Figma shows an instance's own name from the override on its own path, beside its size.
+  const renamed = overrides(before).map(([path, fields]): Override =>
+    'stackCounterSizing' in fields ? [path, { ...fields, name: 'Lists renamed' }] : [path, fields]
+  )
+  expect(overrides(after)).toEqual(renamed)
 })
 
 test('a mode added to a collection of library aliases keeps the file as Figma saved it', async () => {

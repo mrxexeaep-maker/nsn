@@ -11,25 +11,21 @@ import {
 } from '@open-pencil/kiwi/schema-runtime'
 import { orderKeyBetween } from '@open-pencil/scene-graph/order-keys'
 
-import { readFigArchiveParts, writeFigArchive, type FigImageEntry } from './archive'
-import { symbolDataOf, symbolOverridesOf } from './instance-overrides/types'
+import { readFigArchiveParts, writeFigArchive, type FigImageEntry } from '../archive'
+import { symbolDataOf, symbolOverridesOf } from '../instance-overrides/types'
+import { patchedRecord, type FigRecordFieldPatch } from './fields'
+
+export {
+  entryPathKey,
+  type FigEntryListPatch,
+  type FigEntryPatch,
+  type FigRecordFieldPatch
+} from './fields'
 
 /**
  * What an edited document changes in the archive it was opened from: the records to write, by
  * GUID, and the records to drop. Records nobody touched stay as the archive saved them.
  */
-/**
- * Fields an edit changed in a record the archive holds. The rest of the record stays as the
- * archive saved it, fields OpenPencil does not model included.
- */
-export interface FigRecordFieldPatch {
-  guid: GUID
-  /** Fields written over the archive's. */
-  set: Partial<NodeChange>
-  /** Fields the record no longer has. */
-  unset: string[]
-}
-
 export interface FigRecordPatch {
   /** Written in place of the archive's record with the same GUID, or added after the rest. */
   records: NodeChange[]
@@ -228,17 +224,6 @@ function placeVariableRecords(
 }
 
 /**
- * Merge a patch into the archive's records. Untouched records keep their place; a written
- * record takes its archive record's, and one whose parent is new follows that parent.
- */
-/** An archive record with an edit's fields merged in. */
-function patchedRecord(record: NodeChange, patch: FigRecordFieldPatch): NodeChange {
-  const merged: Record<string, unknown> = { ...record, ...structuredClone(patch.set) }
-  for (const field of patch.unset) Reflect.deleteProperty(merged, field)
-  return merged as NodeChange
-}
-
-/**
  * Add the archive records whose fields the patch changes to `written`, merged, and return the
  * records removed. A record an edit moved has left a removed parent; one it left in place goes
  * with it.
@@ -260,6 +245,10 @@ function writeFieldPatches<Value>(
   return removed
 }
 
+/**
+ * Merge a patch into the archive's records. Untouched records keep their place; a written
+ * record takes its archive record's, and one whose parent is new follows that parent.
+ */
 function mergeRecords<Value>(
   archive: ReadonlyArray<RecordEntry<Value>>,
   patch: Pick<FigRecordPatch, 'records' | 'fields' | 'removed' | 'replaceVariables'>,
