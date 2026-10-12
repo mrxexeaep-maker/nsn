@@ -5,7 +5,7 @@ import {
   type FigArchiveRecordInfo,
   type FigRecordPatch
 } from '@open-pencil/fig'
-import type { FigNodeChangeExportRuntime } from '@open-pencil/fig/node-change'
+import { nameImagesForFigma, type FigNodeChangeExportRuntime } from '@open-pencil/fig/node-change'
 import { stringToGuid } from '@open-pencil/kiwi/fig/guid'
 import { ownsSlotContent, type SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
 import { siblingOrderKeys } from '@open-pencil/scene-graph/order-keys'
@@ -372,8 +372,10 @@ export async function writePatchedFigFile(
     throw error
   }
   if (!built) return null
+  const imageNames = nameImagesForFigma(built.patch.records, built.graph.images)
   const extras = await figFileExtras(
     built.graph,
+    imageNames,
     options.pageId,
     options.ck,
     options.renderer,

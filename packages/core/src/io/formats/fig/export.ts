@@ -1,7 +1,11 @@
 import type { CanvasKit } from 'canvaskit-wasm'
 
 import { compressFigDataSync } from '@open-pencil/fig'
-import { placeSlotContent, type FigNodeChangeExportRuntime } from '@open-pencil/fig/node-change'
+import {
+  nameImagesForFigma,
+  placeSlotContent,
+  type FigNodeChangeExportRuntime
+} from '@open-pencil/fig/node-change'
 import { initCodec } from '@open-pencil/kiwi/fig/codec'
 import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
 import type { SceneGraph } from '@open-pencil/scene-graph'
@@ -188,8 +192,16 @@ async function writeFigFile(
     msg.blobs = blobs.map((bytes) => ({ bytes }))
   }
 
+  const imageNames = nameImagesForFigma(nodeChanges, graph.images)
   const kiwiData = compiled.encodeMessage(msg)
-  const extras = await figFileExtras(graph, pageId, ck, renderer, renderHeadlessThumbnail)
+  const extras = await figFileExtras(
+    graph,
+    imageNames,
+    pageId,
+    ck,
+    renderer,
+    renderHeadlessThumbnail
+  )
 
   const version = graph.figKiwiVersion ?? undefined
 
