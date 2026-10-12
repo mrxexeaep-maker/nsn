@@ -2,26 +2,43 @@ import type { FeedbackServices } from '#feedback/app'
 import * as v from 'valibot'
 
 const SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+const SITEVERIFY_TIMEOUT_MS = 10_000
 
 const SiteverifySchema = v.object({
   success: v.boolean(),
-  hostname: v.optional(v.string())
+  hostname: v.optional(v.string()),
+  action: v.optional(v.string())
 })
 
-/** Whether Turnstile accepts the form's token for our site; the client address is not sent. */
+/**
+ * Whether Turnstile accepts the token as one issued on our site for `action`. Anything else,
+ * including an unreachable or slow Turnstile, refuses. The client address is optional to
+ * Turnstile and is not sent. Turnstile itself rejects a token used twice.
+ */
 export async function verifyTurnstile(
   fetcher: FeedbackServices['fetch'],
-  { secret, token, hostname }: { secret: string; token: string; hostname: string }
+  {
+    secret,
+    token,
+    hostname,
+    action
+  }: { secret: string; token: string; hostname: string; action: string }
 ): Promise<boolean> {
   const response = await fetcher(SITEVERIFY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ secret, response: token })
+    body: JSON.stringify({ secret, response: token }),
+    signal: AbortSignal.timeout(SITEVERIFY_TIMEOUT_MS)
   }).catch(() => null)
   if (!response?.ok) return false
   const result = v.safeParse(
     v.pipe(v.string(), v.parseJson(), SiteverifySchema),
     await response.text()
   )
-  return result.success && result.output.success && result.output.hostname === hostname
+  return (
+    result.success &&
+    result.output.success &&
+    result.output.hostname === hostname &&
+    result.output.action === action
+  )
 }

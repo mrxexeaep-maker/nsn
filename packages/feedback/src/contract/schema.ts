@@ -108,6 +108,12 @@ export const UsageBatchSchema = v.strictObject({
 })
 export type UsageBatch = v.InferOutput<typeof UsageBatchSchema>
 
+/** The public Turnstile site key for the website's waitlist form; the secret lives on the Worker. */
+export const TURNSTILE_SITE_KEY = '0x4AAAAAAFUZEGj-sE8C_2zT'
+
+/** The `data-action` the waitlist form gives its widget; tokens issued for anything else are refused. */
+export const WAITLIST_TURNSTILE_ACTION = 'waitlist'
+
 /** A Cloud waitlist sign-up from the website form. */
 export const WaitlistSignupSchema = v.strictObject({
   email: v.pipe(v.string(), v.trim(), v.maxLength(254), v.email()),

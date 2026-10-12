@@ -8,7 +8,7 @@ let service: TestService
 const SIGNUP = { email: 'Ada@Example.com', note: 'Team libraries', turnstileToken: 'token' }
 const START = new Date('2026-10-12T09:00:00.000Z')
 
-function turnstile(result: { success: boolean; hostname?: string }) {
+function turnstile(result: { success: boolean; hostname?: string; action?: string }) {
   service.respond('https://challenges.cloudflare.com/', () => Response.json(result))
 }
 
@@ -38,7 +38,7 @@ beforeEach(async () => {
   await service.db.prepare('DELETE FROM waitlist').run()
   service.sentEmails.length = 0
   service.setNow(START)
-  turnstile({ success: true, hostname: 'openpencil.dev' })
+  turnstile({ success: true, hostname: 'openpencil.dev', action: 'waitlist' })
 })
 
 afterAll(async () => {
@@ -101,6 +101,12 @@ describe('waitlist', () => {
     expect(service.sentEmails).toEqual([])
   })
 
+  test('refuses a Turnstile pass issued for another form', async () => {
+    turnstile({ success: true, hostname: 'openpencil.dev', action: 'newsletter' })
+
+    expect((await service.postJSON('/waitlist', SIGNUP)).status).toBe(403)
+  })
+
   test('refuses a sign-up when Turnstile cannot be reached', async () => {
     service.respond('https://challenges.cloudflare.com/', () => {
       throw new TypeError('Network connection lost')
@@ -111,7 +117,7 @@ describe('waitlist', () => {
   })
 
   test('refuses a Turnstile pass issued for another site', async () => {
-    turnstile({ success: true, hostname: 'example.com' })
+    turnstile({ success: true, hostname: 'example.com', action: 'waitlist' })
 
     expect((await service.postJSON('/waitlist', SIGNUP)).status).toBe(403)
   })

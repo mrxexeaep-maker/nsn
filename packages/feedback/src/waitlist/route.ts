@@ -1,5 +1,9 @@
 import type { FeedbackEnv, FeedbackServices } from '#feedback/app'
-import { FEEDBACK_ROUTES, WaitlistSignupSchema } from '#feedback/contract'
+import {
+  FEEDBACK_ROUTES,
+  WAITLIST_TURNSTILE_ACTION,
+  WaitlistSignupSchema
+} from '#feedback/contract'
 import { createFeedbackDatabase } from '#feedback/db'
 import { readJSON, withinLimit } from '#feedback/http/request'
 import type { Context, Hono } from 'hono'
@@ -44,7 +48,8 @@ export function addWaitlistRoutes(app: Hono<FeedbackEnv>, services: FeedbackServ
     const human = await verifyTurnstile(services.fetch, {
       secret: c.env.TURNSTILE_SECRET,
       token: signup.turnstileToken,
-      hostname: c.env.TURNSTILE_HOSTNAME
+      hostname: c.env.TURNSTILE_HOSTNAME,
+      action: WAITLIST_TURNSTILE_ACTION
     })
     if (!human) return c.body(null, 403)
     const token = await signUp(createFeedbackDatabase(c.env.DB), signup, services.now())
