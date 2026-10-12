@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 
 import { appPreferences, DEFAULT_APP_PREFERENCES } from '@/app/settings/preferences/store'
-import { setUsageStatsConsent, shouldAskUsageStats } from '@/app/telemetry'
+import { offerUsageStatsPrompt, setUsageStatsConsent, usageStatsPrompt } from '@/app/telemetry'
 import { sharingState } from '@/app/telemetry/state'
 
 beforeEach(() => {
@@ -32,6 +32,7 @@ describe('usage stats consent', () => {
   })
 
   test('a build that sends nothing never asks', () => {
-    expect(shouldAskUsageStats()).toBe(false)
+    offerUsageStatsPrompt('welcome')
+    expect(usageStatsPrompt.value).toBeNull()
   })
 })

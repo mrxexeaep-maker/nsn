@@ -13,8 +13,11 @@ import { sharingDisabledByEnvironment, sharingState } from './state'
 /** Whether this build asks about usage stats at all: official builds, environment permitting. */
 const askable = ref(false)
 
-/** The standalone question, for people who never saw it on the welcome screen. */
-export const usageStatsPromptOpen = ref(false)
+/**
+ * Where the question is open, or `null`: `welcome` right after the first-run welcome closes,
+ * `prompt` on a later launch, for installs that updated or never answered.
+ */
+export const usageStatsPrompt = ref<Exclude<ConsentSource, 'settings'> | null>(null)
 
 export const usageStatsConsent = computed(() => appPreferences.value.sharing.usageStats)
 
@@ -28,7 +31,7 @@ export function setUsageStatsConsent(granted: boolean, source: ConsentSource): v
     ...sharingState.value,
     installId: granted ? (sharingState.value.installId ?? randomHex(16)) : null
   }
-  usageStatsPromptOpen.value = false
+  usageStatsPrompt.value = null
   if (!granted) {
     sharingClient.discardPendingUsage()
     return
@@ -37,18 +40,10 @@ export function setUsageStatsConsent(granted: boolean, source: ConsentSource): v
   sharingClient.trackUsage({ name: 'app_opened', locale: locale.get() })
 }
 
-/** Whether the welcome screen should ask, decided before it opens. */
-export function shouldAskUsageStats(): boolean {
-  return askable.value && usageStatsConsent.value === 'unset'
-}
-
-/**
- * Asks with the standalone prompt when the question is still open and the welcome screen did
- * not just ask it, so an install that skipped the welcome is asked on its next launch.
- */
-export function offerUsageStatsPrompt({ welcomeShown }: { welcomeShown: boolean }): void {
-  if (welcomeShown || !shouldAskUsageStats()) return
-  usageStatsPromptOpen.value = true
+/** Opens the question unless this build or environment sends nothing, or it was answered. */
+export function offerUsageStatsPrompt(source: Exclude<ConsentSource, 'settings'>): void {
+  if (!askable.value || usageStatsConsent.value !== 'unset') return
+  usageStatsPrompt.value = source
 }
 
 export async function resolveUsageStatsQuestion(): Promise<void> {

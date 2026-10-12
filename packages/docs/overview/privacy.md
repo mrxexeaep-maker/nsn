@@ -54,7 +54,7 @@ The ping is on by default. Turn it off in **Settings → Privacy**.
 
 ## Usage stats
 
-Usage stats are off until you agree. OpenPencil asks once, on the welcome screen or in a small prompt on a later launch, with two equal choices: **No thanks** and **Share stats**. Nothing is selected for you, and you can change your answer later in **Settings → Privacy**.
+Usage stats are off until you agree. OpenPencil asks once, in a small prompt that appears after the welcome screen on first launch, or on a later launch if you have not answered, with two equal choices: **No thanks** and **Share stats**. Nothing is selected for you, and you can change your answer later in **Settings → Privacy**.
 
 When you agree, the app creates a random install ID on your device. It is not linked to an account, an email address, or anything else about you. Usage events are sent with it, together with the build fields above (<code>{{ buildFields }}</code>). When you stop sharing, the app deletes the ID; agreeing again creates a new one.
 

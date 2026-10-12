@@ -6,7 +6,7 @@ import {
   updateSharingPreferences,
   type UsageStatsConsent
 } from '@/app/settings/preferences/store'
-import { usageStatsPromptOpen } from '@/app/telemetry'
+import { usageStatsPrompt } from '@/app/telemetry'
 
 import UsageStatsPrompt from './UsageStatsPrompt.vue'
 import UsageStatsQuestion from './UsageStatsQuestion.vue'
@@ -24,17 +24,16 @@ const meta = {
     components: { UsageStatsQuestion },
     setup() {
       updateSharingPreferences({ usageStats: args.consent })
-      return {}
+      return { args }
     },
-    template: '<div class="max-w-md"><UsageStatsQuestion source="welcome" framed /></div>'
+    template: '<div class="max-w-80"><UsageStatsQuestion :source="args.source" /></div>'
   })
 } satisfies Meta<Args>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** On the welcome screen, below the AI introduction. */
-export const Welcome: Story = {}
+export const Asking: Story = {}
 
 export const Accepted: Story = { args: { consent: 'granted' } }
 
@@ -50,13 +49,13 @@ export const Answering: Story = {
   }
 }
 
-/** For people who skipped the welcome or updated from an earlier version. */
-export const LaterPrompt: Story = {
+/** The card shown once the first-run welcome closes, and on a later launch until answered. */
+export const Prompt: Story = {
   render: () => ({
     components: { UsageStatsPrompt },
     setup() {
       updateSharingPreferences({ usageStats: 'unset' })
-      usageStatsPromptOpen.value = true
+      usageStatsPrompt.value = 'welcome'
       return {}
     },
     template: '<UsageStatsPrompt />'

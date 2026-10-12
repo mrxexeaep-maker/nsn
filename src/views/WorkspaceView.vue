@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { useHead } from '@unhead/vue'
-import { useEventListener } from '@vueuse/core'
+import { useEventListener, whenever } from '@vueuse/core'
 import { onMounted, onUnmounted, provide, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useI18n } from '@open-pencil/vue'
 
-import { offerAISetupOnFirstRun } from '@/app/ai/models/settings/onboarding/dialog'
+import {
+  aiSetupDialogOpen,
+  offerAISetupOnFirstRun
+} from '@/app/ai/models/settings/onboarding/dialog'
 import { exposeAutomationTestRequests } from '@/app/automation/bridge/test-hooks'
 import { startMCPRuntime, stopMCPRuntime } from '@/app/automation/mcp/runtime'
 import { startWebMCP } from '@/app/automation/webmcp/runtime'
@@ -85,14 +88,24 @@ function openFirstTab(): Tab {
   }
 }
 
-const offerWelcome =
+const welcomeShown =
   createdInitialTab && route.path === '/' && !appRuntimeConfig.test && !route.meta.demo
-// The welcome waits for sharing to start, which knows whether it may ask about usage stats.
-async function greet(): Promise<void> {
-  await startSharing()
-  offerUsageStatsPrompt({ welcomeShown: offerWelcome && offerAISetupOnFirstRun() })
+    ? offerAISetupOnFirstRun()
+    : false
+const sharingStarted = startSharing()
+// One question per surface: a first run is asked about usage stats once the welcome closes.
+if (welcomeShown) {
+  whenever(
+    () => !aiSetupDialogOpen.value,
+    async () => {
+      await sharingStarted
+      offerUsageStatsPrompt('welcome')
+    },
+    { once: true }
+  )
+} else {
+  void sharingStarted.then(() => offerUsageStatsPrompt('prompt'))
 }
-void greet()
 
 useHead({ title: route.meta.demo ? 'Demo' : undefined })
 useKeyboard()

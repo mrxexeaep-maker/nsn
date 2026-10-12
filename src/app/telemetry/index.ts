@@ -8,9 +8,8 @@ import { sharingClient } from './instance'
 export {
   offerUsageStatsPrompt,
   setUsageStatsConsent,
-  shouldAskUsageStats,
   usageStatsConsent,
-  usageStatsPromptOpen
+  usageStatsPrompt
 } from './consent'
 export type { UsageEventInput } from './client'
 
