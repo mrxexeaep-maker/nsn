@@ -21,11 +21,14 @@
   },
   "dependencies": {
     "@open-pencil/scene-graph": "workspace:*",
+    "@vue-email/components": "^0.0.21",
+    "@vue-email/render": "^0.0.9",
     "es-toolkit": "^1.52.0",
     "hono": "^4.13.13",
     "kysely": "^0.29.6",
     "kysely-d1": "0.4.0",
-    "valibot": "^1.5.0"
+    "valibot": "^1.5.0",
+    "vue": "^3.5.43"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261011.1",

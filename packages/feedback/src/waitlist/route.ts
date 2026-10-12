@@ -9,7 +9,7 @@ import { readJSON, withinLimit } from '#feedback/http/request'
 import type { Context, Hono } from 'hono'
 import * as v from 'valibot'
 
-import { confirmationEmail } from './email'
+import { confirmationEmail } from './email/confirmation'
 import { actionPage, page } from './pages'
 import { confirmSignup, leaveWaitlist, signUp } from './signup'
 import { verifyTurnstile } from './turnstile'
