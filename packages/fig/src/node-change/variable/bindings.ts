@@ -159,6 +159,24 @@ export function textRunVariableBindings(override: VariableConsumptionSource): Te
   return bound
 }
 
+/**
+ * How a record names a variable it uses, as Figma writes it: a library variable by its key,
+ * even where the file holds a copy of it, and a local one by its record.
+ */
+export function variableAlias(
+  graph: SceneGraph,
+  variableId: string,
+  ids?: ReadonlyMap<string, GUID>
+): { guid: GUID } | { assetRef: { key: string; version?: string } } {
+  const variable = graph.variables.get(variableId)
+  if (variable?.key) {
+    return {
+      assetRef: { key: variable.key, ...(variable.version ? { version: variable.version } : {}) }
+    }
+  }
+  return { guid: ids?.get(variableId) ?? stringToGuid(variableId) }
+}
+
 function consumptionEntry(
   variableField: string,
   variableId: string | undefined,
@@ -174,7 +192,7 @@ function consumptionEntry(
   const alias = {
     dataType: 'ALIAS',
     resolvedDataType: variable.type,
-    value: { alias: { guid: ids?.get(variableId) ?? stringToGuid(variableId) } }
+    value: { alias: variableAlias(graph, variableId, ids) }
   }
   if (variable.type !== 'FLOAT' || (!expression && multiplier === 1))
     return { variableField, variableData: alias }

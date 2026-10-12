@@ -852,6 +852,8 @@ export interface VariableCollectionMode {
    * at-rule prelude (`@media (max-width: 640px)`). Absent means the default for its axis.
    */
   condition?: string
+  /** Where Figma lists the mode, as the file saved it; Figma orders a collection's modes by it. */
+  sortPosition?: string
 }
 
 export interface VariableCollection {

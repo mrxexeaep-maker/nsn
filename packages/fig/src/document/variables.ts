@@ -71,7 +71,12 @@ export function materializeVariableResources(
       name: resource.name ?? 'Variables',
       modes: modes.map((mode) => {
         const modeId = guidToString(mode.id)
-        return { modeId, name: mode.name, condition: conditions[modeId] }
+        return {
+          modeId,
+          name: mode.name,
+          condition: conditions[modeId],
+          ...(mode.sortPosition ? { sortPosition: mode.sortPosition } : {})
+        }
       }),
       defaultModeId: guidToString(modes[0].id),
       variableIds: [],
