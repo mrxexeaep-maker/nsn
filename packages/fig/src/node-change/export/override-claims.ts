@@ -18,6 +18,7 @@ import {
   createFillPaints,
   createStrokePaints,
   getOrCreateNodeGuid,
+  styleReferenceGuid,
   instanceGuidResolver,
   isDescendantOf,
   type KiwiNodeChange,
@@ -30,9 +31,7 @@ import { exportedNode } from './resolved-bindings'
 
 function exportedTextStyleReference(context: SceneNodeToKiwiContext, id: string): StyleReference {
   context.styleReferences ??= buildStyleReferences(context.graph)
-  const mapped = context.nodeIdToGuid?.get(id)
-  if (mapped) return { guid: mapped }
-  return context.styleReferences.get(id) ?? { guid: stringToGuid(id) }
+  return context.styleReferences.get(id) ?? { guid: styleReferenceGuid(context, id) }
 }
 
 function unscaledRootSize(instance: SceneNode, target: SceneNode): Vector {

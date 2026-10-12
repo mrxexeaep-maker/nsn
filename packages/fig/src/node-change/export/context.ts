@@ -42,8 +42,27 @@ export function buildStyleReferences(graph: SceneGraph): ReadonlyMap<string, Sty
   return references
 }
 
+/**
+ * The GUID a layer names a style with: the record written for the local style of that ID, or
+ * the GUID the ID spells. Styles made in OpenPencil, by token import or by pasting from another
+ * document, have IDs that spell no GUID, so only their records can name them.
+ */
+export function styleReferenceGuid(context: SceneNodeToKiwiContext, id: string): GUID {
+  context.styleNodeIds ??= new Map(
+    context.graph
+      .getAllNodes()
+      .filter((node) => node.sharedStyleType !== null && node.source.id)
+      .map((node) => [node.source.id, node.id])
+  )
+  const styleNodeId = context.styleNodeIds.get(id)
+  const written = styleNodeId ? context.nodeIdToGuid?.get(styleNodeId) : undefined
+  return written ?? context.nodeIdToGuid?.get(id) ?? stringToGuid(id)
+}
+
 export interface SceneNodeToKiwiContext {
   styleReferences?: ReadonlyMap<string, StyleReference>
+  /** Local styles' node IDs by the style IDs layers name them with, built on first use. */
+  styleNodeIds?: ReadonlyMap<string, string>
   graph: SceneGraph
   blobs: Uint8Array[]
   blobIndexByHex?: Map<string, number>

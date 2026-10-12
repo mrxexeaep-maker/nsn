@@ -82,7 +82,10 @@ export function assignVariableGuids(
   }
 }
 
-/** Shared styles live on the internal canvas and need a GUID before any node cites them. */
+/**
+ * Shared styles live on the internal canvas and need a GUID before any node cites them. A style
+ * read from Figma keeps the GUID it came with, which its ID spells; the others take new ones.
+ */
 export function assignSharedStyleGuids(
   styles: readonly SceneNode[],
   localIdCounter: { value: number },
@@ -91,6 +94,12 @@ export function assignSharedStyleGuids(
 ): void {
   for (const style of styles) {
     if (nodeIdToGuid.has(style.id)) continue
+    const id = style.source.id
+    if (/^\d+:\d+$/.test(id) && !assignedGuidValues.has(id)) {
+      nodeIdToGuid.set(style.id, stringToGuid(id))
+      assignedGuidValues.add(id)
+      continue
+    }
     let guid: GUID
     do {
       guid = { sessionID: 1, localID: localIdCounter.value++ }

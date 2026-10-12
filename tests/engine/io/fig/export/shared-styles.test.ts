@@ -76,4 +76,36 @@ describe('Figma shared style export', () => {
     expect(definition).toMatchObject({ name: 'Brand/Primary', styleType: 'FILL' })
     expect(target?.styleIdForFill).toEqual({ guid: { sessionID: 1, localID: 10 } })
   })
+
+  test('names local styles by the records it writes for them, whatever their ids', async () => {
+    const graph = new SceneGraph()
+    const page = graph.getPages()[0]
+    for (const [name, id, type] of [
+      ['Imported', '1:10', 'FILL'],
+      ['Tokens', 'style:a1b2c3d4e5f6', 'FILL'],
+      ['Heading', 'style:0f9e8d7c6b5a', 'TEXT']
+    ] as const) {
+      const style = graph.createNode(type === 'TEXT' ? 'TEXT' : 'RECTANGLE', page.id, {
+        name,
+        sharedStyleType: type,
+        internalOnly: true
+      })
+      style.source.id = id
+      graph.createNode(type === 'TEXT' ? 'TEXT' : 'RECTANGLE', page.id, {
+        name: `${name} target`,
+        ...(type === 'TEXT' ? { textStyleId: id } : { fillStyleId: id })
+      })
+    }
+
+    const parsed = parseFigBuffer(uint8ArrayToArrayBuffer(await exportFigFile(graph)))
+    for (const name of ['Imported', 'Tokens', 'Heading']) {
+      const definition = parsed.nodeChanges.find(
+        (change) => change.name === name && change.styleType
+      )
+      const target = parsed.nodeChanges.find((change) => change.name === `${name} target`)
+      const reference = target?.styleIdForFill ?? target?.styleIdForText
+      expect(definition?.guid).toBeDefined()
+      expect(reference?.guid).toEqual(definition?.guid)
+    }
+  })
 })

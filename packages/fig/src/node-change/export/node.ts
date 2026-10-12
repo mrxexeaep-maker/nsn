@@ -35,6 +35,7 @@ import {
   createFillPaints,
   createStrokePaints,
   getOrCreateNodeGuid,
+  styleReferenceGuid,
   instanceGuidResolver,
   getOrCreatePropertyGuid,
   parseGuidOrNull,
@@ -807,7 +808,7 @@ function applySharedStyleProps(
   node: SceneNode,
   nc: KiwiNodeChange
 ): void {
-  const reference = (id: string) => ({ guid: context.nodeIdToGuid?.get(id) ?? stringToGuid(id) })
+  const reference = (id: string) => ({ guid: styleReferenceGuid(context, id) })
   if (node.fillStyleId) nc.styleIdForFill = reference(node.fillStyleId)
   if (node.strokeStyleId) nc.styleIdForStrokeFill = reference(node.strokeStyleId)
   if (node.textStyleId) nc.styleIdForText = reference(node.textStyleId)
