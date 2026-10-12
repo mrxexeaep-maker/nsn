@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
 
 import { createTestService, type TestService } from '#feedback-tests/harness'
+import type { UsageBatch } from '#feedback/contract'
 import * as v from 'valibot'
 
-const BATCH = {
+const BATCH: UsageBatch = {
   version: '0.16.0',
   platform: 'windows',
   arch: 'x64',
@@ -48,7 +49,10 @@ afterAll(async () => {
 
 describe('ingest', () => {
   test('forwards listed events to PostHog without person profiles or GeoIP', async () => {
-    const response = await service.postJSON('/ingest', BATCH, { 'CF-Connecting-IP': '203.0.113.7' })
+    const response = await service.client.ingest.$post(
+      { json: BATCH },
+      { headers: { 'CF-Connecting-IP': '203.0.113.7' } }
+    )
 
     expect(response.status).toBe(204)
     expect(service.fetchCalls).toHaveLength(1)

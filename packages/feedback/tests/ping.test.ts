@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 
 import { createTestService, type TestService } from '#feedback-tests/harness'
+import type { Ping } from '#feedback/contract'
 import { omit } from 'es-toolkit'
 
-const BUILD = {
+const BUILD: Ping = {
   version: '0.16.0',
   platform: 'macos',
   arch: 'arm64',
@@ -33,9 +34,11 @@ async function counts() {
 
 describe('ping', () => {
   test('counts pings per day and build, never per install', async () => {
-    expect((await service.postJSON('/ping', BUILD)).status).toBe(204)
-    expect((await service.postJSON('/ping', BUILD)).status).toBe(204)
-    expect((await service.postJSON('/ping', { ...BUILD, version: '0.15.1' })).status).toBe(204)
+    expect((await service.client.ping.$post({ json: BUILD })).status).toBe(204)
+    expect((await service.client.ping.$post({ json: BUILD })).status).toBe(204)
+    expect(
+      (await service.client.ping.$post({ json: { ...BUILD, version: '0.15.1' } })).status
+    ).toBe(204)
 
     expect(await counts()).toEqual([
       {

@@ -1,3 +1,4 @@
+import type { D1Database } from '@cloudflare/workers-types/index'
 import { CamelCasePlugin, Kysely } from 'kysely'
 import { D1Dialect } from 'kysely-d1'
 

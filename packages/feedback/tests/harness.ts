@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { createFeedbackApp } from '#feedback/app'
+import { testClient } from 'hono/testing'
 import { getPlatformProxy } from 'wrangler'
 
 const PACKAGE_ROOT = join(import.meta.dir, '..')
@@ -82,7 +83,12 @@ export async function createTestService() {
     now: () => now
   })
 
+  const request = (path: string, init?: RequestInit) =>
+    app.request(`https://feedback.openpencil.dev${path}`, init, env)
+
   return {
+    /** A client typed by the service's routes, as the app's is, sending into the app under test. */
+    client: testClient(app, env),
     env,
     limiters,
     db: proxy.env.DB,
@@ -95,19 +101,14 @@ export async function createTestService() {
     setNow(date: Date) {
       now = date
     },
-    request(path: string, init?: RequestInit) {
-      return app.request(`https://feedback.openpencil.dev${path}`, init, env)
-    },
+    request,
+    /** Posts any body, including ones the typed client would not let through. */
     postJSON(path: string, body: unknown, headers: Record<string, string> = {}) {
-      return app.request(
-        `https://feedback.openpencil.dev${path}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...headers },
-          body: JSON.stringify(body)
-        },
-        env
-      )
+      return request(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify(body)
+      })
     },
     dispose: () => proxy.dispose()
   }

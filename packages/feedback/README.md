@@ -8,7 +8,7 @@ The Cloudflare Worker behind `feedback.openpencil.dev`. It is operated by the Op
 | `POST /ingest` | Opt-in usage stats, forwarded to PostHog EU. Refuses any event or property not in `src/contract`. | Nothing. PostHog gets no client address, person profile, or GeoIP. |
 | `POST /waitlist` | OpenPencil Cloud waitlist sign-ups from the website, checked by Turnstile and confirmed by email. | The address and optional note; unconfirmed sign-ups are removed after seven days. |
 
-`@open-pencil/feedback/contract` holds the request schemas and the event list. The app builds requests from it and the privacy page renders its tables from it, so the documented, sent, and accepted data cannot drift apart.
+`@open-pencil/feedback/contract` holds the request schemas and the event list, and `@open-pencil/feedback/client` is a client typed by the Worker's routes (`hc<FeedbackAPI>`). The app sends through that client and the privacy page renders its tables from the contract, so the documented, sent, and accepted data cannot drift apart.
 
 ## Development
 

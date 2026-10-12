@@ -3,12 +3,6 @@ import * as v from 'valibot'
 /** Where official OpenPencil builds send pings, usage stats, and waitlist sign-ups. */
 export const FEEDBACK_ORIGIN = 'https://feedback.openpencil.dev'
 
-export const FEEDBACK_ROUTES = {
-  ping: '/ping',
-  ingest: '/ingest',
-  waitlist: '/waitlist'
-} as const
-
 export const PLATFORMS = ['macos', 'windows', 'linux', 'ios', 'android', 'unknown'] as const
 export const ARCHITECTURES = ['arm64', 'x64', 'unknown'] as const
 export const APP_KINDS = ['desktop', 'web'] as const

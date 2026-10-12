@@ -10,7 +10,8 @@
     "#feedback-tests/*": "./tests/*.ts"
   },
   "exports": {
-    "./contract": "./src/contract/index.ts"
+    "./contract": "./src/contract/index.ts",
+    "./client": "./src/client.ts"
   },
   "scripts": {
     "dev": "wrangler dev",

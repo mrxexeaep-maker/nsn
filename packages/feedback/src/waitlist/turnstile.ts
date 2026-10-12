@@ -1,4 +1,4 @@
-import type { FeedbackServices } from '#feedback/app'
+import type { FeedbackServices } from '#feedback/env'
 import * as v from 'valibot'
 
 const SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'

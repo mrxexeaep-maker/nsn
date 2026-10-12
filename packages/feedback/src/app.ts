@@ -1,18 +1,13 @@
 import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 
+import type { FeedbackEnv, FeedbackServices } from './env'
 import { allowOpenPencilOrigins } from './http/cors'
-import { addIngestRoute } from './ingest/route'
-import { addPingRoute } from './ping/route'
-import { addWaitlistRoutes } from './waitlist/route'
+import { ingestRoutes } from './ingest/route'
+import { pingRoutes } from './ping/route'
+import { waitlistRoutes } from './waitlist/route'
 
-/** What the service reaches outside its bindings, injectable for tests. */
-export interface FeedbackServices {
-  fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
-  now: () => Date
-}
-
-export type FeedbackEnv = { Bindings: Env }
+export type { FeedbackBindings, FeedbackEnv, FeedbackServices } from './env'
 
 const MAX_BODY_BYTES = 16 * 1024
 
@@ -22,11 +17,13 @@ const defaultServices: FeedbackServices = {
 }
 
 export function createFeedbackApp(services: FeedbackServices = defaultServices) {
-  const app = new Hono<FeedbackEnv>()
-  app.use('*', allowOpenPencilOrigins)
-  app.use('*', bodyLimit({ maxSize: MAX_BODY_BYTES }))
-  addPingRoute(app, services)
-  addIngestRoute(app, services)
-  addWaitlistRoutes(app, services)
-  return app
+  return new Hono<FeedbackEnv>()
+    .use('*', allowOpenPencilOrigins)
+    .use('*', bodyLimit({ maxSize: MAX_BODY_BYTES }))
+    .route('/', pingRoutes(services))
+    .route('/', ingestRoutes(services))
+    .route('/', waitlistRoutes(services))
 }
+
+/** The service's routes and request bodies, for `hc<FeedbackAPI>` clients. */
+export type FeedbackAPI = ReturnType<typeof createFeedbackApp>

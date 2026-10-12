@@ -1,11 +1,16 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
 
 import { createTestService, type TestService } from '#feedback-tests/harness'
+import type { WaitlistSignup } from '#feedback/contract'
 import { runRetention } from '#feedback/retention'
 
 let service: TestService
 
-const SIGNUP = { email: 'Ada@Example.com', note: 'Team libraries', turnstileToken: 'token' }
+const SIGNUP: WaitlistSignup = {
+  email: 'Ada@Example.com',
+  note: 'Team libraries',
+  turnstileToken: 'token'
+}
 const START = new Date('2026-10-12T09:00:00.000Z')
 
 function turnstile(result: { success: boolean; hostname?: string; action?: string }) {
@@ -20,7 +25,7 @@ async function rows() {
 }
 
 function linkFrom(text: string | undefined, path: string): URL {
-  const match = text?.match(new RegExp(`https://\\S+${path}\\?token=[0-9a-f]+`))
+  const match = text?.match(new RegExp(`https?://\\S+${path}\\?token=[0-9a-f]+`))
   if (!match) throw new Error(`No ${path} link in the email`)
   return new URL(match[0])
 }
@@ -47,7 +52,7 @@ afterAll(async () => {
 
 describe('waitlist', () => {
   test('emails a confirmation link and joins the list once confirmed', async () => {
-    expect((await service.postJSON('/waitlist', SIGNUP)).status).toBe(202)
+    expect((await service.client.waitlist.$post({ json: SIGNUP })).status).toBe(202)
     expect(await rows()).toEqual([
       { email: 'Ada@Example.com', note: 'Team libraries', confirmedAt: null }
     ])
