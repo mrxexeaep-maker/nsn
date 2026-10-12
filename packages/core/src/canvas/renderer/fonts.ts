@@ -98,8 +98,13 @@ function registerSectionTitleFont(r: SkiaRenderer, data: ArrayBuffer) {
   fontManager.registerFontInBrowser(SECTION_TITLE_FONT_FAMILY, 'SemiBold', data)
   const typeface = r.ck.Typeface.MakeFreeTypeFaceFromData(data)
   if (!typeface) return
-  r.valueFont?.delete()
-  r.valueFont = new r.ck.Font(typeface, VALUE_FONT_SIZE)
+  try {
+    r.valueFont?.delete()
+    r.valueFont = new r.ck.Font(typeface, VALUE_FONT_SIZE)
+  } finally {
+    // The font holds its own reference to the face.
+    typeface.delete()
+  }
 }
 
 export async function loadFonts(
