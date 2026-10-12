@@ -51,12 +51,12 @@ export function styleReferenceGuid(
   context: Pick<SceneNodeToKiwiContext, 'graph' | 'nodeIdToGuid' | 'styleNodeIds'>,
   id: string
 ): GUID {
-  context.styleNodeIds ??= new Map(
-    context.graph
-      .getAllNodes()
-      .filter((node) => node.sharedStyleType !== null && node.source.id)
-      .map((node) => [node.source.id, node.id])
-  )
+  if (!context.styleNodeIds) {
+    const styleNodeIds = new Map<string, string>()
+    for (const node of context.graph.getAllNodes())
+      if (node.sharedStyleType !== null && node.source.id) styleNodeIds.set(node.source.id, node.id)
+    context.styleNodeIds = styleNodeIds
+  }
   const styleNodeId = context.styleNodeIds.get(id)
   const written = styleNodeId ? context.nodeIdToGuid?.get(styleNodeId) : undefined
   return written ?? context.nodeIdToGuid?.get(id) ?? stringToGuid(id)
