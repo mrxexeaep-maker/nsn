@@ -264,3 +264,34 @@ test("loading a page's layers from the opened file asks for one render", async (
   expect(renders).toBe(1)
   editor.dispose()
 })
+
+test('preparing a page loads the pages holding the component sets its instances use', async () => {
+  await initCodec()
+  const source = new SceneGraph()
+  const [design] = source.getPages()
+  const library = source.addPage('Library')
+  const set = source.createNode('COMPONENT_SET', library.id, { name: 'Switch' })
+  const off = source.createNode('COMPONENT', set.id, {
+    name: 'State=Off',
+    componentPropertyValues: { State: 'Off' }
+  })
+  source.createNode('COMPONENT', set.id, {
+    name: 'State=On',
+    componentPropertyValues: { State: 'On' }
+  })
+  source.createInstance(off.id, design.id)
+  const bytes = await exportFigFile(source)
+  const graph = await parseFigFile(bytes.slice().buffer, { populate: 'none' })
+  const editor = createEditor({ graph, skipInitialGraphSetup: true })
+  const [first] = graph.getPages()
+  const variants = () =>
+    [...graph.getAllNodes()]
+      .filter((node) => node.type === 'COMPONENT' && node.parentId)
+      .map((node) => node.name)
+      .sort()
+
+  expect(await editor.preparePage(first.id)).not.toBeNull()
+
+  expect(variants()).toEqual(['State=Off', 'State=On'])
+  editor.dispose()
+})

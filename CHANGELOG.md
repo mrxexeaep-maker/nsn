@@ -14,7 +14,8 @@
 
 ### Fixed
 
-- Preview draws controls as the canvas does: in the variable modes the canvas is showing, also after a mode switch or a variable edit, with icons and vector layers as drawn, shader fills playing behind their layers, and every variant of a control whose component set is on a page not opened yet.
+- Preview draws controls as the canvas does: in the variable modes the canvas is showing, also after a mode switch or a variable edit, with icons and vector layers as drawn and shader fills playing behind their layers from the canvas's own shader players.
+- Opening a page also loads the pages holding the component sets its instances use, so the variant picker and preview can switch to any variant of a set kept on a page not opened yet. Library copies on Figma's internal canvas stay as the file stores them, and a page that opens later no longer re-reads components an earlier page already built.
 - A slot frame whose corner radius or other field is bound to a variable stays a slot when the file is saved and reopened.
 - An instance whose own content makes it taller or wider than its component, such as a hug frame around longer text, reopens at its saved size.
 - SVG export, and the HTML, JSX, and preview drawings built on it, draw a vector's open strokes beside its filled regions, such as the bar of a skip icon, instead of the regions alone.
