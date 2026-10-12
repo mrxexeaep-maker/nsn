@@ -224,6 +224,7 @@ export const de: LandingMessages = {
     label: 'E-Mail-Adresse',
     placeholder: 'du@beispiel.de',
     submit: 'Auf die Warteliste',
+    confirmHuman: 'Bestätige, dass du ein Mensch bist',
     invalid: 'Gib eine gültige E-Mail-Adresse ein.',
     joined: 'Schau in dein Postfach',
     joinedDetail: 'Öffne den Link, den wir dir geschickt haben, um deine Adresse zu bestätigen.',

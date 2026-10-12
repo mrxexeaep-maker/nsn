@@ -69,6 +69,8 @@ export interface LandingMessages {
     label: string
     placeholder: string
     submit: string
+    /** The button while a sign-up waits on the visitor to tick Turnstile's check. */
+    confirmHuman: string
     invalid: string
     joined: string
     joinedDetail: string

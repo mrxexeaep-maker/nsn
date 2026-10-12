@@ -224,6 +224,7 @@ export const pl: LandingMessages = {
     label: 'Adres e-mail',
     placeholder: 'ty@przyklad.pl',
     submit: 'Zapisz się na listę',
+    confirmHuman: 'Potwierdź, że jesteś człowiekiem',
     invalid: 'Wpisz poprawny adres e-mail.',
     joined: 'Sprawdź skrzynkę',
     joinedDetail: 'Otwórz link, który wysłaliśmy, aby potwierdzić adres.',

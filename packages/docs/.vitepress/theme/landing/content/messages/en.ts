@@ -214,6 +214,7 @@ export const en: LandingMessages = {
     label: 'Email address',
     placeholder: 'you@example.com',
     submit: 'Join the waitlist',
+    confirmHuman: 'Confirm you’re human',
     invalid: 'Enter a valid email address.',
     joined: 'Check your inbox',
     joinedDetail: 'Open the link we sent to confirm your address.',

@@ -223,6 +223,7 @@ export const ru: LandingMessages = {
     label: 'Электронная почта',
     placeholder: 'vy@primer.ru',
     submit: 'Записаться',
+    confirmHuman: 'Подтвердите, что вы человек',
     invalid: 'Введите корректный адрес электронной почты.',
     joined: 'Проверьте почту',
     joinedDetail: 'Откройте ссылку из письма, чтобы подтвердить адрес.',

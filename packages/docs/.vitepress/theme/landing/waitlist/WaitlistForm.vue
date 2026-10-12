@@ -15,7 +15,7 @@ import ActionButton from '../ui/ActionButton.vue'
  */
 const messages = useLandingMessages()
 const turnstile = useTemplateRef<HTMLElement>('turnstile')
-const { email, status, submitting, edit, submit } = useWaitlistSignup(turnstile)
+const { email, status, submitting, confirming, edit, submit } = useWaitlistSignup(turnstile)
 const noteId = useId()
 
 const failure = computed(() => {
@@ -54,14 +54,15 @@ const failure = computed(() => {
         @update:model-value="edit"
       />
       <ActionButton :icon="IconMail" primary :disabled="submitting">
-        {{ messages.waitlist.submit }}
+        {{ confirming ? messages.waitlist.confirmHuman : messages.waitlist.submit }}
       </ActionButton>
     </div>
     <p :id="noteId" class="note" :role="status === 'invalid' ? 'alert' : undefined">
       <span v-if="status === 'invalid'" class="invalid">{{ messages.waitlist.invalid }}</span>
       <template v-else>{{ messages.waitlist.privacy }}</template>
     </p>
-    <!-- Turnstile draws here only when it needs a click. -->
+    <!-- Turnstile draws here only when it needs a click; the button sits beside the field, so the
+      check goes under the row. -->
     <div ref="turnstile" class="turnstile" />
     <AppAlert v-if="failure" class="waitlist-result" tone="error" :heading="failure" />
   </form>

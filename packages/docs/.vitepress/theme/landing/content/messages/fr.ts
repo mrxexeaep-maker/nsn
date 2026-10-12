@@ -225,6 +225,7 @@ export const fr: LandingMessages = {
     label: 'Adresse e-mail',
     placeholder: 'vous@exemple.fr',
     submit: "Rejoindre la liste d'attente",
+    confirmHuman: 'Confirmez que vous êtes humain',
     invalid: 'Saisissez une adresse e-mail valide.',
     joined: 'Consultez votre boîte de réception',
     joinedDetail: 'Ouvrez le lien que nous vous avons envoyé pour confirmer votre adresse.',
