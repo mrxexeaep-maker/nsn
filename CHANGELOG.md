@@ -2,10 +2,14 @@
 
 ## Unreleased
 
+## 0.16.0-beta.2 — 2026-10-12
+
+This is a pre-release that lists changes since 0.16.0-beta.1: npm packages are published under the `next` tag, and installed apps on the stable release do not update to it. Linux package managers see `0.16.0-beta.2` as newer than `0.16.0`, so `.deb` and `.rpm` users should remove the beta before installing the final 0.16.0.
+
 ### Breaking changes
 
 - `CORNER_ROTATE_ZONE` is removed from `@open-pencil/core/constants`; the selection's resize and rotation zones are `TRANSFORM_ZONE` and `transformZoneAt` in `@open-pencil/core/geometry`, which also owns the `HandlePosition` and `CornerPosition` types.
-- In scripts, a text node's `textCase`, `textStyleId`, and `fillStyleId` read `figma.mixed` while its characters differ, as in Figma, instead of the text's own value, and setting one restyles every character.
+- In scripts, a text node's `textCase`, `textStyleId`, and `fillStyleId` now also read `figma.mixed` while its characters differ, as in Figma, instead of the text's own value, and setting one restyles every character.
 
 ### Added
 
@@ -13,7 +17,6 @@
 - Text keeps a case, a link, text and fill styles, and variable bindings for any range of its characters, as in Figma: the canvas draws each range in its own case, `.fig` files and the Figma clipboard keep them, apart from font weight bindings, HTML, Tailwind, and JSX exports write links as `<a href>` and cases as `text-transform` and HTML import reads them back, Design JSX `<Span>` takes `textCase` and `href`, and the Typography section's text case changes the selected characters while text is edited. Scripts read and set them with `getRangeTextCase`, `setRangeTextCase`, `getRangeHyperlink`, `setRangeHyperlink`, `getRangeTextStyleId`, `setRangeTextStyleIdAsync`, `getRangeFillStyleId`, `setRangeFillStyleIdAsync`, `getRangeBoundVariable`, `setRangeBoundVariable`, and the text's `hyperlink`.
 - Switch a frame to a group and back from the layer type menu in the properties panel header, as in Figma. A frame becomes a group that keeps its layers, effects, and opacity and fits them; a group becomes a frame of its bounds that clips.
 - Edit the layout guides of several frames at once: the panel lists them while the frames' guides match and edits every frame in one undo step, and while they differ offers Add, which gives each frame one new guide. A new guide is Figma's 10 px grid.
-
 - Official builds send one anonymous ping a day, with the app version, operating system, architecture, desktop or web, and whether usage stats are shared, and no ID; turn it off in Settings → Privacy or with `OPENPENCIL_TELEMETRY=0` or `DO_NOT_TRACK=1` in the desktop app's environment. Usage stats (launches, file formats opened and exported, and which AI provider answered) are sent only after you agree in a one-time prompt after the welcome screen. The [privacy page](https://openpencil.dev/overview/privacy) lists every field.
 
 ### Changed
@@ -26,7 +29,7 @@
 - With nothing selected, a layer copied out of a frame or section pastes back into it, where it was on the canvas, or onto the page in the middle of the view when that place is out of view, as in Figma.
 - In scripts, `setProperties` switches an instance's variant, alongside its other properties, and fails without changing anything when no variant has the values, with Figma's messages; `resize` places a frame's layers by their constraints while `resizeWithoutConstraints` leaves them, and an instance's layers follow their constraints either way.
 - **Settings…** (<kbd>⌘</kbd><kbd>,</kbd>) is in the **OpenPencil** menu on macOS and at the end of the **File** menu elsewhere, instead of under **View → Preferences**.
-- The demo at `/demo` is a tour of one player card in eight chapters stacked on one canvas, each showing one thing with a numbered card that says what to try and draws the piece of the app to click: preview, the artwork slot, the controls' behaviours, the theme's modes, shader fills, the Code tab, Lint on a card with planted issues, and sharing and opening your own files. It opens on the first chapter with the rest below it and follows the app's light or dark theme. The welcome dialog on first launch offers it next to AI setup, and File > Open the Tour opens it any time.
+- The demo at `/demo` is a tour of one player card in eight chapters stacked on one canvas, each showing one thing with a numbered card that says what to try and draws the piece of the app to click: preview, the artwork slot, the controls' behaviours, the theme's modes, shader fills, the Code tab, Lint on a card with planted issues, and sharing and opening your own files. It opens on the first chapter with the rest below it and follows the app's light or dark theme. The welcome dialog on first launch offers it next to AI setup, and **File → Open the Tour** opens it any time.
 - In scripts, a vector inside an instance refuses `vectorPaths`, `vectorNetwork`, `setVectorNetworkAsync`, and `handleMirroring` with Figma's errors, such as `in set_vectorPaths: This property cannot be overridden in an instance: vector-data`, since its path always follows the component.
 
 ### Fixed
