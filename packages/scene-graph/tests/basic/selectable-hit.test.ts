@@ -298,6 +298,22 @@ describe('a click just outside a shape', () => {
     }
   })
 
+  test('reaches a shape at its group’s edge, and the group only through its shapes', () => {
+    const graph = new SceneGraph()
+    const page = pageId(graph)
+    const group = graph.createNode('GROUP', page, {
+      name: 'Group',
+      x: 100,
+      y: 100,
+      width: 50,
+      height: 50
+    })
+    graph.createNode('RECTANGLE', group.id, { name: 'Box', width: 50, height: 50, fills: FILL })
+    expect(graph.hitTestSelectable(152, 120, page, new Set(), 3.5)?.name).toBe('Group')
+    expect(graph.hitTestDeep(152, 120, page, 3.5)?.name).toBe('Box')
+    expect(graph.hitTestSelectable(155, 120, page, new Set(), 3.5)).toBeNull()
+  })
+
   test('leaves a frame’s edge exact, so the page around it starts a marquee', () => {
     const graph = new SceneGraph()
     const page = pageId(graph)

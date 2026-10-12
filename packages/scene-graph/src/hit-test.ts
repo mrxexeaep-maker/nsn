@@ -106,11 +106,11 @@ function hitTestTransparentContainer(
   pad: number
 ): SceneNode | null {
   if (child.type === 'GROUP') {
-    if (!containsPoint(px, py, child, graph, transformCache)) return null
-
-    if (deep) return hitTestChildren(graph, px, py, childId, deep, transformCache, pad) ?? child
-
-    return child
+    // A group fits its layers, so a padded click on one at its edge falls just outside it.
+    if (!containsPoint(px, py, child, graph, transformCache, pad)) return null
+    const childHit = hitTestChildren(graph, px, py, childId, deep, transformCache, pad)
+    if (childHit) return deep ? childHit : child
+    return containsPoint(px, py, child, graph, transformCache) ? child : null
   }
 
   const childHit = hitTestChildren(graph, px, py, childId, deep, transformCache, pad)
