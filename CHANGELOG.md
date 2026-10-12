@@ -14,7 +14,7 @@
 
 ### Fixed
 
-- A path edited in a component reaches its instances, as in Figma, scaled with each copy where constraints or a resized instance changed its size; copies whose instance overrides their fill or stroke keep those. A vector inside an instance no longer opens for path editing, which would have been undone by the next component edit.
+- A path edited in a component reaches its instances, as in Figma, scaled with each copy where constraints or a resized instance changed its size; copies whose instance overrides their fill or stroke keep those. A vector inside an instance no longer opens for path editing, which would have been undone by the next component edit. Straight lines in resized instances of `.fig` files open at the length Figma draws them instead of their component's.
 
 ## 0.16.0-beta.1 — 2026-10-11
 

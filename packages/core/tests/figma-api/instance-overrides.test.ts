@@ -69,7 +69,9 @@ test('a vector inside an instance refuses its path and handle mirroring', async 
     `in set_vectorNetwork: ${message('vector-data')}`
   )
   // Figma rejects the async edit with the bare message.
-  expect(copy.setVectorNetworkAsync(network)).rejects.toThrow(message('vector-data'))
+  await expect(copy.setVectorNetworkAsync(network)).rejects.toThrow(
+    new RegExp(`^${message('vector-data')}$`)
+  )
   expect(() => (copy.handleMirroring = 'ANGLE')).toThrow(
     `in set_handleMirroring: ${message('handle-mirroring')}`
   )

@@ -2,8 +2,7 @@ import { isEqual } from 'es-toolkit/predicate'
 
 import type { SceneNode, VectorNetwork } from '../'
 import { copyGeometryPaths, scaleGeometryPaths } from '../copy'
-import { scaleVectorNetworkForResize } from '../resize'
-import { cloneVectorNetwork } from '../vector-network'
+import { cloneVectorNetwork, transformVectorNetwork } from '../vector-network'
 
 /** How far apart two paths' points may be and still count as one path, in pixels. */
 const PATH_TOLERANCE = 1e-3
@@ -58,22 +57,18 @@ export function followVectorGeometry(
   copy: SceneNode,
   source: SceneNode
 ): void {
-  if (source.type !== 'VECTOR' || source.width <= 0 || source.height <= 0) return
+  if (source.type !== 'VECTOR') return
   const width = updates.width ?? copy.width
   const height = updates.height ?? copy.height
-  const sx = width / source.width
-  const sy = height / source.height
+  // A straight line has no extent across it, so that axis keeps its scale.
+  const sx = source.width > 0 ? width / source.width : 1
+  const sy = source.height > 0 ? height / source.height : 1
   const scaled = sx !== 1 || sy !== 1
-  const network =
-    (scaled
-      ? scaleVectorNetworkForResize(
-          source.vectorNetwork,
-          source.width,
-          source.height,
-          width,
-          height
-        )
-      : null) ?? (source.vectorNetwork ? cloneVectorNetwork(source.vectorNetwork) : null)
+  const scaledNetwork = (network: VectorNetwork) =>
+    scaled
+      ? transformVectorNetwork([sx, 0, 0, 0, sy, 0, 0, 0, 1], network)
+      : cloneVectorNetwork(network)
+  const network = source.vectorNetwork ? scaledNetwork(source.vectorNetwork) : null
   if (samePath(copy.vectorNetwork, network)) return
   const outlines = (paths: SceneNode['fillGeometry']) =>
     scaled ? scaleGeometryPaths(paths, sx, sy) : copyGeometryPaths(paths)

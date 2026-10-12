@@ -251,3 +251,40 @@ test('a copy keeps its own outlines while its path matches, and drops a stale st
   expect(copy.fillGeometry).toEqual([])
   expect(copy.strokeGeometry).toEqual([])
 })
+
+test('a component line, with no height, still reaches its instances', () => {
+  const graph = new SceneGraph()
+  const page = graph.getPages()[0].id
+  const card = graph.createNode('COMPONENT', page, { width: 100, height: 40 })
+  const line = graph.createNode('VECTOR', card.id, {
+    y: 20,
+    width: 60,
+    height: 0,
+    vectorNetwork: {
+      vertices: [
+        { x: 0, y: 0 },
+        { x: 60, y: 0 }
+      ],
+      segments: [{ start: 0, end: 1, tangentStart: { x: 0, y: 0 }, tangentEnd: { x: 0, y: 0 } }],
+      regions: []
+    }
+  })
+  const instance = expectDefined(graph.createInstance(card.id, page))
+  const copy = graph.getChildren(instance.id)[0]
+  graph.updateNode(line.id, {
+    width: 80,
+    vectorNetwork: {
+      vertices: [
+        { x: 0, y: 0 },
+        { x: 80, y: 0 }
+      ],
+      segments: [{ start: 0, end: 1, tangentStart: { x: 0, y: 0 }, tangentEnd: { x: 0, y: 0 } }],
+      regions: []
+    }
+  })
+  graph.syncInstances(card.id)
+  expect(corners(copy.vectorNetwork)).toEqual([
+    [0, 0],
+    [80, 0]
+  ])
+})

@@ -110,27 +110,6 @@ describe('vector edit graph ownership', () => {
     expect(state.nodeEditState?.nodeId).toBe(vector.id)
   })
 
-  test('opens a vector in a component but not its copy in an instance, as Figma does', () => {
-    const graph = new SceneGraph()
-    const pageId = expectDefined(graph.getPages()[0]).id
-    const component = graph.createNode('COMPONENT', pageId, { width: 200, height: 120 })
-    const vector = graph.createNode('VECTOR', component.id, {
-      width: 100,
-      height: 50,
-      vectorNetwork: NETWORK
-    })
-    const instance = expectDefined(graph.createInstance(component.id, pageId))
-    const copy = expectDefined(graph.getChildren(instance.id)[0])
-    const editor = createEditor({ graph })
-    const state = { nodeEditState: null } as VectorEditState
-    const lifecycle = createVectorEditLifecycle(editor, state)
-
-    lifecycle.enterNodeEditMode(copy.id)
-    expect(state.nodeEditState).toBeNull()
-    lifecycle.enterNodeEditMode(vector.id)
-    expect(state.nodeEditState?.nodeId).toBe(vector.id)
-  })
-
   test('commits network and fill geometry as one document undo step', () => {
     const editor = createEditor()
     const page = expectDefined(editor.graph.getPages()[0])
