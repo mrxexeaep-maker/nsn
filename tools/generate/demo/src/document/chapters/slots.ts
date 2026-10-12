@@ -13,6 +13,7 @@ import { ARTWORK_NAME, PLAYER_PROPERTIES, playerComponent, type PlayerParts } fr
 import { fillSlot } from '../slot-content'
 import type { Theme } from '../theme'
 import { layoutChapter, type ChapterContext } from './chapter'
+import { CHAPTERS } from './names'
 
 export interface Player {
   /** The Player main component. */
@@ -78,15 +79,13 @@ export async function createSlotsChapter(
   const { graph, theme } = context
   const player: Player = { id: '', slotId: createComponentPropertyId() }
   await layoutChapter(context, {
-    index: 2,
-    name: 'Slots',
+    chapter: CHAPTERS.slots,
     heading: {
       title: 'It is a component.',
       subtitle:
         'The player on the left is the main component. Its artwork is a slot: every instance keeps the player and brings its own cover.'
     },
     subject: Frame({
-      name: 'Players',
       flex: 'row',
       w: 'hug',
       h: 'hug',

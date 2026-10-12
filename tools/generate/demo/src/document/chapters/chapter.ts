@@ -13,6 +13,7 @@ import { tipInstance, type Tip } from '../callout'
 import { renderTree } from '../icons'
 import { fillSlot } from '../slot-content'
 import type { Theme } from '../theme'
+import { sectionName, type TourChapter } from './names'
 
 /** Where the first chapter sits on the page. */
 export const PAGE_ORIGIN = 0
@@ -101,15 +102,16 @@ function heading({ vars }: Theme, index: number, { title, subtitle }: Heading): 
 
 /**
  * Lay a chapter out in a section of its own: heading, then `subject` under it, then `tip` to
- * the subject's right, top aligned. `fill` adds to the subject once it exists, before the tip
- * is placed beside it, for content that needs the subject's layers, such as instances of a
- * component in it. The section is left at the page origin; `arrangeChapters` places it.
+ * the subject's right, top aligned. The section and the subject take their names from
+ * `chapter`, which hosts outside the tour find them by. `fill` adds to the subject once it
+ * exists, before the tip is placed beside it, for content that needs the subject's layers, such
+ * as instances of a component in it. The section is left at the page origin; `arrangeChapters`
+ * places it.
  */
 export async function layoutChapter(
   context: ChapterContext,
   options: {
-    index: number
-    name: string
+    chapter: TourChapter
     heading: Heading
     subject: TreeNode
     tip: Tip
@@ -117,10 +119,11 @@ export async function layoutChapter(
   }
 ): Promise<Chapter> {
   const { graph, pageId } = context
+  const { chapter } = options
   const section = await place(
     context,
     Section({
-      name: `${options.index} · ${options.name}`,
+      name: sectionName(chapter),
       w: 100,
       h: 100,
       bg: context.theme.vars.section
@@ -132,13 +135,15 @@ export async function layoutChapter(
   const pad = CHAPTER_PADDING
   const head = await place(
     context,
-    heading(context.theme, options.index, options.heading),
+    heading(context.theme, chapter.index, options.heading),
     section.id,
     pad,
     pad
   )
   const top = pad + head.height + HEADING_GAP
-  let subject = await place(context, options.subject, section.id, pad, top)
+  const placed = await place(context, options.subject, section.id, pad, top)
+  graph.updateNode(placed.id, { name: chapter.subject })
+  let subject = graph.getNode(placed.id) ?? placed
   if (options.fill) {
     await options.fill(subject)
     computeAllLayouts(graph, pageId)

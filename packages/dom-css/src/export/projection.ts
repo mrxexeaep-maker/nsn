@@ -1,6 +1,7 @@
 import { fromUint8Array } from 'js-base64'
 
 import {
+  imageMimeType,
   layoutSizingInParent,
   readIcon,
   shaderOfPaint,
@@ -234,6 +235,11 @@ function addFlexGap(style: DesignStyleDeclaration, node: SceneNode, css: FieldCS
   style['column-gap'] = counter
 }
 
+/** Image bytes as a data URL of the type they are encoded in. */
+function imageDataURL(bytes: Uint8Array): string {
+  return `data:${imageMimeType(bytes)};base64,${fromUint8Array(bytes)}`
+}
+
 /**
  * The shader a layer's fill draws, which the projection keeps as the shader rather than the
  * image of its still frame: the shader of its first fill, as the projection reads one fill.
@@ -243,7 +249,7 @@ function layerShader(graph: SceneGraph, node: SceneNode): DesignElement['shader'
   const shader = fill?.visible ? shaderOfPaint(node, fill) : null
   if (!shader) return undefined
   const bytes = graph.images.get(shader.image)
-  const frame = bytes ? `data:image/png;base64,${fromUint8Array(bytes)}` : undefined
+  const frame = bytes ? imageDataURL(bytes) : undefined
   return { preset: shader.preset, frame }
 }
 
@@ -392,7 +398,7 @@ function attrsForNode(
   if (fill?.type !== 'IMAGE' || !fill.imageHash || shaderOfPaint(node, fill)) return attrs
   const bytes = graph.images.get(fill.imageHash)
   if (!bytes) return attrs
-  return { ...attrs, src: `data:image/png;base64,${fromUint8Array(bytes)}` }
+  return { ...attrs, src: imageDataURL(bytes) }
 }
 
 function tagNameForNode(node: SceneNode): string {

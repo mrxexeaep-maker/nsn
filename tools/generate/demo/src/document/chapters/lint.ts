@@ -2,20 +2,19 @@ import { Frame, Text } from '@open-pencil/design-jsx'
 
 import { panelTabs } from '../chrome'
 import { layoutChapter, type Chapter, type ChapterContext } from './chapter'
+import { CHAPTERS } from './names'
 
 /** Lint: a card with issues planted in it, for the Lint tab to find. */
 export function createLintChapter(context: ChapterContext): Promise<Chapter> {
   const { vars } = context.theme
   return layoutChapter(context, {
-    index: 7,
-    name: 'Lint',
+    chapter: CHAPTERS.lint,
     heading: {
       title: 'It checks itself.',
       subtitle:
         'Lint reads the document the way a reviewer would: contrast, touch targets, layer names, spacing, colors that bypass the variables. The same rules run from the CLI, so a CI job can fail on them.'
     },
     subject: Frame({
-      name: 'Sign-in',
       flex: 'col',
       w: 360,
       h: 'hug',
