@@ -869,6 +869,16 @@ export interface VariableCollection {
    */
   modeAttribute?: string
   pluginData?: PluginDataEntry[]
+  /**
+   * Published library key, for a collection the file copies from a library. Such a collection
+   * belongs to the library: Figma lists it with the library's, not the file's own.
+   */
+  key?: string
+}
+
+/** Whether a collection is a library's copy, which takes no variables or modes of the file's. */
+export function isLibraryCollection(collection: Pick<VariableCollection, 'key'>): boolean {
+  return !!collection.key
 }
 
 /** An HTML attribute name a stylesheet can select on unescaped: `data-theme`, `theme`. */

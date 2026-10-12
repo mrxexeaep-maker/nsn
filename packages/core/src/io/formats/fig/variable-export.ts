@@ -194,7 +194,8 @@ export function appendVariableNodeChanges(
           sortPosition
         })
       ),
-      pluginData: collectionPluginDataNodeChange(collection, modeKey)
+      pluginData: collectionPluginDataNodeChange(collection, modeKey),
+      key: collection.key
     })
     for (const id of collection.variableIds) {
       const variable = graph.variables.get(id)

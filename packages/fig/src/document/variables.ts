@@ -81,7 +81,8 @@ export function materializeVariableResources(
       defaultModeId: guidToString(modes[0].id),
       variableIds: [],
       modeAttribute: readModeAttribute(resource),
-      pluginData: pluginData.length > 0 ? pluginData : undefined
+      pluginData: pluginData.length > 0 ? pluginData : undefined,
+      key: typeof resource.key === 'string' ? resource.key : undefined
     })
   }
   addVariables(graph, resources, report)
