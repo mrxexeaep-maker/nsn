@@ -139,4 +139,28 @@ describe('Figma shared style export', () => {
     expect(named('fill', styled?.fillStyleId)).toBe('Brand')
     expect(named('text', styled?.styleRuns[0]?.style.textStyleId)).toBe('Heading')
   })
+
+  test('names a library style by its key, as Figma does, on layers and ranges', async () => {
+    const graph = new SceneGraph()
+    const page = graph.getPages()[0]
+    const style = graph.createNode('TEXT', page.id, {
+      name: 'LG/Medium',
+      sharedStyleType: 'TEXT',
+      internalOnly: true
+    })
+    style.source.id = '1:42'
+    style.source.fig.rawNodeFields = { key: 'c98daa82', version: '4169:25' }
+    graph.createNode('TEXT', page.id, {
+      name: 'Styled',
+      text: 'Title body',
+      textStyleId: '1:42',
+      styleRuns: [{ start: 0, length: 5, style: { textStyleId: '1:42' } }]
+    })
+
+    const parsed = parseFigBuffer(uint8ArrayToArrayBuffer(await exportFigFile(graph)))
+    const styled = parsed.nodeChanges.find((change) => change.name === 'Styled')
+    const library = { assetRef: { key: 'c98daa82', version: '4169:25' } }
+    expect(styled?.styleIdForText).toEqual(library)
+    expect(styled?.textData?.styleOverrideTable?.[0]?.styleIdForText).toEqual(library)
+  })
 })

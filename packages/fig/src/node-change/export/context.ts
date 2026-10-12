@@ -1,6 +1,6 @@
 import { effectiveFigmaRawNodeFields } from '#fig/source-metadata'
 
-import type { NodeChange, Paint } from '@open-pencil/kiwi/fig/codec'
+import type { NodeChange, Paint, StyleReference } from '@open-pencil/kiwi/fig/codec'
 import { stringToGuid } from '@open-pencil/kiwi/fig/guid'
 import type {
   ComponentPropertyDefinition,
@@ -19,17 +19,11 @@ export interface KiwiSymbolOverridePayload {
   [key: string]: unknown
 }
 
-/** How a record names a shared style: a local GUID, or a published library asset. */
-export interface StyleReference {
-  guid?: GUID
-  assetRef?: { key: string; version?: string }
-}
-
-/** Published text styles by source id, built once with the rest of the context. */
+/** Library styles by source id, built once with the rest of the context. */
 export function buildStyleReferences(graph: SceneGraph): ReadonlyMap<string, StyleReference> {
   const references = new Map<string, StyleReference>()
   for (const node of graph.getAllNodes()) {
-    if (node.sharedStyleType !== 'TEXT' || !node.source.id) continue
+    if (node.sharedStyleType === null || !node.source.id) continue
     const raw = effectiveFigmaRawNodeFields(node)
     if (typeof raw.key !== 'string') continue
     references.set(node.source.id, {
@@ -60,6 +54,21 @@ export function styleReferenceGuid(
   const styleNodeId = context.styleNodeIds.get(id)
   const written = styleNodeId ? context.nodeIdToGuid?.get(styleNodeId) : undefined
   return written ?? context.nodeIdToGuid?.get(id) ?? stringToGuid(id)
+}
+
+/**
+ * How a layer names a style, as Figma writes it: a library style by its key, which Figma
+ * resolves and keeps linked to the library, and a local one by its record.
+ */
+export function exportedStyleReference(
+  context: Pick<
+    SceneNodeToKiwiContext,
+    'graph' | 'nodeIdToGuid' | 'styleNodeIds' | 'styleReferences'
+  >,
+  id: string
+): StyleReference {
+  context.styleReferences ??= buildStyleReferences(context.graph)
+  return context.styleReferences.get(id) ?? { guid: styleReferenceGuid(context, id) }
 }
 
 export interface SceneNodeToKiwiContext {
