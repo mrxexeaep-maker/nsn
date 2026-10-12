@@ -1,18 +1,31 @@
 <script setup lang="ts">
-import { useId } from 'vue'
+import { computed, useId, useTemplateRef } from 'vue'
 import IconMail from '~icons/lucide/mail'
 
+import { useWaitlistSignup } from '@/app/cloud/waitlist/signup'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 import AppInput from '@/components/ui/input/AppInput.vue'
 
 import { useLandingMessages } from '../content/messages'
 import ActionButton from '../ui/ActionButton.vue'
-import { useWaitlistForm } from './useWaitlistForm'
 
-/** The OpenPencil Cloud waitlist: one email field, sized and styled like the page's actions. */
+/**
+ * The OpenPencil Cloud waitlist: one email field, sized and styled like the page's actions. It
+ * signs up through the app's own waitlist flow, the one Settings uses.
+ */
 const messages = useLandingMessages()
-const { email, status, submitting, edit, submit } = useWaitlistForm()
+const turnstile = useTemplateRef<HTMLElement>('turnstile')
+const { email, status, submitting, edit, submit } = useWaitlistSignup(turnstile)
 const noteId = useId()
+
+const failure = computed(() => {
+  const copy = messages.value.waitlist
+  if (status.value === 'refused') return copy.refused
+  if (status.value === 'limited') return copy.limited
+  if (status.value === 'failed') return copy.failed
+  if (status.value === 'unavailable') return copy.unavailable
+  return null
+})
 </script>
 
 <template>
@@ -48,13 +61,9 @@ const noteId = useId()
       <span v-if="status === 'invalid'" class="invalid">{{ messages.waitlist.invalid }}</span>
       <template v-else>{{ messages.waitlist.privacy }}</template>
     </p>
-    <AppAlert
-      v-if="status === 'failed'"
-      class="waitlist-result"
-      tone="error"
-      :heading="messages.waitlist.failed"
-      :description="messages.waitlist.failedDetail"
-    />
+    <!-- Turnstile draws here only when it needs a click. -->
+    <div ref="turnstile" class="turnstile" />
+    <AppAlert v-if="failure" class="waitlist-result" tone="error" :heading="failure" />
   </form>
 </template>
 
@@ -74,6 +83,10 @@ const noteId = useId()
 
 .invalid {
   color: var(--vp-c-danger-1);
+}
+
+.turnstile:not(:empty) {
+  margin-top: 12px;
 }
 
 .waitlist-result {

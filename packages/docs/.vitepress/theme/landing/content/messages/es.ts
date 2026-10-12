@@ -225,11 +225,14 @@ export const es: LandingMessages = {
     placeholder: 'tu@ejemplo.com',
     submit: 'Unirme a la lista',
     invalid: 'Introduce un correo electrónico válido.',
-    joined: 'Ya estás en la lista',
-    joinedDetail: 'Te escribiremos cuando abra OpenPencil Cloud.',
-    failed: 'No se pudo unir a la lista',
-    failedDetail: 'Inténtalo de nuevo en un momento.',
-    privacy: 'Solo te escribiremos sobre OpenPencil Cloud.'
+    joined: 'Revisa tu bandeja de entrada',
+    joinedDetail: 'Abre el enlace que te enviamos para confirmar tu dirección.',
+    failed:
+      'No se pudo contactar con la lista de espera. Comprueba tu conexión e inténtalo de nuevo.',
+    privacy: 'Solo te escribiremos sobre OpenPencil Cloud.',
+    refused: 'No pudimos confirmar que no eres un bot. Inténtalo de nuevo.',
+    limited: 'Demasiados intentos. Inténtalo de nuevo en un minuto.',
+    unavailable: 'No puedes unirte desde aquí. Únete en openpencil.dev.'
   },
   closing: {
     title: 'Llévate tus diseños contigo.',

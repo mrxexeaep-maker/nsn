@@ -72,9 +72,15 @@ export interface LandingMessages {
     invalid: string
     joined: string
     joinedDetail: string
+    /** The service could not be reached, or failed. */
     failed: string
-    failedDetail: string
     privacy: string
+    /** Turnstile did not confirm a person. */
+    refused: string
+    /** Too many sign-ups from one place in a minute. */
+    limited: string
+    /** Turnstile cannot run on this page, such as a preview or local build. */
+    unavailable: string
   }
   closing: {
     title: string

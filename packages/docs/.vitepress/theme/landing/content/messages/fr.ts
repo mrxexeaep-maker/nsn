@@ -226,11 +226,13 @@ export const fr: LandingMessages = {
     placeholder: 'vous@exemple.fr',
     submit: "Rejoindre la liste d'attente",
     invalid: 'Saisissez une adresse e-mail valide.',
-    joined: 'Vous êtes sur la liste',
-    joinedDetail: "Nous vous écrirons à l'ouverture d'OpenPencil Cloud.",
-    failed: "Impossible de rejoindre la liste d'attente",
-    failedDetail: 'Réessayez dans un instant.',
-    privacy: "Nous ne vous écrirons qu'au sujet d'OpenPencil Cloud."
+    joined: 'Consultez votre boîte de réception',
+    joinedDetail: 'Ouvrez le lien que nous vous avons envoyé pour confirmer votre adresse.',
+    failed: 'Impossible de joindre la liste d’attente. Vérifiez votre connexion et réessayez.',
+    privacy: "Nous ne vous écrirons qu'au sujet d'OpenPencil Cloud.",
+    refused: 'Nous n’avons pas pu confirmer que vous n’êtes pas un robot. Réessayez.',
+    limited: 'Trop de tentatives. Réessayez dans une minute.',
+    unavailable: 'Vous ne pouvez pas vous inscrire d’ici. Inscrivez-vous sur openpencil.dev.'
   },
   closing: {
     title: 'Emportez vos designs avec vous.',
