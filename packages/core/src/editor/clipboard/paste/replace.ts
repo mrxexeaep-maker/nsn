@@ -1,20 +1,25 @@
+import { isNotNil } from 'es-toolkit/predicate'
+
 import type { SceneNode } from '@open-pencil/scene-graph'
-import { computeAbsoluteBounds } from '@open-pencil/scene-graph/geometry'
+import { getAxisAlignedBoundsInParent } from '@open-pencil/scene-graph/coordinate'
 
 import { getNodeEditCapability } from '#core/editor/capabilities'
+import {
+  deleteIds,
+  type DeletedEntry,
+  recreateSnapshots,
+  restoreDeletedEntries
+} from '#core/editor/clipboard/history'
+import { translateOnCanvas } from '#core/editor/clipboard/placement'
+import { collectSubtrees, snapshotSubtree } from '#core/editor/history/subtree'
 import type { EditorContext } from '#core/editor/types'
 import { computeAllLayouts } from '#core/layout'
-
-import { deleteIds, type DeletedEntry, recreateSnapshots, restoreDeletedEntries } from './history'
-import { collectSubtrees, snapshotSubtree } from './subtree-history'
 
 export interface PasteHistoryOperation {
   capture: () => void
   undo: () => void
   redo: () => void
 }
-
-type CenterNodesAt = (nodeIds: string[], cx: number, cy: number) => void
 
 export function selectedReplacementTargets(ctx: EditorContext) {
   const selected = [...ctx.state.selectedIds]
@@ -36,6 +41,9 @@ function reorderCreatedAtReplacementIndex(
   if (!insertParentId) return
   const insertIndex = deleted[0]?.index ?? 0
   for (let i = 0; i < created.length; i++) {
+    // A paste that could not go into the target's parent, such as an instance of a component
+    // the parent is inside, stays in the ancestor it went to.
+    if (ctx.graph.getNode(created[i])?.parentId !== insertParentId) continue
     ctx.graph.reorderChild(created[i], insertParentId, insertIndex + i)
   }
 }
@@ -73,9 +81,19 @@ function pushPasteReplaceUndo(
   })
 }
 
+/**
+ * Moves the replacement so its canvas box starts where the targets' did, as Figma does, so an
+ * offset, rotated, or flipped frame keeps it in their place.
+ */
+function alignWithTargets(ctx: EditorContext, created: string[], targets: SceneNode[]) {
+  const nodes = created.map((id) => ctx.graph.getNode(id)).filter(isNotNil)
+  const from = getAxisAlignedBoundsInParent(nodes, ctx.graph.rootId, ctx.graph)
+  const to = getAxisAlignedBoundsInParent(targets, ctx.graph.rootId, ctx.graph)
+  translateOnCanvas(ctx.graph, created, to.x - from.x, to.y - from.y)
+}
+
 export function replaceTargetsWithCreated(
   ctx: EditorContext,
-  centerNodesAt: CenterNodesAt,
   created: string[],
   targets: SceneNode[],
   prevSelection: Set<string>,
@@ -93,12 +111,7 @@ export function replaceTargetsWithCreated(
     }
   })
 
-  const targetBounds = computeAbsoluteBounds(targets, (id) => ctx.graph.getAbsolutePosition(id))
-  centerNodesAt(
-    created,
-    targetBounds.x + targetBounds.width / 2,
-    targetBounds.y + targetBounds.height / 2
-  )
+  alignWithTargets(ctx, created, targets)
   reorderCreatedAtReplacementIndex(ctx, created, deleted)
   for (const { id } of deleted) ctx.graph.deleteNode(id)
   computeAllLayouts(ctx.graph, ctx.state.currentPageId)

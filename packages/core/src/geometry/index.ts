@@ -40,5 +40,12 @@ export type {
 export { createSceneGeometry, nodeOrientationMatrix, projectedNode, viewportMatrix } from './scene'
 export type { SceneGeometry } from './scene'
 export { selectionPath, selectionHandleRect, rotationHandleLayout } from './selection'
+export {
+  TRANSFORM_ZONE,
+  hasTransformHandles,
+  pressesTinyLayer,
+  transformZoneAt
+} from './transform-zones'
+export type { CornerPosition, HandlePosition, TransformZone } from './transform-zones'
 export type { RotationHandleLayout } from './selection'
 export type { RotationPreview, ViewportTransform } from './types'

@@ -2,7 +2,7 @@ import type { CanvasKit } from 'canvaskit-wasm'
 import { createNanoEvents } from 'nanoevents'
 import type { Emitter } from 'nanoevents'
 
-import { SceneGraph } from '@open-pencil/scene-graph'
+import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
 import { UndoManager } from '@open-pencil/scene-graph/undo'
 
 import type { SkiaRenderer } from '#core/canvas/renderer'
@@ -49,6 +49,8 @@ import { createShapeActions } from './shapes'
 import { createDefaultEditorState } from './state'
 import { createStructureActions } from './structure'
 import { createTextActions } from './text'
+import { createPendingTextLayout } from './text/pending-layout'
+import { createTextSelectionStyle } from './text/selection-style'
 import type {
   EditorContext,
   EditorEventName,
@@ -82,6 +84,7 @@ export function createEditor(options?: EditorOptions) {
   let _textEditor: TextEditor | null = null
   const events: Emitter<EditorEvents> = createNanoEvents()
   const stopFontResolutionEvents = fontResolver.subscribe((event, snapshot) => {
+    if (event === 'settled') pendingTextLayout.relayoutReady(_renderer)
     events.emit('font:resolution-changed', event, snapshot)
   })
 
@@ -198,6 +201,11 @@ export function createEditor(options?: EditorOptions) {
 
   const graphReads = createGraphReadActions(() => _graph)
   const { runLayoutForNode, runMutationWithLayout } = createLayoutRunner(() => _graph)
+  const pendingTextLayout = createPendingTextLayout({
+    getGraph: () => _graph,
+    runLayoutForNode,
+    requestRender
+  })
   const { scheduleComponentSync } = createComponentSyncScheduler(() => _graph, requestRender)
 
   const { subscribeToGraph, unsubscribeFromGraph } = createGraphEventSubscription({
@@ -278,6 +286,7 @@ export function createEditor(options?: EditorOptions) {
   const structureBridge = createStructureBridge(structure, selection)
   const undoBridge = createUndoBridge(undoActions, selection, nodes.flushNudge)
   const lintFixBridge = createLintFixBridge(ctx, nodes, structure, clipboard)
+  const textSelectionStyle = createTextSelectionStyle(ctx, text.runTextEditStep)
 
   // The edited text follows changes made outside the editor, such as a panel field being
   // dragged, so its caret and selection move with the text instead of after the change.
@@ -297,7 +306,9 @@ export function createEditor(options?: EditorOptions) {
     uninstallTextMeasurer?.()
     uninstallTextMeasurer =
       typeof renderer.measureTextNode === 'function'
-        ? installTextMeasurer((node, maxWidth) => renderer.measureTextNode(node, maxWidth))
+        ? installTextMeasurer((node, maxWidth) =>
+            pendingTextLayout.measure(renderer, node, maxWidth)
+          )
         : null
   }
 
@@ -318,6 +329,7 @@ export function createEditor(options?: EditorOptions) {
     nodes.cancelNodePreviews()
     undo.discardBatches()
     _graph = newGraph
+    pendingTextLayout.clear()
     subscribeToGraph()
     const previousPageId = state.currentPageId
     state.currentPageId = _graph.getPages()[0]?.id ?? _graph.rootId
@@ -404,8 +416,15 @@ export function createEditor(options?: EditorOptions) {
     // Structure (group, reorder, reparent, z-order)
     ...structure,
 
-    // Nodes (update, layout)
+    // Nodes (update, layout); while text is edited, character styles go to its selection
     ...nodes,
+    updateNode: (id: string, changes: Partial<SceneNode>) =>
+      textSelectionStyle.updateNode(id, changes, nodes.updateNode),
+    updateNodeWithUndo: (id: string, changes: Partial<SceneNode>, label = 'Update') =>
+      textSelectionStyle.updateNodeWithUndo(id, changes, (target, next) =>
+        nodes.updateNodeWithUndo(target, next, label)
+      ),
+    getTextSelectionStyle: textSelectionStyle.selectionStyle,
 
     // Alignment (align, flip, rotate)
     ...alignment,
@@ -431,6 +450,13 @@ export function createEditor(options?: EditorOptions) {
 
     // Undo — bridge functions that need cross-module refs
     ...undoBridge,
+    commitNodeUpdate: (id: string, previous: Partial<SceneNode>, label = 'Update') =>
+      textSelectionStyle.commitNodeUpdate(
+        id,
+        previous,
+        (target, values) => undoBridge.commitNodeUpdate(target, values, label),
+        (target, next) => nodes.updateNodeWithUndo(target, next, label)
+      ),
     // While text is edited, what was typed undoes first and the editor keeps the result.
     undoAction: () => text.runTextEditStep(undoBridge.undoAction),
     redoAction: () => text.runTextEditStep(undoBridge.redoAction),

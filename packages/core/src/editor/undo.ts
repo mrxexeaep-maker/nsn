@@ -9,18 +9,18 @@ import type { UndoEntry } from '@open-pencil/scene-graph/undo'
 import { textAutoResizeChanges } from '#core/layout/text-auto-resize'
 
 import { assertNodeEditable } from './capabilities'
-import { restoreSubtree, snapshotSubtree } from './clipboard/subtree-history'
 import {
-  capturePageChange as startPageChange,
-  restorePageChange as applyPageChangeToEditor,
-  type PageChange
-} from './history/page-change'
+  captureDocumentChange as startDocumentChange,
+  restoreDocumentChange as applyDocumentChangeToEditor,
+  type DocumentChange
+} from './history/document-change'
 import { collectNodePositions, pushPositionUndo } from './history/position'
 import {
   restorePageFromSnapshot as restorePageSnapshot,
   snapshotPage as createPageSnapshot,
   type PageSnapshot
 } from './history/snapshot'
+import { restoreSubtree, snapshotSubtree } from './history/subtree'
 import type { EditorContext } from './types'
 
 /** A layer's place for a move: position, parent, and slot among the parent's children. */
@@ -252,17 +252,25 @@ export function createUndoActions(ctx: EditorContext) {
     restorePageSnapshot(ctx, snapshot)
   }
 
-  /** Starts recording an edit to a page; the returned function ends it with what changed. */
-  function capturePageChange(pageId = ctx.state.currentPageId): () => PageChange {
-    return startPageChange(ctx.graph, pageId)
+  /**
+   * Starts recording an edit made from a page, wherever in the document it lands; the returned
+   * function ends it with what changed.
+   */
+  function captureDocumentChange(pageId = ctx.state.currentPageId): () => DocumentChange {
+    return startDocumentChange(ctx.graph, pageId)
   }
 
-  function restorePageChange(change: PageChange, side: 'before' | 'after') {
-    applyPageChangeToEditor(ctx, change, side)
+  function restoreDocumentChange(change: DocumentChange, side: 'before' | 'after') {
+    applyDocumentChangeToEditor(ctx, change, side)
   }
 
   function pushUndoEntry(entry: UndoEntry) {
     ctx.undo.push(entry)
+  }
+
+  /** Records an agent's edit as its own step, even while the user is in the middle of one. */
+  function pushUndoStep(entry: UndoEntry) {
+    ctx.undo.pushStep(entry)
   }
 
   return {
@@ -277,8 +285,9 @@ export function createUndoActions(ctx: EditorContext) {
     redoAction,
     snapshotPage,
     restorePageFromSnapshot,
-    capturePageChange,
-    restorePageChange,
-    pushUndoEntry
+    captureDocumentChange,
+    restoreDocumentChange,
+    pushUndoEntry,
+    pushUndoStep
   }
 }

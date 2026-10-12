@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import { buildOpenPencilClipboardHTML } from '@open-pencil/core/clipboard'
 import { createEditor } from '@open-pencil/core/editor'
 import type { Editor } from '@open-pencil/core/editor'
+import { getAxisAlignedWorldBounds, getWorldMatrix } from '@open-pencil/scene-graph/coordinate'
 
 function copiedRectangleHTML(name = 'Pasted') {
   const source = createEditor()
@@ -37,6 +38,21 @@ function copiedFrameHTML() {
   return buildOpenPencilClipboardHTML([frame], source.graph)
 }
 
+function canvasBox(editor: Editor, id: string) {
+  const node = editor.graph.getNode(id)
+  if (!node) throw new Error(`Missing layer ${id}`)
+  const box = getAxisAlignedWorldBounds(node, editor.graph)
+  return { x: Math.round(box.x), y: Math.round(box.y) }
+}
+
+/** The layer's x and y axes on the canvas, rounded: `[1, 0, 0, 1]` when drawn upright. */
+function canvasAxes(editor: Editor, id: string) {
+  const node = editor.graph.getNode(id)
+  if (!node) throw new Error(`Missing layer ${id}`)
+  const [a, c, , b, d] = getWorldMatrix(node, editor.graph)
+  return [a, b, c, d].map((value) => Math.round(value) + 0)
+}
+
 function createTarget(editor: Editor, parentId = editor.state.currentPageId) {
   return editor.graph.createNode('ELLIPSE', parentId, {
     name: 'Target',
@@ -62,8 +78,8 @@ describe('paste to replace', () => {
     const created = editor.graph.getNode(createdId)
     expect(created?.name).toBe('Pasted')
     expect(created?.parentId).toBe(pageId)
-    expect(created?.x).toBe(110)
-    expect(created?.y).toBe(110)
+    expect(created?.x).toBe(100)
+    expect(created?.y).toBe(100)
   })
 
   test('undo and redo preserve replaced and pasted subtrees', async () => {
@@ -166,6 +182,68 @@ describe('paste to replace', () => {
 
     editor.undo.redo()
     expect(editor.graph.getNode(frame.id)?.childIds).toEqual([before.id, createdId, after.id])
+  })
+
+  test('starts the replacement where the target started on the canvas, upright, inside an offset, rotated, or flipped frame', async () => {
+    const html = copiedRectangleHTML()
+    const editor = createEditor()
+    const frame = editor.graph.createNode('FRAME', editor.state.currentPageId, {
+      x: 50,
+      y: 50,
+      width: 300,
+      height: 300
+    })
+    const target = createTarget(editor, frame.id)
+    for (const transform of [
+      {},
+      { rotation: 90 },
+      { rotation: 30 },
+      { rotation: 0, flipY: true }
+    ]) {
+      editor.graph.updateNode(frame.id, transform)
+      const start = canvasBox(editor, target.id)
+      editor.select([target.id])
+      await editor.pasteFromHTML(html, undefined, { replaceSelection: true })
+      const [createdId] = editor.state.selectedIds
+      // Figma keeps the target's canvas top-left, and the replacement as it was drawn when copied
+      // (desktop 126).
+      expect(editor.graph.getNode(createdId)?.parentId).toBe(frame.id)
+      expect(canvasBox(editor, createdId)).toMatchObject({ x: start.x, y: start.y })
+      expect(canvasAxes(editor, createdId)).toEqual([1, 0, 0, 1])
+      editor.undo.undo()
+    }
+  })
+
+  test('an instance replacing a layer inside its own component stays out of it', async () => {
+    const editor = createEditor()
+    const page = editor.state.currentPageId
+    const card = editor.graph.createNode('COMPONENT', page, {
+      name: 'Card',
+      width: 200,
+      height: 200
+    })
+    const inner = editor.graph.createNode('FRAME', card.id, {
+      name: 'Inner',
+      width: 100,
+      height: 100
+    })
+    const target = createTarget(editor, inner.id)
+    const instance = editor.graph.createInstance(card.id, page, { x: 400 })
+    if (!instance) throw new Error('Expected an instance')
+    editor.select([instance.id])
+    const { snapshot } = await editor.prepareCopy()
+    if (!snapshot) throw new Error('Missing snapshot')
+
+    editor.select([target.id])
+    await editor.pasteSnapshot(snapshot, undefined, { replaceSelection: true })
+    const created = editor.graph.getNode([...editor.state.selectedIds][0])
+    expect(created).toMatchObject({ type: 'INSTANCE', componentId: card.id, parentId: page })
+    expect(inner.childIds).toEqual([])
+
+    editor.undo.undo()
+    editor.undo.redo()
+    expect(editor.graph.getNode(created?.id ?? '')?.parentId).toBe(page)
+    expect(inner.childIds).toEqual([])
   })
 
   test('preserves pasted child subtrees', async () => {

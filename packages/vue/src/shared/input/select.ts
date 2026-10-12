@@ -1,6 +1,6 @@
 import { getNodeEditState, handleNodeEditDown } from '#vue/shared/input/vector'
 export { resolveHit } from '#vue/shared/input/select/hit'
-import { resolveHit } from '#vue/shared/input/select/hit'
+import { hitTestLabel, resolveHit, tinySelectionAt } from '#vue/shared/input/select/hit'
 export { updateHoverCursor } from '#vue/shared/input/select/hover'
 import { editedGradient, type Editor } from '@open-pencil/core/editor'
 import type { SceneNode } from '@open-pencil/scene-graph'
@@ -32,8 +32,8 @@ function startMarquee(cx: number, cy: number, editor: Editor, setDrag: (d: DragS
 }
 
 /**
- * Starts dragging a gradient handle, or else the selection's corner radius, rotation, or resize
- * handles.
+ * Starts dragging a gradient handle, or else the selection's corner radius, resize, or rotation
+ * handles. A layer's label takes the press before rotation but after resizing, as in Figma.
  */
 function tryStartHandleDrag(
   cx: number,
@@ -42,6 +42,7 @@ function tryStartHandleDrag(
   sy: number,
   altKey: boolean,
   editor: Editor,
+  fns: HitTestFns,
   tryStartRotation: (cx: number, cy: number) => boolean,
   setDrag: (d: DragState) => void
 ): boolean {
@@ -49,10 +50,12 @@ function tryStartHandleDrag(
   // An open gradient's handles replace the layer's selection handles, which then do not respond.
   if (editedGradient(editor.graph, editor.state.gradientEdit)) return false
   if (tryStartShapeHandleDrag(editor, sx, sy, altKey, setDrag)) return true
-  if (tryStartRotation(cx, cy)) return true
   const resizeDrag = tryStartResize(cx, cy, editor)
-  if (resizeDrag) setDrag(resizeDrag)
-  return resizeDrag !== null
+  if (resizeDrag) {
+    setDrag(resizeDrag)
+    return true
+  }
+  return !hitTestLabel(cx, cy, fns) && tryStartRotation(cx, cy)
 }
 
 export function handleSelectDown(
@@ -77,9 +80,10 @@ export function handleSelectDown(
 
   if (editor.state.editingTextId) editor.commitTextEdit()
 
-  if (tryStartHandleDrag(cx, cy, sx, sy, e.altKey, editor, tryStartRotation, setDrag)) return
+  if (tryStartHandleDrag(cx, cy, sx, sy, e.altKey, editor, fns, tryStartRotation, setDrag)) return
 
-  const hit = resolveHit(cx, cy, editor, fns, e.metaKey || e.ctrlKey)
+  const hit =
+    tinySelectionAt(cx, cy, editor) ?? resolveHit(cx, cy, editor, fns, e.metaKey || e.ctrlKey)
   if (!hit) {
     if (!editor.state.enteredContainerId) startMarquee(cx, cy, editor, setDrag)
     return

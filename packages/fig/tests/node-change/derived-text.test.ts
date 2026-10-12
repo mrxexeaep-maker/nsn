@@ -5,7 +5,8 @@ import {
   buildNodeDerivedTextData,
   convertFigmaDerivedTextGlyphs,
   type DerivedTextBuildContext,
-  type ShapedText
+  type ShapedText,
+  type TextDecorationRecord
 } from '#fig/node-change/index'
 
 import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
@@ -30,12 +31,16 @@ function textNode(props: Partial<SceneNode> = {}): SceneNode {
   })
 }
 
-function context(shaped: ShapedText | null): DerivedTextBuildContext & { blobs: Uint8Array[] } {
+function context(
+  shaped: ShapedText | null,
+  decorations: TextDecorationRecord[] = []
+): DerivedTextBuildContext & { blobs: Uint8Array[] } {
   return {
     digestMap: new Map(),
     blobs: [],
     glyphBlobMap: new Map(),
-    shapeText: () => shaped
+    shapeText: () => shaped,
+    textDecorations: () => decorations
   }
 }
 
@@ -94,6 +99,25 @@ describe('derived text writer', () => {
     expect(data.baselines).toHaveLength(2)
     expect(data.glyphs?.every((glyph) => glyph.commandsBlob === undefined)).toBe(true)
     expect(writer.blobs).toHaveLength(0)
+  })
+
+  test('writes decorations by the style of the characters they decorate', () => {
+    // Figma draws saved text's underlines and strikethroughs from these rects only.
+    const node = textNode({
+      textDecoration: 'UNDERLINE',
+      styleRuns: [{ start: 3, length: 1, style: { textDecoration: 'STRIKETHROUGH' } }]
+    })
+    const rect = { x: 0, y: 14, width: 16, height: 1 }
+    const writer = context(twoLines(SQUARE), [
+      { firstCharacter: 0, ...rect },
+      { firstCharacter: 3, ...rect, y: 22 }
+    ])
+    const data = expectDefined(buildNodeDerivedTextData(node, writer), 'derived text')
+
+    expect(data.decorations).toEqual([
+      { rects: [{ x: 0, y: 14, w: 16, h: 1 }], styleID: 0 },
+      { rects: [{ x: 0, y: 22, w: 16, h: 1 }], styleID: 1 }
+    ])
   })
 
   test('writes no glyphs for text that could not be shaped', () => {
@@ -222,6 +246,20 @@ function earlierOpenPencilData(characters: string, lineHeight: number): DerivedT
 
 describe('derived text reader', () => {
   const blobs = [new Uint8Array([0])]
+
+  test('leaves out the glyphs Figma hides past the ellipsis of truncated text', () => {
+    // Figma lays truncated text out whole and puts an ellipsis, with no character, where it is
+    // cut; the glyphs after it, from `truncationStartIndex`, are not drawn.
+    const characters = 'Long label'
+    const data = earlierOpenPencilData(characters, 16)
+    data.logicalIndexToCharacterOffsetMap = data.logicalIndexToCharacterOffsetMap?.slice(0, -1)
+    const glyphs = data.glyphs ?? []
+    glyphs.splice(4, 0, { ...glyphs[4], firstCharacter: undefined })
+    data.truncationStartIndex = 5
+
+    const read = convertFigmaDerivedTextGlyphs(data, blobs, characters)
+    expect(read.map((glyph) => glyph.firstCharacter)).toEqual([0, 1, 2, 3, undefined])
+  })
 
   test("keeps a glyph's own advance through reading and saving", () => {
     const characters = 'Table item'

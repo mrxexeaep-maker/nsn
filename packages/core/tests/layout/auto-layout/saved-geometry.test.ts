@@ -149,3 +149,66 @@ describe('a frame read from a .fig file reflows once its layout is edited', () =
     editor.dispose()
   })
 })
+
+test('a layer moved into a frame with saved geometry resizes it, even before it was laid out', () => {
+  const editor = createEditor()
+  const { graph } = editor
+  const hug = {
+    layoutMode: 'HORIZONTAL',
+    primaryAxisSizing: 'HUG',
+    counterAxisSizing: 'HUG',
+    itemSpacing: 4,
+    paddingLeft: 8,
+    paddingRight: 8,
+    paddingTop: 2,
+    paddingBottom: 2
+  } as const
+  // A component's layers as a .fig file loads them: saved sizes, no source format, not laid out.
+  const tag = graph.createNode('COMPONENT', editor.state.currentPageId, { ...hug, width: 62, height: 41 })
+  const badge = graph.createNode('FRAME', tag.id, { ...hug, width: 24, height: 12 })
+  graph.createNode('ELLIPSE', badge.id, { width: 8, height: 8 })
+  const number = graph.createNode('RECTANGLE', tag.id, { width: 6, height: 17 })
+  for (const node of [tag, badge, number]) {
+    graph.applyImportedStateDuring(() =>
+      graph.updateNode(node.id, {
+        derivedLayout: { x: node.x, y: node.y, width: node.width, height: node.height }
+      })
+    )
+  }
+  editor.reorderChildWithUndo(number.id, badge.id, 1)
+  expect([badge.width, badge.height]).toEqual([34, 21])
+  editor.dispose()
+})
+
+test('a component read from a .fig file reflows once a layer in it is edited, but not before', () => {
+  const editor = createEditor()
+  const { graph } = editor
+  // A component's layers as a .fig file loads them: saved sizes, but no source format.
+  let button: SceneNode | undefined
+  let label: SceneNode | undefined
+  graph.applyImportedStateDuring(() => {
+    button = graph.createNode('COMPONENT', editor.state.currentPageId, {
+      layoutMode: 'HORIZONTAL',
+      primaryAxisSizing: 'HUG',
+      counterAxisSizing: 'HUG',
+      paddingLeft: 20,
+      paddingRight: 20,
+      width: 244,
+      height: 40,
+      derivedLayout: { x: 0, y: 0, width: 244, height: 40 }
+    })
+    label = graph.createNode('RECTANGLE', button.id, {
+      x: 20,
+      width: 204,
+      height: 40,
+      derivedLayout: { x: 20, y: 0, width: 204, height: 40 }
+    })
+  })
+  if (!button || !label) throw new Error('Expected the component')
+  graph.applyDerivedLayoutDuring(() => editor.runLayoutForNode(button?.id ?? ''))
+  expect(button.width).toBe(244)
+
+  editor.updateNodeWithUndo(label.id, { width: 272 })
+  expect(button.width).toBe(312)
+  editor.dispose()
+})
