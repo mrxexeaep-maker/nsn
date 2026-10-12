@@ -13,7 +13,8 @@ import {
   removeComponentProperty,
   createComponentPropertyId,
   exposedInstances,
-  instanceExposureIssue
+  instanceExposureIssue,
+  resolveComponentPropertyValue
 } from '@open-pencil/scene-graph'
 import { cloneNodeProps } from '@open-pencil/scene-graph/copy'
 
@@ -460,8 +461,18 @@ export function installComponentPropertyAccessors(
             )
           return { definition, value }
         })
+        const scene = graph(this, internals)
+        const unresolved = values.find(
+          ({ definition, value }) =>
+            definition.type === 'INSTANCE_SWAP' &&
+            !resolveComponentPropertyValue(scene, String(value))
+        )
+        if (unresolved)
+          throw new Error(
+            `Unable to apply component property: ${propertyName(unresolved.definition)}`
+          )
         const variant = values.filter(({ definition }) => definition.type === 'VARIANT')
-        if (variant.length > 0) switchVariant(graph(this, internals), node, variant)
+        if (variant.length > 0) switchVariant(scene, node, variant)
         for (const { definition, value } of values) {
           if (definition.type !== 'VARIANT') applyProperty(this, internals, node, definition, value)
         }

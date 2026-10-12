@@ -27,6 +27,8 @@ function setup() {
   const set = figma.combineAsVariants(variants, figma.currentPage)
   const text = set.addComponentProperty('Text', 'TEXT', 'Click')
   for (const label of labels) label.componentPropertyReferences = { characters: text }
+  const icon = figma.createComponent()
+  const swap = set.addComponentProperty('Icon', 'INSTANCE_SWAP', icon.id)
   const instance = variants[0].createInstance()
   instance.setProperties({ [text]: 'Buy' })
   const state = () => ({
@@ -34,7 +36,7 @@ function setup() {
     text: instance.componentProperties[text]?.value,
     width: instance.width
   })
-  return { instance, text, state }
+  return { instance, text, swap, state }
 }
 
 test('setProperties switches variants, one value or several, and keeps other properties', () => {
@@ -58,5 +60,14 @@ test('setProperties changes nothing when no variant has the values, or a name is
   expect(() => instance.setProperties({ Colour: 'Red' })).toThrow(
     "in setProperties: Could not find a component property with name: 'Colour'"
   )
+  expect(state()).toEqual(before)
+})
+
+test('setProperties changes nothing when an instance swap value is no component', () => {
+  const { instance, text, swap, state } = setup()
+  const before = state()
+  expect(() =>
+    instance.setProperties({ Size: 'Large', [text]: 'Lost', [swap]: 'missing' })
+  ).toThrow('Unable to apply component property: Icon')
   expect(state()).toEqual(before)
 })
