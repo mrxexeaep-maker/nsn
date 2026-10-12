@@ -41,7 +41,7 @@ const EVENT_DESCRIPTIONS: {
   usage_stats_enabled: {
     description: 'Usage stats were turned on, sent once with the agreement itself.',
     properties: {
-      source: 'Where: the welcome screen, the later prompt, or Settings.'
+      source: 'Where: right after the first-run welcome, on a later launch, or in Settings.'
     }
   }
 }
