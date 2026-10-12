@@ -204,7 +204,11 @@ export function autoLayoutValueAnchor(
   const prev = children.at(gap)
   const next = children.at(gap + 1)
   if (!prev || !next) return middle
-  if (node.layoutMode === 'HORIZONTAL')
-    return { x: abs.x + (prev.x + prev.width + next.x) / 2, y: middle.y }
-  return { x: middle.x, y: abs.y + (prev.y + prev.height + next.y) / 2 }
+  // Across the flow, the middle of the content box, where the hover draws the gap's tick.
+  if (node.layoutMode === 'HORIZONTAL') {
+    const y = abs.y + (node.paddingTop + node.height - node.paddingBottom) / 2
+    return { x: abs.x + (prev.x + prev.width + next.x) / 2, y }
+  }
+  const x = abs.x + (node.paddingLeft + node.width - node.paddingRight) / 2
+  return { x, y: abs.y + (prev.y + prev.height + next.y) / 2 }
 }

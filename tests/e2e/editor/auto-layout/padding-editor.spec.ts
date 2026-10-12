@@ -181,3 +181,30 @@ test('double-clicking an auto-layout gap edits it like a padding, as in Figma', 
   expect(await frameGap(page, frameId)).toBe(8)
   canvas.assertNoErrors()
 })
+
+test('selecting another layer closes the value editor and keeps the value it had', async ({
+  page
+}) => {
+  await page.goto('/')
+  const canvas = new CanvasHelper(page)
+  await canvas.waitForInit()
+  await canvas.clearCanvas()
+
+  const frameId = await setupAutoLayoutFrame(page)
+  await canvas.waitForRender()
+
+  await canvas.hover(300, 130)
+  await dblclickCanvas(page, 300, 130)
+  const editor = page.getByTestId('auto-layout-value-editor')
+  await expect(editor).toBeVisible()
+  await canvas.dragNumberField(editor.getByTestId('auto-layout-value-input'), 40)
+  await canvas.hover(300, 130)
+  await dblclickCanvas(page, 300, 130)
+  await expect(editor).toBeVisible()
+  const committed = await framePaddingTop(page, frameId)
+
+  await page.evaluate(() => window.openPencil?.getStore?.().clearSelection())
+  await expect(editor).toHaveCount(0)
+  expect(await framePaddingTop(page, frameId)).toBe(committed)
+  canvas.assertNoErrors()
+})

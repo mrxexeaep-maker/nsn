@@ -1,7 +1,7 @@
 import { useEventListener } from '@vueuse/core'
 import { onScopeDispose, ref, watch, type Ref } from 'vue'
 
-import type { Editor } from '@open-pencil/core/editor'
+import type { Editor, NodePreview } from '@open-pencil/core/editor'
 import type { SceneNode } from '@open-pencil/scene-graph'
 
 import { createGuideInput, selectedTopLevelGuideFrameId } from '#vue/canvas/guides/input'
@@ -66,8 +66,11 @@ export function useCanvasInput(
     /** The gap a double-click opened the gap's editor on, which it sits over. */
     gap: number
     value: number
-    previous: number
   } | null>(null)
+  // The edit's owned preview: undo takes it back in one step, and a selection, page, or
+  // document change cancels it, which closes the editor.
+  let valuePreview: NodePreview | null = null
+  let stopValuePreview: Array<() => void> = []
   const selectedIdsBeforeClickSequence = ref<ReadonlySet<string>>(new Set())
   const lastPointer = ref<{ cx: number; cy: number; sx: number; sy: number } | null>(null)
   const pointerInside = ref(false)
@@ -174,19 +177,34 @@ export function useCanvasInput(
     handleMarqueeMove
   } = createCanvasTransformInput(editor, setDrag)
 
+  function endAutoLayoutValueEdit() {
+    for (const stop of stopValuePreview) stop()
+    stopValuePreview = []
+    valuePreview = null
+    autoLayoutValueEdit.value = null
+  }
+
   function startAutoLayoutValueEdit(e: MouseEvent): boolean {
     const { cx, cy } = getCoords(e)
     const hover = resolveAutoLayoutHover(cx, cy, editor)
     const field = hover ? autoLayoutValueField(hover) : null
     const node = hover ? editor.graph.getNode(hover.nodeId) : undefined
     if (!hover || !field || !node) return false
-    const value = node[field]
+    valuePreview = editor.beginNodePreview(
+      field === 'itemSpacing' ? 'Update gap' : 'Update padding'
+    )
+    const close = () => {
+      if (valuePreview?.closed) endAutoLayoutValueEdit()
+    }
+    stopValuePreview = (['selection:changed', 'page:changed', 'graph:replaced'] as const).map(
+      (event) => editor.onEditorEvent(event, close)
+    )
+    stopValuePreview.push(editor.onEditorEvent('node:deleted', close))
     autoLayoutValueEdit.value = {
       nodeId: node.id,
       field,
       gap: hover.index ?? 0,
-      value,
-      previous: value
+      value: node[field]
     }
     e.preventDefault()
     e.stopPropagation()
@@ -195,29 +213,26 @@ export function useCanvasInput(
 
   function updateAutoLayoutValueEdit(value: number) {
     const edit = autoLayoutValueEdit.value
-    if (!edit || !Number.isFinite(value)) return
+    if (!edit || !valuePreview || !Number.isFinite(value)) return
     const next = Math.max(0, value)
     autoLayoutValueEdit.value = { ...edit, value: next }
-    editor.updateNode(edit.nodeId, { [edit.field]: next })
+    valuePreview.update(edit.nodeId, { [edit.field]: next })
   }
 
   function commitAutoLayoutValueEdit(value: number) {
     const edit = autoLayoutValueEdit.value
-    if (!edit || !Number.isFinite(value)) {
-      autoLayoutValueEdit.value = null
-      return
+    if (edit && valuePreview && Number.isFinite(value)) {
+      valuePreview.update(edit.nodeId, { [edit.field]: Math.max(0, value) })
+      valuePreview.commit()
+    } else {
+      valuePreview?.cancel()
     }
-    const next = Math.max(0, value)
-    const label = edit.field === 'itemSpacing' ? 'Update gap' : 'Update padding'
-    editor.updateNode(edit.nodeId, { [edit.field]: edit.previous })
-    editor.updateNodeWithUndo(edit.nodeId, { [edit.field]: next }, label)
-    autoLayoutValueEdit.value = null
+    endAutoLayoutValueEdit()
   }
 
   function cancelAutoLayoutValueEdit() {
-    const edit = autoLayoutValueEdit.value
-    if (edit) editor.updateNode(edit.nodeId, { [edit.field]: edit.previous })
-    autoLayoutValueEdit.value = null
+    valuePreview?.cancel()
+    endAutoLayoutValueEdit()
   }
 
   function onDblClick(e: MouseEvent) {
