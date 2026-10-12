@@ -1,3 +1,5 @@
+import { isEqual } from 'es-toolkit/predicate'
+
 import {
   applyComponentPropertyValue,
   cloneInstanceOverrideState,
@@ -17,14 +19,19 @@ export function bindsVisibility(node: SceneNode): boolean {
  * Showing or hiding a layer of an instance that a boolean property drives sets the property, as
  * in Figma: the instance that defines it takes the value, and every layer it drives follows. A
  * bare visibility override would not reach Figma, which shows such layers by the property. The
- * caller records the edit itself; this records the property change beside it.
+ * caller records the edit itself; this records the property change beside it. Returns whether a
+ * property drives the layer, and so took the value.
  */
-export function applyBoundVisibilityEdit(ctx: EditorContext, nodeId: string, visible: boolean) {
+export function applyBoundVisibilityEdit(
+  ctx: EditorContext,
+  nodeId: string,
+  visible: boolean
+): boolean {
   const node = ctx.graph.getNode(nodeId)
   const propertyId = node?.componentPropertyReferences.find(
     (reference) => reference.field === 'VISIBLE'
   )?.propertyId
-  if (!node?.parentId || !propertyId) return
+  if (!node?.parentId || !propertyId) return false
   const instance = ctx.graph.closest(
     node.parentId,
     (item) =>
@@ -36,7 +43,7 @@ export function applyBoundVisibilityEdit(ctx: EditorContext, nodeId: string, vis
   const definition = instance
     ? componentPropertyDefinitions(ctx.graph, instance).find((item) => item.id === propertyId)
     : undefined
-  if (!instance || definition?.type !== 'BOOLEAN') return
+  if (!instance || definition?.type !== 'BOOLEAN') return false
   const layers = findComponentPropertyTargets(ctx.graph, instance, propertyId).flatMap((target) =>
     target.field === 'VISIBLE' ? [target.node.id] : []
   )
@@ -48,6 +55,8 @@ export function applyBoundVisibilityEdit(ctx: EditorContext, nodeId: string, vis
   const before = snapshot()
   applyComponentPropertyValue(ctx.graph, instance.id, definition, String(visible))
   const after = snapshot()
+  // The property already had the value, as when another layer it drives was just shown.
+  if (isEqual(before, after)) return true
   const apply = (values: typeof before) => {
     ctx.graph.updateNode(instance.id, {
       componentPropertyAssignments: { ...values.componentPropertyAssignments },
@@ -63,4 +72,5 @@ export function applyBoundVisibilityEdit(ctx: EditorContext, nodeId: string, vis
     forward: () => apply(after),
     inverse: () => apply(before)
   })
+  return true
 }

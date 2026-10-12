@@ -64,6 +64,17 @@ describe('component property actions', () => {
     editor.toggleNodeVisibility(badge.id)
     expect(editor.graph.getNode(instance.id)?.componentPropertyAssignments['10:2']).toBe('false')
     expect(childByName(editor, instance.id, 'Dot')?.visible).toBe(false)
+    editor.undo.undo()
+    expect(childByName(editor, instance.id, 'Badge')?.visible).toBe(true)
+    expect(childByName(editor, instance.id, 'Dot')?.visible).toBe(true)
+
+    // Layers the property drives together, selected together, set it once.
+    const dot = childByName(editor, instance.id, 'Dot')
+    editor.select([badge.id, dot?.id ?? ''])
+    editor.toggleVisibility()
+    expect(editor.graph.getNode(instance.id)?.componentPropertyAssignments['10:2']).toBe('false')
+    expect(childByName(editor, instance.id, 'Badge')?.visible).toBe(false)
+    expect(childByName(editor, instance.id, 'Dot')?.visible).toBe(false)
   })
 
   test('applies and undoes text, boolean, and instance-swap properties', () => {
