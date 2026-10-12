@@ -24,6 +24,7 @@ export {
   patchFigRecords,
   type FigArchiveRecordInfo,
   type FigPatchedArchiveInput,
+  type FigRecordFieldPatch,
   type FigRecordPatch
 } from './record-patch'
 export {

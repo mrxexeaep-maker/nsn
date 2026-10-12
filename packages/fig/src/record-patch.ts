@@ -18,9 +18,23 @@ import { symbolDataOf, symbolOverridesOf } from './instance-overrides/types'
  * What an edited document changes in the archive it was opened from: the records to write, by
  * GUID, and the records to drop. Records nobody touched stay as the archive saved them.
  */
+/**
+ * Fields an edit changed in a record the archive holds. The rest of the record stays as the
+ * archive saved it, fields OpenPencil does not model included.
+ */
+export interface FigRecordFieldPatch {
+  guid: GUID
+  /** Fields written over the archive's. */
+  set: Partial<NodeChange>
+  /** Fields the record no longer has. */
+  unset: string[]
+}
+
 export interface FigRecordPatch {
   /** Written in place of the archive's record with the same GUID, or added after the rest. */
   records: NodeChange[]
+  /** Changed fields of records the archive holds, merged into them. */
+  fields?: FigRecordFieldPatch[]
   /** Blobs the records add; their indices continue after the archive's. */
   blobs: Uint8Array[]
   /** Dropped together with every record below them. */
@@ -217,16 +231,46 @@ function placeVariableRecords(
  * Merge a patch into the archive's records. Untouched records keep their place; a written
  * record takes its archive record's, and one whose parent is new follows that parent.
  */
+/** An archive record with an edit's fields merged in. */
+function patchedRecord(record: NodeChange, patch: FigRecordFieldPatch): NodeChange {
+  const merged: Record<string, unknown> = { ...record, ...structuredClone(patch.set) }
+  for (const field of patch.unset) Reflect.deleteProperty(merged, field)
+  return merged as NodeChange
+}
+
+/**
+ * Add the archive records whose fields the patch changes to `written`, merged, and return the
+ * records removed. A record an edit moved has left a removed parent; one it left in place goes
+ * with it.
+ */
+function writeFieldPatches<Value>(
+  archive: ReadonlyArray<RecordEntry<Value>>,
+  patch: Pick<FigRecordPatch, 'fields' | 'removed'>,
+  written: Map<string, RecordEntry<NodeChange>>,
+  decode: (value: Value) => NodeChange
+): Set<string> {
+  const fields = new Map((patch.fields ?? []).map((entry) => [guidToString(entry.guid), entry]))
+  const moved = [...fields].flatMap(([id, entry]) => ('parentIndex' in entry.set ? [id] : []))
+  const removed = removedRecords(archive, patch.removed, new Set([...written.keys(), ...moved]))
+  for (const entry of archive) {
+    if (!entry.id || written.has(entry.id) || removed.has(entry.id)) continue
+    const changed = fields.get(entry.id)
+    if (changed) written.set(entry.id, entryOf(patchedRecord(decode(entry.value), changed)))
+  }
+  return removed
+}
+
 function mergeRecords<Value>(
   archive: ReadonlyArray<RecordEntry<Value>>,
-  patch: Pick<FigRecordPatch, 'records' | 'removed' | 'replaceVariables'>
+  patch: Pick<FigRecordPatch, 'records' | 'fields' | 'removed' | 'replaceVariables'>,
+  decode: (value: Value) => NodeChange
 ): Array<RecordEntry<Value | NodeChange>> {
   const written = new Map<string, RecordEntry<NodeChange>>()
   for (const record of patch.records) {
     const entry = entryOf(record)
     if (entry.id) written.set(entry.id, entry)
   }
-  const removed = removedRecords(archive, patch.removed, new Set(written.keys()))
+  const removed = writeFieldPatches(archive, patch, written, decode)
   const archiveIds = new Set(archive.flatMap((entry) => entry.id ?? []))
   const archivePositions = new Map<string, NodeChange['parentIndex']>()
   const writer = createRecordWriter<Value | NodeChange>(written, archiveIds)
@@ -252,9 +296,9 @@ function mergeRecords<Value>(
 /** Merge a patch into decoded archive records. */
 export function patchFigRecords(
   archive: readonly NodeChange[],
-  patch: Pick<FigRecordPatch, 'records' | 'removed' | 'replaceVariables'>
+  patch: Pick<FigRecordPatch, 'records' | 'fields' | 'removed' | 'replaceVariables'>
 ): NodeChange[] {
-  return mergeRecords(archive.map(entryOf), patch).map((entry) => entry.value)
+  return mergeRecords(archive.map(entryOf), patch, (record) => record).map((entry) => entry.value)
 }
 
 type KiwiCodec = ReturnType<typeof compileSchema>
@@ -404,7 +448,13 @@ export function patchFigMessage(
 ): Uint8Array {
   const { codec, skipper } = archiveCodec(schemaDeflated)
   const scanned = scanMessage(codec, skipper, dataRaw)
-  const merged = mergeRecords(scanned.records, patch)
+  const recordsPart = scanned.parts.find((part) => part.kind === 'records')
+  // Only the records an edit changed some fields of are decoded; the rest stay bytes.
+  const decode = (bytes: Uint8Array): NodeChange => {
+    if (recordsPart?.kind !== 'records') throw new Error('The archive has no records')
+    return decoderOf(codec, recordsPart.type)(new ByteBuffer(bytes)) as NodeChange
+  }
+  const merged = mergeRecords(scanned.records, patch, decode)
   const blobs = (type: string) => [
     ...scanned.blobs,
     ...patch.blobs.map((bytes) => encoded(codec, type, { bytes }))
