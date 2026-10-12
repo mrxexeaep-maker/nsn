@@ -188,6 +188,16 @@ describe('changelog fragments', () => {
     expect(validateChangelog(assembled).errors).toEqual([])
   })
 
+  test('refuse to assemble over Unreleased content it would drop', () => {
+    const prose =
+      '# Changelog\n\n## Unreleased\n\nA note.\n\n### Fixed\n\n- Keep user data.\n\n## 1.0.0 — 2026-01-01\n\n### Added\n\n- Ship it.\n'
+    const uncategorized =
+      '# Changelog\n\n## Unreleased\n\n- Loose bullet.\n\n## 1.0.0 — 2026-01-01\n\n### Added\n\n- Ship it.\n'
+
+    expect(() => assembleUnreleased(prose, [])).toThrow('line 5: Unreleased holds content outside')
+    expect(() => assembleUnreleased(uncategorized, [])).toThrow('line 5')
+  })
+
   test('leave an empty Unreleased section as it is when nothing is pending', () => {
     const changelog =
       '# Changelog\n\n## Unreleased\n\n## 1.0.0 — 2026-01-01\n\n### Added\n\n- Ship it.\n'
@@ -210,6 +220,19 @@ describe('changelog fragments', () => {
 })
 
 describe('readFragments', () => {
+  test('treat a missing changes folder as nothing pending', async () => {
+    const directory = join(await mkdtemp(join(tmpdir(), 'changes-')), 'absent')
+
+    expect(await readFragments(directory)).toEqual({ fragments: [], errors: [] })
+  })
+
+  test('fail when the changes folder cannot be read', async () => {
+    const file = join(await mkdtemp(join(tmpdir(), 'changes-')), 'not-a-folder')
+    await writeFile(file, '')
+
+    await expect(readFragments(file)).rejects.toThrow()
+  })
+
   test('read pull request folders and report anything that does not fit', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'changes-'))
     await mkdir(join(directory, '42'))

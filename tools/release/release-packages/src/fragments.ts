@@ -58,7 +58,11 @@ export function parseFragmentBullets(
 export async function readFragments(directory: string): Promise<FragmentReadResult> {
   const fragments: ChangeFragment[] = []
   const errors: string[] = []
-  const entries = await readdir(directory, { withFileTypes: true }).catch(() => [])
+  const entries = await readdir(directory, { withFileTypes: true }).catch((error: unknown) => {
+    // No `changes/` folder means nothing is pending; any other failure must not pass as that.
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return []
+    throw error
+  })
   for (const entry of entries) {
     if (entry.isFile() && entry.name === 'README.md') continue
     if (!entry.isDirectory() || !/^[1-9]\d*$/.test(entry.name)) {
@@ -95,17 +99,25 @@ function listItemMarkdown(source: string, item: ListItem): string {
   return source.slice(item.position?.start.offset ?? 0, item.position?.end.offset ?? 0).trimEnd()
 }
 
-/** The bullets `## Unreleased` already holds, by category. */
+/**
+ * The bullets `## Unreleased` already holds, by category. Anything assembly could not carry
+ * over, such as prose or a list outside a category, is refused rather than dropped.
+ */
 function unreleasedBullets(changelog: string, nodes: RootContent[]): Map<Category, string[]> {
   const bullets = new Map<Category, string[]>(ALLOWED_CATEGORIES.map((category) => [category, []]))
   let current: Category | undefined
   for (const node of nodes) {
+    const at = `CHANGELOG.md line ${node.position?.start.line ?? '?'}`
     if (node.type === 'heading') {
       const text = headingText(node)
       current = ALLOWED_CATEGORIES.find((category) => category === text)
-      if (!current) throw new Error(`Unreleased has an unknown category "${text}".`)
-    } else if (node.type === 'list' && current) {
+      if (node.depth !== 3 || !current) {
+        throw new Error(`${at}: "${text}" is not an Unreleased category.`)
+      }
+    } else if (node.type === 'list' && !node.ordered && current) {
       bullets.get(current)?.push(...node.children.map((item) => listItemMarkdown(changelog, item)))
+    } else {
+      throw new Error(`${at}: Unreleased holds content outside a category bullet list.`)
     }
   }
   return bullets
