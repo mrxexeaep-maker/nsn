@@ -25,11 +25,13 @@ This is a pre-release that lists changes since 0.16.0-beta.1: npm packages are p
 
 ### Breaking changes
 
+- `useCanvasInput` in `@open-pencil/vue` returns `autoLayoutValueEdit` with `updateAutoLayoutValueEdit`, `commitAutoLayoutValueEdit`, and `cancelAutoLayoutValueEdit` in place of the padding-only `autoLayoutPaddingEdit` and its functions; the edit names its `field` (a padding or `itemSpacing`), and `autoLayoutValueAnchor` places its editor.
 - `CORNER_ROTATE_ZONE` is removed from `@open-pencil/core/constants`; the selection's resize and rotation zones are `TRANSFORM_ZONE` and `transformZoneAt` in `@open-pencil/core/geometry`, which also owns the `HandlePosition` and `CornerPosition` types.
 - In scripts, a text node's `textCase`, `textStyleId`, and `fillStyleId` now also read `figma.mixed` while its characters differ, as in Figma, instead of the text's own value, and setting one restyles every character.
 
 ### Added
 
+- Double-click an auto layout gap on the canvas to edit it, as a padding, as in Figma.
 - In scripts, an instance's `overrides` lists each layer edited in it, nested instances included, under Figma's field names, and `resetOverrides()` returns the instance and the instances inside it to their components, keeping the values component properties set.
 - Enter opens a selected vector's path for editing, as a double-click does, as in Figma.
 - Text keeps a case, a link, text and fill styles, and variable bindings for any range of its characters, as in Figma: the canvas draws each range in its own case, `.fig` files and the Figma clipboard keep them, apart from font weight bindings, HTML, Tailwind, and JSX exports write links as `<a href>` and cases as `text-transform` and HTML import reads them back, Design JSX `<Span>` takes `textCase` and `href`, and the Typography section's text case changes the selected characters while text is edited. Scripts read and set them with `getRangeTextCase`, `setRangeTextCase`, `getRangeHyperlink`, `setRangeHyperlink`, `getRangeTextStyleId`, `setRangeTextStyleIdAsync`, `getRangeFillStyleId`, `setRangeFillStyleIdAsync`, `getRangeBoundVariable`, `setRangeBoundVariable`, and the text's `hyperlink`.
@@ -53,6 +55,7 @@ This is a pre-release that lists changes since 0.16.0-beta.1: npm packages are p
 
 ### Fixed
 
+- A row that hugs its height around a stretched layer keeps that height when pasted or saved into Figma, which shrank it to its other layers. The padding and gap values shown on hover fit their numbers, as in Figma.
 - Editing a component keeps the size of a text copy that styles its text on its own and of a copy that fills its parent, so instances around them no longer grow or shrink.
 - Path editing closes when its vector is deleted, by undo or a script, or when another document opens.
 - Preview draws controls as the canvas does: in the variable modes the canvas is showing, also after a mode switch or a variable edit, with icons and vector layers as drawn and shader fills playing behind their layers from the canvas's own shader players.
