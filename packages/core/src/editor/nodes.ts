@@ -11,6 +11,7 @@ import {
 import { textAutoResizeChanges } from '#core/layout/text-auto-resize'
 import { reconcileVariableLayouts } from '#core/layout/variables'
 
+import { applyBoundVisibilityEdit, bindsVisibility } from './components/authoring/visibility-edit'
 import { createLayoutModeActions } from './layout-mode'
 import { createNodePreviewActions } from './node-preview'
 import { createNudgeActions } from './nudge'
@@ -58,6 +59,20 @@ export function createNodeActions(ctx: EditorContext) {
   function updateNodeWithUndo(id: string, changes: Partial<SceneNode>, label = 'Update') {
     const node = ctx.graph.getNode(id)
     if (!node) return
+    // A layer a boolean property shows or hides sets the property too, in the same undo step.
+    const visible = changes.visible
+    if (visible !== undefined && visible !== node.visible && bindsVisibility(node)) {
+      ctx.undo.runBatch(label, () => {
+        recordNodeUpdate(node, changes, label)
+        applyBoundVisibilityEdit(ctx, id, visible)
+      })
+      return
+    }
+    recordNodeUpdate(node, changes, label)
+  }
+
+  function recordNodeUpdate(node: SceneNode, changes: Partial<SceneNode>, label: string) {
+    const { id } = node
     // Same ordering rationale as updateNode: reflowed path-text glyphs win.
     const nextChanges = styleDetachmentChanges(node, {
       ...changes,

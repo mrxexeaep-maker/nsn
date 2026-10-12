@@ -41,6 +41,31 @@ function setupComponentProperties() {
 }
 
 describe('component property actions', () => {
+  test('hiding a layer a boolean property shows sets the property, as Figma does', () => {
+    const { editor, component, instance } = setupComponentProperties()
+    editor.graph.createNode('FRAME', component.id, {
+      name: 'Dot',
+      componentPropertyReferences: [{ propertyId: '10:2', field: 'VISIBLE' }]
+    })
+    editor.graph.syncInstance(instance.id)
+    const badge = childByName(editor, instance.id, 'Badge')
+    if (!badge) throw new Error('Expected badge copy')
+
+    editor.updateNodeWithUndo(badge.id, { visible: false }, 'Hide')
+    expect(editor.graph.getNode(instance.id)?.componentPropertyAssignments['10:2']).toBe('false')
+    // Every layer the property drives follows it.
+    expect(childByName(editor, instance.id, 'Dot')?.visible).toBe(false)
+
+    editor.undo.undo()
+    expect(editor.graph.getNode(instance.id)?.componentPropertyAssignments['10:2']).toBeUndefined()
+    expect(childByName(editor, instance.id, 'Badge')?.visible).toBe(true)
+    expect(childByName(editor, instance.id, 'Dot')?.visible).toBe(true)
+
+    editor.toggleNodeVisibility(badge.id)
+    expect(editor.graph.getNode(instance.id)?.componentPropertyAssignments['10:2']).toBe('false')
+    expect(childByName(editor, instance.id, 'Dot')?.visible).toBe(false)
+  })
+
   test('applies and undoes text, boolean, and instance-swap properties', () => {
     const { editor, instance, iconA, iconB } = setupComponentProperties()
 
