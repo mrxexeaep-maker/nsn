@@ -8,6 +8,8 @@
   "page": "Seite",
   "selectionColors": "Auswahlfarben",
   "frame": "Frame",
+  "group": "Gruppe",
+  "layerType": "Ebenentyp",
   "framePreset": "Frame-Voreinstellung",
   "framePresetCustom": "Benutzerdefiniert",
   "framePresetCategoryPhone": "Telefon",

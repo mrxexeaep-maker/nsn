@@ -9,6 +9,8 @@
   "page": "ページ",
   "selectionColors": "選択範囲の色",
   "frame": "フレーム",
+  "group": "グループ",
+  "layerType": "レイヤーの種類",
   "framePreset": "フレームプリセット",
   "framePresetCustom": "カスタム",
   "framePresetCategoryPhone": "スマートフォン",

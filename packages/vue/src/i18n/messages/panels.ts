@@ -137,6 +137,8 @@ export const panelMessageDefaults = {
   page: 'Page',
   selectionColors: 'Selection colors',
   frame: 'Frame',
+  group: 'Group',
+  layerType: 'Layer type',
   framePreset: 'Frame preset',
   framePresetCustom: 'Custom',
   framePresetCategoryPhone: 'Phone',

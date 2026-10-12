@@ -8,6 +8,8 @@
   "page": "Pagina",
   "selectionColors": "Colori della selezione",
   "frame": "Cornice",
+  "group": "Gruppo",
+  "layerType": "Tipo di livello",
   "framePreset": "Preimpostazione cornice",
   "framePresetCustom": "Personalizzata",
   "framePresetCategoryPhone": "Telefono",

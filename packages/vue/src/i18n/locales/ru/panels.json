@@ -8,6 +8,8 @@
   "page": "Страница",
   "selectionColors": "Цвета выделения",
   "frame": "Фрейм",
+  "group": "Группа",
+  "layerType": "Тип слоя",
   "framePreset": "Размер фрейма",
   "framePresetCustom": "Пользовательский",
   "framePresetCategoryPhone": "Телефон",

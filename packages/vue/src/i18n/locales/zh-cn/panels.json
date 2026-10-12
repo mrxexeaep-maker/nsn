@@ -8,6 +8,8 @@
   "page": "页面",
   "selectionColors": "所选颜色",
   "frame": "画框",
+  "group": "编组",
+  "layerType": "图层类型",
   "framePreset": "画框预设",
   "framePresetCustom": "自定义",
   "framePresetCategoryPhone": "手机",

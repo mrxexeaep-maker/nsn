@@ -8,6 +8,8 @@
   "page": "Strona",
   "selectionColors": "Kolory zaznaczenia",
   "frame": "Ramka",
+  "group": "Grupa",
+  "layerType": "Typ warstwy",
   "framePreset": "Ustawienie ramki",
   "framePresetCustom": "Niestandardowe",
   "framePresetCategoryPhone": "Telefon",

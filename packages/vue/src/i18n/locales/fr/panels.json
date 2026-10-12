@@ -8,6 +8,8 @@
   "page": "Page",
   "selectionColors": "Couleurs de la sélection",
   "frame": "Cadre",
+  "group": "Groupe",
+  "layerType": "Type de calque",
   "framePreset": "Préréglage de cadre",
   "framePresetCustom": "Personnalisé",
   "framePresetCategoryPhone": "Téléphone",

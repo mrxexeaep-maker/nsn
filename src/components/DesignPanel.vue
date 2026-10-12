@@ -30,6 +30,7 @@ import FillSection from './properties/FillSection.vue'
 import FramePresetSelect from './properties/frame-presets/FramePresetSelect.vue'
 import FramePresetsSection from './properties/frame-presets/FramePresetsSection.vue'
 import IconSection from './properties/IconSection.vue'
+import LayerTypeMenu from './properties/LayerTypeMenu.vue'
 import LayoutGridSection from './properties/layout/guides/LayoutGridSection.vue'
 import LayoutSection from './properties/layout/LayoutSection.vue'
 import MaskSection from './properties/MaskSection.vue'
@@ -133,7 +134,12 @@ const { panels } = useI18n()
     >
       <PanelHeader :component="isComponentType">
         <template #icon>
-          <Tip :label="node.type">
+          <LayerTypeMenu
+            v-if="node.type === 'FRAME' || node.type === 'GROUP'"
+            :node="node"
+            :icon="selectedIcon"
+          />
+          <Tip v-else :label="node.type">
             <span role="img" :aria-label="node.type" class="contents">
               <component :is="selectedIcon" class="size-3.5" />
             </span>
