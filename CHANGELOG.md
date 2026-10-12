@@ -25,16 +25,14 @@
 - An instance whose own content makes it taller or wider than its component, such as a hug frame around longer text, reopens at its saved size.
 - SVG export, and the HTML, JSX, and preview drawings built on it, draw a vector's open strokes beside its filled regions, such as the bar of a skip icon, instead of the regions alone.
 - The contrast check asks 3:1 of large text, 24 px or 18.66 px bold, as WCAG AA does, and 4.5:1 of the rest, holding a text layer to the strictest threshold any of its style runs needs.
-
-
-### Fixed
-
 - Lines of text that mix font sizes or line heights are spaced as in Figma: each line is as tall as the tallest line height on it, with its largest font centred in it, instead of stacking the tallest parts of every style on it, which put lines after a large word or a taller line height up to 10 px off.
 - A line height in pixels shorter than the font, such as 24 px on 24 px text, opens from `.fig` files as set instead of as the font's own height.
 - Text with an empty line, or ending in one, saved to `.fig` or copied to Figma shows there, where Figma showed it blank.
 - The properties panel shows the shared styles layers use in opened `.fig` files, where it listed them as missing styles.
 - Styles made in OpenPencil, by importing design tokens or by pasting layers from another document, are saved in `.fig` files as styles, and layers reopen with them. Saving wrote their references empty, so reopening dropped the styles, and saving into an opened file made them layers of the page in Figma.
 - Layers and text that use a library style keep it in Figma after OpenPencil saves them, where Figma showed them with no style.
+- Saving an opened `.fig` file writes only what an edit changed in a layer or variable, and keeps the rest as Figma saved it. That includes data OpenPencil does not model, an instance's library link and saved overrides, and an edited text's letter spacing in percent and font names. Before, saving rewrote each edited layer whole. Importing design tokens or adding a mode also rewrote every layer and variable in the file that uses variable modes.
+- Variables that alias library variables still point at the library after a save, and a collection's modes keep their order in Figma.
 
 ## 0.16.0-beta.1 — 2026-10-11
 
