@@ -1,13 +1,15 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 
 import { createTestService, type TestService } from '#feedback-tests/harness'
+import { omit } from 'es-toolkit'
 
 const BUILD = {
   version: '0.16.0',
   platform: 'macos',
   arch: 'arm64',
   app: 'desktop',
-  browser: 'unknown'
+  browser: 'unknown',
+  usageStats: 'unset'
 }
 
 let service: TestService
@@ -22,7 +24,9 @@ afterAll(async () => {
 
 async function counts() {
   const { results } = await service.db
-    .prepare('SELECT day, version, platform, app, count FROM usage_pings ORDER BY version')
+    .prepare(
+      'SELECT day, version, platform, app, usage_stats AS usageStats, count FROM usage_pings ORDER BY version, usage_stats'
+    )
     .all()
   return results
 }
@@ -34,9 +38,39 @@ describe('ping', () => {
     expect((await service.postJSON('/ping', { ...BUILD, version: '0.15.1' })).status).toBe(204)
 
     expect(await counts()).toEqual([
-      { day: '2026-10-12', version: '0.15.1', platform: 'macos', app: 'desktop', count: 1 },
-      { day: '2026-10-12', version: '0.16.0', platform: 'macos', app: 'desktop', count: 2 }
+      {
+        day: '2026-10-12',
+        version: '0.15.1',
+        platform: 'macos',
+        app: 'desktop',
+        usageStats: 'unset',
+        count: 1
+      },
+      {
+        day: '2026-10-12',
+        version: '0.16.0',
+        platform: 'macos',
+        app: 'desktop',
+        usageStats: 'unset',
+        count: 2
+      }
     ])
+  })
+
+  test('counts installs that declined usage stats apart from those that share them', async () => {
+    await service.postJSON('/ping', { ...BUILD, version: '0.17.0', usageStats: 'denied' })
+    await service.postJSON('/ping', { ...BUILD, version: '0.17.0', usageStats: 'granted' })
+    await service.postJSON('/ping', { ...BUILD, version: '0.17.0', usageStats: 'granted' })
+
+    const answers = (await counts()).filter((row) => row.version === '0.17.0')
+    expect(answers.map(({ usageStats, count }) => ({ usageStats, count }))).toEqual([
+      { usageStats: 'denied', count: 1 },
+      { usageStats: 'granted', count: 2 }
+    ])
+  })
+
+  test('refuses a ping without the usage stats answer', async () => {
+    expect((await service.postJSON('/ping', omit(BUILD, ['usageStats']))).status).toBe(400)
   })
 
   test('refuses a ping carrying anything beyond the build', async () => {

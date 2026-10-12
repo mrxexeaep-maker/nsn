@@ -7,6 +7,7 @@ export interface UsagePingTable {
   arch: string
   app: string
   browser: string
+  usageStats: string
   count: number
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { describeBuildFields, describeUsageEvents } from '#feedback/contract'
+import { describeBuildFields, describePingFields, describeUsageEvents } from '#feedback/contract'
 
 describe('contract descriptions', () => {
   test('describe every usage event and property, with the values each can take', () => {
@@ -10,7 +10,8 @@ describe('contract descriptions', () => {
       'app_opened',
       'document_opened',
       'document_exported',
-      'ai_reply_finished'
+      'ai_reply_finished',
+      'usage_stats_enabled'
     ])
     for (const event of events) {
       expect(event.description).not.toBe('')
@@ -26,6 +27,14 @@ describe('contract descriptions', () => {
         values: expect.arrayContaining(['fig', 'pen', 'html'])
       }
     ])
+  })
+
+  test('describe the ping as the build plus the usage stats answer', () => {
+    expect(describePingFields().at(-1)).toEqual({
+      name: 'usageStats',
+      description: expect.stringContaining('declined'),
+      values: ['unset', 'granted', 'denied']
+    })
   })
 
   test('describe the build fields every ping and batch carries', () => {

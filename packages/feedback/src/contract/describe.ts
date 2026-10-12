@@ -37,10 +37,16 @@ const EVENT_DESCRIPTIONS: {
   ai_reply_finished: {
     description: 'The AI assistant finished a reply.',
     properties: { provider: 'Which kind of AI provider or agent answered.' }
+  },
+  usage_stats_enabled: {
+    description: 'Usage stats were turned on, sent once with the agreement itself.',
+    properties: {
+      source: 'Where: the welcome screen, the later prompt, or Settings.'
+    }
   }
 }
 
-type BuildField = keyof typeof PingSchema.entries
+type PingField = keyof typeof PingSchema.entries
 
 const BUILD_FIELDS = [
   'version',
@@ -48,14 +54,15 @@ const BUILD_FIELDS = [
   'arch',
   'app',
   'browser'
-] as const satisfies readonly BuildField[]
+] as const satisfies readonly PingField[]
 
-const BUILD_DESCRIPTIONS: Record<BuildField, string> = {
+const PING_DESCRIPTIONS: Record<PingField, string> = {
   version: 'The OpenPencil version, such as 0.16.0.',
   platform: 'The operating system family.',
   arch: 'The processor architecture, known on desktop only.',
   app: 'The desktop app or the web app.',
-  browser: 'The browser family, for the web app.'
+  browser: 'The browser family, for the web app.',
+  usageStats: 'Whether this install shares usage stats, declined, or has not answered yet.'
 }
 
 function valuesOf(schema: unknown): readonly string[] {
@@ -64,13 +71,18 @@ function valuesOf(schema: unknown): readonly string[] {
   return Array.isArray(options) ? options.filter((value) => typeof value === 'string') : []
 }
 
-/** The fields every ping and every usage batch carries. */
+function describeField(name: PingField): FieldDescription {
+  return { name, description: PING_DESCRIPTIONS[name], values: valuesOf(PingSchema.entries[name]) }
+}
+
+/** The build fields every ping and every usage batch carries. */
 export function describeBuildFields(): FieldDescription[] {
-  return BUILD_FIELDS.map((name) => ({
-    name,
-    description: BUILD_DESCRIPTIONS[name],
-    values: valuesOf(PingSchema.entries[name])
-  }))
+  return BUILD_FIELDS.map(describeField)
+}
+
+/** Every field of the daily ping: the build, and the install's usage stats answer. */
+export function describePingFields(): FieldDescription[] {
+  return [...describeBuildFields(), describeField('usageStats')]
 }
 
 /** Every usage event, its properties, and the values each property can take. */

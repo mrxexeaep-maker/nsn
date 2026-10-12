@@ -51,6 +51,14 @@ export type Locale = (typeof LOCALES)[number]
 export type DocumentFormat = (typeof DOCUMENT_FORMATS)[number]
 export type AIProvider = (typeof AI_PROVIDERS)[number]
 
+/** The install's answer to the usage stats question; `unset` until it is asked and answered. */
+export const USAGE_STATS_ANSWERS = ['unset', 'granted', 'denied'] as const
+export type UsageStatsAnswer = (typeof USAGE_STATS_ANSWERS)[number]
+
+/** Where a person agreed to share usage stats. */
+export const CONSENT_SOURCES = ['welcome', 'prompt', 'settings'] as const
+export type ConsentSource = (typeof CONSENT_SOURCES)[number]
+
 const AppVersionSchema = v.pipe(
   v.string(),
   v.maxLength(32),
@@ -66,8 +74,17 @@ const buildEntries = {
   browser: v.picklist(BROWSERS)
 }
 
-/** The daily anonymous ping: no identifier, only which build is running. */
-export const PingSchema = v.strictObject(buildEntries)
+export const BuildSchema = v.strictObject(buildEntries)
+export type Build = v.InferOutput<typeof BuildSchema>
+
+/**
+ * The daily anonymous ping: no identifier, only which build is running and how the install
+ * answered the usage stats question, which counts the installs that declined.
+ */
+export const PingSchema = v.strictObject({
+  ...buildEntries,
+  usageStats: v.picklist(USAGE_STATS_ANSWERS)
+})
 export type Ping = v.InferOutput<typeof PingSchema>
 
 const timestamp = v.pipe(v.string(), v.isoTimestamp())
@@ -92,6 +109,11 @@ export const UsageEventSchema = v.variant('name', [
     name: v.literal('ai_reply_finished'),
     timestamp,
     provider: v.picklist(AI_PROVIDERS)
+  }),
+  v.strictObject({
+    name: v.literal('usage_stats_enabled'),
+    timestamp,
+    source: v.picklist(CONSENT_SOURCES)
   })
 ])
 export type UsageEvent = v.InferOutput<typeof UsageEventSchema>
