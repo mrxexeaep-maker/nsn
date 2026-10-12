@@ -10,17 +10,27 @@
 ### Added
 
 - Text keeps a case, a link, text and fill styles, and variable bindings for any range of its characters, as in Figma: the canvas draws each range in its own case, `.fig` files and the Figma clipboard keep them, apart from font weight bindings, HTML, Tailwind, and JSX exports write links as `<a href>` and cases as `text-transform` and HTML import reads them back, Design JSX `<Span>` takes `textCase` and `href`, and the Typography section's text case changes the selected characters while text is edited. Scripts read and set them with `getRangeTextCase`, `setRangeTextCase`, `getRangeHyperlink`, `setRangeHyperlink`, `getRangeTextStyleId`, `setRangeTextStyleIdAsync`, `getRangeFillStyleId`, `setRangeFillStyleIdAsync`, `getRangeBoundVariable`, `setRangeBoundVariable`, and the text's `hyperlink`.
+- Switch a frame to a group and back from the layer type menu in the properties panel header, as in Figma. A frame becomes a group that keeps its layers, effects, and opacity and fits them; a group becomes a frame of its bounds that clips.
+- Edit the layout guides of several frames at once: the panel lists them while the frames' guides match and edits every frame in one undo step, and while they differ offers Add, which gives each frame one new guide. A new guide is Figma's 10 px grid.
 
 ### Changed
 
 - A selected layer resizes and rotates where Figma's does: every edge resizes along its whole length within 7.5 px outside it and up to a tenth of the side inside it, corners within 7.5 px, and the area outside a corner within 16 px rotates; a frame's name takes a press before rotation but not before resizing. Layers under 24 px keep these zones outside them, and a layer under 10 px on both sides has none, taking presses within 16 px across its centre instead. A selection draws Figma's four corner handles, without the edge midpoints, and none on such a small layer.
 - Pasted layers keep how they were turned and flipped on the canvas, as in Figma, so a layer copied out of a rotated frame stays at its angle in an upright one, and paste to replace keeps the copied layer's angle too. Layers copied out of a frame or section keep their offset from its box on the canvas, and move into the frame only when they start past its far edge, or, for top-level layers, miss it: then layers that fit are centred on that axis, and larger ones go to the frame's top-left, or are centred if top-level. Layers overlapping an edge stay where they are, and layers copied from different places are placed each from its own.
+- A click up to 3.5 screen pixels outside a shape selects it, as in Figma, so hairlines and small dots are easy to pick; a frame's edge stays exact.
+- A click on a section's empty area selects the section, while a drag there still selects the layers inside it, and a right-click over the empty area of a frame with layers, or of a section, selects it for the menu. A selection under 10 screen pixels both ways shows no size label, as it shows no handles.
+- With nothing selected, a layer copied out of a frame or section pastes back into it, where it was on the canvas, or onto the page in the middle of the view when that place is out of view, as in Figma.
+- In scripts, `setProperties` switches an instance's variant, alongside its other properties, and fails without changing anything when no variant has the values, with Figma's messages; `resize` places a frame's layers by their constraints while `resizeWithoutConstraints` leaves them, and an instance's layers follow their constraints either way.
 
 ### Fixed
 
 - Lines of text that mix font sizes or line heights are spaced as in Figma: each line is as tall as the tallest line height on it, with its largest font centred in it, instead of stacking the tallest parts of every style on it, which put lines after a large word or a taller line height up to 10 px off.
 - A line height in pixels shorter than the font, such as 24 px on 24 px text, opens from `.fig` files as set instead of as the font's own height.
 - Text with an empty line, or ending in one, saved to `.fig` or copied to Figma shows there, where Figma showed it blank.
+- Instances keep following their component after being resized: resizing one by a handle no longer makes the sizes of the layers its constraints move into overrides. A component edit no longer gives a copy the component's size where it sizes itself to its own content, such as a badge's count set by an instance property, or an auto layout frame hugging the layers the instance shows, and setting a text property measures the new characters, so the badge fits them at once.
+- `openpencil eval -o` saves a script's edits laid out, though the script never read them back; `@open-pencil/core/figma-api` exports `flushPendingLayout` for hosts that save scripts' results.
+- Saving keeps a fill, stroke, effect, or text style that an instance has cleared, which reopened with the component's style.
+- Layout guides added in the panel or a script save to `.fig` files, where saving failed on them, and a guide read from a file shows as columns or rows in the panel. Scripts read and set `layoutGrids` in Figma's shape.
 
 ## 0.16.0-beta.1 — 2026-10-11
 
