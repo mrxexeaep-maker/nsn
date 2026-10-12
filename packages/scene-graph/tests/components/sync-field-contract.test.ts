@@ -166,11 +166,12 @@ test('a copy that sizes itself to its own content keeps that size through a comp
   const [copyText] = graph.getChildren(copyLabel.id)
   graph.updateNode(copyText.id, { text: '2', width: 8 })
   graph.updateNode(copyLabel.id, { width: 8 })
+  graph.updateNode(instance.id, { width: 24 })
   setInstanceOverride(instance.instanceOverrides, instance.id, copyText.id, 'text', true)
 
   graph.updateNode(text.id, { width: 64, letterSpacing: 1 })
   graph.updateNode(label.id, { width: 64 })
   graph.syncInstances(badge.id)
-  expect([copyText.text, copyText.width, copyLabel.width]).toEqual(['2', 8, 8])
+  expect([copyText.text, copyText.width, copyLabel.width, instance.width]).toEqual(['2', 8, 8, 24])
   expect(copyText.letterSpacing).toBe(1)
 })

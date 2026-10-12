@@ -18,7 +18,10 @@ import {
 import { cloneNodeProps } from '@open-pencil/scene-graph/copy'
 
 import { becomesComponent, componentWrapProps } from '#core/editor/components/create'
-import { reapplyInstanceComponentProperties } from '#core/editor/components/properties'
+import {
+  measurePropertyText,
+  reapplyInstanceComponentProperties
+} from '#core/editor/components/properties'
 import { applyVariantProperties, variantSetProps } from '#core/editor/components/variant-set'
 import {
   findExactVariant,
@@ -351,13 +354,10 @@ function applyProperty(
   definition: ComponentPropertyDefinition,
   value: string | boolean
 ): void {
-  const result = applyComponentPropertyValue(
-    graph(target, internals),
-    node.id,
-    definition,
-    String(value)
-  )
+  const scene = graph(target, internals)
+  const result = applyComponentPropertyValue(scene, node.id, definition, String(value))
   if (!result) throw new Error(`Unable to apply component property: ${propertyName(definition)}`)
+  measurePropertyText({ graph: scene }, node.id, definition)
 }
 export function installComponentPropertyAccessors(
   prototype: object,
