@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 
+import type { ConsentSource } from '@open-pencil/feedback/contract'
 import { randomHex } from '@open-pencil/scene-graph/random'
 import { locale } from '@open-pencil/vue'
 
@@ -17,16 +18,23 @@ export const usageStatsPromptOpen = ref(false)
 
 export const usageStatsConsent = computed(() => appPreferences.value.sharing.usageStats)
 
-/** Starting to share makes a new random ID; stopping deletes it and anything queued. */
-export function setUsageStatsConsent(granted: boolean): void {
+/**
+ * Starting to share makes a new random ID and records where the person agreed; stopping deletes
+ * the ID and anything queued.
+ */
+export function setUsageStatsConsent(granted: boolean, source: ConsentSource): void {
   updateSharingPreferences({ usageStats: granted ? 'granted' : 'denied' })
   sharingState.value = {
     ...sharingState.value,
     installId: granted ? (sharingState.value.installId ?? randomHex(16)) : null
   }
   usageStatsPromptOpen.value = false
-  if (granted) sharingClient.trackUsage({ name: 'app_opened', locale: locale.get() })
-  else sharingClient.discardPendingUsage()
+  if (!granted) {
+    sharingClient.discardPendingUsage()
+    return
+  }
+  sharingClient.trackUsage({ name: 'usage_stats_enabled', source })
+  sharingClient.trackUsage({ name: 'app_opened', locale: locale.get() })
 }
 
 /** Whether the welcome screen should ask, decided before it opens. */

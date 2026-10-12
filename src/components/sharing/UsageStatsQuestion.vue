@@ -9,7 +9,11 @@ import AppButton from '@/components/ui/button/AppButton.vue'
 import { PRIVACY_URL } from '@/constants'
 import theme from '@/theme/sharing/question'
 
-const { framed = false } = defineProps<{ framed?: boolean }>()
+const { source, framed = false } = defineProps<{
+  /** Where the question is asked: on the welcome screen or in the later prompt. */
+  source: 'welcome' | 'prompt'
+  framed?: boolean
+}>()
 const { diagnostics } = useI18n()
 const styles = tv(theme)({ framed })
 </script>
@@ -26,12 +30,11 @@ const styles = tv(theme)({ framed })
           : diagnostics.sharingQuestionDeclined
       }}
     </p>
-    <!-- Both answers look the same, so neither reads as the expected one. -->
     <div v-else :class="styles.actions()">
-      <AppButton variant="outline" @click="setUsageStatsConsent(false)">
+      <AppButton variant="outline" @click="setUsageStatsConsent(false, source)">
         {{ diagnostics.sharingQuestionDecline }}
       </AppButton>
-      <AppButton variant="outline" @click="setUsageStatsConsent(true)">
+      <AppButton color="primary" variant="solid" @click="setUsageStatsConsent(true, source)">
         {{ diagnostics.sharingQuestionAccept }}
       </AppButton>
     </div>

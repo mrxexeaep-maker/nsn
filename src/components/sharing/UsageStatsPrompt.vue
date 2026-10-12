@@ -11,6 +11,6 @@ const styles = tv(theme)()
 
 <template>
   <aside v-if="usageStatsPromptOpen" :class="styles.root()" data-test-id="usage-stats-prompt">
-    <UsageStatsQuestion />
+    <UsageStatsQuestion source="prompt" />
   </aside>
 </template>

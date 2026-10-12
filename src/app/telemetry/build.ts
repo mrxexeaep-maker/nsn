@@ -1,4 +1,4 @@
-import type { Architecture, Ping } from '@open-pencil/feedback/contract'
+import type { Architecture, Build } from '@open-pencil/feedback/contract'
 
 import { APP_VERSION } from '@/app/runtime/version'
 import { describeEnvironment } from '@/app/shell/support/detect'
@@ -10,7 +10,7 @@ function architecture(arch: string): Architecture {
   return 'unknown'
 }
 
-async function detectBuild(): Promise<Ping> {
+async function detectBuild(): Promise<Build> {
   const facts = { userAgent: navigator.userAgent, maxTouchPoints: navigator.maxTouchPoints }
   if (!IS_TAURI) {
     const { os, browser } = describeEnvironment(facts)
@@ -27,10 +27,10 @@ async function detectBuild(): Promise<Ping> {
   }
 }
 
-let build: Promise<Ping> | null = null
+let build: Promise<Build> | null = null
 
 /** The build fields every ping and usage batch carries; nothing else about the device is read. */
-export function currentBuild(): Promise<Ping> {
+export function currentBuild(): Promise<Build> {
   build ??= detectBuild()
   return build
 }

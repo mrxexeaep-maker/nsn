@@ -11,23 +11,23 @@ beforeEach(() => {
 
 describe('usage stats consent', () => {
   test('agreeing makes a random install ID that stays across answers', () => {
-    setUsageStatsConsent(true)
+    setUsageStatsConsent(true, 'welcome')
     const { installId } = sharingState.value
 
     expect(appPreferences.value.sharing.usageStats).toBe('granted')
     expect(installId).toMatch(/^[0-9a-f]{32}$/)
-    setUsageStatsConsent(true)
+    setUsageStatsConsent(true, 'welcome')
     expect(sharingState.value.installId).toBe(installId)
   })
 
   test('stopping deletes the install ID, so agreeing again starts a new one', () => {
-    setUsageStatsConsent(true)
+    setUsageStatsConsent(true, 'welcome')
     const first = sharingState.value.installId
-    setUsageStatsConsent(false)
+    setUsageStatsConsent(false, 'welcome')
 
     expect(appPreferences.value.sharing.usageStats).toBe('denied')
     expect(sharingState.value.installId).toBeNull()
-    setUsageStatsConsent(true)
+    setUsageStatsConsent(true, 'welcome')
     expect(sharingState.value.installId).not.toBe(first)
   })
 

@@ -4,7 +4,7 @@ description: What OpenPencil sends over the network, why it sends anonymous usag
 ---
 
 <script setup>
-import { describeBuildFields, describeUsageEvents } from '@open-pencil/feedback/contract'
+import { describeBuildFields, describePingFields, describeUsageEvents } from '@open-pencil/feedback/contract'
 
 const columns = [
   { key: 'name', label: 'Field', kind: 'code' },
@@ -19,7 +19,10 @@ function rows(fields) {
   }))
 }
 
-const buildRows = rows(describeBuildFields())
+const pingRows = rows(describePingFields())
+const buildFields = describeBuildFields()
+  .map((field) => field.name)
+  .join(', ')
 const events = describeUsageEvents()
 </script>
 
@@ -40,12 +43,12 @@ Once a day, an official build sends this to `feedback.openpencil.dev`:
 ```http
 POST https://feedback.openpencil.dev/ping
 
-{ "version": "0.16.0", "platform": "macos", "arch": "arm64", "app": "desktop", "browser": "unknown" }
+{ "version": "0.16.0", "platform": "macos", "arch": "arm64", "app": "desktop", "browser": "unknown", "usageStats": "denied" }
 ```
 
-<SdkDataTable :columns="columns" :rows="buildRows" />
+<SdkDataTable :columns="columns" :rows="pingRows" />
 
-It carries no ID, so pings from the same install cannot be linked. The app stores only the date of its last ping, so it pings once a day. The server adds one to a counter for that day and build, and keeps nothing else. It does not log addresses, and it rejects a ping that carries any other field.
+It carries no ID, so pings from the same install cannot be linked. The answer to the usage stats question is the only way we learn how many people decline, since declining means nothing else is ever sent. The app stores only the date of its last ping, so it pings once a day. The server adds one to a counter for that day and build, and keeps nothing else. It does not log addresses, and it rejects a ping that carries any other field.
 
 The ping is on by default. Turn it off in **Settings → Privacy**.
 
@@ -53,7 +56,7 @@ The ping is on by default. Turn it off in **Settings → Privacy**.
 
 Usage stats are off until you agree. OpenPencil asks once, on the welcome screen or in a small prompt on a later launch, with two equal choices: **No thanks** and **Share stats**. Nothing is selected for you, and you can change your answer later in **Settings → Privacy**.
 
-When you agree, the app creates a random install ID on your device. It is not linked to an account, an email address, or anything else about you. Usage events are sent with it, together with the build fields above. When you stop sharing, the app deletes the ID; agreeing again creates a new one.
+When you agree, the app creates a random install ID on your device. It is not linked to an account, an email address, or anything else about you. Usage events are sent with it, together with the build fields above (<code>{{ buildFields }}</code>). When you stop sharing, the app deletes the ID; agreeing again creates a new one.
 
 These are all the events the app can send. The service at `feedback.openpencil.dev` checks every event against this list and rejects any event, property, or value that is not on it, so a modified app cannot send anything else through it either.
 

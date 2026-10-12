@@ -13,19 +13,20 @@ import UsageStatsQuestion from './UsageStatsQuestion.vue'
 
 interface Args {
   consent: UsageStatsConsent
+  source: 'welcome' | 'prompt'
 }
 
 const meta = {
   title: 'App/Settings/Sharing/Usage Stats Question',
   component: UsageStatsQuestion,
-  args: { consent: 'unset' },
+  args: { consent: 'unset', source: 'welcome' },
   render: (args) => ({
     components: { UsageStatsQuestion },
     setup() {
       updateSharingPreferences({ usageStats: args.consent })
       return {}
     },
-    template: '<div class="max-w-md"><UsageStatsQuestion framed /></div>'
+    template: '<div class="max-w-md"><UsageStatsQuestion source="welcome" framed /></div>'
   })
 } satisfies Meta<Args>
 

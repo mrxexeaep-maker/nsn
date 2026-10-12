@@ -6,6 +6,7 @@ import {
   FEEDBACK_ROUTES,
   USAGE_BATCH_LIMIT,
   type DocumentFormat,
+  type Build,
   type Ping,
   type UsageBatch,
   type UsageEvent
@@ -25,7 +26,7 @@ export interface SharingClientOptions {
   enabled: boolean
   preferences: () => SharingPreferences
   state: Ref<SharingState>
-  build: () => Promise<Ping>
+  build: () => Promise<Build>
   disabledByEnvironment: () => Promise<boolean>
   /** Posts a JSON body to a feedback route and reports whether it was accepted. */
   post: (route: string, body: unknown, options: { keepalive?: boolean }) => Promise<boolean>
@@ -58,8 +59,10 @@ export function createSharingClient(options: SharingClientOptions) {
     if (await options.disabledByEnvironment()) return
     const build = await options.build()
     // The person may have turned the ping off while the checks above were pending.
-    if (!options.preferences().dailyPing) return
-    if (await options.post(FEEDBACK_ROUTES.ping, build, {})) {
+    const { dailyPing, usageStats } = options.preferences()
+    if (!dailyPing) return
+    const ping: Ping = { ...build, usageStats }
+    if (await options.post(FEEDBACK_ROUTES.ping, ping, {})) {
       options.state.value = { ...options.state.value, lastPingDay: day }
     }
   }

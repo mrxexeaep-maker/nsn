@@ -20,7 +20,7 @@ export function useSharingSettings() {
     }),
     usageStats: computed({
       get: () => appPreferences.value.sharing.usageStats === 'granted',
-      set: (granted: boolean) => setUsageStatsConsent(granted)
+      set: (granted: boolean) => setUsageStatsConsent(granted, 'settings')
     }),
     unofficialBuild: !FEEDBACK_ENABLED,
     disabledByEnvironment

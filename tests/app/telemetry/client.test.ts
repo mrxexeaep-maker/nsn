@@ -2,14 +2,14 @@ import { describe, expect, test } from 'bun:test'
 
 import { ref } from 'vue'
 
-import type { Ping } from '@open-pencil/feedback/contract'
+import type { Build } from '@open-pencil/feedback/contract'
 
 import { createDeferred } from '@/app/runtime/deferred'
 import type { SharingPreferences } from '@/app/settings/preferences/store'
 import { createSharingClient, type SharingClientOptions } from '@/app/telemetry/client'
 import type { SharingState } from '@/app/telemetry/state'
 
-const BUILD: Ping = {
+const BUILD: Build = {
   version: '0.16.0',
   platform: 'linux',
   arch: 'x64',
@@ -66,11 +66,22 @@ describe('daily ping', () => {
     context.clock.now = new Date('2026-10-13T01:00:00.000Z')
     await context.client.sendDailyPing()
 
+    const ping = { ...BUILD, usageStats: 'unset' }
     expect(context.posts).toEqual([
-      { route: '/ping', body: BUILD, keepalive: undefined },
-      { route: '/ping', body: BUILD, keepalive: undefined }
+      { route: '/ping', body: ping, keepalive: undefined },
+      { route: '/ping', body: ping, keepalive: undefined }
     ])
     expect(context.state.value.lastPingDay).toBe('2026-10-13')
+  })
+
+  test('reports how the install answered the usage stats question', async () => {
+    const context = setup()
+    context.preferences.value = { ...context.preferences.value, usageStats: 'denied' }
+    await context.client.sendDailyPing()
+
+    expect(context.posts).toEqual([
+      { route: '/ping', body: { ...BUILD, usageStats: 'denied' }, keepalive: undefined }
+    ])
   })
 
   test('tries again on the next check when a ping fails', async () => {
@@ -86,7 +97,7 @@ describe('daily ping', () => {
   })
 
   test('sends no ping when it is turned off while the build is being read', async () => {
-    const build = createDeferred<Ping>()
+    const build = createDeferred<Build>()
     const context = setup({ build: () => build.promise })
     const pinging = context.client.sendDailyPing()
     await Promise.resolve()
@@ -172,7 +183,7 @@ describe('usage stats', () => {
   })
 
   test('sends nothing when the person stops sharing while a batch is being prepared', async () => {
-    const build = createDeferred<Ping>()
+    const build = createDeferred<Build>()
     const context = setup({ build: () => build.promise })
     sharingUsage(context)
     context.client.trackUsage({ name: 'app_opened', locale: 'en' })
