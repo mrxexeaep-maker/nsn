@@ -132,7 +132,20 @@ describe('resizing an instance', () => {
     try {
       const { graph } = editor
       const page = editor.state.currentPageId
-      const card = graph.createNode('COMPONENT', page, { width: 140, height: 140 })
+      const card = graph.createNode('COMPONENT', page, {
+        width: 140,
+        height: 140,
+        strokes: [
+          {
+            type: 'SOLID',
+            color: { r: 0, g: 0, b: 0, a: 1 },
+            opacity: 1,
+            visible: true,
+            weight: 1,
+            align: 'INSIDE'
+          }
+        ]
+      })
       const box = graph.createNode('RECTANGLE', card.id, {
         x: 20,
         y: 20,
@@ -158,6 +171,12 @@ describe('resizing an instance', () => {
       ])
       expect(hasInstanceOverride(graph, instance.id, 'width')).toBe(true)
       expect(hasInstanceOverride(graph, copy.id, 'width')).toBe(false)
+      // A corner drag leaves the instance in place, and resizes no strokes of its own.
+      expect(
+        (['x', 'y', 'strokes'] as const).map((field) =>
+          hasInstanceOverride(graph, instance.id, field)
+        )
+      ).toEqual([false, false, false])
 
       graph.updateNode(box.id, { width: 115 })
       graph.syncInstances(card.id)

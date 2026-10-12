@@ -256,6 +256,8 @@ function clearResizedRawGeometry(editor: Editor, nodeId: string): void {
   if (node.type !== 'TEXT') delete raw.vectorData
 }
 
+const RECT_FIELDS = ['x', 'y', 'width', 'height'] as const
+
 function sameRect(a: Rect, b: Rect): boolean {
   return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
 }
@@ -349,8 +351,8 @@ export function commitResizePreview(dragState: DragResize, editor: Editor) {
 }
 
 /**
- * Runs a resize that moves layers by their constraints while recording only the resized layer's
- * own fields as an instance override: in Figma a layer inside an instance that its constraints
+ * Runs a resize that moves layers by their constraints while recording only the box fields the
+ * resize changed on the resized layer as an instance override: in Figma a layer inside an instance that its constraints
  * place keeps following the component, so a later component edit still reaches it.
  */
 function keepingOnlyOwnOverrides(
@@ -392,7 +394,7 @@ function commitResizeGeometry(d: DragResize, editor: Editor) {
     keepingOnlyOwnOverrides(
       editor,
       d.nodeId,
-      Object.keys(finalChanges),
+      RECT_FIELDS.filter((key) => finalChanges[key] !== d.origRect[key]),
       [...finalChildren.keys()],
       () => {
         editor.graph.preserveSourceMetadataDuring(() => {
