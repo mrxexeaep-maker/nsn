@@ -47,13 +47,16 @@ const NON_SECTION_FIELDS = [
 
 /**
  * The types a layer can switch to from Figma's layer type menu (Figma desktop 126): a section
- * sits on the page or in a section, a group needs layers, and a section never becomes a group.
+ * sits on the page or in a section, a group needs layers, a section never becomes a group, and
+ * one holding a section never becomes a frame.
  */
 export function layerTypeOptions(graph: SceneGraph, node: SceneNode): Record<LayerType, boolean> {
   const parent = node.parentId ? graph.getNode(node.parentId) : undefined
   const topLevel = parent?.type === 'CANVAS' || parent?.type === 'SECTION'
+  // A frame cannot hold a section, so a section holding one stays a section.
+  const holdsSection = node.childIds.some((id) => graph.getNode(id)?.type === 'SECTION')
   return {
-    FRAME: true,
+    FRAME: !holdsSection,
     GROUP: node.type !== 'SECTION' && node.childIds.length > 0,
     SECTION: topLevel
   }
@@ -82,6 +85,7 @@ export function createLayerTypeActions(ctx: EditorContext) {
   function convertToFrame(nodeId: string) {
     const node = ctx.graph.getNode(nodeId)
     if (node?.type !== 'GROUP' && node?.type !== 'SECTION') return
+    if (!layerTypeOptions(ctx.graph, node).FRAME) return
     const before = { type: node.type, clipsContent: node.clipsContent }
     pushChange('Convert to frame', nodeId, before, { type: 'FRAME', clipsContent: true })
   }

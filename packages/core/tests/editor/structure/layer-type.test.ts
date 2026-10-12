@@ -220,4 +220,18 @@ describe('layer type menu', () => {
     editor.convertLayerType(nested.id, 'SECTION')
     expect(editor.graph.getNode(nested.id)?.type).toBe('FRAME')
   })
+
+  test('a section holding a section stays one, as a frame cannot hold it', () => {
+    const editor = createEditor()
+    const outer = editor.graph.createNode('SECTION', editor.state.currentPageId, {
+      width: 600,
+      height: 400
+    })
+    editor.graph.createNode('SECTION', outer.id, { width: 200, height: 150 })
+    const node = editor.graph.getNode(outer.id)
+    if (!node) throw new Error('Missing section')
+    expect(layerTypeOptions(editor.graph, node).FRAME).toBe(false)
+    editor.convertLayerType(outer.id, 'FRAME')
+    expect(editor.graph.getNode(outer.id)?.type).toBe('SECTION')
+  })
 })
