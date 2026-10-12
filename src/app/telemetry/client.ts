@@ -3,7 +3,6 @@ import type { Ref } from 'vue'
 
 import {
   DOCUMENT_FORMATS,
-  FEEDBACK_ROUTES,
   USAGE_BATCH_LIMIT,
   type DocumentFormat,
   type Build,
@@ -28,8 +27,11 @@ export interface SharingClientOptions {
   state: Ref<SharingState>
   build: () => Promise<Build>
   disabledByEnvironment: () => Promise<boolean>
-  /** Posts a JSON body to a feedback route and reports whether it was accepted. */
-  post: (route: string, body: unknown, options: { keepalive?: boolean }) => Promise<boolean>
+  /** Sends to the feedback service and reports whether each request was accepted. */
+  send: {
+    ping: (ping: Ping) => Promise<boolean>
+    ingest: (batch: UsageBatch, options: { keepalive?: boolean }) => Promise<boolean>
+  }
   now?: () => Date
 }
 
@@ -62,7 +64,7 @@ export function createSharingClient(options: SharingClientOptions) {
     const { dailyPing, usageStats } = options.preferences()
     if (!dailyPing) return
     const ping: Ping = { ...build, usageStats }
-    if (await options.post(FEEDBACK_ROUTES.ping, ping, {})) {
+    if (await options.send.ping(ping)) {
       options.state.value = { ...options.state.value, lastPingDay: day }
     }
   }
@@ -83,7 +85,7 @@ export function createSharingClient(options: SharingClientOptions) {
       }
       const events = pending.splice(0, USAGE_BATCH_LIMIT)
       const batch: UsageBatch = { ...build, installId, events }
-      await options.post(FEEDBACK_ROUTES.ingest, batch, flush)
+      await options.send.ingest(batch, flush)
     }
   }
 

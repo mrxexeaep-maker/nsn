@@ -30,9 +30,15 @@ function setup(overrides: Partial<SharingClientOptions> = {}) {
     state,
     build: async () => BUILD,
     disabledByEnvironment: async () => false,
-    async post(route, body, { keepalive }) {
-      posts.push({ route, body, keepalive })
-      return accept
+    send: {
+      async ping(body) {
+        posts.push({ route: '/ping', body, keepalive: undefined })
+        return accept
+      },
+      async ingest(body, { keepalive }) {
+        posts.push({ route: '/ingest', body, keepalive })
+        return accept
+      }
     },
     now: () => clock.now,
     ...overrides
