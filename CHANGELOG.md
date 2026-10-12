@@ -19,7 +19,7 @@
 - A slot frame whose corner radius or other field is bound to a variable stays a slot when the file is saved and reopened.
 - An instance whose own content makes it taller or wider than its component, such as a hug frame around longer text, reopens at its saved size.
 - SVG export, and the HTML, JSX, and preview drawings built on it, draw a vector's open strokes beside its filled regions, such as the bar of a skip icon, instead of the regions alone.
-- The contrast check asks 3:1 of large text, 24 px or 18.66 px bold, as WCAG AA does, and 4.5:1 of the rest.
+- The contrast check asks 3:1 of large text, 24 px or 18.66 px bold, as WCAG AA does, and 4.5:1 of the rest, holding a text layer to the strictest threshold any of its style runs needs.
 
 
 ## 0.16.0-beta.1 — 2026-10-11

@@ -269,29 +269,36 @@ test('preparing a page loads the pages holding the component sets its instances 
   await initCodec()
   const source = new SceneGraph()
   const [design] = source.getPages()
-  const library = source.addPage('Library')
-  const set = source.createNode('COMPONENT_SET', library.id, { name: 'Switch' })
-  const off = source.createNode('COMPONENT', set.id, {
-    name: 'State=Off',
-    componentPropertyValues: { State: 'Off' }
-  })
-  source.createNode('COMPONENT', set.id, {
-    name: 'State=On',
-    componentPropertyValues: { State: 'On' }
-  })
-  source.createInstance(off.id, design.id)
+  const set = (pageName: string, name: string) => {
+    const page = source.addPage(pageName)
+    const created = source.createNode('COMPONENT_SET', page.id, { name })
+    const variant = (value: string) =>
+      source.createNode('COMPONENT', created.id, {
+        name: `State=${value}`,
+        componentPropertyValues: { State: value }
+      })
+    return { off: variant('Off'), on: variant('On') }
+  }
+  // Only the switch's On variant holds a knob, from a set on a third page, so the design page
+  // reaches that set through the switch's page alone.
+  const knob = set('Parts', 'Knob')
+  const toggle = set('Library', 'Switch')
+  source.createInstance(knob.off.id, toggle.on.id)
+  source.createInstance(toggle.off.id, design.id)
   const bytes = await exportFigFile(source)
   const graph = await parseFigFile(bytes.slice().buffer, { populate: 'none' })
   const editor = createEditor({ graph, skipInitialGraphSetup: true })
   const [first] = graph.getPages()
-  const variants = () =>
-    [...graph.getAllNodes()]
-      .filter((node) => node.type === 'COMPONENT' && node.parentId)
-      .map((node) => node.name)
-      .sort()
+  const variants = (setName: string) => {
+    const found = [...graph.getAllNodes()].find(
+      (node) => node.type === 'COMPONENT_SET' && node.name === setName
+    )
+    return found ? graph.getChildren(found.id).map((node) => node.name) : []
+  }
 
   expect(await editor.preparePage(first.id)).not.toBeNull()
 
-  expect(variants()).toEqual(['State=Off', 'State=On'])
+  expect(variants('Switch')).toEqual(['State=Off', 'State=On'])
+  expect(variants('Knob')).toEqual(['State=Off', 'State=On'])
   editor.dispose()
 })

@@ -9,11 +9,20 @@ const LARGE_TEXT_PX = 24
 const LARGE_BOLD_TEXT_PX = 18.66
 const BOLD_WEIGHT = 700
 
-function minContrast(node: { fontSize?: number; fontWeight?: number }): number {
-  const size = node.fontSize ?? 0
+function minContrast(style: { fontSize: number; fontWeight: number }): number {
   const large =
-    size >= LARGE_TEXT_PX || (size >= LARGE_BOLD_TEXT_PX && (node.fontWeight ?? 0) >= BOLD_WEIGHT)
+    style.fontSize >= LARGE_TEXT_PX ||
+    (style.fontSize >= LARGE_BOLD_TEXT_PX && style.fontWeight >= BOLD_WEIGHT)
   return large ? MIN_LARGE_CONTRAST : MIN_CONTRAST
+}
+
+/** The strictest threshold any stretch of the text needs. */
+function requiredContrast(node: {
+  fontSize: number
+  textStyles?: { fontSize: number; fontWeight: number }[]
+}): number {
+  const styles = node.textStyles ?? [{ fontSize: node.fontSize, fontWeight: 0 }]
+  return Math.max(...styles.map(minContrast))
 }
 
 export default defineRule({
@@ -32,7 +41,7 @@ export default defineRule({
       const bg = parent.fills.find((f) => f.type === 'SOLID' && f.visible && f.color)?.color
       if (bg) {
         const ratio = contrastRatio(textColor, bg)
-        const minRatio = minContrast(node)
+        const minRatio = requiredContrast(node)
         if (ratio < minRatio)
           context.report({
             node,

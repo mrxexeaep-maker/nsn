@@ -207,10 +207,17 @@ export function createPageActions(ctx: EditorContext, drawing?: PageDrawing) {
     const populated = await populatePage(pageId, generation, options.signal)
     if (populated === null || generation !== pageSwitchGeneration) return null
     // A file brings in only the variants a page uses; switching a variant, in the panel or in
-    // preview, needs the rest of its set, so the pages holding those sets load with this one.
-    for (const setPageId of componentSetPages(ctx.graph, pageId)) {
-      const loaded = await populatePage(setPageId, generation, options.signal)
-      if (loaded === null || generation !== pageSwitchGeneration) return null
+    // preview, needs the rest of its set, laid out with its fonts, so the pages holding those
+    // sets are prepared with this one, and the pages of sets their variants use in turn.
+    const seen = new Set([pageId])
+    const pending = componentSetPages(ctx.graph, pageId)
+    for (let setPageId = pending.shift(); setPageId !== undefined; setPageId = pending.shift()) {
+      if (seen.has(setPageId)) continue
+      seen.add(setPageId)
+      const ready = await preparePageNodes(setPageId)
+      throwIfAborted(options.signal)
+      if (!ready || generation !== pageSwitchGeneration) return null
+      pending.push(...componentSetPages(ctx.graph, setPageId))
     }
 
     await resolvePageFonts(pageId, page.name, options)

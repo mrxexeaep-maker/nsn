@@ -41,6 +41,9 @@ watch(
   () => image,
   (value) => {
     stop?.()
+    // Another shader's last frame would cover this one's still frame until it draws.
+    const target = canvas.value
+    target?.getContext('2d')?.clearRect(0, 0, target.width, target.height)
     stop = frames.listen(value, draw)
   },
   { immediate: true }
