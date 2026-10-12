@@ -6,6 +6,7 @@ import { fillRow } from '../chrome'
 import { COVER_PRESET } from '../player/card'
 import type { Theme } from '../theme'
 import { layoutChapter, type Chapter, type ChapterContext } from './chapter'
+import { CHAPTERS } from './names'
 
 const TILE = 320
 
@@ -50,15 +51,13 @@ function tile({ vars }: Theme, { name, preset }: (typeof PRESETS)[number]): Tree
 /** Shaders: a fill that moves, on plain rectangles, with its preset editable in the fill picker. */
 export function createShadersChapter(context: ChapterContext): Promise<Chapter> {
   return layoutChapter(context, {
-    index: 5,
-    name: 'Shaders',
+    chapter: CHAPTERS.shaders,
     heading: {
       title: 'Fills can move.',
       subtitle:
         'A shader is a fill like any other: pick it in the fill picker, stack effects, tune their sliders, or paste a preset from shaders.com. Files keep a still of it, and preview plays it.'
     },
     subject: Frame({
-      name: 'Shaders',
       flex: 'row',
       w: 'hug',
       h: 'hug',

@@ -79,6 +79,14 @@
         "id": "close",
         "label": "Close Tab",
         "accelerator": "CmdOrCtrl+W"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "id": "settings",
+        "label": "Settings…",
+        "accelerator": "CmdOrCtrl+,"
       }
     ]
   },
@@ -272,14 +280,6 @@
             "label": "Snap to Pixel Grid",
             "accelerator": "CmdOrCtrl+Shift+'",
             "checkbox": true
-          },
-          {
-            "type": "separator"
-          },
-          {
-            "id": "settings",
-            "label": "Settings…",
-            "accelerator": "CmdOrCtrl+,"
           }
         ]
       },

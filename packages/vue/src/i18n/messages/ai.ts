@@ -272,6 +272,8 @@ export const aiMessageDefaults = {
   aiSetupAgentGetCLI: params('Install {agent}'),
   aiSetupAgentNeedsNpm:
     'Installing needs npm, which comes with Node.js. Install Node.js, then check again.',
+  aiSetupAgentNeedsAdmin:
+    'Installing needs administrator rights, because npm keeps global packages in a protected folder. Run the command below in a terminal, or let your agent set up a folder you own.',
   aiSetupAgentInstallFailed:
     'The installation didn’t finish. Check your connection, or run the command yourself.',
   aiSetupAgentMCPStartFailed:
@@ -279,7 +281,6 @@ export const aiMessageDefaults = {
   aiSetupAgentLookupFailed: 'Couldn’t check this computer. Try again.',
   aiSetupAgentCopyPrompt: 'Copy setup prompt',
   aiSetupAgentCheckAgain: 'Check again',
-  aiSetupAgentGuide: 'Setup guide',
   aiSetupPiDescription:
     'OpenPencil runs Pi through its Harness companion and uses the providers you signed in to in Pi.',
   aiSetupPiCompanion: 'Harness companion',

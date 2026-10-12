@@ -30,6 +30,8 @@ interface AppSelectProps<TValue extends string | number> {
   groups?: AppSelectGroup<TValue>[]
   /** Shown when the value matches no option, such as a size that fits no preset. */
   placeholder?: string
+  /** Shown in the trigger instead of the chosen option, such as a summary of what it sets. */
+  displayLabel?: string
   /**
    * Defaults to `over` when the built-in trigger shows a chosen option, and to `below` for a
    * `trigger` slot or a value outside the options: there is no row to line up with the trigger.
@@ -40,7 +42,8 @@ interface AppSelectProps<TValue extends string | number> {
 
 defineOptions({ inheritAttrs: false })
 
-const { options, groups, label, placeholder, placement, ui } = defineProps<AppSelectProps<T>>()
+const { options, groups, label, placeholder, displayLabel, placement, ui } =
+  defineProps<AppSelectProps<T>>()
 const modelValue = defineModel<T>({ required: true })
 const slots = useSlots()
 const styles = tv(theme)()
@@ -76,7 +79,7 @@ const itemUI = computed(() => ({ item: ui?.item, indicator: ui?.indicator }))
       :class="styles.trigger({ class: ui?.trigger })"
     >
       <SelectValue :placeholder="placeholder" :class="styles.value({ class: ui?.value })">
-        {{ selectedLabel ?? placeholder }}
+        {{ displayLabel ?? selectedLabel ?? placeholder }}
       </SelectValue>
       <icon-lucide-chevron-down :class="styles.chevron({ class: ui?.chevron })" />
     </SelectTrigger>

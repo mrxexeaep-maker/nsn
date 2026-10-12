@@ -18,6 +18,7 @@ import {
   recentFiles,
   type RecentDocument
 } from '@/app/recent-files'
+import { useCredentialSettings } from '@/app/settings/credentials/preferences/use'
 import { openSettingsDialog } from '@/app/settings/dialog'
 import { openFileFromPath } from '@/app/shell/menu/use'
 import { createStorageWorkspaceSource } from '@/app/storage/workspace/source'
@@ -29,7 +30,7 @@ import IconButton from '@/components/ui/button/IconButton.vue'
 import SegmentedControl from '@/components/ui/select/SegmentedControl.vue'
 
 const emit = defineEmits<{ 'new-document': [] }>()
-const { panels, locale, storage, files, common, settings } = useI18n()
+const { panels, locale, storage, files, common, settings, credentials } = useI18n()
 const { isMobile } = useViewportKind()
 const view = useLocalStorage<'grid' | 'list'>('open-pencil:home-files-view', 'grid')
 const query = ref('')
@@ -66,6 +67,12 @@ const storageWorkspace = useDocumentWorkspace<StorageDocument>({
 })
 const storageDocuments = storageWorkspace.documents
 const storageLoading = storageWorkspace.loading
+// Paused credential access has its own fix, so the card offers it instead of the raw native error.
+const credentialAccess = useCredentialSettings()
+async function retryCredentialAccess() {
+  await credentialAccess.retry()
+  if (!credentialAccess.paused.value) await storageWorkspace.refresh()
+}
 const storageError = computed(() => {
   const error = storageWorkspace.error.value
   if (error == null) return null
@@ -293,10 +300,24 @@ function formattedDate(updatedAt: string): string {
           class="rounded-lg border border-danger/40 px-4 py-6 text-center"
           role="alert"
         >
-          <p class="text-xs text-danger">{{ storageError }}</p>
-          <AppButton variant="outline" class="mt-3" @click="storageWorkspace.refresh">
-            {{ common.refresh }}
-          </AppButton>
+          <template v-if="credentialAccess.paused.value">
+            <p class="text-xs text-danger">{{ credentials.accessPaused }}</p>
+            <AppButton
+              variant="outline"
+              class="mt-3"
+              :loading="credentialAccess.busy.value"
+              data-test-id="home-storage-retry-access"
+              @click="retryCredentialAccess"
+            >
+              {{ credentials.retryAccess }}
+            </AppButton>
+          </template>
+          <template v-else>
+            <p class="text-xs text-danger">{{ storageError }}</p>
+            <AppButton variant="outline" class="mt-3" @click="storageWorkspace.refresh">
+              {{ common.refresh }}
+            </AppButton>
+          </template>
         </div>
 
         <div

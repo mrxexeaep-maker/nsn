@@ -78,9 +78,22 @@ export const ROOM_UNREACHABLE_MS = 20_000
 export const ROOM_STATUS_TICK_MS = 500
 
 export const WEB_APP_ORIGIN = 'https://app.openpencil.dev'
+/** The privacy page: every request the app makes, and every usage event and field. */
+export const PRIVACY_URL = 'https://openpencil.dev/overview/privacy'
 /** Where the desktop app's installers are published. */
 export const DESKTOP_DOWNLOAD_URL = 'https://github.com/open-pencil/open-pencil/releases/latest'
 export const NODE_DOWNLOAD_URL = 'https://nodejs.org/en/download'
+
+/**
+ * Published guides. Settings links each integration section to its guide with one "Learn more"
+ * at the end of the section description; alerts link only to the fix, never to docs.
+ */
+const DOCS_ORIGIN = 'https://openpencil.dev'
+export const MCP_SERVER_DOCS_URL = `${DOCS_ORIGIN}/programmable/mcp-server`
+export const WEBMCP_DOCS_URL = `${MCP_SERVER_DOCS_URL}#webmcp`
+export const MCP_CONNECTIONS_DOCS_URL = `${DOCS_ORIGIN}/programmable/ai-chat#external-mcp-connections`
+export const CODING_AGENTS_GUIDE_URL = `${DOCS_ORIGIN}/programmable/coding-agents`
+export const PI_GUIDE_URL = `${CODING_AGENTS_GUIDE_URL}#pi`
 
 /** The published release page, with its full notes, for a desktop version. */
 export function releaseNotesURL(version: string): string {

@@ -35,6 +35,7 @@ import {
 } from '@/app/diagnostics/events'
 import type { AIDiagnosticContext } from '@/app/diagnostics/events/ai'
 import type { getActiveEditorStore } from '@/app/editor/active-store'
+import { trackUsage } from '@/app/telemetry'
 
 import { resumableTransport } from './history/continuation'
 import { updateMessage } from './metadata'
@@ -255,6 +256,7 @@ export function createChatSessionManager({
     if (isAbort) recordChatStopped(context)
     else if (!isDisconnect && !isError) {
       recordChatCompleted({ finishReason: finishReason ?? null }, context)
+      trackUsage({ name: 'ai_reply_finished', provider: providerID.value })
     }
   }
 
