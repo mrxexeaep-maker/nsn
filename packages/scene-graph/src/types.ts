@@ -270,6 +270,29 @@ export interface FontFeature {
   enabled: boolean
 }
 
+/** Where a stretch of text links to, as Figma's `HyperlinkTarget`: a URL, or a node by its ID. */
+export interface HyperlinkTarget {
+  type: 'URL' | 'NODE'
+  value: string
+}
+
+/** The text fields a range of characters can bind to a variable, as Figma lists them. */
+export const TEXT_BINDABLE_FIELDS = [
+  'fontFamily',
+  'fontSize',
+  'fontStyle',
+  'fontWeight',
+  'letterSpacing',
+  'lineHeight',
+  'paragraphSpacing',
+  'paragraphIndent'
+] as const
+
+export type TextBindableField = (typeof TEXT_BINDABLE_FIELDS)[number]
+
+/** Variable IDs bound to text fields, by field. */
+export type TextBoundVariables = Partial<Record<TextBindableField, string>>
+
 export interface CharacterStyleOverride {
   fontWeight?: number
   italic?: boolean
@@ -287,6 +310,15 @@ export interface CharacterStyleOverride {
   fontVariations?: FontVariation[]
   fontFeatures?: FontFeature[]
   textLanguage?: string | null
+  textCase?: TextCase
+  /** A link over the characters; `null`, like leaving it out, links nowhere. */
+  hyperlink?: HyperlinkTarget | null
+  /** The text style the characters use in place of the text's own; `null` uses none. */
+  textStyleId?: string | null
+  /** The fill style the characters use in place of the text's own; `null` uses none. */
+  fillStyleId?: string | null
+  /** The characters' text field bindings, in place of the text's own. */
+  boundVariables?: TextBoundVariables
 }
 
 export interface StyleRun {

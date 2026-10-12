@@ -1,4 +1,4 @@
-import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import { styleRunReferences, type SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
 
 import { clipboardPlacement, type ClipboardPlacement } from './placement'
 import { captureClipboardVariables, type ClipboardVariables } from './variables'
@@ -24,7 +24,8 @@ function referencedStyleIds(nodes: SceneNode[]): Set<string> {
       node.strokeStyleId,
       node.textStyleId,
       node.effectStyleId,
-      node.gridStyleId
+      node.gridStyleId,
+      ...styleRunReferences(node.styleRuns).styles
     ]) {
       if (id) ids.add(id)
     }

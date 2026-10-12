@@ -99,6 +99,33 @@ describe('fig-import: text properties', () => {
     expect(n.lineHeight).toBe(16.94)
   })
 
+  test('keeps a pixel line height shorter than the font, which Figma saves lines taller than', () => {
+    // Figma saves each line at the larger of its line height and its font's height.
+    const graph = materializeDocument([
+      doc(),
+      canvas(),
+      node('TEXT', 10, 1, {
+        textData: { characters: 'Tight\nlines' },
+        fontSize: 24,
+        lineHeight: { value: 10, units: 'PIXELS' },
+        derivedTextData: {
+          baselines: [
+            {
+              firstCharacter: 0,
+              endCharacter: 6,
+              position: { x: 0, y: 13.73 },
+              width: 60,
+              lineY: 0,
+              lineHeight: 29.05,
+              lineAscent: 23
+            }
+          ]
+        }
+      } as Partial<NodeChange>)
+    ]).graph
+    expect(graph.getChildren(graph.getPages()[0].id)[0]?.lineHeight).toBe(10)
+  })
+
   test('reads line heights as Figma writes them: auto as 100 percent, a percent as a multiplier', () => {
     // A 40px word on the first line: its height must not fix every line of an auto text.
     const derivedTextData = {
@@ -128,8 +155,8 @@ describe('fig-import: text properties', () => {
       text({ value: 1.5, units: 'RAW' }, 11)
     ]).graph
     const [auto, raw] = graph.getChildren(graph.getPages()[0].id)
-    expect(auto?.lineHeight).toBeNull()
-    expect(raw?.lineHeight).toBe(36)
+    expect(auto.lineHeight).toBeNull()
+    expect(raw.lineHeight).toBe(36)
   })
 
   test('applies shared text style refs', () => {
@@ -161,6 +188,40 @@ describe('fig-import: text properties', () => {
     expect(styled?.textDecoration).toBe('NONE')
     const style = [...graph.getAllNodes()].find((node) => node.source.id === '1:20')
     expect(style).toMatchObject({ name: 'Body style', sharedStyleType: 'TEXT', internalOnly: true })
+  })
+
+  test('points ranges at the styles and layers imported with them', () => {
+    const graph = materializeDocument([
+      doc(),
+      canvas(),
+      node('TEXT', 20, 1, {
+        name: 'Heading style',
+        styleType: 'TEXT',
+        fontSize: 24,
+        fontName: { family: 'Inter', style: 'Regular' }
+      } as Partial<NodeChange>),
+      node('FRAME', 30, 1, { name: 'Target' } as Partial<NodeChange>),
+      node('TEXT', 10, 1, {
+        name: 'Linked',
+        fontSize: 16,
+        textData: {
+          characters: 'styled link',
+          characterStyleIDs: [1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2],
+          styleOverrideTable: [
+            { styleID: 1, styleIdForText: { guid: { sessionID: 1, localID: 20 } } },
+            { styleID: 2, hyperlink: { guid: { sessionID: 1, localID: 30 } } }
+          ]
+        }
+      } as Partial<NodeChange>)
+    ]).graph
+    const nodes = graph.getChildren(graph.getPages()[0].id)
+    const text = nodes.find((child) => child.name === 'Linked')
+    const target = nodes.find((child) => child.name === 'Target')
+    const style = [...graph.getAllNodes()].find((child) => child.name === 'Heading style')
+    expect(text?.styleRuns.map((run) => run.style)).toEqual([
+      expect.objectContaining({ textStyleId: style?.id }),
+      { hyperlink: { type: 'NODE', value: target?.id } }
+    ])
   })
 
   test('applies shared fill style refs', () => {

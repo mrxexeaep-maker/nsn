@@ -16,6 +16,7 @@ import {
 import { resolveNodeTextDirection } from '@open-pencil/scene-graph/text-direction'
 
 import { TextLayout, type TextLayoutBlock, type TextLayoutMarker } from '#core/canvas/text/layout'
+import type { LineHeightRun, TextLayoutBlockLines } from '#core/canvas/text/layout/lines'
 import type { ParagraphBuildOptions } from '#core/canvas/text/paint'
 import {
   buildSkParagraph,
@@ -27,7 +28,7 @@ import type { ParagraphNode } from '#core/canvas/text/paragraph/inputs'
 import type { TextRenderer } from '#core/canvas/text/renderer'
 import { utf8Length } from '#core/canvas/text/utf8'
 import { DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE } from '#core/constants'
-import { transformTextCase } from '#core/text/case'
+import { shownText } from '#core/text/case'
 import { weightToStyle } from '#core/text/fonts'
 import { glyphAdvanceSync } from '#core/text/opentype'
 
@@ -56,6 +57,72 @@ function sliceStyleRuns(runs: readonly StyleRun[], start: number, end: number): 
     if (to > from) sliced.push({ start: from - start, length: to - from, style: run.style })
   }
   return sliced
+}
+
+/** Line heights by paragraph index, `lead` places before the text: each run's, the text's elsewhere. */
+function lineHeightRuns(node: ParagraphNode, lead: number): LineHeightRun[] {
+  const own = node.lineHeight || null
+  const runs: LineHeightRun[] = []
+  const add = (start: number, end: number, lineHeight: number | null) => {
+    const last = runs.at(-1)
+    // Runs at one line height measure as one, whatever else they style.
+    if (last && last.end === start && last.lineHeight === lineHeight) last.end = end
+    else runs.push({ start, end, lineHeight })
+  }
+  let position = 0
+  for (const run of node.styleRuns) {
+    if (position < run.start) add(position + lead, run.start + lead, own)
+    const lineHeight = run.style.lineHeight !== undefined ? run.style.lineHeight || null : own
+    add(run.start + lead, run.start + run.length + lead, lineHeight)
+    position = run.start + run.length
+  }
+  if (position < node.text.length) add(position + lead, node.text.length + lead, own)
+  return runs
+}
+
+/**
+ * What placing a paragraph's lines as Figma does needs: its line heights, and its lines laid
+ * out one by one from `node`'s text, the first after its indent and the last truncated as the
+ * paragraph is.
+ */
+function paragraphLines(
+  r: TextRenderer,
+  node: ParagraphNode,
+  color: Float32Array | undefined,
+  options: ParagraphBuildOptions,
+  firstLineIndent = 0
+): TextLayoutBlockLines | undefined {
+  // Lines are cut by character index, which the text's case must keep.
+  if (shownText(node).length !== node.text.length) return undefined
+  const lead = firstLineIndent > 0 ? 1 : 0
+  const ellipsis = buildTruncateOpts(node, node.fontSize || DEFAULT_FONT_SIZE).ellipsis
+  // A justified line is stretched only with text after it: lines are laid out with the rest
+  // of the paragraph and cut, as truncated last lines are.
+  const justified = node.textAlignHorizontal === 'JUSTIFIED'
+  const lineTruncation = (lines: number, truncated: boolean) => {
+    if (truncated) return { maxLines: lines, ellipsis }
+    return justified ? { maxLines: lines } : {}
+  }
+  return {
+    heights: lineHeightRuns(node, lead),
+    // A trimmed edge is laid out by where it stands in the paragraph.
+    build:
+      node.leadingTrim === 'CAP_HEIGHT'
+        ? undefined
+        : (start, end, lines, truncated) => {
+            const from = Math.max(0, start - lead)
+            const to = justified ? node.text.length : end - lead
+            const line: ParagraphNode = {
+              ...node,
+              text: node.text.slice(from, to),
+              styleRuns: sliceStyleRuns(node.styleRuns, from, to)
+            }
+            return buildSkParagraph(r, line, color, options, {
+              firstLineIndent: start === 0 ? firstLineIndent : 0,
+              truncation: lineTruncation(lines, truncated)
+            })
+          }
+  }
 }
 
 /** Whether the text lays out paragraph by paragraph rather than as one native paragraph. */
@@ -136,9 +203,9 @@ function buildBlocks(
   color: Float32Array | undefined,
   options: ParagraphBuildOptions
 ): TextLayout {
-  const shownText = transformTextCase(node.text, node.textCase)
+  const shown = shownText(node)
   const sources = textParagraphRanges(node.text)
-  const shown = textParagraphRanges(shownText)
+  const shownRanges = textParagraphRanges(shown)
   const items = new Map(
     textListItems(node.text, node.textParagraphs).map((item) => [item.paragraph, item])
   )
@@ -149,9 +216,9 @@ function buildBlocks(
   // Each paragraph starts one byte, its newline, after the one before it ends.
   const utf8Starts: number[] = []
   let utf8Offset = 0
-  for (const range of shown) {
+  for (const range of shownRanges) {
     utf8Starts.push(utf8Offset)
-    utf8Offset += utf8Length(shownText.slice(range.start, range.end)) + 1
+    utf8Offset += utf8Length(shown.slice(range.start, range.end)) + 1
   }
 
   const blocks: TextLayoutBlock[] = []
@@ -170,7 +237,7 @@ function buildBlocks(
   return new TextLayout(r.ck, blocks, maxLines)
 
   function buildBlock(index: number, start: number, end: number): TextLayoutBlock {
-    const shownRange: TextParagraphRange = shown[index]
+    const shownRange: TextParagraphRange = shownRanges[index]
     const item = items.get(index)
     const paragraphStyle = paragraphStyleAt(node.textParagraphs, index)
     const empty = end === start
@@ -223,6 +290,7 @@ function buildBlocks(
           ? 0
           : paragraphSpacingAt(node, index - 1, betweenItems ? 'listSpacing' : 'paragraphSpacing'),
       marker,
+      lines: paragraphLines(r, blockNode, color, options, firstLineIndent),
       x: 0,
       y: 0,
       visible: true
@@ -283,7 +351,8 @@ export function buildParagraph(
     : TextLayout.ofParagraph(
         r.ck,
         buildSkParagraph(r, node, color, options),
-        transformTextCase(node.text, node.textCase).length
+        shownText(node).length,
+        paragraphLines(r, node, color, options)
       )
   try {
     layoutForNode(layout, node)

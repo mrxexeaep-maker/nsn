@@ -5,6 +5,11 @@
 ### Breaking changes
 
 - `CORNER_ROTATE_ZONE` is removed from `@open-pencil/core/constants`; the selection's resize and rotation zones are `TRANSFORM_ZONE` and `transformZoneAt` in `@open-pencil/core/geometry`, which also owns the `HandlePosition` and `CornerPosition` types.
+- In scripts, a text node's `textCase`, `textStyleId`, and `fillStyleId` read `figma.mixed` while its characters differ, as in Figma, instead of the text's own value, and setting one restyles every character.
+
+### Added
+
+- Text keeps a case, a link, text and fill styles, and variable bindings for any range of its characters, as in Figma: the canvas draws each range in its own case, `.fig` files and the Figma clipboard keep them, apart from font weight bindings, HTML, Tailwind, and JSX exports write links as `<a href>` and cases as `text-transform` and HTML import reads them back, Design JSX `<Span>` takes `textCase` and `href`, and the Typography section's text case changes the selected characters while text is edited. Scripts read and set them with `getRangeTextCase`, `setRangeTextCase`, `getRangeHyperlink`, `setRangeHyperlink`, `getRangeTextStyleId`, `setRangeTextStyleIdAsync`, `getRangeFillStyleId`, `setRangeFillStyleIdAsync`, `getRangeBoundVariable`, `setRangeBoundVariable`, and the text's `hyperlink`.
 
 ### Changed
 
@@ -19,6 +24,9 @@
 - Where npm keeps global packages in a folder that needs administrator rights, as with Node from a Linux distribution or the nodejs.org installer on macOS, setup says so and shows the `sudo` command and a prompt for your agent instead of an install that fails, and installs a new MCP server or Harness with Bun when Bun is available.
 - Settings → Tool access lists the local MCP server's tools while the server is stopped, instead of an empty list saying no tools match the search.
 - Settings → MCP shows the local server in the desktop app and WebMCP in the browser, where each works, instead of a WebMCP section the desktop app can never use and a local server the browser reports as unreachable.
+- Lines of text that mix font sizes or line heights are spaced as in Figma: each line is as tall as the tallest line height on it, with its largest font centred in it, instead of stacking the tallest parts of every style on it, which put lines after a large word or a taller line height up to 10 px off.
+- A line height in pixels shorter than the font, such as 24 px on 24 px text, opens from `.fig` files as set instead of as the font's own height.
+- Text with an empty line, or ending in one, saved to `.fig` or copied to Figma shows there, where Figma showed it blank.
 
 ## 0.16.0-beta.1 — 2026-10-11
 
