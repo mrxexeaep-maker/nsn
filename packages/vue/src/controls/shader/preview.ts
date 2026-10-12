@@ -1,6 +1,6 @@
 import type { ShaderPreset } from '@open-pencil/scene-graph'
 
-import { createShaderRasterizer } from '#vue/canvas/surface/shader-rasterizer'
+import { createShaderRasterizer } from '#vue/canvas/surface/shader/rasterizer'
 
 import type { ShaderEffect } from './catalog'
 

@@ -1,6 +1,6 @@
 import { limitAsync } from 'es-toolkit/promise'
 
-import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import { instanceMainComponent, type SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
 import type { Color } from '@open-pencil/scene-graph/primitives'
 
 import {
@@ -56,6 +56,29 @@ interface PageDrawing {
     pageId: string,
     options: { signal?: AbortSignal; onProgress?: (progress: PageSwitchProgress) => void }
   ): Promise<void>
+}
+
+/**
+ * The other pages that hold the component sets instances on `pageId` show a variant of,
+ * nested instances included. A set on Figma's internal canvas is a copy of a library's, kept
+ * with only what the file uses, so its page is left out.
+ */
+export function componentSetPages(graph: SceneGraph, pageId: string): string[] {
+  const pages = new Set<string>()
+  const visit = (id: string): void => {
+    for (const node of graph.getChildren(id)) {
+      if (node.type === 'INSTANCE') {
+        const component = instanceMainComponent(graph, node)
+        const set = component?.parentId ? graph.getNode(component.parentId) : undefined
+        const setPageId = set?.type === 'COMPONENT_SET' ? graph.pageOf(set.id) : null
+        const setPage = setPageId ? graph.getNode(setPageId) : undefined
+        if (setPage && setPage.id !== pageId && !setPage.internalOnly) pages.add(setPage.id)
+      }
+      visit(node.id)
+    }
+  }
+  visit(pageId)
+  return [...pages]
 }
 
 export function createPageActions(ctx: EditorContext, drawing?: PageDrawing) {
@@ -183,6 +206,19 @@ export function createPageActions(ctx: EditorContext, drawing?: PageDrawing) {
     options.onProgress?.({ phase: 'populating-page', detail: page.name })
     const populated = await populatePage(pageId, generation, options.signal)
     if (populated === null || generation !== pageSwitchGeneration) return null
+    // A file brings in only the variants a page uses; switching a variant, in the panel or in
+    // preview, needs the rest of its set, laid out with its fonts, so the pages holding those
+    // sets are prepared with this one, and the pages of sets their variants use in turn.
+    const seen = new Set([pageId])
+    const pending = componentSetPages(ctx.graph, pageId)
+    for (let setPageId = pending.shift(); setPageId !== undefined; setPageId = pending.shift()) {
+      if (seen.has(setPageId)) continue
+      seen.add(setPageId)
+      const ready = await preparePageNodes(setPageId)
+      throwIfAborted(options.signal)
+      if (!ready || generation !== pageSwitchGeneration) return null
+      pending.push(...componentSetPages(ctx.graph, setPageId))
+    }
 
     await resolvePageFonts(pageId, page.name, options)
     throwIfAborted(options.signal)

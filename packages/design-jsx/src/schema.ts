@@ -71,7 +71,7 @@ export const DESIGN_JSX_PARAGRAPH_PROPERTY_NAMES = [
   'indent'
 ] as const
 
-/** Props `<Span>` takes: `<Text>`'s character styles, under the same names. */
+/** Props `<Span>` takes: `<Text>`'s character styles, under the same names, and a link. */
 export const DESIGN_JSX_SPAN_PROPERTY_NAMES = [
   'style',
   'size',
@@ -91,7 +91,9 @@ export const DESIGN_JSX_SPAN_PROPERTY_NAMES = [
   'textDecorationColor',
   'textDecorationThickness',
   'textUnderlineOffset',
-  'textDecorationSkipInk'
+  'textDecorationSkipInk',
+  'textCase',
+  'href'
 ] as const
 
 /** Props `<Text>` sets every paragraph's spacing with; a `<Paragraph>` sets its own. */

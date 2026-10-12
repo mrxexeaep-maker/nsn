@@ -21,14 +21,26 @@ import { textStyleChanges } from '#core/text/character-style'
 
 function styleReference(
   internals: NodeProxyInternals,
-  field: 'fillStyleId' | 'strokeStyleId' | 'effectStyleId' | 'gridStyleId'
+  field: 'fillStyleId' | 'strokeStyleId' | 'effectStyleId' | 'gridStyleId',
+  mixed: symbol
 ): PropertyDescriptor {
   return {
-    get(this: ProxyThis): string {
-      return raw(this, internals)[field] ?? ''
+    get(this: ProxyThis): string | symbol {
+      const node = raw(this, internals)
+      // Characters of a text can each use a fill style of their own.
+      if (field === 'fillStyleId' && node.type === 'TEXT') {
+        return getTextStyle(node, 'fillStyleId', mixed) as string | symbol
+      }
+      return node[field] ?? ''
     },
     set(this: ProxyThis, value: string) {
-      updateNode(this, internals, { [field]: value || null })
+      const node = raw(this, internals)
+      const changes = { [field]: value || null }
+      updateNode(
+        this,
+        internals,
+        field === 'fillStyleId' && node.type === 'TEXT' ? textStyleChanges(node, changes) : changes
+      )
     }
   }
 }
@@ -127,10 +139,10 @@ export function installVisualNodeProxyAccessors(
       }
     },
     // Applied shared styles, as Figma exposes them; an assignment inside an instance is an override.
-    fillStyleId: styleReference(internals, 'fillStyleId'),
-    strokeStyleId: styleReference(internals, 'strokeStyleId'),
-    effectStyleId: styleReference(internals, 'effectStyleId'),
-    gridStyleId: styleReference(internals, 'gridStyleId'),
+    fillStyleId: styleReference(internals, 'fillStyleId', mixed),
+    strokeStyleId: styleReference(internals, 'strokeStyleId', mixed),
+    effectStyleId: styleReference(internals, 'effectStyleId', mixed),
+    gridStyleId: styleReference(internals, 'gridStyleId', mixed),
     opacity: {
       get(this: ProxyThis): number {
         return raw(this, internals).opacity

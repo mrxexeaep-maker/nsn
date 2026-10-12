@@ -16,7 +16,11 @@ import { createClipboardFontActions } from './clipboard/fonts'
 import { deleteIds, recreateSnapshots, restoreDeletedEntries } from './clipboard/history'
 import type { PasteHistoryOperation } from './clipboard/paste/replace'
 import { replaceTargetsWithCreated, selectedReplacementTargets } from './clipboard/paste/replace'
-import { pastedComponentIds, resolvePasteTarget } from './clipboard/paste/target'
+import {
+  pastedComponentIds,
+  requestedPasteTarget,
+  resolvePasteTarget
+} from './clipboard/paste/target'
 import {
   clipboardPlacement,
   createClipboardPlacementActions,
@@ -246,7 +250,12 @@ export function createClipboardActions(ctx: EditorContext) {
       return node.id
     }
 
-    const requestedTarget = replacementTargets[0]?.parentId ?? resolvePasteTarget(ctx)
+    const { requestedTarget, returningTo } = requestedPasteTarget(
+      ctx,
+      placement.sources.map((source) => source?.id ?? null),
+      replacementTargets[0]?.parentId ?? null,
+      !!cursorPos
+    )
     const pasteTarget = cycleSafeParent(
       ctx.graph,
       requestedTarget,
@@ -289,6 +298,7 @@ export function createClipboardActions(ctx: EditorContext) {
     }
 
     if (cursorPos) placementActions.centerNodesAtCanvasPoint(created, cursorPos)
+    else if (returningTo === pasteTarget) placementActions.placeReturned(created)
     else placementActions.placePasted(created, placement, pasteTarget, requestedTarget)
     computeAllLayouts(ctx.graph, ctx.state.currentPageId)
     ctx.setSelectedIds(new Set(created))

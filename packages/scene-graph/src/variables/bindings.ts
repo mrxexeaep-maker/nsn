@@ -2,7 +2,7 @@ import { copyFills, copyStrokes } from '../copy'
 import type { SceneGraph } from '../index'
 import { hasInstanceOverride } from '../instances'
 import type { Color } from '../primitives'
-import type { Fill, SceneNode, Stroke } from '../types'
+import type { Fill, SceneNode, Stroke, StyleRun } from '../types'
 import type { VariableModeFallback } from '../variables'
 import { NUMERIC_FIELDS, isNumericVariableBindingField } from './fields'
 export { isNumericVariableBindingField } from './fields'
@@ -80,6 +80,43 @@ export function resolvedValueBindings(
   const visible = resolve('visible')
   if (typeof visible === 'boolean' && visible !== node.visible) updates.visible = visible
   return updates
+}
+
+/** Fields of a range of characters a bound number gives its value; the rest need fonts loaded. */
+const NUMERIC_RUN_FIELDS = ['fontSize', 'fontWeight', 'letterSpacing', 'lineHeight'] as const
+
+/**
+ * The runs a text's character bindings resolve to in its mode, when a bound number differs from
+ * what its characters hold. Bound font families and styles are left as stored, as the text's own.
+ */
+export function resolvedRunBindings(
+  graph: SceneGraph,
+  node: SceneNode,
+  fallback: VariableModeFallback = 'active'
+): Pick<Partial<SceneNode>, 'styleRuns'> {
+  const styleRuns = node.styleRuns.map((run): StyleRun => {
+    const bound = run.style.boundVariables
+    if (!bound) return run
+    let style = run.style
+    for (const field of NUMERIC_RUN_FIELDS) {
+      const variableId = bound[field]
+      if (!variableId) continue
+      const value = graph.resolveNumberVariableForNode(node.id, variableId, fallback)
+      if (value === undefined || !Number.isFinite(value) || style[field] === value) continue
+      style = { ...style, [field]: value }
+    }
+    return style === run.style ? run : { ...run, style }
+  })
+  const changed = styleRuns.some((run, index) => run !== node.styleRuns[index])
+  return changed ? { styleRuns } : {}
+}
+
+/** The variables a node binds, its own and its characters'. */
+function boundVariableIds(node: SceneNode): string[] {
+  return [
+    ...Object.values(node.boundVariables),
+    ...node.styleRuns.flatMap((run) => Object.values(run.style.boundVariables ?? {}))
+  ].filter((id): id is string => typeof id === 'string')
 }
 
 /**
@@ -162,7 +199,7 @@ function scopedNodes(graph: SceneGraph, scope: BindingScope | undefined): Iterab
   if ('subtrees' in scope) return subtreeNodes(graph, scope.subtrees)
   const variables = variablesResolvingThrough(graph, scope.variables)
   return [...graph.getAllNodes()].filter((node) =>
-    Object.values(node.boundVariables).some((id) => variables.has(id))
+    boundVariableIds(node).some((id) => variables.has(id))
   )
 }
 
@@ -176,7 +213,8 @@ export function reconcileVariableBindings(graph: SceneGraph, scope?: BindingScop
   for (const node of scopedNodes(graph, scope)) {
     const updates = {
       ...resolvedNumericBindings(graph, node),
-      ...resolvedValueBindings(graph, node)
+      ...resolvedValueBindings(graph, node),
+      ...resolvedRunBindings(graph, node)
     }
     if (Object.keys(updates).length === 0) continue
     graph.updateNode(node.id, updates)

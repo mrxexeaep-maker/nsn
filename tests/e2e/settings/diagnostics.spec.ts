@@ -35,7 +35,7 @@ test('Settings exports correlated chat telemetry without conversation content', 
   await page.getByTestId('app-settings-trigger').click()
   await page.getByTestId('settings-section-diagnostics').click()
   await page.getByRole('button', { name: 'Copy diagnostics', exact: true }).click()
-  await expect(page.getByText('Diagnostics copied to clipboard.', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Copied', exact: true })).toBeVisible()
   const text = await page.evaluate(() => navigator.clipboard.readText())
   const { environment, events } = v.parse(ReportJSON, text)
   expect(environment).toMatchObject({ app: expect.any(String), shell: 'browser' })
@@ -133,7 +133,7 @@ test('uncaught errors are listed with their stack and can be filtered and copied
 
   await page.getByRole('button', { name: 'Copy diagnostics', exact: true }).click()
   // The clipboard outlives the test's page, so read it only once this copy has finished.
-  await expect(page.getByText('Diagnostics copied to clipboard.', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Copied', exact: true })).toBeVisible()
   const report = v.parse(ReportJSON, await page.evaluate(() => navigator.clipboard.readText()))
   const runtime = report.events.find((event) => event.name === 'runtime.error')
   expect(runtime?.attributes).toMatchObject({ source: 'window', errorName: 'TypeError' })

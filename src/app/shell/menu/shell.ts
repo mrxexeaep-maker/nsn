@@ -1,5 +1,6 @@
 import { useI18n } from '@open-pencil/vue'
 
+import { openTour } from '@/app/demo/document'
 import { requestAppExit } from '@/app/document/close/exit'
 import { openSettingsDialog } from '@/app/settings/dialog'
 import { setDesignIssuesOnCanvas, setSnappingPreference } from '@/app/settings/preferences/apply'
@@ -54,6 +55,9 @@ export function useShellMenu() {
   const actions: Partial<Record<string, () => void>> = {
     'open-storage-workspace': () => {
       void import('@/router').then(({ default: router }) => openStorageWorkspace(router))
+    },
+    'open-tour': () => {
+      openTour().catch((error: unknown) => console.error('[Tour] Could not open the tour:', error))
     },
     settings: openSettingsDialog,
     'snap-geometry': () => {

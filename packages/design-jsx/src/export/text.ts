@@ -25,16 +25,23 @@ export interface TextChildren {
   inline: boolean
 }
 
-/** Each character's style where it differs from the text's own, as a span writes it. */
+/**
+ * Each character's style where it differs from the text's own, as a span writes it, with the
+ * URL it links to; a span cannot write a link to a node.
+ */
 function characterStyles(node: SceneNode): SpanStyle[] {
   const styles = Array.from({ length: node.text.length }, (): SpanStyle => ({}))
   for (const run of node.styleRuns) {
-    const style = pick(run.style, SPAN_STYLE_FIELDS)
+    const style: SpanStyle = pick(run.style, SPAN_STYLE_FIELDS)
+    if (run.style.hyperlink?.type === 'URL') style.hyperlink = run.style.hyperlink
     const end = Math.min(run.start + run.length, styles.length)
     for (let index = run.start; index < end; index++) styles[index] = { ...styles[index], ...style }
   }
   return styles.map((style) =>
-    omitBy(style, (value, key) => value === undefined || isEqual(value, node[key]))
+    omitBy(
+      style,
+      (value, key) => value === undefined || (key !== 'hyperlink' && isEqual(value, node[key]))
+    )
   )
 }
 
@@ -50,6 +57,8 @@ function spanProps(style: SpanStyle, node: SceneNode): JSXProp[] {
   if (style.textDecoration !== undefined)
     props.push(['textDecoration', style.textDecoration.toLowerCase()])
   collectDecorationProps(style, node, props)
+  if (style.textCase !== undefined) props.push(['textCase', style.textCase.toLowerCase()])
+  if (style.hyperlink) props.push(['href', style.hyperlink.value])
   return props
 }
 

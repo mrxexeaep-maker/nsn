@@ -257,6 +257,21 @@ export function createClipboardPlacementActions(ctx: EditorContext) {
     }
   }
 
+  /**
+   * Places layers pasted back into the frame they were copied out of: where they were on the
+   * canvas, as Figma keeps them even after the frame moved. Out of view, they go onto the page in
+   * the middle of the view instead.
+   */
+  function placeReturned(nodeIds: string[]) {
+    const view = viewportRect()
+    if (!view || overlaps(canvasBounds(ctx.graph, nodesOf(nodeIds)), view)) return
+    for (const id of nodeIds) ctx.graph.reparentNode(id, ctx.state.currentPageId)
+    centerNodesAtCanvasPoint(nodeIds, {
+      x: view.x + view.width / 2,
+      y: view.y + view.height / 2
+    })
+  }
+
   /** Centers layers on a canvas point, through their parents' rotation and flips. */
   function centerNodesAtCanvasPoint(nodeIds: string[], point: Vector) {
     const items = nodesOf(nodeIds)
@@ -275,6 +290,7 @@ export function createClipboardPlacementActions(ctx: EditorContext) {
     duplicatePosition,
     keepCanvasTransforms,
     placeForeignPaste,
-    placePasted
+    placePasted,
+    placeReturned
   }
 }

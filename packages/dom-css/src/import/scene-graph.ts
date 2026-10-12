@@ -25,6 +25,7 @@ import {
 import {
   blockRichText,
   characterStyleFromCSS,
+  elementLink,
   holdsTextBlocks,
   inlineRichText,
   isInlineContent,
@@ -179,13 +180,6 @@ function applyCornerRadii(node: SceneNode, style: DesignStyleDeclaration): void 
     node.bottomRightRadius,
     node.bottomLeftRadius
   ].some((radius) => radius !== fallback)
-}
-
-function textCaseFromCSS(value: string | undefined): SceneNode['textCase'] {
-  if (value === 'uppercase') return 'UPPER'
-  if (value === 'lowercase') return 'LOWER'
-  if (value === 'capitalize') return 'TITLE'
-  return 'ORIGINAL'
 }
 
 function applyFlexGap(node: SceneNode, style: DesignStyleDeclaration): void {
@@ -361,7 +355,8 @@ const CHARACTER_FIELDS = [
   'textDecorationThickness',
   'textDecorationFills',
   'textDecorationSkipInk',
-  'textUnderlineOffset'
+  'textUnderlineOffset',
+  'textCase'
 ] as const satisfies readonly (keyof CSSCharacterStyle)[]
 
 function applyTextStyle(node: SceneNode, style: DesignStyleDeclaration): void {
@@ -379,9 +374,6 @@ function applyTextStyle(node: SceneNode, style: DesignStyleDeclaration): void {
   if (textAlign === 'CENTER' || textAlign === 'RIGHT' || textAlign === 'JUSTIFIED') {
     node.textAlignHorizontal = textAlign
   }
-
-  const textCase = textCaseFromCSS(pickStyle(style, 'text-transform'))
-  if (textCase !== 'ORIGINAL') node.textCase = textCase
 
   if (pickStyle(style, 'white-space') === 'nowrap') node.maxLines = 1
 }
@@ -440,6 +432,14 @@ function createTextNode(
   applyTextStyle(node, style)
   applyFlowSizing(graph, node, style, display, parentFlow)
   return node
+}
+
+/** A link of text alone links all of it. */
+function linkText(node: SceneNode, element: DesignElement): void {
+  const hyperlink = elementLink(element)
+  if (hyperlink && node.text.length > 0) {
+    node.styleRuns = [{ start: 0, length: node.text.length, style: { hyperlink } }]
+  }
 }
 
 function hasBoxStyle(style: DesignStyleDeclaration): boolean {
@@ -503,7 +503,9 @@ function createElementNode(
     !hasBoxStyle(style) &&
     element.children.every((child) => child.type === 'text')
   ) {
-    return createTextNode(graph, parentId, textContent(element), style, display, parentFlow)
+    const text = createTextNode(graph, parentId, textContent(element), style, display, parentFlow)
+    linkText(text, element)
+    return text
   }
   if (!hasBoxStyle(style) && holdsRichText(element)) {
     return createRichTextNode(graph, parentId, element, style, display, parentFlow)

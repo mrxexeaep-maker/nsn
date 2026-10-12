@@ -11,7 +11,7 @@ import {
   SIZE_PILL_RADIUS,
   SIZE_PILL_TEXT_OFFSET_Y
 } from '#core/constants'
-import { createSceneGeometry } from '#core/geometry'
+import { createSceneGeometry, hasTransformHandles } from '#core/geometry'
 
 import { measureGlyphWidth } from './paragraph-cache'
 import { frameLabelPlacement, labelScreenMatrix } from './transform'
@@ -129,6 +129,11 @@ export function drawSelectionLabels(
     activeOverlays
   )
   if (nodes.length === 0) return
+  // A selection too small on screen for handles has no size label either, as in Figma.
+  const [only] = nodes
+  const width = nodes.length === 1 ? only.width : maxX - minX
+  const height = nodes.length === 1 ? only.height : maxY - minY
+  if (!hasTransformHandles(width * r.zoom, height * r.zoom)) return
 
   if (nodes.length === 1) {
     drawSingleSelectionSize(r, canvas, graph, nodes[0], activeOverlays, sizeFont)

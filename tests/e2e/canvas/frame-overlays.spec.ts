@@ -235,3 +235,33 @@ for (const angle of [-32, 32]) {
     }
   })
 }
+
+// Figma desktop 126 draws neither handles nor a size label on a layer under 10 screen pixels both
+// ways, and both on a larger one.
+for (const [name, size] of [
+  ['tiny-layer-selected', 9],
+  ['small-layer-selected', 16]
+] as const) {
+  test(`a selected ${size} px layer ${size < 10 ? 'has no handles or size label' : 'has handles and its size'}`, async () => {
+    await editor.page.evaluate((side) => {
+      const store = window.openPencil?.getStore?.()
+      if (!store) throw new Error('OpenPencil store not initialized')
+      const dot = store.graph.createNode('RECTANGLE', store.state.currentPageId, {
+        x: 200,
+        y: 200,
+        width: side,
+        height: side,
+        fills: [
+          { type: 'SOLID', color: { r: 0.8, g: 0.8, b: 0.8, a: 1 }, visible: true, opacity: 1 }
+        ]
+      })
+      store.state.zoom = 1
+      store.state.panX = 0
+      store.state.panY = 0
+      store.select([dot.id])
+      store.requestRender()
+    }, size)
+    await editor.canvas.waitForRender()
+    await expectCanvas(name)
+  })
+}

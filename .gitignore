@@ -91,3 +91,7 @@ scratch/
 
 # OpenCode
 .opencode/
+
+# Feedback Worker local state and secrets
+packages/feedback/.wrangler/
+packages/feedback/.dev.vars

@@ -8,6 +8,7 @@ import {
   textListItems,
   textParagraphRanges,
   type CharacterStyleOverride,
+  type HyperlinkTarget,
   type SceneNode,
   type TextListItem,
   type TextParagraphRange
@@ -32,6 +33,7 @@ type CharacterStyle = Pick<
   | 'textDecorationFills'
   | 'textDecorationSkipInk'
   | 'textUnderlineOffset'
+  | 'textCase'
 >
 
 type CharacterStyleKey = keyof CharacterStyle
@@ -49,7 +51,8 @@ const CHARACTER_STYLE_KEYS: readonly CharacterStyleKey[] = [
   'textDecorationThickness',
   'textDecorationFills',
   'textDecorationSkipInk',
-  'textUnderlineOffset'
+  'textUnderlineOffset',
+  'textCase'
 ]
 
 /** A list's indent per level, in ems of its first character, as the canvas lays lists out. */
@@ -66,11 +69,33 @@ const DECORATION_PROPERTIES = new Set([
 
 const px = (value: number) => `${value}px`
 
-/** Characters `[start, end)` and the run style over them. */
+/** Characters `[start, end)`, the run style over them, and where they link to. */
 interface StyledRange {
   start: number
   end: number
   style: CharacterStyle
+  href: string | null
+}
+
+/** Links a page can follow: to the web, to mail, or to a phone; others are left out. */
+const LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:'])
+
+/** A link as an `href`, for a link to a URL a page can follow. */
+function linkHref(link: HyperlinkTarget | null | undefined): string | null {
+  if (link?.type !== 'URL') return null
+  try {
+    return LINK_PROTOCOLS.has(new URL(link.value).protocol) ? link.value : null
+  } catch {
+    // Not an absolute URL, which a page could not follow from anywhere it is placed.
+    return null
+  }
+}
+
+export function textCaseToCSS(value: SceneNode['textCase']): string | undefined {
+  if (value === 'UPPER') return 'uppercase'
+  if (value === 'LOWER') return 'lowercase'
+  if (value === 'TITLE') return 'capitalize'
+  return undefined
 }
 
 function characterStyle(node: SceneNode, override: CharacterStyleOverride = {}): CharacterStyle {
@@ -90,11 +115,16 @@ function styledRanges(node: SceneNode): StyledRange[] {
   for (const run of node.styleRuns.toSorted((a, b) => a.start - b.start)) {
     const start = Math.max(at, run.start)
     const end = Math.min(node.text.length, run.start + run.length)
-    if (start > at) ranges.push({ start: at, end: start, style: base })
-    if (end > start) ranges.push({ start, end, style: characterStyle(node, run.style) })
+    if (start > at) ranges.push({ start: at, end: start, style: base, href: null })
+    if (end > start) {
+      const href = linkHref(run.style.hyperlink)
+      ranges.push({ start, end, style: characterStyle(node, run.style), href })
+    }
     at = Math.max(at, end)
   }
-  if (at < node.text.length) ranges.push({ start: at, end: node.text.length, style: base })
+  if (at < node.text.length) {
+    ranges.push({ start: at, end: node.text.length, style: base, href: null })
+  }
   return ranges
 }
 
@@ -129,6 +159,7 @@ function characterCSS(style: CharacterStyle, decorated: boolean): DesignStyleDec
     'font-style': style.italic ? 'italic' : 'normal',
     'letter-spacing': px(style.letterSpacing),
     'line-height': style.lineHeight === null ? 'normal' : px(style.lineHeight),
+    'text-transform': textCaseToCSS(style.textCase) ?? 'none',
     ...(decorated ? decorationCSS(style) : {})
   }
 }
@@ -173,10 +204,22 @@ function element(
   return { type: 'element', tagName, attrs: {}, inlineStyle, children }
 }
 
-/** `text[start, end)` as text and spans, each span setting only what differs from the layer. */
+/**
+ * A link styled as the text around it: a link draws in the text's colour and with only the
+ * decoration its characters have, as in Figma, not in a browser's link style.
+ */
+function linkElement(href: string, css: DesignStyleDeclaration, text: string): DesignElement {
+  const style = { color: 'inherit', 'text-decoration-line': 'none', ...css }
+  return { ...element('a', style, [textNode(text)]), attrs: { href } }
+}
+
+/**
+ * `text[start, end)` as text and spans, each span setting only what differs from the layer;
+ * linked characters are a link instead.
+ */
 function inlineContent(projection: TextProjection, start: number, end: number): DesignNode[] {
   const { node, ranges, base, decorated } = projection
-  const pieces: { css: DesignStyleDeclaration; text: string }[] = []
+  const pieces: { css: DesignStyleDeclaration; text: string; href: string | null }[] = []
   for (const range of ranges) {
     const from = Math.max(start, range.start)
     const to = Math.min(end, range.end)
@@ -184,12 +227,14 @@ function inlineContent(projection: TextProjection, start: number, end: number): 
     const css = differing(characterCSS(range.style, !decorated), base)
     const text = node.text.slice(from, to)
     const previous = pieces.at(-1)
-    if (previous && isEqual(previous.css, css)) previous.text += text
-    else pieces.push({ css, text })
+    if (previous && previous.href === range.href && isEqual(previous.css, css)) {
+      previous.text += text
+    } else pieces.push({ css, text, href: range.href })
   }
-  return pieces.map(({ css, text }) =>
-    Object.keys(css).length === 0 ? textNode(text) : element('span', css, [textNode(text)])
-  )
+  return pieces.map(({ css, text, href }) => {
+    if (href) return linkElement(href, css, text)
+    return Object.keys(css).length === 0 ? textNode(text) : element('span', css, [textNode(text)])
+  })
 }
 
 /** A paragraph's content; an empty one holds a line break, which gives it a line's height. */

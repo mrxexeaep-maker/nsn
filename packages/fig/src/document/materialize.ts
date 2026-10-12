@@ -1,5 +1,10 @@
 import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
-import { generateId, SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
+import {
+  generateId,
+  remapStyleRunReferences,
+  SceneGraph,
+  type SceneNode
+} from '@open-pencil/scene-graph'
 
 import {
   reconcileLiveComponentEdits,
@@ -282,8 +287,8 @@ function materializeReader(
     options.onUnresolvedBinding(diagnostic)
   }
   const pages = reader.pages.map((page) => reader.readPage(page.id, options))
-  const plan = reader.planComponents(pages, options)
   const state = previous ?? createAssemblyState(reader, options)
+  const plan = reader.planComponents(pages, options, (id) => state.components.has(id))
   return state.graph.applyImportedStateDuring(
     () => materializeReaderInto(pages, plan, blobs, state, previous !== undefined),
     () => `0:${state.nextImportedId++}`
@@ -388,18 +393,15 @@ function materializeReaderInto(
   for (const page of pages) populateInstances(page)
   for (const instanceId of resync) graph.syncInstance(instanceId)
   if (resync.size > 0) restoreDerivedSizes(graph, derivedSizes)
+  // Layers and ranges name their styles by the styles' own IDs, which the records' GUIDs are,
+  // so only links to other layers are renamed to the layers this page added.
   for (const node of graph.getAllNodes()) {
-    if (existingNodeIds.has(node.id)) continue
-    for (const field of [
-      'fillStyleId',
-      'strokeStyleId',
-      'textStyleId',
-      'effectStyleId',
-      'gridStyleId'
-    ] as const) {
-      const id = node[field]
-      if (id && sources.has(id)) node[field] = sources.get(id) ?? id
-    }
+    if (existingNodeIds.has(node.id) || node.styleRuns.length === 0) continue
+    node.styleRuns = remapStyleRunReferences(node.styleRuns, {
+      variable: (id) => id,
+      style: (id) => id,
+      node: (id) => sources.get(id) ?? id
+    })
   }
   // These passes apply to the nodes this page added, not to the whole graph.
   const materialized = [...graph.nodes.values()].filter((node) => !existingNodeIds.has(node.id))

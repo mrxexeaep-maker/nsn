@@ -12,7 +12,7 @@ import { resolveRGBAForPreview } from '@open-pencil/scene-graph/color'
 import { outlineInk, savedGlyphInk, type InkSpan } from '#core/canvas/text/ink'
 import { laidOutGlyphs, type LaidOutGlyph } from '#core/canvas/text/placed'
 import type { PreparedText } from '#core/canvas/text/preparation/cache'
-import { transformTextCase } from '#core/text/case'
+import { shownText } from '#core/text/case'
 import { characterStyles, TEXT_STYLE_KEYS, type CharacterStyle } from '#core/text/character-style'
 import { weightToStyle } from '#core/text/fonts'
 import { fontDecorationMetricsSync, type FontDecorationMetrics } from '#core/text/opentype'
@@ -359,7 +359,7 @@ export function drawTextLayout(
   layout.draw(canvas, 0, y)
   if (!hasDecoration(node)) return
   if (prepared.decorations?.y !== y) {
-    const glyphs = laidOutGlyphs(node, layout, transformTextCase(node.text, node.textCase), y)
+    const glyphs = laidOutGlyphs(node, layout, shownText(node), y)
     const rects = glyphs ? textDecorationRects(node, laidOutDecoratedGlyphs(glyphs)) : []
     prepared.decorations = { y, rects }
   }

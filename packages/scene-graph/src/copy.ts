@@ -56,7 +56,7 @@ export function copyEffect(e: Effect): Effect {
 }
 
 export function copyStyleRun(r: StyleRun): StyleRun {
-  return {
+  const copy: StyleRun = {
     ...r,
     style: {
       ...r.style,
@@ -70,6 +70,9 @@ export function copyStyleRun(r: StyleRun): StyleRun {
       fontFeatures: r.style.fontFeatures ? r.style.fontFeatures.map((v) => ({ ...v })) : undefined
     }
   }
+  if (r.style.hyperlink) copy.style.hyperlink = { ...r.style.hyperlink }
+  if (r.style.boundVariables) copy.style.boundVariables = { ...r.style.boundVariables }
+  return copy
 }
 
 // --- Array copy functions ---

@@ -1,10 +1,13 @@
 import type {
   CharacterStyleOverride,
+  HyperlinkTarget,
   SceneNode,
+  TextCase,
   TextParagraphSpacingField
 } from '@open-pencil/scene-graph'
 
 import {
+  graph,
   raw,
   updateNode,
   type NodeProxyInternals,
@@ -21,7 +24,9 @@ import {
   type FigmaLineHeight
 } from '#core/figma-api/text'
 import { getTextStyle, type TextSegmentField } from '#core/figma-api/text/style'
-import { textStyleChanges } from '#core/text/character-style'
+import { styleRunsWithPatch, textStyleChanges } from '#core/text/character-style'
+
+import { hyperlinkTarget } from './hyperlink'
 
 /**
  * Getter/setter pair for a spacing Figma keeps at zero or more. It reads `mixed` while paragraphs
@@ -105,14 +110,9 @@ export function installTextNodeProxyAccessors(
     fontSize: characterStyle<number>(internals, 'fontSize', mixed, (_node, fontSize) => ({
       fontSize
     })),
-    textStyleId: {
-      get(this: ProxyThis): string {
-        return raw(this, internals).textStyleId ?? ''
-      },
-      set(this: ProxyThis, value: string) {
-        updateNode(this, internals, { textStyleId: value || null })
-      }
-    },
+    textStyleId: characterStyle<string>(internals, 'textStyleId', mixed, (_node, value) => ({
+      textStyleId: value || null
+    })),
     fontWeight: characterStyle<number>(internals, 'fontWeight', mixed, (_node, fontWeight) => ({
       fontWeight
     })),
@@ -142,7 +142,20 @@ export function installTextNodeProxyAccessors(
         return percent === null ? undefined : (fontSize) => ({ lineHeight: percent * fontSize })
       }
     ),
-    textCase: field(internals, 'textCase'),
+    textCase: characterStyle<TextCase>(internals, 'textCase', mixed, (_node, textCase) => ({
+      textCase
+    })),
+    hyperlink: {
+      get(this: ProxyThis): unknown {
+        return getTextStyle(raw(this, internals), 'hyperlink', mixed)
+      },
+      set(this: ProxyThis, value: HyperlinkTarget | null) {
+        const node = raw(this, internals)
+        const hyperlink = hyperlinkTarget('set_hyperlink', value, graph(this, internals))
+        const styleRuns = styleRunsWithPatch(node, 0, node.text.length, { hyperlink })
+        updateNode(this, internals, { styleRuns })
+      }
+    },
     textDecoration: characterStyle<SceneNode['textDecoration']>(
       internals,
       'textDecoration',

@@ -15,7 +15,7 @@ import { textDecorationRects, type DecoratedGlyph } from '#core/canvas/text/deco
 import { outlineInk, savedGlyphInk } from '#core/canvas/text/ink'
 import { laidOutGlyphs } from '#core/canvas/text/placed'
 import { getCanvasKit } from '#core/canvaskit'
-import { transformTextCase } from '#core/text/case'
+import { shownText } from '#core/text/case'
 import { fontManager } from '#core/text/fonts'
 
 /**
@@ -48,7 +48,7 @@ export function shapeText(
   fontProvider: TypefaceFontProvider,
   node: SceneNode
 ): ShapedText | null {
-  const text = transformTextCase(node.text, node.textCase)
+  const text = shownText(node)
   if (!canShape(node, text)) return null
 
   const paragraph = buildParagraph({ ck, fontProvider, fontsLoaded: true }, node, undefined, {

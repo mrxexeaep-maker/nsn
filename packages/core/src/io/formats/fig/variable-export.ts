@@ -1,5 +1,6 @@
 import {
   collectionPluginDataNodeChange,
+  parseGuidOrNull,
   variableMetadataNodeChange
 } from '@open-pencil/fig/node-change'
 import type { GUID, NodeChange, VariableDataEntry } from '@open-pencil/kiwi/fig/codec'
@@ -82,7 +83,10 @@ export function assignVariableGuids(
   }
 }
 
-/** Shared styles live on the internal canvas and need a GUID before any node cites them. */
+/**
+ * Shared styles live on the internal canvas and need a GUID before any node cites them. A style
+ * read from Figma keeps the GUID it came with, which its ID spells; the others take new ones.
+ */
 export function assignSharedStyleGuids(
   styles: readonly SceneNode[],
   localIdCounter: { value: number },
@@ -91,6 +95,14 @@ export function assignSharedStyleGuids(
 ): void {
   for (const style of styles) {
     if (nodeIdToGuid.has(style.id)) continue
+    // A style read from Figma keeps its GUID, compared in the form the ID parses to.
+    const imported = style.source.id ? parseGuidOrNull(style.source.id) : null
+    const value = imported ? guidToString(imported) : null
+    if (imported && value && !assignedGuidValues.has(value)) {
+      nodeIdToGuid.set(style.id, imported)
+      assignedGuidValues.add(value)
+      continue
+    }
     let guid: GUID
     do {
       guid = { sessionID: 1, localID: localIdCounter.value++ }

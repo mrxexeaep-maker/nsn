@@ -1,7 +1,16 @@
-import { omit } from 'es-toolkit/object'
+import { omit, pick } from 'es-toolkit/object'
 import { isEqual } from 'es-toolkit/predicate'
 
-import type { CharacterStyleOverride, SceneNode, StyleRun } from '@open-pencil/scene-graph'
+import {
+  SHARED_TEXT_STYLE_FIELDS,
+  styleDetachmentChanges,
+  TEXT_BINDABLE_FIELDS,
+  type CharacterStyleOverride,
+  type HyperlinkTarget,
+  type SceneNode,
+  type StyleRun,
+  type TextBoundVariables
+} from '@open-pencil/scene-graph'
 
 /** A character's style: the text's own, with its run's overrides over it. */
 export type CharacterStyle = Required<
@@ -18,11 +27,16 @@ export type CharacterStyle = Required<
     | 'textDecorationFills'
     | 'textDecorationSkipInk'
     | 'fontFeatures'
+    | 'textCase'
   >
 > & {
   lineHeight: number | null
   textDecorationThickness: number | null
   textUnderlineOffset: number | null
+  hyperlink: HyperlinkTarget | null
+  textStyleId: string | null
+  fillStyleId: string | null
+  boundVariables: TextBoundVariables
 }
 
 export type TextStyleKey = (typeof TEXT_STYLE_KEYS)[number]
@@ -41,7 +55,20 @@ export const TEXT_STYLE_KEYS = [
   'textDecorationFills',
   'textDecorationSkipInk',
   'textUnderlineOffset',
-  'fontFeatures'
+  'fontFeatures',
+  'textCase'
+] as const satisfies readonly (keyof CharacterStyle)[]
+
+/**
+ * What a range of characters can hold that is not a style of the text's own: a link, the
+ * styles it uses, and its bindings. The text's styles and bindings are what ranges start from.
+ */
+const RANGE_STYLE_KEYS = ['hyperlink', 'textStyleId', 'fillStyleId', 'boundVariables'] as const
+
+/** Every field a character's style has, as runs override it. */
+export const CHARACTER_STYLE_KEYS = [
+  ...TEXT_STYLE_KEYS,
+  ...RANGE_STYLE_KEYS
 ] as const satisfies readonly (keyof CharacterStyle)[]
 
 export function nodeStyle(node: SceneNode): CharacterStyle {
@@ -59,7 +86,12 @@ export function nodeStyle(node: SceneNode): CharacterStyle {
     textDecorationFills: node.textDecorationFills,
     textDecorationSkipInk: node.textDecorationSkipInk,
     textUnderlineOffset: node.textUnderlineOffset,
-    fontFeatures: node.fontFeatures
+    fontFeatures: node.fontFeatures,
+    textCase: node.textCase,
+    hyperlink: null,
+    textStyleId: node.textStyleId,
+    fillStyleId: node.fillStyleId,
+    boundVariables: pick(node.boundVariables, TEXT_BINDABLE_FIELDS)
   }
 }
 
@@ -79,7 +111,7 @@ export function characterStyles(node: SceneNode, start: number, end: number): Ch
 
 function definedOverrides(style: CharacterStyleOverride): Partial<CharacterStyle> {
   const defined: Partial<Record<keyof CharacterStyle, unknown>> = {}
-  for (const key of TEXT_STYLE_KEYS) {
+  for (const key of CHARACTER_STYLE_KEYS) {
     if (style[key] !== undefined) defined[key] = style[key]
   }
   return defined as Partial<CharacterStyle>
@@ -92,7 +124,7 @@ function withoutRedundantOverrides(node: SceneNode, runs: StyleRun[]): StyleRun[
   for (const run of runs) {
     const style = omit(
       run.style,
-      TEXT_STYLE_KEYS.filter(
+      CHARACTER_STYLE_KEYS.filter(
         (key) => run.style[key] !== undefined && isEqual(run.style[key], base[key])
       )
     )
@@ -117,6 +149,31 @@ function withoutRedundantOverrides(node: SceneNode, runs: StyleRun[]): StyleRun[
  */
 export type TextStylePatch = CharacterStyleOverride | ((fontSize: number) => CharacterStyleOverride)
 
+/**
+ * The styles characters leave when `style` changes what a style gave them, as a text leaves its
+ * own: a font size leaves the text style, and fills leave the fill style.
+ */
+function detachedStyles(
+  node: SceneNode,
+  current: CharacterStyleOverride,
+  style: CharacterStyleOverride | undefined
+): CharacterStyleOverride {
+  if (!style) return {}
+  const styled = {
+    ...node,
+    textStyleId: current.textStyleId !== undefined ? current.textStyleId : node.textStyleId,
+    fillStyleId: current.fillStyleId !== undefined ? current.fillStyleId : node.fillStyleId
+  }
+  const changes = pick(style, [...TEXT_STYLE_KEYS, 'fills', 'textStyleId', 'fillStyleId'])
+  const detached = styleDetachmentChanges(styled, changes)
+  return pick(
+    detached,
+    (['textStyleId', 'fillStyleId'] as const).filter(
+      (key) => !Object.hasOwn(changes, key) && Object.hasOwn(detached, key)
+    )
+  )
+}
+
 /** Style runs with `patch` over `text[start, end)`, as Figma restyles a range. */
 export function styleRunsWithPatch(
   node: SceneNode,
@@ -140,7 +197,7 @@ export function styleRunsWithPatch(
       style = patches.get(fontSize) ?? sized(fontSize)
       patches.set(fontSize, style)
     }
-    chars[index] = { ...chars[index], ...style }
+    chars[index] = { ...chars[index], ...style, ...detachedStyles(node, chars[index], style) }
   }
   // A newline takes the style of the character before it, as in Figma: a range that ends a
   // paragraph styles its newline too, and a newline cannot be styled on its own.
@@ -165,10 +222,18 @@ export function styleRunsWithPatch(
  */
 export function textStyleChanges(
   node: SceneNode,
-  changes: Partial<Pick<SceneNode, TextStyleKey>>,
+  changes: Partial<Pick<SceneNode, TextStyleKey | 'textStyleId' | 'fillStyleId'>>,
   sized?: (fontSize: number) => CharacterStyleOverride
 ): Partial<SceneNode> {
-  const keys = Object.keys(changes) as TextStyleKey[]
+  const changed = Object.keys(changes) as (keyof CharacterStyleOverride)[]
+  // A style a range keeps no longer gives it what the whole text now sets.
+  const keys = [
+    ...changed,
+    ...(changed.some((key) => (SHARED_TEXT_STYLE_FIELDS as readonly string[]).includes(key))
+      ? (['textStyleId'] as const)
+      : []),
+    ...(changed.includes('fills') ? (['fillStyleId'] as const) : [])
+  ]
   const runs = node.styleRuns.map((run) => ({ ...run, style: omit(run.style, keys) }))
   const updated = { ...node, ...changes }
   const styleRuns = withoutRedundantOverrides(updated, runs)

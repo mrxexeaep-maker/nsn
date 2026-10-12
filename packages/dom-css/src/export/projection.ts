@@ -14,7 +14,7 @@ import { DesignTokens, type CSSModes } from '../tokens/references'
 import type { DesignDocument, DesignElement, DesignNode, DesignStyleDeclaration } from '../types'
 import { cssColor, dropShadowToCSS, effectsToCSS, fillToCSS, strokeColorToCSS } from './css'
 import { addGridContainer, addGridPlacement } from './grid'
-import { textElementContent } from './text'
+import { textCaseToCSS, textElementContent } from './text'
 
 const DOM_CSS_PLUGIN_ID = 'open-pencil-dom-css'
 const IMAGE_SOURCE_URL_KEY = 'image-source-url'
@@ -73,13 +73,6 @@ function alignToCSS(
   if (value === 'MAX') return 'flex-end'
   if (value === 'STRETCH') return 'stretch'
   if (value === 'BASELINE') return 'baseline'
-  return undefined
-}
-
-function textCaseToCSS(value: SceneNode['textCase']): string | undefined {
-  if (value === 'UPPER') return 'uppercase'
-  if (value === 'LOWER') return 'lowercase'
-  if (value === 'TITLE') return 'capitalize'
   return undefined
 }
 
