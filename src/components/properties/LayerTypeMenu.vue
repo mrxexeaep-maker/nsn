@@ -42,7 +42,6 @@ const itemCls = menuItem({ justify: 'between' })
     <Tip :label="panels.layerType">
       <DropdownMenuTrigger as-child>
         <button
-          data-test-id="layer-type-trigger"
           :aria-label="panels.layerType"
           class="-mx-1 -my-1.5 flex h-6 items-center gap-0.5 rounded-md px-1 text-muted hover:bg-hover hover:text-surface data-[state=open]:bg-active data-[state=open]:text-surface"
         >
@@ -56,7 +55,6 @@ const itemCls = menuItem({ justify: 'between' })
         <DropdownMenuItem
           v-for="item in types"
           :key="item.type"
-          :data-test-id="`layer-type-${item.type.toLowerCase()}`"
           :class="itemCls"
           :disabled="disabled(item.type)"
           @select="item.type !== node.type && store.convertLayerType(node.id, item.type)"
