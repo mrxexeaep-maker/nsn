@@ -59,7 +59,7 @@ export async function createTestService() {
     POSTHOG_HOST: 'https://eu.i.posthog.com',
     POSTHOG_KEY: 'phc_test',
     TURNSTILE_SECRET: 'turnstile-secret',
-    TURNSTILE_HOSTNAME: 'openpencil.dev',
+    TURNSTILE_HOSTNAMES: 'openpencil.dev,app.openpencil.dev',
     EMAIL_FROM: 'hello@openpencil.dev',
     PING_LIMITER: limiters.ping,
     INGEST_LIMITER: limiters.ingest,

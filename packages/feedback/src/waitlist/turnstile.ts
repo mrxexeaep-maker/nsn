@@ -11,7 +11,7 @@ const SiteverifySchema = v.object({
 })
 
 /**
- * Whether Turnstile accepts the token as one issued on our site for `action`. Anything else,
+ * Whether Turnstile accepts the token as one issued on one of our `hostnames` for `action`. Anything else,
  * including an unreachable or slow Turnstile, refuses. The client address is optional to
  * Turnstile and is not sent. Turnstile itself rejects a token used twice.
  */
@@ -20,9 +20,9 @@ export async function verifyTurnstile(
   {
     secret,
     token,
-    hostname,
+    hostnames,
     action
-  }: { secret: string; token: string; hostname: string; action: string }
+  }: { secret: string; token: string; hostnames: readonly string[]; action: string }
 ): Promise<boolean> {
   const response = await fetcher(SITEVERIFY_URL, {
     method: 'POST',
@@ -38,7 +38,7 @@ export async function verifyTurnstile(
   return (
     result.success &&
     result.output.success &&
-    result.output.hostname === hostname &&
+    hostnames.some((hostname) => hostname === result.output.hostname) &&
     result.output.action === action
   )
 }
