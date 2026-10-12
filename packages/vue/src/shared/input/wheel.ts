@@ -130,7 +130,10 @@ export function createWheelSteps(platform: WheelPlatform = currentWheelPlatform(
       time - lastNotch.time < NOTCH_ACCELERATION_WINDOW_MS &&
       signX === lastNotch.signX &&
       signY === lastNotch.signY
-    const step = accelerates ? lastNotch.step * NOTCH_ACCELERATION : NOTCH_STEP
+    // The step stops growing at the largest movement, so a long fast spin cannot overflow it.
+    const step = accelerates
+      ? Math.min(lastNotch.step * NOTCH_ACCELERATION, MAX_NOTCH_PAN)
+      : NOTCH_STEP
     lastNotch = { time, signX, signY, step }
     return capLength(
       { dx: notches.dx * step, dy: notches.dy * step },

@@ -129,9 +129,17 @@ describe('wheel steps', () => {
     expect(panY(createWheelSteps('mac')(notch(0)))).toBe(120)
   })
 
+  test('keeps panning a bounded step through a long fast spin', () => {
+    const step = createWheelSteps('windows')
+    let last = 0
+    for (let index = 0; index < 1000; index++) last = panY(step(notch(index * 10)))
+    expect(last).toBe(120)
+  })
+
   test('zooms a WebKit pinch as far as the same pinch zooms in Chromium', () => {
-    const scale = 2
-    const chromiumDelta = -100 * Math.log(scale)
-    expect(scale ** PINCH_SCALE_EXPONENT).toBeCloseTo(2 ** (-chromiumDelta / 50))
+    // Chromium reports a pinch that doubles the finger spread as Ctrl+wheel with -100 ln 2.
+    const chromium = zoomScale(createWheelSteps('mac')(event(-100 * Math.LN2, { ctrlKey: true })))
+    expect(chromium).toBeCloseTo(2.61, 2)
+    expect(2 ** PINCH_SCALE_EXPONENT).toBeCloseTo(chromium)
   })
 })
