@@ -98,14 +98,12 @@ export function createAgentDiscovery(options: {
   }
   /**
    * The package manager that installed a companion updates it, so the new copy replaces the
-   * old one on PATH. A new install uses npm, or Bun when npm would need administrator rights.
+   * old one on PATH; another manager would install beside it and leave the old copy first.
+   * A new install uses npm, or Bun when npm would need administrator rights.
    */
   function managerFor(executable: string): PackageManager {
     const path = snapshot.value?.executables[executable]
-    if (path) {
-      const installedWith = companionPackageManager(path)
-      return canInstallWith(installedWith) ? installedWith : 'npm'
-    }
+    if (path) return companionPackageManager(path)
     return npmNeedsAdmin() && canInstallWith('bun') ? 'bun' : 'npm'
   }
   /** Installing this companion would need administrator rights. */
@@ -113,11 +111,8 @@ export function createAgentDiscovery(options: {
     return managerFor(executable) === 'npm' && npmNeedsAdmin()
   }
   function installCommand(target: string, executable: string): string {
-    // Run by hand in the person's own terminal, so an installed copy names its own manager even
-    // when the app cannot find it.
-    const path = snapshot.value?.executables[executable]
-    const manager = path ? companionPackageManager(path) : managerFor(executable)
-    return globalInstallCommand(target, manager, {
+    // Run by hand in the person's own terminal, which may find a manager the app cannot.
+    return globalInstallCommand(target, managerFor(executable), {
       admin: needsAdmin(executable),
       windows: detectUserAgent().includes('Windows')
     })
@@ -202,7 +197,8 @@ export function createAgentDiscovery(options: {
     let installed = hasBridge() && !bridgeOutdated()
     const manager = managerFor(MCP_EXECUTABLE)
     if (!installed && !canInstallWith(manager)) {
-      error.value = 'npm'
+      // A Bun copy the app cannot update leaves only the command run by hand.
+      error.value = manager === 'npm' ? 'npm' : 'canvas-install'
       return
     }
     if (!installed && needsAdmin(MCP_EXECUTABLE)) {
@@ -233,7 +229,7 @@ export function createAgentDiscovery(options: {
     if (hasHarness() && !harnessOutdated()) return
     const manager = managerFor(HARNESS_EXECUTABLE)
     if (!canInstallWith(manager)) {
-      error.value = 'npm'
+      error.value = manager === 'npm' ? 'npm' : 'harness-install'
       return
     }
     if (needsAdmin(HARNESS_EXECUTABLE)) {

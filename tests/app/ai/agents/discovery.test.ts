@@ -300,7 +300,7 @@ describe('Harness companion setup', () => {
     expect(discovery.error.value).toBeNull()
   })
 
-  test('reports an update that left the old MCP server first on the path', async () => {
+  test('never updates a Bun copy through npm, which would leave it first on the path', async () => {
     const installBridge = mock(async () => undefined)
     const restartBridge = mock(async () => undefined)
     const discovery = createAgentDiscovery({
@@ -315,9 +315,11 @@ describe('Harness companion setup', () => {
       restartBridge
     })
     await discovery.refresh()
+    // The app cannot find Bun, but the person's terminal may; the command keeps Bun.
     expect(discovery.canvasBridgeCommand.value).toStartWith('bun add -g @open-pencil/mcp@')
+    expect(discovery.canvasBridgeInstallable.value).toBe(false)
     await discovery.setupCanvasBridge()
-    expect(installBridge).toHaveBeenCalledTimes(1)
+    expect(installBridge).not.toHaveBeenCalled()
     expect(restartBridge).not.toHaveBeenCalled()
     expect(discovery.error.value).toBe('canvas-install')
   })

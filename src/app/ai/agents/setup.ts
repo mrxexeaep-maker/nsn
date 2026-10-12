@@ -312,44 +312,26 @@ export function useAgentSetup(
   function agentSetup(providerID: string): AgentSetupState {
     const id = agentID(providerID)
     return {
-      supported: discovery.supported,
-      checked: discovery.checked.value,
+      ...mcpServerSetup(),
       scanning: discovery.scanning.value,
       detected: discovery.agents.value.find((agent) => agent.definition.id === id) ?? null,
-      bridge: discovery.canvasBridgeAvailable.value,
-      bridgeOutdated: discovery.canvasBridgeOutdated.value,
-      bridgeCommand: discovery.canvasBridgeCommand.value,
-      npm: discovery.npmAvailable.value,
-      bridgeNeedsAdmin: discovery.canvasBridgeNeedsAdmin.value,
-      bridgeInstallable: discovery.canvasBridgeInstallable.value,
       adapterNeedsAdmin: discovery.adapterNeedsAdmin.value,
-      installingAgent: discovery.installing.value === id,
-      installingBridge: discovery.installing.value === 'canvas',
-      error: discovery.error.value
+      installingAgent: discovery.installing.value === id
     }
   }
 
   function piSetup(providerID: string): PiSetupState | undefined {
     if (providerID !== 'harness:pi') return undefined
     return {
-      supported: discovery.supported,
-      checked: discovery.checked.value,
+      ...mcpServerSetup(),
       scanning: discovery.scanning.value || readingPi.value,
       companion: discovery.harnessAvailable.value,
       companionOutdated: discovery.harnessOutdated.value,
       companionCommand: discovery.harnessCommand.value,
       companionNeedsAdmin: discovery.harnessNeedsAdmin.value,
       companionInstallable: discovery.harnessInstallable.value,
-      bridge: discovery.canvasBridgeAvailable.value,
-      bridgeOutdated: discovery.canvasBridgeOutdated.value,
-      bridgeCommand: discovery.canvasBridgeCommand.value,
-      npm: discovery.npmAvailable.value,
-      bridgeNeedsAdmin: discovery.canvasBridgeNeedsAdmin.value,
-      bridgeInstallable: discovery.canvasBridgeInstallable.value,
       installingCompanion: discovery.installing.value === 'harness',
-      installingBridge: discovery.installing.value === 'canvas',
-      defaultModel: piDefaultModel.value,
-      error: discovery.error.value
+      defaultModel: piDefaultModel.value
     }
   }
 
