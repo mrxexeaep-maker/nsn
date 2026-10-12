@@ -11,6 +11,7 @@ import {
   type Chapter,
   type ChapterContext
 } from './chapter'
+import { CHAPTERS } from './names'
 
 const TIP_COMPONENT_GAP = 96
 
@@ -83,15 +84,13 @@ function way({ vars }: Theme, { icon, title, body }: (typeof WAYS)[number]): Tre
 export async function createYoursChapter(context: ChapterContext): Promise<Chapter> {
   const { graph, theme } = context
   const chapter = await layoutChapter(context, {
-    index: 8,
-    name: 'Yours',
+    chapter: CHAPTERS.yours,
     heading: {
       title: 'Now make it yours.',
       subtitle:
         'The tour ends here. The document does not: everything in it is yours to edit, and it works with what you already have.'
     },
     subject: Frame({
-      name: 'Ways',
       flex: 'col',
       w: 640,
       h: 'hug',

@@ -2,13 +2,13 @@ import { Instance } from '@open-pencil/design-jsx'
 
 import { panelTabs } from '../chrome'
 import { layoutChapter, type Chapter, type ChapterContext } from './chapter'
+import { CHAPTERS } from './names'
 import type { Player } from './slots'
 
 /** Code: the player once more, for the Code tab to read. */
 export function createCodeChapter(context: ChapterContext, player: Player): Promise<Chapter> {
   return layoutChapter(context, {
-    index: 6,
-    name: 'Code',
+    chapter: CHAPTERS.code,
     heading: {
       title: 'It is code, too.',
       subtitle:

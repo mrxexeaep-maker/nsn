@@ -5,6 +5,7 @@ import { previewPill } from '../chrome'
 import type { PlayerParts } from '../player/card'
 import { optionToggle, playToggle, progressSlider, skipButton } from '../player/controls'
 import { layoutChapter, type ChapterContext } from './chapter'
+import { CHAPTERS } from './names'
 
 /** The variant of the set `setId` named `name`. */
 export function variantOf(graph: SceneGraph, setId: string, name: string): string {
@@ -20,15 +21,13 @@ export function variantOf(graph: SceneGraph, setId: string, name: string): strin
 export async function createControlsChapter(context: ChapterContext): Promise<PlayerParts> {
   const { graph, theme } = context
   const { subject: board } = await layoutChapter(context, {
-    index: 3,
-    name: 'Controls',
+    chapter: CHAPTERS.controls,
     heading: {
       title: 'They work.',
       subtitle:
         'Each main component has a behaviour from the panel: a slider, two toggles, a button. In preview they run as real Reka UI controls, drawn by their own variants.'
     },
     subject: Frame({
-      name: 'Controls',
       flex: 'col',
       w: 'hug',
       h: 'hug',

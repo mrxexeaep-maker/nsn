@@ -2,6 +2,7 @@ import { Frame, Instance } from '@open-pencil/design-jsx'
 
 import { variablesRow } from '../chrome'
 import { layoutChapter, type Chapter, type ChapterContext } from './chapter'
+import { CHAPTERS } from './names'
 import type { Player } from './slots'
 
 /** Modes: the same player twice, each frame reading the Theme collection in its own mode. */
@@ -22,15 +23,13 @@ export async function createModesChapter(
       children: [Instance({ of: player.id })]
     })
   const chapter = await layoutChapter(context, {
-    index: 4,
-    name: 'Modes',
+    chapter: CHAPTERS.modes,
     heading: {
       title: 'It has modes.',
       subtitle:
         'Every color and radius in the player is a variable from one Theme collection. Each frame reads it in its own mode; nothing else differs. The rest of the tour follows the app’s theme the same way.'
     },
     subject: Frame({
-      name: 'Modes',
       flex: 'row',
       w: 'hug',
       h: 'hug',
