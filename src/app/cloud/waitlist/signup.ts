@@ -47,6 +47,8 @@ export function useWaitlistSignup(turnstileContainer: Readonly<Ref<HTMLElement |
   const status = ref<WaitlistStatus>('idle')
   const submitting = computed(() => status.value === 'submitting')
   const turnstile = useTurnstile(turnstileContainer)
+  /** A sign-up waits on the visitor to tick Turnstile's check, which the form says rather than spin. */
+  const confirming = computed(() => submitting.value && turnstile.state.value === 'asking')
 
   /** Editing after a refused attempt clears the complaint until the next one. */
   function edit(): void {
@@ -70,5 +72,5 @@ export function useWaitlistSignup(turnstileContainer: Readonly<Ref<HTMLElement |
     turnstile.spend()
   }
 
-  return { email, status, submitting, edit, submit }
+  return { email, status, submitting, confirming, edit, submit }
 }

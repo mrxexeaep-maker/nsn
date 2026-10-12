@@ -21,6 +21,7 @@
   "waitlistEmail": "Адрес электронной почты",
   "waitlistPlaceholder": "you@example.com",
   "waitlistJoin": "Записаться в лист ожидания",
+  "waitlistConfirmHuman": "Подтвердите, что вы человек",
   "waitlistInvalid": "Введите корректный адрес электронной почты.",
   "waitlistJoined": "Проверьте почту",
   "waitlistJoinedDetail": "Откройте ссылку из письма, чтобы подтвердить адрес. Мы пишем только об OpenPencil Cloud.",

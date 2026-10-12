@@ -24,6 +24,7 @@ export const storageMessageDefaults = {
   waitlistEmail: 'Email address',
   waitlistPlaceholder: 'you@example.com',
   waitlistJoin: 'Join the waitlist',
+  waitlistConfirmHuman: 'Confirm you’re human',
   waitlistInvalid: 'Enter a valid email address.',
   waitlistJoined: 'Check your inbox',
   waitlistJoinedDetail:

@@ -17,20 +17,28 @@ interface TurnstileOptions {
   theme: 'auto' | 'light' | 'dark'
   callback(token: string): void
   'expired-callback'(): void
+  /** Called before Turnstile shows a check the visitor must click. */
+  'before-interactive-callback'(): void
+  /** Called once that check is done. */
+  'after-interactive-callback'(): void
   /** Returning true tells Turnstile the error is handled, so it does not throw. */
   'error-callback'(): boolean
 }
 
 const TURNSTILE_SCRIPT = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
 
-export type TurnstileState = 'waiting' | 'ready' | 'unavailable'
+/**
+ * `waiting` until Turnstile issues a token, `asking` while it shows a check the visitor must
+ * click, `ready` with a token, and `unavailable` where it cannot run.
+ */
+export type TurnstileState = 'waiting' | 'asking' | 'ready' | 'unavailable'
 
 /**
  * Cloudflare Turnstile for a waitlist form, rendered in `container`. The script loads once the
  * form comes into view, or when it is submitted before that, so pages that never show it never
- * fetch it. The widget stays invisible unless Turnstile needs the visitor to click, and is
- * scrolled into view when it does. It works only on the sites the feedback service accepts;
- * anywhere else, such as a local dev server, it reports `unavailable`.
+ * fetch it. The widget stays invisible unless Turnstile needs the visitor to click; a sign-up
+ * waiting on that click scrolls it into view. It works only on the sites the feedback service
+ * accepts; anywhere else, such as a local dev server, it reports `unavailable`.
  */
 export function useTurnstile(container: Readonly<Ref<HTMLElement | null>>) {
   const state = ref<TurnstileState>('waiting')
@@ -49,6 +57,13 @@ export function useTurnstile(container: Readonly<Ref<HTMLElement | null>>) {
   function unavailable(): void {
     state.value = 'unavailable'
     settle(null)
+  }
+
+  /** Brings the widget into view when a sign-up waits on its check, and only then. */
+  function reveal(): void {
+    if (waiting.length > 0 && state.value === 'asking') {
+      container.value?.scrollIntoView({ block: 'nearest' })
+    }
   }
 
   function render(): void {
@@ -72,6 +87,13 @@ export function useTurnstile(container: Readonly<Ref<HTMLElement | null>>) {
       },
       'expired-callback'() {
         token.value = null
+        state.value = 'waiting'
+      },
+      'before-interactive-callback'() {
+        state.value = 'asking'
+      },
+      'after-interactive-callback'() {
+        if (state.value === 'asking') state.value = 'waiting'
       },
       'error-callback'() {
         unavailable()
@@ -97,13 +119,8 @@ export function useTurnstile(container: Readonly<Ref<HTMLElement | null>>) {
     if (entries.some((entry) => entry.isIntersecting)) start()
   })
 
-  // The widget takes room only to ask for a click, and grows as its check loads: bring it into
-  // view then, so a check below the visible part of the page is not missed.
-  useResizeObserver(container, (entries) => {
-    if (entries.some((entry) => entry.contentRect.height > 0)) {
-      container.value?.scrollIntoView({ block: 'nearest' })
-    }
-  })
+  // The check grows as it loads, so it is revealed on every size change rather than once.
+  useResizeObserver(container, reveal)
 
   /**
    * A token for one sign-up: the one held, or the next Turnstile issues; null if it cannot. A
@@ -113,14 +130,17 @@ export function useTurnstile(container: Readonly<Ref<HTMLElement | null>>) {
     if (token.value) return Promise.resolve(token.value)
     if (state.value === 'unavailable') return Promise.resolve(null)
     start()
-    return new Promise((resolve) => {
+    const next = new Promise<string | null>((resolve) => {
       waiting.push(resolve)
     })
+    reveal()
+    return next
   }
 
   /** A token works once: after a sign-up sends it, the widget fetches the next. */
   function spend(): void {
     token.value = null
+    if (state.value === 'ready') state.value = 'waiting'
     if (widget !== undefined) window.turnstile?.reset(widget)
   }
 
