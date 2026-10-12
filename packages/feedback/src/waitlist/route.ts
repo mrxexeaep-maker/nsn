@@ -48,7 +48,7 @@ export function waitlistRoutes(services: FeedbackServices) {
           const human = await verifyTurnstile(services.fetch, {
             secret: c.env.TURNSTILE_SECRET,
             token: signup.turnstileToken,
-            hostname: c.env.TURNSTILE_HOSTNAME,
+            hostnames: c.env.TURNSTILE_HOSTNAMES.split(',').map((hostname) => hostname.trim()),
             action: WAITLIST_TURNSTILE_ACTION
           })
           if (!human) return c.body(null, 403)

@@ -121,6 +121,12 @@ describe('waitlist', () => {
     expect(await rows()).toEqual([])
   })
 
+  test('accepts a Turnstile pass issued on the web app', async () => {
+    turnstile({ success: true, hostname: 'app.openpencil.dev', action: 'waitlist' })
+
+    expect((await service.postJSON('/waitlist', SIGNUP)).status).toBe(202)
+  })
+
   test('refuses a Turnstile pass issued for another site', async () => {
     turnstile({ success: true, hostname: 'example.com', action: 'waitlist' })
 
