@@ -14,25 +14,31 @@ export const de: LandingMessages = {
       title: 'Öffne, was du schon hast',
       detail:
         'OpenPencil liest .fig-Dateien direkt: Seiten, Komponenten, Instanzen, Variablen und Auto-Layout kommen als bearbeitbare Ebenen an, und du kannst wieder als .fig speichern. Füge SVG ein oder öffne HTML und CSS, und auch daraus werden Ebenen, angeordnet wie im Browser.',
-      hint: 'Das ist eine echte .fig-Datei. Klappe die Ebenen auf und klick dich durch.'
+      hint: 'Das ist die Tour der App selbst, eine echte .fig-Datei. Öffne ein Kapitel in den Ebenen und klick dich durch.'
     },
     design: {
       title: 'Gestalten mit echten Werkzeugen',
       detail:
-        'Auto-Layout, Constraints, Füllungen, Konturen, Effekte und Typografie, mit den Bedienelementen dort, wo du sie erwartest. Alles lässt sich rückgängig machen, und nichts wartet auf einen Server.',
-      hint: 'Wähle eine Ebene aus und ändere Füllung, Radius oder Innenabstand.'
+        'Auto-Layout, Constraints, Füllungen, Konturen, Effekte und Typografie, mit den Reglern dort, wo du sie erwartest. Komponenten haben Slots: Eine Instanz behält das Design und bringt ihren eigenen Inhalt mit. Alles lässt sich rückgängig machen, und nichts wartet auf einen Server.',
+      hint: 'Der mittlere Player bringt sein eigenes Cover über den Artwork-Slot mit. Wähle eine Ebene und ändere Füllung, Radius oder Abstand.'
     },
     interactive: {
       title: 'Komponenten, die funktionieren',
       detail:
         'Gib einer Komponente ein Verhalten, etwa Schalter, Checkbox, Schieberegler, Tabs oder Textfeld, und die Vorschau führt sie als echtes Reka-UI-Steuerelement aus. Varianten werden zu ihren Zuständen, und dieselben Komponenten lassen sich mit klickbaren Steuerelementen nach Storybook exportieren.',
-      hint: 'Diese Arbeitsfläche ist in der Vorschau: Lege den Schalter um, zieh den Regler. Verlasse die Vorschau zum Bearbeiten.'
+      hint: 'Diese Leinwand ist in der Vorschau: Drück auf Play, zieh den Fortschrittsbalken, schalte Zufallswiedergabe um. Verlasse die Vorschau zum Bearbeiten.'
     },
     tokens: {
       title: 'Variablen sind Design-Tokens',
       detail:
         'Farben, Abstände und Schrift liegen in Sammlungen mit Modi und werden als Tokens bearbeitet. Exportierter Code schreibt gebundene Werte als CSS-Custom-Properties, sodass der Code dieselben Namen verwendet wie das Design.',
-      hint: 'Ändere den Wert eines Tokens oder wechsle den Modus, und jede daran gebundene Ebene folgt.'
+      hint: 'Jeder Player liest die Theme-Sammlung in seinem eigenen Modus. Ändere den Wert eines Tokens, und beide folgen.'
+    },
+    shaders: {
+      title: 'Füllungen, die sich bewegen',
+      detail:
+        'Ein Shader ist eine Füllung wie jede andere: Wähle ihn in der Füllungsauswahl, stapel Effekte, stell ihre Regler ein oder füge ein Preset von shaders.com ein. Dateien behalten ein Standbild davon, damit sie überall öffnen, und die Vorschau spielt ihn ab.',
+      hint: 'Diese Leinwand ist in der Vorschau, deshalb bewegen sich die Shader. Verlasse die Vorschau, wähle ein Quadrat und öffne seine Füllung.'
     },
     linting: {
       title: 'Linting',

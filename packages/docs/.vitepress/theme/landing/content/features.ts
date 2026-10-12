@@ -4,6 +4,7 @@ export const FEATURE_KINDS = [
   'design',
   'interactive',
   'tokens',
+  'shaders',
   'linting',
   'ai',
   'collab',

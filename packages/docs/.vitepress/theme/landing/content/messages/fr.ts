@@ -14,25 +14,31 @@ export const fr: LandingMessages = {
       title: 'Ouvrez ce que vous avez déjà',
       detail:
         'OpenPencil lit directement les fichiers .fig : pages, composants, instances, variables et auto layout arrivent en calques modifiables, et vous pouvez réenregistrer en .fig. Collez du SVG ou ouvrez du HTML et du CSS, et ils deviennent aussi des calques, disposés comme un navigateur les dispose.',
-      hint: 'C’est un vrai fichier .fig. Dépliez les calques et explorez.'
+      hint: 'Voici la visite de l’app elle-même, un vrai fichier .fig. Ouvrez un chapitre dans les calques et explorez.'
     },
     design: {
       title: 'Concevez avec de vrais outils',
       detail:
-        'Auto-layout, contraintes, remplissages, contours, effets et typographie, avec les commandes là où vous les attendez. Tout est annulable, et rien n’attend un serveur.',
-      hint: 'Sélectionnez un calque et modifiez son remplissage, son rayon ou sa marge intérieure.'
+        'Auto layout, contraintes, remplissages, contours, effets et typographie, avec les réglages là où vous les attendez. Les composants ont des slots : une instance garde le design et apporte son propre contenu. Tout s’annule, et rien n’attend un serveur.',
+      hint: 'Le lecteur du milieu apporte sa propre pochette par le slot Artwork. Sélectionnez un calque et changez son remplissage, son rayon ou ses marges.'
     },
     interactive: {
       title: 'Des composants qui fonctionnent',
       detail:
         'Donnez un comportement à un composant, comme un interrupteur, une case à cocher, un curseur, des onglets ou un champ de texte, et l’aperçu l’exécute comme un vrai contrôle Reka UI. Les variantes deviennent ses états, et les mêmes composants s’exportent vers Storybook avec des contrôles cliquables.',
-      hint: 'Ce canevas est en aperçu : basculez l’interrupteur, faites glisser le curseur. Quittez l’aperçu pour modifier.'
+      hint: 'Ce canevas est en aperçu : lancez la lecture, faites glisser la barre de progression, activez la lecture aléatoire. Quittez l’aperçu pour modifier.'
     },
     tokens: {
       title: 'Les variables sont des design tokens',
       detail:
         'Couleurs, espacements et typographie vivent dans des collections avec des modes et se modifient comme des tokens. Le code exporté écrit les valeurs liées comme propriétés personnalisées CSS, si bien que le code reprend les noms du design.',
-      hint: 'Modifiez la valeur d’un token ou changez de mode, et chaque calque qui y est lié suit.'
+      hint: 'Chaque lecteur lit la collection Theme dans son propre mode. Changez la valeur d’un token et les deux suivent.'
+    },
+    shaders: {
+      title: 'Des remplissages qui bougent',
+      detail:
+        'Un shader est un remplissage comme un autre : choisissez-le dans le sélecteur de remplissage, empilez des effets, réglez leurs curseurs ou collez un preset de shaders.com. Les fichiers en gardent une image fixe, pour s’ouvrir partout, et l’aperçu le joue.',
+      hint: 'Ce canevas est en aperçu, c’est pourquoi les shaders bougent. Quittez l’aperçu, sélectionnez un carré et ouvrez son remplissage.'
     },
     linting: {
       title: 'Linting',

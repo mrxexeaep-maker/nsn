@@ -14,25 +14,31 @@ export const pl: LandingMessages = {
       title: 'Otwórz to, co już masz',
       detail:
         'OpenPencil czyta pliki .fig bezpośrednio: strony, komponenty, instancje, zmienne i auto layout trafiają jako edytowalne warstwy, a zapisać możesz znowu do .fig. Wklej SVG albo otwórz HTML i CSS, a one też stają się warstwami, ułożonymi tak, jak układa je przeglądarka.',
-      hint: 'To prawdziwy plik .fig. Rozwiń warstwy i sprawdź, co jest w środku.'
+      hint: 'To przewodnik samej aplikacji, prawdziwy plik .fig. Otwórz rozdział w warstwach i poklikaj.'
     },
     design: {
       title: 'Projektuj prawdziwymi narzędziami',
       detail:
-        'Auto-layout, ograniczenia, wypełnienia, obrysy, efekty i typografia, z kontrolkami tam, gdzie się ich spodziewasz. Wszystko można cofnąć i nic nie czeka na serwer.',
-      hint: 'Zaznacz warstwę i zmień jej wypełnienie, promień lub odstęp wewnętrzny.'
+        'Auto layout, ograniczenia, wypełnienia, obrysy, efekty i typografia, z kontrolkami tam, gdzie ich szukasz. Komponenty mają sloty: instancja zachowuje projekt i wnosi własną treść. Wszystko da się cofnąć i nic nie czeka na serwer.',
+      hint: 'Środkowy odtwarzacz wnosi własną okładkę przez slot Artwork. Zaznacz warstwę i zmień jej wypełnienie, promień lub odstępy.'
     },
     interactive: {
       title: 'Komponenty, które działają',
       detail:
         'Nadaj komponentowi zachowanie, na przykład przełącznika, pola wyboru, suwaka, kart lub pola tekstowego, a podgląd uruchomi go jako prawdziwą kontrolkę Reka UI. Warianty stają się jego stanami, a te same komponenty eksportują się do Storybooka z klikalnymi kontrolkami.',
-      hint: 'Ten obszar roboczy jest w podglądzie: przełącz przełącznik, przesuń suwak. Wyjdź z podglądu, aby edytować.'
+      hint: 'To płótno jest w podglądzie: naciśnij play, przeciągnij pasek postępu, włącz losowanie. Wyjdź z podglądu, by edytować.'
     },
     tokens: {
       title: 'Zmienne to tokeny projektowe',
       detail:
         'Kolory, odstępy i typografia żyją w kolekcjach z trybami i edytuje się je jako tokeny. Wyeksportowany kod zapisuje powiązane wartości jako niestandardowe właściwości CSS, więc kod używa tych samych nazw co projekt.',
-      hint: 'Zmień wartość tokenu albo tryb, a każda powiązana z nim warstwa podąży za zmianą.'
+      hint: 'Każdy odtwarzacz czyta kolekcję Theme we własnym trybie. Zmień wartość tokena, a oba podążą.'
+    },
+    shaders: {
+      title: 'Wypełnienia, które się ruszają',
+      detail:
+        'Shader to wypełnienie jak każde inne: wybierz go w selektorze wypełnień, nakładaj efekty, ustawiaj ich suwaki albo wklej preset z shaders.com. Pliki zachowują jego nieruchomą klatkę, więc otwierają się wszędzie, a podgląd go odtwarza.',
+      hint: 'To płótno jest w podglądzie, dlatego shadery się ruszają. Wyjdź z podglądu, zaznacz kwadrat i otwórz jego wypełnienie.'
     },
     linting: {
       title: 'Linting',

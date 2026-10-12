@@ -1,12 +1,16 @@
-// The app's own demo, prebuilt from `tools/generate/demo`; the docs config ensures it exists.
+// The app's tour, prebuilt from `tools/generate/demo`; the docs config ensures it exists.
 import demoFigURL from '#app-public/demo.fig?url'
 import dedent from 'dedent'
 
 import { renderJSX } from '@open-pencil/core/design-jsx'
 import { computeAllLayouts } from '@open-pencil/core/layout'
+import { CHAPTERS, sectionName, type TourChapter } from '@open-pencil/demo-tools/chapters'
+import type { SceneNode } from '@open-pencil/scene-graph'
 
+import { followAppTheme } from '@/app/demo/theme'
 import type { EditorStore } from '@/app/editor/active-store'
 import { loadFont } from '@/app/editor/fonts'
+import { resolvedAppTheme } from '@/app/shell/theme'
 
 const GUARANTEES = [
   { title: 'Opens .fig', detail: 'Bring your Figma files with you.' },
@@ -25,7 +29,7 @@ export const GUARANTEES_JSX = [
   '</Frame>'
 ].join('\n')
 
-function pricingJSX(extra = ''): string {
+function pricingJSX(): string {
   return dedent`
     <Frame name="Pricing" w={720} h="hug" flex="col" gap={28} p={40} bg="#FFFFFF" rounded={24}>
       <Frame name="Header" w="fill" h="hug" flex="col" gap={10}>
@@ -57,7 +61,6 @@ function pricingJSX(extra = ''): string {
           </Frame>
         </Frame>
       </Frame>
-      ${extra}
     </Frame>
   `
 }
@@ -78,31 +81,112 @@ async function loadInter(): Promise<void> {
   await Promise.all(INTER_STYLES.map((style) => loadFont('Inter', style)))
 }
 
-async function openFig(store: EditorStore, url: string, name: string): Promise<void> {
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`${name} is unavailable (${response.status})`)
-  await store.openFigFile(new File([await response.blob()], name))
+/** One download of the tour for every stage that shows a chapter of it. */
+let tourBytes: Promise<ArrayBuffer> | null = null
+
+function fetchTour(): Promise<ArrayBuffer> {
+  tourBytes ??= fetch(demoFigURL).then((response) => {
+    if (!response.ok) throw new Error(`The tour is unavailable (${response.status})`)
+    return response.arrayBuffer()
+  })
+  // A failed download is tried again by the next stage rather than shared.
+  tourBytes.catch(() => {
+    tourBytes = null
+  })
+  return tourBytes
 }
 
-/** Opens the app's demo and frames one of its sections, as the app's demo route would show it. */
-async function demoSection(store: EditorStore, section: string): Promise<void> {
-  await openFig(store, demoFigURL, 'Demo.fig')
-  const id = findByName(store, section)
-  const node = id ? store.graph.getNode(id) : undefined
-  if (!node) {
-    store.zoomToFit()
-    return
-  }
+/** Opens the tour like any `.fig` file, in the theme the docs site shows, as `/demo` does. */
+async function openTour(store: EditorStore): Promise<void> {
+  // A File copies the bytes, so every stage decodes its own.
+  await store.openFigFile(new File([await fetchTour()], 'Demo.fig'))
+  followAppTheme(store, resolvedAppTheme)
+}
+
+function chapterSection(store: EditorStore, chapter: TourChapter): SceneNode {
+  const name = sectionName(chapter)
+  const section = store.graph
+    .getChildren(store.state.currentPageId)
+    .find((node) => node.name === name)
+  if (!section) throw new Error(`The tour has no "${name}" chapter`)
+  return section
+}
+
+/** The layer a chapter is about, by the name the tour gives it. */
+function chapterSubject(store: EditorStore, chapter: TourChapter): SceneNode {
+  const section = chapterSection(store, chapter)
+  const subject = store.graph.getChildren(section.id).find((node) => node.name === chapter.subject)
+  if (!subject) throw new Error(`"${section.name}" has no "${chapter.subject}"`)
+  return subject
+}
+
+/** Room around a framed layer, and above it for the preview's workspace pill. */
+const FRAME_MARGIN = 24
+const PREVIEW_PILL_INSET = 56
+/** Small subjects are enlarged to fill the canvas, up to this zoom. */
+const MAX_FRAME_ZOOM = 2
+
+/**
+ * Fill the canvas with `node`, past the 100% that fitting stops at, so the rest of the tour,
+ * its prose and its tip cards, stays out of view; the landing says those things itself.
+ */
+function frameNode(store: EditorStore, node: SceneNode, preview = false): void {
   const { x, y } = store.graph.getAbsolutePosition(node.id)
-  store.zoomToBounds(x, y, x + node.width, y + node.height)
+  const { width, height } = store.getViewportSize()
+  const inset = preview ? PREVIEW_PILL_INSET : 0
+  const zoom = Math.min(
+    (width - FRAME_MARGIN * 2) / node.width,
+    (height - FRAME_MARGIN * 2 - inset) / node.height,
+    MAX_FRAME_ZOOM
+  )
+  store.centerOn(x + node.width / 2, y + node.height / 2 - inset / 2 / zoom, zoom)
 }
 
-/** Opens the app's demo on one of its pages, the way any `.fig` file opens. */
-async function demoPage(store: EditorStore, pageName: string): Promise<void> {
-  await openFig(store, demoFigURL, 'Demo.fig')
-  const page = store.graph.getPages().find((candidate) => candidate.name === pageName)
-  if (page) await store.switchPage(page.id)
-  store.zoomToFit()
+/**
+ * Leave the stage only what it shows. The chapter's heading and tip card beside `subject` are
+ * hidden: the landing says those things in its own words and language. Other stages drop the
+ * Lint chapter, whose planted error would otherwise put a marker at their canvas edge; it holds
+ * no component the rest of the tour uses. Like the tour's theme, neither is an edit, so the
+ * stage opens with nothing to undo or save.
+ */
+function isolateChapter(store: EditorStore, tourChapter: TourChapter, subject: SceneNode): void {
+  const { graph } = store
+  const around = subject.parentId
+    ? graph.getChildren(subject.parentId).filter((node) => node.id !== subject.id)
+    : []
+  const lint = tourChapter === CHAPTERS.lint ? null : chapterSection(store, CHAPTERS.lint)
+  graph.applyImportedStateDuring(() => {
+    for (const node of around) graph.updateNode(node.id, { visible: false })
+    if (lint) graph.deleteNode(lint.id)
+  })
+}
+
+/** Opens the tour on one chapter's subject, with nothing else in view. */
+async function chapter(
+  store: EditorStore,
+  tourChapter: TourChapter,
+  options: { preview?: boolean; select?: (subject: SceneNode) => string | undefined } = {}
+): Promise<void> {
+  await openTour(store)
+  const subject = chapterSubject(store, tourChapter)
+  isolateChapter(store, tourChapter, subject)
+  frameNode(store, subject, options.preview)
+  const selected = options.select?.(subject)
+  if (selected) store.select([selected])
+  if (options.preview) store.startPlay()
+}
+
+/** The first layer under `node` with `name`, searching breadth first. */
+function descendant(store: EditorStore, node: SceneNode, name: string): string | undefined {
+  const pending = [...node.childIds]
+  while (pending.length > 0) {
+    const id = pending.shift()
+    const current = id ? store.graph.getNode(id) : undefined
+    if (!current) continue
+    if (current.name === name) return current.id
+    pending.push(...current.childIds)
+  }
+  return undefined
 }
 
 export function findByName(store: EditorStore, name: string): string | null {
@@ -116,9 +200,6 @@ export function findByName(store: EditorStore, name: string): string | null {
   }
   return null
 }
-
-/** How deep the Figma block's layers open: the page's frame, its sections, and their cards. */
-const FIGMA_LAYER_DEPTH = 2
 
 /**
  * Opens the layer tree down to `depth`, where 0 is the page's top-level layers. The tree opens
@@ -134,14 +215,16 @@ function revealLayers(store: EditorStore, depth: number): void {
   store.clearSelection()
 }
 
+/** The whole tour in the layer tree, its chapters open, and the first one on the canvas. */
 async function figma(store: EditorStore): Promise<void> {
-  await demoPage(store, '03 · Paint & effects')
-  revealLayers(store, FIGMA_LAYER_DEPTH)
+  await openTour(store)
+  frameNode(store, chapterSection(store, CHAPTERS.hello))
+  revealLayers(store, 1)
 }
 
-async function pricing(store: EditorStore, extra = ''): Promise<void> {
+async function pricing(store: EditorStore): Promise<void> {
   await loadInter()
-  await renderJSX(store.graph, pricingJSX(extra), {
+  await renderJSX(store.graph, pricingJSX(), {
     parentId: store.state.currentPageId,
     x: 0,
     y: 0
@@ -156,60 +239,27 @@ async function pricingWithSelection(store: EditorStore): Promise<void> {
   if (plan) store.select([plan])
 }
 
-/**
- * Problems the recommended lint preset reports, planted in a footer: low contrast, text too
- * small to read, a default layer name, a hidden layer, an empty frame, a fractional size, and
- * a group where a frame belongs.
- */
-const LINT_FOOTER = dedent`
-  <Frame name="Frame 12" w="fill" h="hug" flex="row" gap={12} items="center">
-    <Text name="Fine print" grow={1} size={9} color="#C9CCD6">Prices exclude VAT. Cancel anytime.</Text>
-    <Frame name="Promo" w={96.5} h={28} rounded={8} bg="#FDE68A" visible={false} />
-    <Frame name="Spacer" w={24} h={24} />
-    <Group name="Badges">
-      <Frame name="Badge" w={20} h={20} rounded={10} bg="#3B5BDB" />
-    </Group>
-  </Frame>
-`
-
-async function linting(store: EditorStore): Promise<void> {
-  await pricing(store, LINT_FOOTER)
-}
-
-/** Room around the framed card, and above it for the preview's workspace pill. */
-const CARD_MARGIN = 16
-const PREVIEW_PILL_INSET = 56
-
-/** The demo's Controls page in preview, with the Switch component's behaviour in the panel. */
-async function controls(store: EditorStore): Promise<void> {
-  await demoPage(store, '04 · Controls')
-  // Frame the card the preview runs, at a size its controls are easy to use.
-  const card = findByName(store, 'Account settings')
-  const node = card ? store.graph.getNode(card) : undefined
-  if (node) {
-    // Fill the canvas with the card, past the 100% that fitting stops at, so nothing else on
-    // the page shows around it and the pill above does not cover it.
-    const { x, y } = store.graph.getAbsolutePosition(node.id)
-    const { width, height } = store.getViewportSize()
-    const zoom = Math.min(
-      (width - CARD_MARGIN * 2) / node.width,
-      (height - CARD_MARGIN * 2 - PREVIEW_PILL_INSET) / node.height
-    )
-    const centerY = y + node.height / 2 - PREVIEW_PILL_INSET / 2 / zoom
-    store.centerOn(x + node.width / 2, centerY, zoom)
-  }
-  const toggle = findByName(store, 'Switch')
-  if (toggle) store.select([toggle])
-  store.startPlay()
-}
-
 export type SceneBuilder = (store: EditorStore) => Promise<void>
 
 export const SCENES = {
   figma,
-  controls,
-  tokens: (store) => demoSection(store, 'Components'),
-  linting,
+  // The middle player brings its own cover through the artwork slot, which the panel shows.
+  slots: (store) => chapter(store, CHAPTERS.slots, { select: (players) => players.childIds[1] }),
+  // The hero in preview: its background moves and the player is a working control.
+  hero: (store) =>
+    chapter(store, CHAPTERS.hello, {
+      preview: true,
+      select: (s) => descendant(store, s, 'Player')
+    }),
+  modes: (store) => chapter(store, CHAPTERS.modes),
+  shaders: (store) =>
+    chapter(store, CHAPTERS.shaders, {
+      preview: true,
+      select: (s) => descendant(store, s, 'Shader')
+    }),
+  // The sign-in card selected, so the Lint tab lists its planted problems alone.
+  lint: (store) => chapter(store, CHAPTERS.lint, { select: (card) => card.id }),
+  code: (store) => chapter(store, CHAPTERS.code, { select: (s) => s.id }),
   pricing: (store) => pricing(store),
   pricingSelected: pricingWithSelection
 } satisfies Record<string, SceneBuilder>

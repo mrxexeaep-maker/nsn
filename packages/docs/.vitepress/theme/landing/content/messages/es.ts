@@ -14,25 +14,31 @@ export const es: LandingMessages = {
       title: 'Abre lo que ya tienes',
       detail:
         'OpenPencil lee archivos .fig directamente: páginas, componentes, instancias, variables y auto layout llegan como capas editables, y puedes volver a guardar en .fig. Pega SVG o abre HTML y CSS, y también se convierten en capas, dispuestas como las dispone un navegador.',
-      hint: 'Este es un archivo .fig real. Despliega las capas y explóralo.'
+      hint: 'Este es el propio tour de la app, un archivo .fig real. Abre un capítulo en las capas y explora.'
     },
     design: {
       title: 'Diseña con herramientas de verdad',
       detail:
-        'Auto-layout, restricciones, rellenos, trazos, efectos y tipografía, con los controles donde esperas encontrarlos. Todo se puede deshacer y nada espera a un servidor.',
-      hint: 'Selecciona una capa y cambia su relleno, radio o espaciado interior.'
+        'Auto layout, restricciones, rellenos, trazos, efectos y tipografía, con los controles donde los esperas. Los componentes tienen slots: una instancia conserva el diseño y aporta su propio contenido. Todo se puede deshacer y nada espera a un servidor.',
+      hint: 'El reproductor del medio trae su propia portada a través del slot Artwork. Selecciona una capa y cambia su relleno, radio o espaciado.'
     },
     interactive: {
       title: 'Componentes que funcionan',
       detail:
         'Dale a un componente un comportamiento, como un interruptor, una casilla, un deslizador, pestañas o un campo de texto, y la vista previa lo ejecuta como un control real de Reka UI. Las variantes pasan a ser sus estados, y los mismos componentes se exportan a Storybook con controles en los que se puede hacer clic.',
-      hint: 'Este lienzo está en vista previa: activa el interruptor, arrastra el deslizador. Sal de la vista previa para editar.'
+      hint: 'Este lienzo está en vista previa: pulsa play, arrastra la barra de progreso, activa el modo aleatorio. Sal de la vista previa para editar.'
     },
     tokens: {
       title: 'Las variables son tokens de diseño',
       detail:
         'Colores, espaciados y tipografía viven en colecciones con modos y se editan como tokens. El código exportado escribe los valores vinculados como propiedades personalizadas de CSS, así que el código usa los mismos nombres que el diseño.',
-      hint: 'Cambia el valor de un token o el modo, y cada capa vinculada a él lo sigue.'
+      hint: 'Cada reproductor lee la colección Theme en su propio modo. Cambia el valor de un token y ambos lo siguen.'
+    },
+    shaders: {
+      title: 'Rellenos que se mueven',
+      detail:
+        'Un shader es un relleno como cualquier otro: elígelo en el selector de relleno, apila efectos, ajusta sus controles o pega un preset de shaders.com. Los archivos guardan un fotograma fijo, así que se abren en cualquier parte, y la vista previa lo reproduce.',
+      hint: 'Este lienzo está en vista previa, por eso los shaders se mueven. Sal de la vista previa, selecciona un cuadrado y abre su relleno.'
     },
     linting: {
       title: 'Linting',

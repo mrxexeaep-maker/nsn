@@ -29,14 +29,19 @@ export interface StageDefinition {
 
 export const STAGES: Record<SingleStageKind, StageDefinition> = {
   figma: { scene: SCENES.figma, panel: LayerTree, layersHeading: true },
-  design: { scene: SCENES.pricingSelected, panel: DesignPanel, toolbar: true },
-  interactive: { scene: SCENES.controls, panel: DesignPanel, preview: true },
-  tokens: { scene: SCENES.tokens, panel: TokensPanel },
+  design: { scene: SCENES.slots, panel: DesignPanel, toolbar: true },
+  interactive: { scene: SCENES.hero, panel: DesignPanel, preview: true },
+  tokens: { scene: SCENES.modes, panel: TokensPanel },
+  shaders: { scene: SCENES.shaders, panel: DesignPanel, preview: true },
   // The Lint tab is always open: a stage's panel is always the one on screen.
-  linting: { scene: SCENES.linting, panel: DesignCheckPanel, panelProps: { active: true } },
+  linting: {
+    scene: SCENES.lint,
+    panel: DesignCheckPanel,
+    panelProps: { active: true, initialScope: 'selection' }
+  },
   ai: { scene: SCENES.pricing, panel: AiChatPanel },
   // Opens on the selection as a Vue component; the panel switches to React, HTML, or design JSX.
-  code: { scene: SCENES.pricingSelected, panel: CodePanel, panelProps: { initialSource: 'vue' } },
+  code: { scene: SCENES.code, panel: CodePanel, panelProps: { initialSource: 'vue' } },
   script: { scene: SCENES.pricing, panel: TerminalPanel },
   sdk: { scene: SCENES.pricing, panel: SdkSnippetPanel, toolbar: true }
 }

@@ -14,25 +14,31 @@ export const it: LandingMessages = {
       title: 'Apri quello che hai già',
       detail:
         'OpenPencil legge direttamente i file .fig: pagine, componenti, istanze, variabili e auto layout arrivano come livelli modificabili, e puoi salvare di nuovo in .fig. Incolla SVG o apri HTML e CSS, e diventano livelli anche loro, disposti come li dispone un browser.',
-      hint: 'Questo è un vero file .fig. Espandi i livelli ed esploralo.'
+      hint: 'Questo è il tour dell’app stessa, un vero file .fig. Apri un capitolo nei livelli ed esplora.'
     },
     design: {
       title: 'Progetta con strumenti veri',
       detail:
-        'Auto-layout, vincoli, riempimenti, tracce, effetti e tipografia, con i controlli dove te li aspetti. Tutto è annullabile e niente aspetta un server.',
-      hint: 'Seleziona un livello e cambia riempimento, raggio o spaziatura interna.'
+        'Auto layout, vincoli, riempimenti, tratti, effetti e tipografia, con i controlli dove te li aspetti. I componenti hanno slot: un’istanza mantiene il design e porta il proprio contenuto. Tutto si può annullare, e niente aspetta un server.',
+      hint: 'Il lettore al centro porta la propria copertina tramite lo slot Artwork. Seleziona un livello e cambia riempimento, raggio o spaziatura.'
     },
     interactive: {
       title: 'Componenti che funzionano',
       detail:
         'Dai a un componente un comportamento, come un interruttore, una casella, uno slider, delle schede o un campo di testo, e l’anteprima lo esegue come un vero controllo Reka UI. Le varianti diventano i suoi stati, e gli stessi componenti si esportano in Storybook con controlli cliccabili.',
-      hint: 'Questa tela è in anteprima: aziona l’interruttore, trascina lo slider. Esci dall’anteprima per modificare.'
+      hint: 'Questa tela è in anteprima: premi play, trascina la barra di avanzamento, attiva la riproduzione casuale. Esci dall’anteprima per modificare.'
     },
     tokens: {
       title: 'Le variabili sono design token',
       detail:
         'Colori, spaziature e tipografia stanno in raccolte con modalità e si modificano come token. Il codice esportato scrive i valori collegati come proprietà personalizzate CSS, così il codice usa gli stessi nomi del design.',
-      hint: 'Cambia il valore di un token o la modalità, e ogni livello collegato lo segue.'
+      hint: 'Ogni lettore legge la collezione Theme nella propria modalità. Cambia il valore di un token ed entrambi lo seguono.'
+    },
+    shaders: {
+      title: 'Riempimenti che si muovono',
+      detail:
+        'Uno shader è un riempimento come gli altri: sceglilo nel selettore di riempimento, impila effetti, regola i cursori o incolla un preset da shaders.com. I file ne conservano un fotogramma fisso, così si aprono ovunque, e l’anteprima lo riproduce.',
+      hint: 'Questa tela è in anteprima, per questo gli shader si muovono. Esci dall’anteprima, seleziona un quadrato e apri il suo riempimento.'
     },
     linting: {
       title: 'Linting',

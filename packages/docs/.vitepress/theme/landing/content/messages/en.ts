@@ -14,25 +14,31 @@ export const en: LandingMessages = {
       title: 'Open what you already have',
       detail:
         'OpenPencil reads .fig files directly: pages, components, instances, variables, and auto layout arrive as editable layers, and you can save back to .fig. Paste SVG or open HTML and CSS, and they become layers too, laid out as a browser lays them out.',
-      hint: 'This is a real .fig file. Expand the layers and click around.'
+      hint: 'This is the app’s own tour, a real .fig file. Open a chapter in the layers and click around.'
     },
     design: {
       title: 'Design with real tools',
       detail:
-        'Auto layout, constraints, fills, strokes, effects, and typography, with the controls where you expect them. Everything is undoable, and nothing waits on a server.',
-      hint: 'Select a layer and change its fill, radius, or padding.'
+        'Auto layout, constraints, fills, strokes, effects, and typography, with the controls where you expect them. Components take slots, so an instance keeps the design and brings its own content. Everything is undoable, and nothing waits on a server.',
+      hint: 'The middle player brings its own cover through the Artwork slot. Select a layer and change its fill, radius, or padding.'
     },
     interactive: {
       title: 'Components that work',
       detail:
         'Give a component a behaviour, such as a switch, checkbox, slider, tabs, or text field, and preview runs it as a real Reka UI control. Variants become its states, and the same components export to Storybook with controls you can click.',
-      hint: 'This canvas is in preview: flip the switch, drag the slider. Leave preview to edit.'
+      hint: 'This canvas is in preview: press play, drag the progress bar, toggle shuffle. Leave preview to edit.'
     },
     tokens: {
       title: 'Variables are design tokens',
       detail:
         'Colours, spacing, and type live in collections with modes and are edited as tokens. Exported code writes bound values as CSS custom properties, so the code uses the same names as the design.',
-      hint: 'Change a token’s value or switch a mode, and every layer bound to it follows.'
+      hint: 'Each player reads the Theme collection in its own mode. Change a token’s value and both follow.'
+    },
+    shaders: {
+      title: 'Fills that move',
+      detail:
+        'A shader is a fill like any other: pick one in the fill picker, stack effects, tune their sliders, or paste a preset from shaders.com. Files keep a still of it, so they open anywhere, and preview plays it.',
+      hint: 'This canvas is in preview, so the shaders move. Leave preview, select a square, and open its fill.'
     },
     linting: {
       title: 'Linting',
