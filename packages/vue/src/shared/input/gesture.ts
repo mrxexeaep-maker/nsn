@@ -4,6 +4,7 @@ import type { Ref } from 'vue'
 import type { Editor } from '@open-pencil/core/editor'
 
 import { createRafScheduler } from '#vue/shared/input/raf-scheduler'
+import { PINCH_SCALE_EXPONENT } from '#vue/shared/input/wheel'
 
 export function setupSafariGestureZoom(canvasRef: Ref<HTMLCanvasElement | null>, editor: Editor) {
   let gestureStartZoom = 1
@@ -14,7 +15,7 @@ export function setupSafariGestureZoom(canvasRef: Ref<HTMLCanvasElement | null>,
     editor.setHoveredNode(null)
     const { scale, sx, sy } = pendingGesture
     pendingGesture = null
-    editor.setZoomAroundPoint(gestureStartZoom * scale, sx, sy)
+    editor.setZoomAroundPoint(gestureStartZoom * scale ** PINCH_SCALE_EXPONENT, sx, sy)
   }
 
   const gestureScheduler = createRafScheduler(flushGesture)
