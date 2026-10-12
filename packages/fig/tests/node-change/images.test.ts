@@ -72,6 +72,13 @@ describe('nameImagesForFigma', () => {
 })
 
 describe('figImageEntries', () => {
+  test('names an image no record references by its SHA-1 too', () => {
+    const images = new Map([[STILL_NAME, STILL]])
+    expect(figImageEntries(images, new Map())).toEqual([
+      { name: `images/${FIGMA_NAME}`, data: STILL }
+    ])
+  })
+
   test('writes each image once under its new name', () => {
     const other = 'bb'.repeat(20)
     const images = new Map([

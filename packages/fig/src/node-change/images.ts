@@ -109,14 +109,15 @@ export function nameImagesForFigma(
 }
 
 /**
- * `images` as a `.fig` archive stores them: each under the name `names` gave it, or its own, and
- * each name once, so images that were stored twice under different names are written once.
+ * `images` as a `.fig` archive stores them: each under the name `names` gave it, or the SHA-1 of
+ * its bytes when no record references it, and each name once, so images that were stored twice
+ * under different names are written once.
  */
 export function figImageEntries(
   images: ReadonlyMap<string, Uint8Array>,
   names: ReadonlyMap<string, string>
 ): Array<{ name: string; data: Uint8Array }> {
   const entries = new Map<string, Uint8Array>()
-  for (const [name, data] of images) entries.set(names.get(name) ?? name, data)
+  for (const [name, data] of images) entries.set(names.get(name) ?? computeImageHash(data), data)
   return [...entries].map(([name, data]) => ({ name: `images/${name}`, data }))
 }
