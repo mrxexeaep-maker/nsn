@@ -435,11 +435,17 @@ function serializeVariableBindings(
   )
   if (entries.length > 0) {
     nc.variableConsumptionMap = { entries }
+    const bindings = mergeVariableConsumptionMaps(effectiveFigmaRawNodeFields(node), {
+      parameterConsumptionMap: { entries }
+    })
+    // Component property references were written to the record before its bindings; a
+    // record carries both in one map, so the bindings join them rather than replace them.
+    const references = nc.parameterConsumptionMap
     Object.assign(
       nc,
-      mergeVariableConsumptionMaps(effectiveFigmaRawNodeFields(node), {
-        parameterConsumptionMap: { entries }
-      })
+      references
+        ? mergeVariableConsumptionMaps(bindings, { parameterConsumptionMap: references })
+        : bindings
     )
   }
 }

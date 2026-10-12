@@ -9,7 +9,7 @@ import {
   useCanvasSurfaceLifecycle
 } from '#vue/canvas/surface/lifecycle'
 import { createCanvasHitTests, createRulerVisibility } from '#vue/canvas/surface/overlays'
-import { useShaderPlayback } from '#vue/canvas/surface/shader-playback'
+import { useShaderPlayback } from '#vue/canvas/surface/shader/playback'
 import type { UseCanvasOptions } from '#vue/canvas/surface/types'
 
 export type { UseCanvasOptions } from '#vue/canvas/surface/types'

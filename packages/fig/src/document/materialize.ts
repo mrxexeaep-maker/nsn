@@ -287,8 +287,8 @@ function materializeReader(
     options.onUnresolvedBinding(diagnostic)
   }
   const pages = reader.pages.map((page) => reader.readPage(page.id, options))
-  const plan = reader.planComponents(pages, options)
   const state = previous ?? createAssemblyState(reader, options)
+  const plan = reader.planComponents(pages, options, (id) => state.components.has(id))
   return state.graph.applyImportedStateDuring(
     () => materializeReaderInto(pages, plan, blobs, state, previous !== undefined),
     () => `0:${state.nextImportedId++}`

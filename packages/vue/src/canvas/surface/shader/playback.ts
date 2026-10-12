@@ -7,7 +7,8 @@ import type { Editor, EditorState } from '@open-pencil/core/editor'
 import { readShaderPaints, shaderOfPaint, type ShaderPreset } from '@open-pencil/scene-graph'
 import type { Rect } from '@open-pencil/scene-graph/primitives'
 
-import { canDrawShaders } from '#vue/canvas/surface/shader-rasterizer'
+import { shaderFrames } from '#vue/canvas/surface/shader/frames'
+import { canDrawShaders } from '#vue/canvas/surface/shader/rasterizer'
 
 /** The longest side a playing shader is drawn at, however large it is on screen. */
 const MAX_PLAY_EDGE = 1024
@@ -83,6 +84,7 @@ export function useShaderPlayback(options: {
   markDirty: () => void
 }) {
   const { editor, getRenderer, getView, getViewport, markDirty } = options
+  const frames = shaderFrames(editor)
   const players = new Map<string, Player>()
   /** Shaders that failed to start, by the preset that failed, which are not tried again. */
   const failed = new Map<string, string>()
@@ -246,6 +248,8 @@ export function useShaderPlayback(options: {
       player.drawnAt = now
       await player.renderer?.renderFrame({ deltaSeconds: delta, waitForGpu: false })
       if (player.disposed) continue
+      // Preview's islands draw their shader layers from this frame, in this same task.
+      frames.publish(hash, player.canvas)
       if (!copyFrames && uploads(renderer, hash, player)) drew = true
       else {
         copyFrames = true

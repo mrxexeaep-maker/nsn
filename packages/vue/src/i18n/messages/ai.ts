@@ -219,6 +219,10 @@ export const aiMessageDefaults = {
   aiSetupWelcomeAITitle: 'Design with AI',
   aiSetupWelcomeAIDescription:
     'Connect the AI you already use to edit the canvas and review designs. You can change it later in Settings.',
+  aiSetupWelcomeTourTitle: 'Take the tour',
+  aiSetupWelcomeTourDescription:
+    'A short file that walks through components and slots, working controls, modes, shaders, code, and lint, with a card on each that says what to try.',
+  aiSetupTakeTour: 'Open the tour',
   aiSetupStart: 'Set up AI',
   aiSetupSkip: 'Start designing',
   aiSetupProgress: params('Step {current} of {total}'),
