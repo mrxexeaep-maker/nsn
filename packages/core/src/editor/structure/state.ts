@@ -11,9 +11,11 @@ export function createStructureStateActions(ctx: EditorContext) {
   /** Shows or hides a layer; one a boolean property drives sets the property, as in Figma. */
   function setNodeVisibility(id: string, visible: boolean) {
     const node = ctx.graph.getNode(id)
-    if (!node || node.visible === visible) return
+    if (!node) return
     const owner = findInstanceAncestor(ctx.graph, id)
+    // The property takes the value even where the layer already shows it, so the two agree.
     if (owner && bindsVisibility(node) && applyBoundVisibilityEdit(ctx, id, visible)) return
+    if (node.visible === visible) return
     if (owner) setInstanceOverride(owner.instanceOverrides, owner.id, id, 'visible', true)
     ctx.graph.updateNode(id, { visible })
     if (node.parentId) ctx.runLayoutForNode(node.parentId)

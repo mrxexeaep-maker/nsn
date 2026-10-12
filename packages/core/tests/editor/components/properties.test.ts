@@ -68,6 +68,13 @@ describe('component property actions', () => {
     expect(childByName(editor, instance.id, 'Badge')?.visible).toBe(true)
     expect(childByName(editor, instance.id, 'Dot')?.visible).toBe(true)
 
+    // A layer showing what its property does not still sets the property when shown again.
+    editor.updateNodeWithUndo(badge.id, { visible: false }, 'Hide')
+    editor.updateNode(badge.id, { visible: true })
+    editor.updateNodeWithUndo(badge.id, { visible: true }, 'Show')
+    expect(editor.graph.getNode(instance.id)?.componentPropertyAssignments['10:2']).toBe('true')
+    expect(childByName(editor, instance.id, 'Dot')?.visible).toBe(true)
+
     // Layers the property drives together, selected together, set it once.
     const dot = childByName(editor, instance.id, 'Dot')
     editor.select([badge.id, dot?.id ?? ''])

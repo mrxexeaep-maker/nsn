@@ -60,8 +60,9 @@ export function createNodeActions(ctx: EditorContext) {
     const node = ctx.graph.getNode(id)
     if (!node) return
     // A layer a boolean property shows or hides sets the property too, in the same undo step.
+    // It takes the value even where the layer already shows it, so the two agree.
     const visible = changes.visible
-    if (visible !== undefined && visible !== node.visible && bindsVisibility(node)) {
+    if (visible !== undefined && bindsVisibility(node)) {
       ctx.undo.runBatch(label, () => {
         recordNodeUpdate(node, changes, label)
         applyBoundVisibilityEdit(ctx, id, visible)
