@@ -58,6 +58,7 @@ export function prepareFollowedFieldEdit(
     | 'mask-type'
     | 'vector-data'
     | 'handle-mirroring'
+    | 'stack-counter-align-content'
 ): void {
   if (!node.parentId) return
   const scope = slotScope(scene, node.parentId)

@@ -100,7 +100,10 @@ export function installLayoutNodeProxyAccessors(
     layoutWrap: mappedAccessor(internals, 'layoutWrap'),
     primaryAxisSizingMode: axisSizingModeAccessor(internals, 'primaryAxisSizing'),
     counterAxisSizingMode: axisSizingModeAccessor(internals, 'counterAxisSizing'),
-    counterAxisAlignContent: mappedAccessor(internals, 'counterAxisAlignContent'),
+    counterAxisAlignContent: {
+      get(this: ProxyThis): SceneNode['counterAxisAlignContent'] {
+        return raw(this, internals).counterAxisAlignContent
+      },
       set(this: ProxyThis, value: SceneNode['counterAxisAlignContent']) {
         prepareFollowedFieldEdit(
           graph(this, internals),
