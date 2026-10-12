@@ -59,6 +59,12 @@ export function prepareGraphTransfer(input: GraphTransferInput) {
       propertyTypes.set(definition.id, definition.type)
       if (!properties.has(definition.id)) properties.set(definition.id, allocate())
     }
+  // Layers name a style by the style's own ID, which a transferred style keeps.
+  const styles = new Map(
+    ordered.flatMap((node) =>
+      node.sharedStyleType !== null && node.source.id ? [[node.source.id, node.source.id]] : []
+    )
+  )
   const references = {
     nodes,
     variables,
@@ -66,7 +72,7 @@ export function prepareGraphTransfer(input: GraphTransferInput) {
     modes,
     properties,
     propertyTypes,
-    styles: nodes
+    styles
   }
   const resources = prepareVariableTransfer(
     [...source.variables.values()],

@@ -393,27 +393,15 @@ function materializeReaderInto(
   for (const page of pages) populateInstances(page)
   for (const instanceId of resync) graph.syncInstance(instanceId)
   if (resync.size > 0) restoreDerivedSizes(graph, derivedSizes)
+  // Layers and ranges name their styles by the styles' own IDs, which the records' GUIDs are,
+  // so only links to other layers are renamed to the layers this page added.
   for (const node of graph.getAllNodes()) {
-    if (existingNodeIds.has(node.id)) continue
-    for (const field of [
-      'fillStyleId',
-      'strokeStyleId',
-      'textStyleId',
-      'effectStyleId',
-      'gridStyleId'
-    ] as const) {
-      const id = node[field]
-      if (id && sources.has(id)) node[field] = sources.get(id) ?? id
-    }
-    // Ranges name their styles and linked layers by record too; a layer left out stays named.
-    if (node.styleRuns.length > 0) {
-      const source = (id: string) => sources.get(id) ?? id
-      node.styleRuns = remapStyleRunReferences(node.styleRuns, {
-        variable: (id) => id,
-        style: source,
-        node: source
-      })
-    }
+    if (existingNodeIds.has(node.id) || node.styleRuns.length === 0) continue
+    node.styleRuns = remapStyleRunReferences(node.styleRuns, {
+      variable: (id) => id,
+      style: (id) => id,
+      node: (id) => sources.get(id) ?? id
+    })
   }
   // These passes apply to the nodes this page added, not to the whole graph.
   const materialized = [...graph.nodes.values()].filter((node) => !existingNodeIds.has(node.id))
