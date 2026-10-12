@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import type { Heading, List, ListItem, Root, RootContent } from 'mdast'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 
-const ALLOWED_CATEGORIES = [
+export const ALLOWED_CATEGORIES = [
   'Breaking changes',
   'Added',
   'Changed',
@@ -23,7 +23,7 @@ interface PositionedNode {
   position?: { start: { line: number } }
 }
 
-function headingText(heading: Heading): string {
+export function headingText(heading: Heading): string {
   return heading.children
     .map((child) => ('value' in child && typeof child.value === 'string' ? child.value : ''))
     .join('')
@@ -41,7 +41,7 @@ function listItemSource(source: string, item: ListItem): string {
   return source.slice(start, end).trim().replace(/\s+/g, ' ')
 }
 
-function sectionEnd(children: RootContent[], start: number): number {
+export function sectionEnd(children: RootContent[], start: number): number {
   for (let index = start + 1; index < children.length; index++) {
     const node = children[index]
     if (node?.type === 'heading' && node.depth === 2) return index

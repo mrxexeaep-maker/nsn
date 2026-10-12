@@ -60,6 +60,7 @@
     "check": "bun run check:icons && bun run build:packages && bun run lint && tsgo --noEmit && bun run check:vue && bun run check:native-test && bun run check:i18n && bun run check:docs && bun run check:changelog && bun run check:packages && bun run check:deps && bun run check:audit && bun run check:secrets && bun run check:monorepo && bun run check:arch && bun run check:test-homes && bun run check:test-types && bun run test:type-shapes && bun run check:tools && bun run test:tools && bun run test:dupes",
     "check:commits": "commitlint",
     "check:changelog": "bun tools/release/release-packages/src/check-changelog.ts",
+    "changelog:assemble": "bun tools/release/release-packages/src/assemble-changelog.ts",
     "check:deps": "knip --include unlisted,unresolved,binaries",
     "check:docs": "bun --filter @open-pencil/docs check && bun run check:authoring-reference",
     "check:authoring-reference": "bun tools/generate/authoring-reference/src/check.ts",

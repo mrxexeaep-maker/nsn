@@ -1,0 +1,3 @@
+- Lines of text that mix font sizes or line heights are spaced as in Figma: each line is as tall as the tallest line height on it, with its largest font centred in it, instead of stacking the tallest parts of every style on it, which put lines after a large word or a taller line height up to 10 px off.
+- A line height in pixels shorter than the font, such as 24 px on 24 px text, opens from `.fig` files as set instead of as the font's own height.
+- Text with an empty line, or ending in one, saved to `.fig` or copied to Figma shows there, where Figma showed it blank.
