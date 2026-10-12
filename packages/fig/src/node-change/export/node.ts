@@ -16,6 +16,7 @@ import {
   OPEN_PENCIL_PLUGIN_DATA,
   withPluginData
 } from '@open-pencil/scene-graph'
+import { layoutGridCount } from '@open-pencil/scene-graph/layout'
 import { siblingOrderKeys } from '@open-pencil/scene-graph/order-keys'
 import type { GUID, Matrix, Vector } from '@open-pencil/scene-graph/primitives'
 
@@ -813,9 +814,10 @@ function kiwiLayoutGrid(grid: LayoutGrid): LayoutGrid {
     type: grid.type ?? grid.alignment ?? 'STRETCH',
     axis: rows ? 'Y' : 'X',
     visible: grid.visible ?? true,
-    numSections: grid.numSections ?? grid.count ?? 1,
+    numSections: layoutGridCount(grid),
     offset: grid.offset ?? 0,
-    sectionSize: grid.sectionSize ?? 0,
+    // Figma's new grid is 10 px, the size the plugin API reports for one without a size.
+    sectionSize: grid.sectionSize ?? (grid.pattern === 'GRID' ? 10 : 0),
     gutterSize: grid.gutterSize ?? 0,
     color: grid.color ?? { r: 1, g: 0, b: 0, a: 0.1 },
     pattern: grid.pattern === 'GRID' ? 'GRID' : 'STRIPES'

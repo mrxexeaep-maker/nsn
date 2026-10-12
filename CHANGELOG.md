@@ -31,7 +31,7 @@
 - Instances keep following their component after being resized: resizing one by a handle no longer makes the sizes of the layers its constraints move into overrides. A component edit no longer gives a copy the component's size where it sizes itself to its own content, such as a badge's count set by an instance property, or an auto layout frame hugging the layers the instance shows, and setting a text property measures the new characters, so the badge fits them at once.
 - `openpencil eval -o` saves a script's edits laid out, though the script never read them back; `@open-pencil/core/figma-api` exports `flushPendingLayout` for hosts that save scripts' results.
 - Saving keeps a fill, stroke, effect, or text style that an instance has cleared, which reopened with the component's style.
-- Layout guides added in the panel or a script save to `.fig` files, where saving failed on them, and a guide read from a file shows as columns or rows in the panel. Scripts read and set `layoutGrids` in Figma's shape.
+- Layout guides added in the panel or a script save to `.fig` files, where saving failed on them, and a guide read from a file shows as columns or rows in the panel and saves the count edited there. Columns and rows with an Auto count draw as many as fit the frame and read Auto in the panel. Scripts read and set `layoutGrids` in Figma's shape.
 
 ## 0.16.0-beta.1 — 2026-10-11
 

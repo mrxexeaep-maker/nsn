@@ -11,6 +11,11 @@ import {
   type SceneNode,
   type Vector
 } from '@open-pencil/scene-graph'
+import {
+  AUTO_LAYOUT_GRID_COUNT,
+  isAutoGridCount,
+  layoutGridCount
+} from '@open-pencil/scene-graph/layout'
 
 import {
   prepareFollowedFieldEdit,
@@ -34,7 +39,7 @@ function figmaLayoutGrid(grid: LayoutGrid): Readonly<LayoutGrid> {
     pattern: rows ? 'ROWS' : 'COLUMNS',
     alignment,
     gutterSize: grid.gutterSize ?? 0,
-    count: grid.count ?? grid.numSections ?? 1,
+    count: layoutGridCount(grid) === AUTO_LAYOUT_GRID_COUNT ? null : layoutGridCount(grid),
     // A stretched guide's sections fill the frame, so Figma reports no section size for it.
     ...(alignment === 'STRETCH' ? {} : { sectionSize: grid.sectionSize ?? 0 }),
     offset: grid.offset ?? 0,
@@ -56,7 +61,11 @@ export function installLayoutNodeProxyAccessors(
       },
       set(this: ProxyThis, value: readonly LayoutGrid[]) {
         if (!Array.isArray(value)) throw new TypeError('layoutGrids must be an array')
-        updateNode(this, internals, { layoutGrids: structuredClone([...value]) })
+        // An Auto count is stored as the archive stores it, so it survives copies and saves.
+        const grids = structuredClone([...value]).map((grid) =>
+          isAutoGridCount(grid.count) ? { ...grid, count: AUTO_LAYOUT_GRID_COUNT } : grid
+        )
+        updateNode(this, internals, { layoutGrids: grids })
       }
     },
     layoutDirection: {

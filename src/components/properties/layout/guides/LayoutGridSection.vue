@@ -3,6 +3,7 @@ import { isEqual } from 'es-toolkit/predicate'
 import { computed, ref } from 'vue'
 
 import type { LayoutGrid, SceneNode } from '@open-pencil/scene-graph'
+import { AUTO_LAYOUT_GRID_COUNT, layoutGridCount } from '@open-pencil/scene-graph/layout'
 import { useEditor, useI18n, useSceneComputed } from '@open-pencil/vue'
 
 import ColorInput from '@/components/ColorPicker/ColorInput.vue'
@@ -36,6 +37,8 @@ const expanded = ref<number | null>(null)
 
 /** The value a stretched guide's size shows: its sections fill the frame. */
 const AUTO_SIZE = Symbol('auto')
+/** Figma's count for a new set of columns or rows. */
+const DEFAULT_COUNT = 5
 
 type GridPattern = 'COLUMNS' | 'ROWS' | 'GRID'
 type GridAlignment = NonNullable<LayoutGrid['alignment']>
@@ -58,16 +61,21 @@ function alignmentOptions(pattern: GridPattern) {
   ]
 }
 
-const gridCount = (grid: LayoutGrid) => grid.count ?? grid.numSections ?? 1
+const isAutoCount = (grid: LayoutGrid) => layoutGridCount(grid) === AUTO_LAYOUT_GRID_COUNT
 const gridAlignment = (grid: LayoutGrid): GridAlignment => grid.alignment ?? grid.type ?? 'STRETCH'
 
-/** What the row's dropdown reads, as Figma's: "5 columns", "3 rows (40px)", "Grid 10px". */
+/**
+ * What the row's dropdown reads, as Figma's: "5 columns", "3 rows (40px)", "Grid 10px", and
+ * "Columns (40px)" for as many as fit.
+ */
 function summary(grid: LayoutGrid): string {
   const p = panels.value
   const pattern = gridPattern(grid)
   if (pattern === 'GRID') return p.gridSummaryGrid({ size: String(grid.sectionSize ?? 10) })
-  const count = String(gridCount(grid))
-  const text = pattern === 'ROWS' ? p.gridSummaryRows({ count }) : p.gridSummaryColumns({ count })
+  const count = String(layoutGridCount(grid))
+  const counted =
+    pattern === 'ROWS' ? p.gridSummaryRows({ count }) : p.gridSummaryColumns({ count })
+  const text = isAutoCount(grid) ? (pattern === 'ROWS' ? p.gridRows : p.gridColumns) : counted
   return gridAlignment(grid) === 'STRETCH'
     ? text
     : p.gridSummaryFixed({ summary: text, size: String(grid.sectionSize ?? 0) })
@@ -76,7 +84,7 @@ function summary(grid: LayoutGrid): string {
 /** Switches a guide's pattern, giving it the fields the new pattern needs, as Figma does. */
 function changePattern(index: number, grid: LayoutGrid, pattern: GridPattern) {
   const stripes: Partial<LayoutGrid> = {
-    count: gridCount(grid) > 1 ? gridCount(grid) : 5,
+    count: layoutGridCount(grid) > 1 ? layoutGridCount(grid) : DEFAULT_COUNT,
     gutterSize: grid.gutterSize ?? 20,
     offset: grid.offset ?? 0,
     alignment: gridAlignment(grid)
@@ -92,6 +100,12 @@ function changePattern(index: number, grid: LayoutGrid, pattern: GridPattern) {
   )
 }
 
+/** A stretched guide needs a count, so one that fit as many as it could gets Figma's default. */
+function changeAlignment(index: number, grid: LayoutGrid, alignment: GridAlignment) {
+  const count = alignment === 'STRETCH' && isAutoCount(grid) ? { count: DEFAULT_COUNT } : {}
+  patch(index, { alignment, type: alignment, ...count }, 'Change grid type')
+}
+
 function toggleExpanded(index: number) {
   expanded.value = expanded.value === index ? null : index
 }
@@ -103,7 +117,7 @@ function defaultGrid(): LayoutGrid {
     color: { r: 1, g: 0, b: 0, a: 0.1 },
     pattern: 'GRID',
     alignment: 'STRETCH',
-    count: 5,
+    count: DEFAULT_COUNT,
     gutterSize: 20,
     offset: 0,
     sectionSize: 10
@@ -227,7 +241,8 @@ function gridPattern(grid: LayoutGrid): GridPattern {
         <PanelGrid v-if="gridPattern(grid) !== 'GRID'" :columns="2">
           <PanelFieldGroup :label="panels.gridCount">
             <NumberField
-              :model-value="gridCount(grid)"
+              :model-value="isAutoCount(grid) ? AUTO_SIZE : layoutGridCount(grid)"
+              :placeholder="panels.gridAuto"
               :min="1"
               :aria-label="panels.gridCount"
               @update:model-value="updateNumber(index, 'count', $event)"
@@ -242,9 +257,7 @@ function gridPattern(grid: LayoutGrid): GridPattern {
               :options="alignmentOptions(gridPattern(grid))"
               :label="panels.gridType"
               data-property="layout-guide-type"
-              @update:model-value="
-                patch(index, { alignment: $event, type: $event }, 'Change grid type')
-              "
+              @update:model-value="changeAlignment(index, grid, $event)"
             />
           </PanelFieldGroup>
           <PanelFieldGroup
