@@ -51,14 +51,21 @@ function reportFailure(error: unknown) {
   )
 }
 
+/** The latest import asked for; an earlier one still reading does not replace its preview. */
+let importRequest = 0
+
 /** Token files, a folder's worth, or a zip of them; the import dialog shows what they would do. */
 function importFiles(files: readonly File[]) {
+  const request = ++importRequest
   void (async () => {
     const sources = await readDesignTokenFiles(files)
     const { readDesignTokens } = await import('@open-pencil/core/io/formats/design-tokens')
+    if (request !== importRequest) return
     importBundle.value = readDesignTokens(sources)
     importOpen.value = true
-  })().catch(reportFailure)
+  })().catch((error: unknown) => {
+    if (request === importRequest) reportFailure(error)
+  })
 }
 
 const tokenFiles = useFileDialog({ accept: DESIGN_TOKEN_FILE_ACCEPT, multiple: true, reset: true })
