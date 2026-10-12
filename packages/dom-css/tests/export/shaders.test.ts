@@ -12,12 +12,13 @@ const PRESET = {
   components: [{ type: 'Aurora', props: { colorA: '#ff3300', speed: 2 } }, { type: 'FilmGrain' }]
 }
 const FRAME = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])
+const JPEG_FRAME = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70])
 
 /** A layer with no children that fills with a shader, whose still frame is saved. */
-function shaderLayer() {
+function shaderLayer(frame = FRAME) {
   const graph = new SceneGraph()
   const { paint, shader } = createShaderPaint(PRESET)
-  graph.images.set(shader.image, FRAME)
+  graph.images.set(shader.image, frame)
   const node = graph.createNode('RECTANGLE', graph.getPages()[0].id, {
     name: 'Glow',
     width: 200,
@@ -51,5 +52,12 @@ describe('shader fills in DOM exports', () => {
     expect(html).toMatch(
       /^<div[^>]*><img src="data:image\/png;base64,[^"]+" alt="" style="[^"]*z-index:-1/
     )
+  })
+
+  test('static HTML names an opaque still frame saved as JPEG as JPEG', () => {
+    const { graph, id } = shaderLayer(JPEG_FRAME)
+    const html = serializeHTML(sceneNodeToDesignDocument(graph, id))
+
+    expect(html).toContain('<img src="data:image/jpeg;base64,')
   })
 })

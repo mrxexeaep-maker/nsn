@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { CanvasHelper } from '#tests/helpers/canvas'
-import { sectionClicksDriver } from '#tests/helpers/canvas/section-clicks-driver'
+import { sectionClicksDriver } from '#tests/helpers/canvas/section-clicks/driver'
 
 // Each case repeats a click in Figma desktop 126 on a section holding two frames.
 

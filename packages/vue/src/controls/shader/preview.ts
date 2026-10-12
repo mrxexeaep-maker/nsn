@@ -1,4 +1,4 @@
-import type { ShaderPreset } from '@open-pencil/scene-graph'
+import { imageMimeType, type ShaderPreset } from '@open-pencil/scene-graph'
 
 import { createShaderRasterizer } from '#vue/canvas/surface/shader/rasterizer'
 
@@ -36,7 +36,7 @@ export function shaderEffectPreview(effect: ShaderEffect): Promise<string | null
       height: PREVIEW_SIZE.height * ratio
     })
     return bytes
-      ? URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'image/png' }))
+      ? URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: imageMimeType(bytes) }))
       : null
   })
   // A preview that fails to draw leaves the rest of the queue to go on.

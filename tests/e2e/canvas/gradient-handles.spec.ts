@@ -1,5 +1,5 @@
 import { expect, test, useEditorSetupWithClear } from '#tests/e2e/fixtures'
-import { gradientDriver } from '#tests/helpers/canvas/gradient-driver'
+import { gradientDriver } from '#tests/helpers/canvas/gradient/driver'
 import { propertyItems } from '#tests/helpers/properties'
 
 // Figma desktop 126: while a gradient's picker is open the canvas shows its handles. An end moves

@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 
-import type * as PixelGridScene from '#tests/helpers/canvas/pixel-grid'
+import type * as PixelGridScene from '#tests/helpers/canvas/pixel-grid/scene'
 
 /** Builds the pixel grid scene at a zoom and reads back the snapping preference. */
 export function pixelGridDriver(page: () => Page) {
@@ -10,7 +10,7 @@ export function pixelGridDriver(page: () => Page) {
       return page().evaluate(async (zoom) => {
         const store = window.openPencil?.getStore?.()
         if (!store) throw new Error('OpenPencil store not initialized')
-        const fixtureURL = '/tests/helpers/canvas/pixel-grid.ts'
+        const fixtureURL = '/tests/helpers/canvas/pixel-grid/scene.ts'
         const scene: typeof PixelGridScene = await import(fixtureURL)
         scene.createPixelGridScene(store.graph, store.state.currentPageId)
         store.state.zoom = zoom

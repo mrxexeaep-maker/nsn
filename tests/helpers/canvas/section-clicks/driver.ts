@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 
-import type * as SectionScene from '#tests/helpers/canvas/section-clicks'
+import type * as SectionScene from '#tests/helpers/canvas/section-clicks/scene'
 
 /** The view offset the scene is shown at, at zoom 1, so canvas points are scene points plus it. */
 const PAN = 50
@@ -12,7 +12,7 @@ export function sectionClicksDriver(page: () => Page) {
       return page().evaluate(async (pan) => {
         const store = window.openPencil?.getStore?.()
         if (!store) throw new Error('OpenPencil store not initialized')
-        const fixtureURL = '/tests/helpers/canvas/section-clicks.ts'
+        const fixtureURL = '/tests/helpers/canvas/section-clicks/scene.ts'
         const scene: typeof SectionScene = await import(fixtureURL)
         scene.createSectionClickScene(store.graph, store.state.currentPageId)
         store.state.zoom = 1
