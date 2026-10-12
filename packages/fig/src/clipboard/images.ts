@@ -1,6 +1,7 @@
 import type { NodeChange, Paint } from '@open-pencil/kiwi/fig/codec'
+import { computeImageHash } from '@open-pencil/scene-graph/images'
 
-import { bytesToHex } from '../node-change/bytes'
+import { bytesToHex, hexToBytes } from '../node-change/bytes'
 
 /** Clipboard recipients cannot fetch image hashes from an OpenPencil source file. */
 export async function embedClipboardImages(
@@ -18,10 +19,9 @@ export async function embedClipboardImages(
         if (!bytes) continue
         let entry = embedded.get(hash)
         if (!entry) {
-          // Figma rejects bytes whose SHA-1 differs from the image reference.
-          // Internal SceneGraph image identifiers are not necessarily SHA-1.
-          const digest = await crypto.subtle.digest('SHA-1', new Uint8Array(bytes).buffer)
-          entry = { index: blobs.length, hash: new Uint8Array(digest) }
+          // Figma rejects bytes whose SHA-1 differs from the image reference, and images in
+          // documents saved before image names were SHA-1 are stored under other names.
+          entry = { index: blobs.length, hash: hexToBytes(computeImageHash(bytes)) }
           blobs.push(bytes)
           embedded.set(hash, entry)
         }
