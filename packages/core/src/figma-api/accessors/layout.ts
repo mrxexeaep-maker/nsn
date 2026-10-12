@@ -4,6 +4,7 @@ import {
   layoutSizingError,
   layoutSizingUpdates,
   lockedAspectRatioTarget,
+  type LayoutGrid,
   type LayoutMode,
   type LayoutSizing,
   type LayoutSizingAxis,
@@ -21,12 +22,43 @@ import {
   type ProxyThis
 } from '#core/figma-api/accessor-utils'
 
+/** A guide in Figma's plugin shape, whether it was set that way or read from a file. */
+function figmaLayoutGrid(grid: LayoutGrid): Readonly<LayoutGrid> {
+  const visible = grid.visible ?? true
+  const color = { ...(grid.color ?? { r: 1, g: 0, b: 0, a: 0.1 }) }
+  if (grid.pattern === 'GRID')
+    return Object.freeze({ pattern: 'GRID', sectionSize: grid.sectionSize ?? 10, visible, color })
+  const rows = grid.pattern === 'ROWS' || (grid.pattern !== 'COLUMNS' && grid.axis === 'Y')
+  const alignment = grid.alignment ?? grid.type ?? 'STRETCH'
+  return Object.freeze({
+    pattern: rows ? 'ROWS' : 'COLUMNS',
+    alignment,
+    gutterSize: grid.gutterSize ?? 0,
+    count: grid.count ?? grid.numSections ?? 1,
+    // A stretched guide's sections fill the frame, so Figma reports no section size for it.
+    ...(alignment === 'STRETCH' ? {} : { sectionSize: grid.sectionSize ?? 0 }),
+    offset: grid.offset ?? 0,
+    visible,
+    color
+  })
+}
+
 export function installLayoutNodeProxyAccessors(
   prototype: object,
   internals: NodeProxyInternals
 ): void {
   Object.defineProperties(prototype, {
     layoutMode: simpleAccessor(internals, 'layoutMode'),
+    // Figma's grids, as a frame's Layout guide section shows them.
+    layoutGrids: {
+      get(this: ProxyThis): readonly LayoutGrid[] {
+        return Object.freeze(raw(this, internals).layoutGrids.map(figmaLayoutGrid))
+      },
+      set(this: ProxyThis, value: readonly LayoutGrid[]) {
+        if (!Array.isArray(value)) throw new TypeError('layoutGrids must be an array')
+        updateNode(this, internals, { layoutGrids: structuredClone([...value]) })
+      }
+    },
     layoutDirection: {
       get(this: ProxyThis): string {
         const node = raw(this, internals)
