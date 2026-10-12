@@ -6,7 +6,8 @@
     "#demo/*": "./src/*.ts"
   },
   "exports": {
-    ".": "./src/ensure.ts"
+    ".": "./src/ensure.ts",
+    "./chapters": "./src/document/chapters/names.ts"
   },
   "scripts": {
     "test": "bun test tests"
