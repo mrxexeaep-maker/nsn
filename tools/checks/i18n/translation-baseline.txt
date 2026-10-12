@@ -251,6 +251,8 @@ ja:settings.mcp
 ja:storage.providerAmazonS3
 ja:storage.providerBackblaze
 ja:storage.providerR2
+ja:storage.cloudTitle
+ja:storage.waitlistPlaceholder
 pl:ai.completions
 pl:ai.modelAgentConnection
 pl:ai.modelConfiguration
@@ -307,6 +309,8 @@ ru:settings.mcp
 ru:storage.providerAmazonS3
 ru:storage.providerBackblaze
 ru:storage.providerR2
+ru:storage.cloudTitle
+ru:storage.waitlistPlaceholder
 zh-cn:ai.completions
 zh-cn:ai.responses
 zh-cn:code.editorDesignLabel
@@ -329,6 +333,8 @@ zh-cn:settings.mcp
 zh-cn:storage.providerAmazonS3
 zh-cn:storage.providerBackblaze
 zh-cn:storage.providerR2
+zh-cn:storage.cloudTitle
+zh-cn:storage.waitlistPlaceholder
 de:variables.name
 de:variables.stylesheet
 es:variables.unitAuto
@@ -343,9 +349,14 @@ es:menu.variables
 fr:menu.variables
 fr:variables.collections
 de:panels.gridAuto
+de:storage.cloudTitle
 es:panels.gridColor
 es:panels.gridAuto
+es:storage.cloudTitle
 fr:panels.gridType
 fr:panels.gridAuto
+fr:storage.cloudTitle
 it:panels.gridAuto
+it:storage.cloudTitle
 pl:panels.gridAuto
+pl:storage.cloudTitle

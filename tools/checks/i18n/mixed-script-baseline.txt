@@ -428,4 +428,12 @@ zh-cn:panels.shaderPreset
 zh-cn:panels.invalidShaderPreset
 zh-cn:panels.shaderNeedsWebGPU
 ja:panels.gridSummaryGrid
+ja:storage.cloudDescription
+ja:storage.waitlistJoinedDetail
+ja:storage.waitlistOpenWebsite
+ja:storage.waitlistUnavailable
 zh-cn:panels.gridSummaryGrid
+zh-cn:storage.cloudDescription
+zh-cn:storage.waitlistJoinedDetail
+zh-cn:storage.waitlistOpenWebsite
+zh-cn:storage.waitlistUnavailable
