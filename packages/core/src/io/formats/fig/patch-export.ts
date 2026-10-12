@@ -7,7 +7,12 @@ import {
 } from '@open-pencil/fig'
 import { nameImagesForFigma, type FigNodeChangeExportRuntime } from '@open-pencil/fig/node-change'
 import { stringToGuid } from '@open-pencil/kiwi/fig/guid'
-import { ownsSlotContent, type SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
+import {
+  computeImageHash,
+  ownsSlotContent,
+  type SceneGraph,
+  type SceneNode
+} from '@open-pencil/scene-graph'
 import { siblingOrderKeys } from '@open-pencil/scene-graph/order-keys'
 import type { GUID } from '@open-pencil/scene-graph/primitives'
 
@@ -341,6 +346,31 @@ async function buildPatch(
       replaceVariables: plan.replaceVariables
     }
   }
+}
+
+const archiveImagesChecked = new WeakMap<FigArchiveAccess, Promise<boolean>>()
+
+/**
+ * Whether every image the archive `graph` was opened from holds is stored under the SHA-1 of its
+ * bytes, the only name Figma reads. Archives OpenPencil wrote before image names were SHA-1 are
+ * not, and records a save leaves untouched point at those names, so such a document is written
+ * whole, which names every image as Figma needs, instead of reusing its archive. The archive
+ * does not change, so it is checked once; a document with no archive has nothing to check.
+ */
+export function archiveImagesNamedForFigma(graph: SceneGraph): Promise<boolean> {
+  const archive = figArchive(graph)
+  if (!archive) return Promise.resolve(true)
+  let checked = archiveImagesChecked.get(archive)
+  if (!checked) {
+    checked = archive.info().then(({ imageHashes }) =>
+      imageHashes.every((name) => {
+        const bytes = graph.images.get(name)
+        return !bytes || computeImageHash(bytes) === name
+      })
+    )
+    archiveImagesChecked.set(archive, checked)
+  }
+  return checked
 }
 
 /**

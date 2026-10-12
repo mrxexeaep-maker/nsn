@@ -23,7 +23,7 @@ import {
   type FigExportSetup,
   type KiwiNodeChange
 } from '#core/io/formats/fig/export-setup'
-import { writePatchedFigFile } from '#core/io/formats/fig/patch-export'
+import { archiveImagesNamedForFigma, writePatchedFigFile } from '#core/io/formats/fig/patch-export'
 import { sceneNodeToKiwi } from '#core/kiwi/fig/node-change/serialize'
 import { cloneSceneGraphForFigExport } from '#core/kiwi/fig/parse/transfer'
 import {
@@ -110,18 +110,22 @@ export async function exportFigFile(
   pageId?: string,
   renderHeadlessThumbnail = false
 ): Promise<Uint8Array> {
-  const originalArchive = await originalFigArchive(sourceGraph)
+  // An archive whose images Figma cannot read is written whole rather than reused.
+  const reuseArchive = await archiveImagesNamedForFigma(sourceGraph)
+  const originalArchive = reuseArchive ? await originalFigArchive(sourceGraph) : null
   if (originalArchive) return originalArchive.slice()
   return withFigExportRuntime(
     sourceGraph,
     ck,
     async (runtime) =>
-      (await writePatchedFigFile(sourceGraph, runtime, {
-        ck,
-        renderer,
-        pageId,
-        renderHeadlessThumbnail
-      })) ?? writeFigFile(sourceGraph, runtime, ck, renderer, pageId, renderHeadlessThumbnail)
+      (reuseArchive
+        ? await writePatchedFigFile(sourceGraph, runtime, {
+            ck,
+            renderer,
+            pageId,
+            renderHeadlessThumbnail
+          })
+        : null) ?? writeFigFile(sourceGraph, runtime, ck, renderer, pageId, renderHeadlessThumbnail)
   )
 }
 
