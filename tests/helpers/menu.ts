@@ -21,3 +21,9 @@ export async function openAppMenu(page: Page, name: string) {
   await expect(menu).toBeVisible()
   return menu
 }
+
+/** Opens Settings with its shortcut, as the main menu's Settings… item shows; any language. */
+export async function openSettings(page: Page) {
+  await page.keyboard.press('ControlOrMeta+Comma')
+  await expect(page.getByTestId('app-settings-dialog')).toBeVisible()
+}

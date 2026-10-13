@@ -10,6 +10,7 @@ export const menuMessageDefaults = {
   vector: 'Vector',
   help: 'Help',
   mainMenu: 'Main menu',
+  navigation: 'Navigation',
 
   backToFiles: 'Back to files',
   actions: 'Actions…',
