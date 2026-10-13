@@ -7,6 +7,7 @@ import {
   setSnappingPreference
 } from '@/app/settings/preferences/apply'
 import { appPreferences } from '@/app/settings/preferences/store'
+import { onCanvasSelection } from '@/app/shell/commands/focused'
 
 type TextFormatUpdates = {
   fontWeight?: number
@@ -88,14 +89,14 @@ export function createSharedEditorMenuActions(
     'theme-light': () => setTheme('light'),
     'theme-dark': () => setTheme('dark'),
     'theme-auto': () => setTheme('auto'),
-    'text.bold': toggleSelectedTextBold,
-    'text.italic': toggleSelectedTextItalic,
-    'text.underline': toggleSelectedTextUnderline,
-    'arrange.align-left': () => alignSelected('horizontal', 'min'),
-    'arrange.align-center': () => alignSelected('horizontal', 'center'),
-    'arrange.align-right': () => alignSelected('horizontal', 'max'),
-    'arrange.align-top': () => alignSelected('vertical', 'min'),
-    'arrange.align-middle': () => alignSelected('vertical', 'center'),
-    'arrange.align-bottom': () => alignSelected('vertical', 'max')
+    'text.bold': onCanvasSelection(store, toggleSelectedTextBold),
+    'text.italic': onCanvasSelection(store, toggleSelectedTextItalic),
+    'text.underline': onCanvasSelection(store, toggleSelectedTextUnderline),
+    'arrange.align-left': onCanvasSelection(store, () => alignSelected('horizontal', 'min')),
+    'arrange.align-center': onCanvasSelection(store, () => alignSelected('horizontal', 'center')),
+    'arrange.align-right': onCanvasSelection(store, () => alignSelected('horizontal', 'max')),
+    'arrange.align-top': onCanvasSelection(store, () => alignSelected('vertical', 'min')),
+    'arrange.align-middle': onCanvasSelection(store, () => alignSelected('vertical', 'center')),
+    'arrange.align-bottom': onCanvasSelection(store, () => alignSelected('vertical', 'max'))
   }
 }

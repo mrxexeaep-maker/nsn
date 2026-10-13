@@ -1,29 +1,11 @@
 use serde::Deserialize;
-use std::collections::HashMap;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
 use tauri::menu::{
-    CheckMenuItemBuilder, MenuBuilder, MenuId, MenuItemBuilder, MenuItemKind, PredefinedMenuItem,
-    Submenu, SubmenuBuilder,
+    CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder, MenuItemKind, Submenu, SubmenuBuilder,
 };
-use tauri::Manager;
 
-/// Edit items that a focused text field performs itself.
-///
-/// While a text field has focus they are the OS's own items, which act on the
-/// focused field like the Edit menu of any app. Otherwise they are ours and emit
-/// the editor command for the canvas. Linux keeps ours: muda's native edit items
-/// need optional X11 automation and do not work on Wayland.
-const TEXT_FIELD_EDIT_IDS: [&str; 3] = ["edit.undo", "edit.redo", "selection.selectAll"];
-
-/// Whether a text field has focus, and which native item stands for each of
-/// `TEXT_FIELD_EDIT_IDS` in the installed menu.
-#[derive(Default)]
-pub struct TextFieldFocus {
-    focused: AtomicBool,
-    items: Mutex<HashMap<&'static str, MenuId>>,
-}
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+use tauri::menu::PredefinedMenuItem;
 
 #[derive(Deserialize)]
 struct MenuGroup {
@@ -112,20 +94,6 @@ fn build_submenu<R: tauri::Runtime>(
             continue;
         }
 
-        if let Some(id) = entry.id.as_deref().and_then(|id| {
-            TEXT_FIELD_EDIT_IDS
-                .into_iter()
-                .find(|edit_id| *edit_id == id)
-        }) {
-            builder = builder.item(&text_field_edit_item(
-                app,
-                id,
-                label,
-                entry.accelerator.as_deref(),
-            )?);
-            continue;
-        }
-
         // Ordinary menu accelerators emit a frontend command without preserving the
         // WebView's focused editing control. Native edit items let WebKit/WebView2
         // route copy, cut, and paste to inputs or dispatch canvas clipboard events.
@@ -175,104 +143,6 @@ fn build_submenu<R: tauri::Runtime>(
     }
 
     builder.build()
-}
-
-fn text_field_edit_item<R: tauri::Runtime>(
-    app: &tauri::AppHandle<R>,
-    id: &'static str,
-    label: &str,
-    accelerator: Option<&str>,
-) -> tauri::Result<MenuItemKind<R>> {
-    let focus = app.state::<TextFieldFocus>();
-    let native = cfg!(any(target_os = "macos", target_os = "windows"))
-        && focus.focused.load(Ordering::SeqCst);
-    let item = if native {
-        MenuItemKind::Predefined(match id {
-            "edit.undo" => PredefinedMenuItem::undo(app, Some(label))?,
-            "edit.redo" => PredefinedMenuItem::redo(app, Some(label))?,
-            _ => PredefinedMenuItem::select_all(app, Some(label))?,
-        })
-    } else {
-        let mut item = MenuItemBuilder::new(label).id(id);
-        if let Some(accelerator) = accelerator {
-            item = item.accelerator(accelerator);
-        }
-        MenuItemKind::MenuItem(item.build(app)?)
-    };
-    focus
-        .items
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-        .insert(id, item.id().clone());
-    Ok(item)
-}
-
-/// Swaps the text-field edit items between the OS's own and ours as focus
-/// enters or leaves a text field in the WebView.
-#[tauri::command]
-pub fn set_text_field_focus<R: tauri::Runtime>(
-    app: tauri::AppHandle<R>,
-    focused: bool,
-) -> Result<(), String> {
-    let focus = app.state::<TextFieldFocus>();
-    let changed = focus.focused.swap(focused, Ordering::SeqCst) != focused;
-    if !changed || !cfg!(any(target_os = "macos", target_os = "windows")) {
-        return Ok(());
-    }
-    let Some(menu) = app.menu() else {
-        return Ok(());
-    };
-    let current: HashMap<MenuId, &'static str> = focus
-        .items
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-        .iter()
-        .map(|(id, item)| (item.clone(), *id))
-        .collect();
-    for group in menu.items().map_err(|error| error.to_string())? {
-        let MenuItemKind::Submenu(submenu) = group else {
-            continue;
-        };
-        for (position, item) in submenu
-            .items()
-            .map_err(|error| error.to_string())?
-            .into_iter()
-            .enumerate()
-        {
-            let Some(id) = current.get(item.id()).copied() else {
-                continue;
-            };
-            let label = match &item {
-                MenuItemKind::MenuItem(item) => item.text(),
-                MenuItemKind::Predefined(item) => item.text(),
-                _ => continue,
-            }
-            .map_err(|error| error.to_string())?;
-            let accelerator = menu_accelerator(id);
-            let replacement = text_field_edit_item(&app, id, &label, accelerator.as_deref())
-                .map_err(|error| error.to_string())?;
-            submenu.remove(&item).map_err(|error| error.to_string())?;
-            submenu
-                .insert(&replacement, position)
-                .map_err(|error| error.to_string())?;
-        }
-    }
-    Ok(())
-}
-
-fn menu_accelerator(id: &str) -> Option<String> {
-    fn find(entries: &[MenuEntry], id: &str) -> Option<String> {
-        entries.iter().find_map(|entry| {
-            if entry.id.as_deref() == Some(id) {
-                entry.accelerator.clone()
-            } else {
-                find(&entry.sub, id)
-            }
-        })
-    }
-    let groups: Vec<MenuGroup> =
-        serde_json::from_str(include_str!("../generated/menu.json")).ok()?;
-    groups.iter().find_map(|group| find(&group.items, id))
 }
 
 fn recent_file_label(path: &str) -> String {
