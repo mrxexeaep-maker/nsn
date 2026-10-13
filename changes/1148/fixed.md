@@ -1,0 +1,1 @@
+- Rounded points in a vector imported from a `.fig` file keep their own corner radius and join when the file is saved, and the plugin API reports their radius instead of 0.

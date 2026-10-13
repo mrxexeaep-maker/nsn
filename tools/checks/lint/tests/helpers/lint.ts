@@ -61,7 +61,8 @@ export async function lintFiles(
         'json',
         ...sourcePaths
       ],
-      { stdout: 'pipe', stderr: 'pipe' }
+      // From the repository root, where rules find the files they read, such as src/app.css.
+      { cwd: root, stdout: 'pipe', stderr: 'pipe' }
     )
     const [stdout, stderr, code] = await Promise.all([
       new Response(child.stdout).text(),

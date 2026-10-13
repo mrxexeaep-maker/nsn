@@ -6,7 +6,7 @@ const layerTreeTheme = {
       'flex w-4 shrink-0 cursor-pointer items-center justify-center text-current transition-transform',
     disclosurePlaceholder: 'w-4 shrink-0',
     icon: 'size-3 shrink-0',
-    label: 'min-w-0 flex-1 truncate',
+    label: 'flex min-w-0 flex-1 items-center gap-1.5',
     actions: 'flex shrink-0 items-center gap-0.5',
     action:
       'flex size-4 items-center justify-center rounded text-current outline-none hover:bg-white/15 focus-visible:ring-1 focus-visible:ring-panel-focus',

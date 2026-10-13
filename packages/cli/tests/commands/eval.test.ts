@@ -22,6 +22,36 @@ async function cli(args: string[], stdin?: string) {
 }
 
 describe('eval CLI', () => {
+  test('measures the text a script writes, its line breaks and wrapping included', async () => {
+    const script = `
+      await figma.loadFontAsync({ family: 'Inter', style: 'Regular' })
+      const line = figma.createText()
+      line.characters = 'one'
+      const lines = figma.createText()
+      lines.characters = 'one\\ntwo\\nthree'
+      const paragraph = figma.createText()
+      paragraph.characters = 'A paragraph that wraps over several lines'
+      paragraph.resize(80, 20)
+      paragraph.textAutoResize = 'HEIGHT'
+      return { line: line.height, lines: lines.height, paragraph: paragraph.height }
+    `
+    const result = await cli(
+      ['eval', join(FIXTURES, 'circle-text.fig'), '--stdin', '--json'],
+      script
+    )
+    expect(result.exitCode).toBe(0)
+    const heights = v.parse(
+      v.pipe(
+        v.string(),
+        v.parseJson(),
+        v.object({ line: v.number(), lines: v.number(), paragraph: v.number() })
+      ),
+      result.stdout
+    )
+    expect(heights.lines).toBeGreaterThan(heights.line * 2)
+    expect(heights.paragraph).toBeGreaterThan(heights.line * 2)
+  })
+
   test('saves a script’s edits laid out, though the script never read them back', async () => {
     const out = join(await mkdtemp(join(tmpdir(), 'open-pencil-eval-')), 'badge.fig')
     // A hugging badge whose label a property shortens: its saved width fits the new label.

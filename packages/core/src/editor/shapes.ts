@@ -50,13 +50,17 @@ export function createShapeActions(ctx: EditorContext) {
     }
     const node = ctx.graph.createNode(type, pid, overrides)
     const id = node.id
-    const snapshot = { ...node }
+    // Callers finish the layer after this returns (the pen writes its path, fills and strokes),
+    // so redo restores the layer as it was when undone, not as first created.
+    let snapshot = { ...node }
     ctx.undo.push({
       label: `Create ${type.toLowerCase()}`,
       forward: () => {
         ctx.graph.createNode(snapshot.type, pid, snapshot)
       },
       inverse: () => {
+        const current = ctx.graph.getNode(id)
+        if (current) snapshot = { ...current }
         ctx.graph.deleteNode(id)
         const next = new Set(ctx.state.selectedIds)
         next.delete(id)

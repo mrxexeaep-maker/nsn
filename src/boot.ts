@@ -6,6 +6,7 @@ import { createRetainedScopePlugin } from '@open-pencil/vue'
 import './app.css'
 import { recordRuntimeError } from '@/app/diagnostics'
 import { preloadFonts } from '@/app/editor/fonts'
+import { installBundledFonts } from '@/app/editor/fonts/bundled'
 import { closeBootSplash } from '@/app/shell/boot-splash'
 import { observeBootErrors } from '@/app/shell/support/boot'
 import { reportBootFailure } from '@/app/shell/support/gate'
@@ -20,6 +21,7 @@ import router from './router'
  * evaluates the app bundle and can still show the gate's guidance.
  */
 export async function boot(): Promise<void> {
+  installBundledFonts()
   preloadFonts()
   const head = createHead()
   const app = createApp(App)
