@@ -1,16 +1,15 @@
 import {
   cloneInstanceOverrideState,
   findInstanceAncestor,
-  fitEnclosingGroups,
   setInstanceOverride
 } from '@open-pencil/scene-graph'
 
-import { groupFitOptions } from '#core/canvas/boolean'
 import { assertNodeEditable } from '#core/editor/capabilities'
 import {
   applyBoundVisibilityEdit,
   bindsVisibility
 } from '#core/editor/components/authoring/visibility-edit'
+import { refitGroupsAroundLayers } from '#core/editor/structure/group-bounds'
 import type { EditorContext } from '#core/editor/types'
 
 export function createStructureStateActions(ctx: EditorContext) {
@@ -28,8 +27,7 @@ export function createStructureStateActions(ctx: EditorContext) {
       const parentId = ctx.graph.getNode(id)?.parentId
       if (!parentId) return
       ctx.runLayoutForNode(parentId)
-      // A group spans only the layers it shows; the fit follows the state, so undo refits too.
-      fitEnclosingGroups(ctx.graph, [parentId], groupFitOptions(ctx.getRenderer(), ctx.graph))
+      refitGroupsAroundLayers(ctx, [id])
     }
     const forward = () => {
       const instance = findInstanceAncestor(ctx.graph, id)
