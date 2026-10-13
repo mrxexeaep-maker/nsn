@@ -2,9 +2,13 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 import { assembleUnreleased, readFragments } from './fragments'
-import { validateChangelog } from './validate'
+import { unreleasedContentLine, validateChangelog } from './validate'
 
-const root = resolve(process.argv[2] ?? '.')
+// `--release` allows entries under Unreleased while a release curates them after
+// `changelog:assemble`; without it, they belong in fragments.
+const args = process.argv.slice(2)
+const release = args.includes('--release')
+const root = resolve(args.find((arg) => !arg.startsWith('--')) ?? '.')
 const changelogPath = resolve(root, 'CHANGELOG.md')
 
 const { fragments, errors: fragmentErrors } = await readFragments(resolve(root, 'changes'))
@@ -13,6 +17,13 @@ const { fragments, errors: fragmentErrors } = await readFragments(resolve(root, 
 const changelog = await readFile(changelogPath, 'utf8')
 const { errors: changelogErrors } = validateChangelog(assembleUnreleased(changelog, fragments))
 const errors = [...fragmentErrors, ...changelogErrors]
+
+const pending = release ? null : unreleasedContentLine(changelog)
+if (pending !== null) {
+  errors.unshift(
+    `CHANGELOG.md line ${pending}: Unreleased stays empty; move the entry into changes/<PR>/<category>.md (changes/README.md).`
+  )
+}
 
 if (errors.length > 0) {
   process.stderr.write(

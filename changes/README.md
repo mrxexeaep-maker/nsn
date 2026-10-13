@@ -12,4 +12,4 @@ changes/<pull request>/<category>.md
 - Text keeps a case, a link, and variable bindings for any range of its characters, as in Figma.
 ```
 
-Open the pull request first, then name the folder after its number. `bun run check:changelog` validates the fragments as they will read once assembled. At release, `bun run changelog:assemble` moves them under `## Unreleased` and deletes the folders; the release pass in `AGENTS.md` then curates the section.
+Open the pull request first, then name the folder after its number. `bun run check:changelog` validates the fragments as they will read once assembled, and fails on entries written under `## Unreleased` in `CHANGELOG.md`. At release, `bun run changelog:assemble` moves them under `## Unreleased` and deletes the folders; the release pass in `AGENTS.md` then curates the section.

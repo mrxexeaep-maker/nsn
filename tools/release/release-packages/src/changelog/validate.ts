@@ -186,6 +186,20 @@ export function validateChangelog(source: string): ChangelogValidationResult {
   return { errors }
 }
 
+/**
+ * The line of the first content under `## Unreleased`, or null when the section is empty, as it
+ * is on every commit: pull requests write fragments, and a release moves the section away.
+ */
+export function unreleasedContentLine(source: string): number | null {
+  const tree = fromMarkdown(source) as Root
+  const index = tree.children.findIndex(
+    (node) => node.type === 'heading' && node.depth === 2 && headingText(node) === 'Unreleased'
+  )
+  if (index === -1) return null
+  const first = tree.children[index + 1]
+  return first && sectionEnd(tree.children, index) > index + 1 ? line(first) : null
+}
+
 export async function validateChangelogFile(path: string): Promise<ChangelogValidationResult> {
   return validateChangelog(await readFile(path, 'utf8'))
 }
