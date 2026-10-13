@@ -1,3 +1,5 @@
+import { pick } from 'es-toolkit'
+
 import type {
   SceneNode,
   VectorNetwork,
@@ -8,7 +10,11 @@ import type { Vector } from '@open-pencil/scene-graph/primitives'
 
 import { BLACK } from '#core/constants'
 import type { EditorContext } from '#core/editor/types'
-import { computeAccurateBounds } from '#core/vector'
+import {
+  computeAccurateBounds,
+  vectorChangesFromPagePath,
+  type VectorPathChanges
+} from '#core/vector'
 
 export interface PenDragOptions {
   keepOpposite?: boolean
@@ -183,6 +189,12 @@ export function createPenActions(ctx: EditorContext, createShape: CreateShape) {
       regions
     }
 
+    const resumed = ps.resumingNodeId ? ctx.graph.getNode(ps.resumingNodeId) : undefined
+    if (resumed?.type === 'VECTOR' && commitIntoLayer(resumed, network)) {
+      finishPath()
+      return
+    }
+
     const bounds = computeAccurateBounds(network)
 
     const normalizedVertices = network.vertices.map((v) => ({
@@ -210,7 +222,33 @@ export function createPenActions(ctx: EditorContext, createShape: CreateShape) {
       strokes
     })
     ctx.setSelectedIds(new Set([nodeId]))
+    finishPath()
+  }
 
+  /**
+   * Gives the layer a continued path came from its new points, as Figma does, rather than making
+   * another layer: the layer keeps its name, place and style, and one undo puts its path back.
+   */
+  function commitIntoLayer(node: SceneNode, network: VectorNetwork): boolean {
+    const changes = vectorChangesFromPagePath(ctx.graph, node, network)
+    if (!changes) return false
+    const { id, parentId } = node
+    const previous = pick(node, Object.keys(changes) as (keyof VectorPathChanges)[])
+    const apply = (values: Partial<SceneNode>) => {
+      ctx.graph.updateNode(id, values)
+      if (parentId) ctx.runLayoutForNode(parentId)
+    }
+    apply(changes)
+    ctx.undo.push({
+      label: 'Edit vector',
+      forward: () => apply(changes),
+      inverse: () => apply(previous)
+    })
+    ctx.setSelectedIds(new Set([id]))
+    return true
+  }
+
+  function finishPath() {
     ctx.state.penState = null
     ctx.state.penCursorX = null
     ctx.state.penCursorY = null
