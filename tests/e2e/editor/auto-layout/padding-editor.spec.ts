@@ -208,3 +208,22 @@ test('selecting another layer closes the value editor and keeps the value it had
   expect(await framePaddingTop(page, frameId)).toBe(committed)
   canvas.assertNoErrors()
 })
+
+test('deleting the frame closes its value editor', async ({ page }) => {
+  await page.goto('/')
+  const canvas = new CanvasHelper(page)
+  await canvas.waitForInit()
+  await canvas.clearCanvas()
+
+  const frameId = await setupAutoLayoutFrame(page)
+  await canvas.waitForRender()
+
+  await canvas.hover(300, 130)
+  await dblclickCanvas(page, 300, 130)
+  const editor = page.getByTestId('auto-layout-value-editor')
+  await expect(editor).toBeVisible()
+
+  await page.evaluate((id) => window.openPencil?.getStore?.().graph.deleteNode(id), frameId)
+  await expect(editor).toHaveCount(0)
+  canvas.assertNoErrors()
+})

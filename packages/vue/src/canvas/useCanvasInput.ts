@@ -1,9 +1,10 @@
 import { useEventListener } from '@vueuse/core'
 import { onScopeDispose, ref, watch, type Ref } from 'vue'
 
-import type { Editor, NodePreview } from '@open-pencil/core/editor'
+import type { Editor } from '@open-pencil/core/editor'
 import type { SceneNode } from '@open-pencil/scene-graph'
 
+import { createAutoLayoutValueEdit } from '#vue/canvas/auto-layout/value-edit'
 import { createGuideInput, selectedTopLevelGuideFrameId } from '#vue/canvas/guides/input'
 import { createCanvasLabelEdit } from '#vue/canvas/labels/edit'
 import { handlePenDragMove, updatePenHover } from '#vue/canvas/pen/input'
@@ -17,11 +18,7 @@ import {
   handleNodeEditPointerUp,
   updateNodeEditHover
 } from '#vue/canvas/vector-input/input'
-import {
-  autoLayoutValueField,
-  resolveAutoLayoutHover,
-  type AutoLayoutValueField
-} from '#vue/shared/input/auto-layout-hover'
+import { resolveAutoLayoutHover } from '#vue/shared/input/auto-layout-hover'
 import { createClickCounter } from '#vue/shared/input/click-count'
 import { handleDrawMove } from '#vue/shared/input/draw'
 import { handleMoveMove, handleMoveUp } from '#vue/shared/input/move'
@@ -60,17 +57,7 @@ export function useCanvasInput(
   const canvasLabelEdit = createCanvasLabelEdit(editor)
   const cursorOverride = ref<string | null>(null)
   /** Whether the primary button is held on a preview control, such as a slider thumb. */
-  const autoLayoutValueEdit = ref<{
-    nodeId: string
-    field: AutoLayoutValueField
-    /** The gap a double-click opened the gap's editor on, which it sits over. */
-    gap: number
-    value: number
-  } | null>(null)
-  // The edit's owned preview: undo takes it back in one step, and a selection, page, or
-  // document change cancels it, which closes the editor.
-  let valuePreview: NodePreview | null = null
-  let stopValuePreview: Array<() => void> = []
+  const valueEdit = createAutoLayoutValueEdit(editor)
   const selectedIdsBeforeClickSequence = ref<ReadonlySet<string>>(new Set())
   const lastPointer = ref<{ cx: number; cy: number; sx: number; sy: number } | null>(null)
   const pointerInside = ref(false)
@@ -177,67 +164,14 @@ export function useCanvasInput(
     handleMarqueeMove
   } = createCanvasTransformInput(editor, setDrag)
 
-  function endAutoLayoutValueEdit() {
-    for (const stop of stopValuePreview) stop()
-    stopValuePreview = []
-    valuePreview = null
-    autoLayoutValueEdit.value = null
-  }
-
-  function startAutoLayoutValueEdit(e: MouseEvent): boolean {
-    const { cx, cy } = getCoords(e)
-    const hover = resolveAutoLayoutHover(cx, cy, editor)
-    const field = hover ? autoLayoutValueField(hover) : null
-    const node = hover ? editor.graph.getNode(hover.nodeId) : undefined
-    if (!hover || !field || !node) return false
-    valuePreview = editor.beginNodePreview(
-      field === 'itemSpacing' ? 'Update gap' : 'Update padding'
-    )
-    const close = () => {
-      if (valuePreview?.closed) endAutoLayoutValueEdit()
-    }
-    stopValuePreview = (['selection:changed', 'page:changed', 'graph:replaced'] as const).map(
-      (event) => editor.onEditorEvent(event, close)
-    )
-    stopValuePreview.push(editor.onEditorEvent('node:deleted', close))
-    autoLayoutValueEdit.value = {
-      nodeId: node.id,
-      field,
-      gap: hover.index ?? 0,
-      value: node[field]
-    }
-    e.preventDefault()
-    e.stopPropagation()
-    return true
-  }
-
-  function updateAutoLayoutValueEdit(value: number) {
-    const edit = autoLayoutValueEdit.value
-    if (!edit || !valuePreview || !Number.isFinite(value)) return
-    const next = Math.max(0, value)
-    autoLayoutValueEdit.value = { ...edit, value: next }
-    valuePreview.update(edit.nodeId, { [edit.field]: next })
-  }
-
-  function commitAutoLayoutValueEdit(value: number) {
-    const edit = autoLayoutValueEdit.value
-    if (edit && valuePreview && Number.isFinite(value)) {
-      valuePreview.update(edit.nodeId, { [edit.field]: Math.max(0, value) })
-      valuePreview.commit()
-    } else {
-      valuePreview?.cancel()
-    }
-    endAutoLayoutValueEdit()
-  }
-
-  function cancelAutoLayoutValueEdit() {
-    valuePreview?.cancel()
-    endAutoLayoutValueEdit()
-  }
-
   function onDblClick(e: MouseEvent) {
     if (editor.state.play) return
-    if (startAutoLayoutValueEdit(e)) return
+    const { cx, cy } = getCoords(e)
+    if (valueEdit.start(cx, cy)) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
     onTextDblClick(e)
   }
 
@@ -250,10 +184,8 @@ export function useCanvasInput(
       return
     }
     editor.setMeasurementMode('off')
-    const valueEdit = autoLayoutValueEdit.value
-    if (valueEdit) {
-      commitAutoLayoutValueEdit(valueEdit.value)
-    }
+    const openValueEdit = valueEdit.edit.value
+    if (openValueEdit) valueEdit.commit(openValueEdit.value)
     if (!editor.state.editingTextId) canvasRef.value?.focus()
     editor.setHoveredNode(null)
     const { sx, sy, cx, cy } = getCoords(e)
@@ -586,12 +518,12 @@ export function useCanvasInput(
     updateCanvasLabelEdit: canvasLabelEdit.update,
     commitCanvasLabelEdit: canvasLabelEdit.commit,
     cancelCanvasLabelEdit: canvasLabelEdit.cancel,
-    autoLayoutValueEdit,
-    updateAutoLayoutValueEdit,
-    commitAutoLayoutValueEdit,
-    cancelAutoLayoutValueEdit,
+    autoLayoutValueEdit: valueEdit.edit,
+    updateAutoLayoutValueEdit: valueEdit.update,
+    commitAutoLayoutValueEdit: valueEdit.commit,
+    cancelAutoLayoutValueEdit: valueEdit.cancel,
     cleanupInteractions() {
-      cancelAutoLayoutValueEdit()
+      valueEdit.cancel()
       cancelPointerInteraction()
       pointerInside.value = false
       resetMeasurementModifiers()
