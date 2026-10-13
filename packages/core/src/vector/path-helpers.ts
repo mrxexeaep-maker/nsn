@@ -202,7 +202,9 @@ export function strokeRuns(segments: VectorSegment[]): StrokeRun[] {
       continue
     }
     const start = extend(segment.start, first, (index) => run.unshift(index))
-    runs.push({ start, segments: run, closed: false })
+    // A loop through a junction stops at it from both sides; it still closes there, whichever
+    // of its segments is stored first.
+    runs.push({ start, segments: run, closed: start === end })
   }
   return runs
 }

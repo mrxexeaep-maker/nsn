@@ -77,6 +77,19 @@ describe('stroke runs', () => {
     expect(draw([line(0, 1), line(0, 2), line(0, 3)], vertices)).toHaveLength(3)
   })
 
+  test('a loop through a junction closes whichever of its segments is stored first', () => {
+    // A square with a tail from its top-left corner, the junction.
+    const square = [line(0, 1), line(1, 2), line(2, 3), line(3, 0)]
+    const tail = line(0, 4)
+    for (const segments of [
+      [...square, tail],
+      [square[1], square[2], square[3], square[0], tail]
+    ]) {
+      const loop = strokeRuns(segments).find((run) => run.segments.length === 4)
+      expect(loop?.closed).toBe(true)
+    }
+  })
+
   test('a curve drawn backwards swaps its handles', () => {
     const vertices = [
       { x: 0, y: 0 },
