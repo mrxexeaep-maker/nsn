@@ -1,22 +1,24 @@
 import { describe, expect, test } from 'bun:test'
 
 import { createEditor } from '@open-pencil/core/editor'
-import { collectionsBoundIn, type SceneNode } from '@open-pencil/scene-graph'
+import { collectionsBoundIn, SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
 import { MIXED, setVariableMode, variableModeChoices } from '@open-pencil/vue'
 
-import { expectDefined, getNodeOrThrow } from '#tests/helpers/assert'
-import { firstPageId, makeSceneGraph } from '#tests/helpers/scene'
-
 const RED = { r: 1, g: 0, b: 0, a: 1 }
+
+function expectDefined<T>(value: T | null | undefined, label: string): T {
+  if (value === null || value === undefined) throw new Error(`Expected ${label}`)
+  return value
+}
 
 /**
  * A Theme collection with Light and Dark modes, a single-mode Density collection, a frame whose
  * fill is bound to Theme with a bound child inside it, and a plain frame.
  */
 function setup() {
-  const graph = makeSceneGraph()
+  const graph = new SceneGraph()
   const editor = createEditor({ graph })
-  const page = firstPageId(graph)
+  const page = expectDefined(graph.getPages()[0], 'first page').id
   const theme = graph.createCollection('Theme')
   const light = theme.defaultModeId
   theme.modes[0].name = 'Light'
@@ -28,7 +30,7 @@ function setup() {
   const outer = graph.createNode('FRAME', page, { name: 'Outer', ...bound })
   const inner = graph.createNode('FRAME', outer.id, { name: 'Inner', ...bound })
   const plain = graph.createNode('FRAME', page, { name: 'Plain' })
-  const node = (id: string): SceneNode => getNodeOrThrow(graph, id)
+  const node = (id: string): SceneNode => expectDefined(graph.getNode(id), id)
   return { editor, graph, page, theme, light, dark, density, outer, inner, plain, node }
 }
 
