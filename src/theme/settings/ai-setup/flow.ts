@@ -4,7 +4,7 @@ export default {
   slots: {
     body: 'flex flex-col gap-3 text-xs text-surface',
     help: 'text-xs leading-relaxed text-muted',
-    intro: 'rounded-lg border border-accent/25 bg-accent/5 p-4',
+    services: 'rounded-lg border border-accent/25 bg-accent/5 p-4',
     introHeading: 'text-sm font-semibold text-surface',
     introText: 'mt-2 text-xs leading-relaxed text-muted',
     tour: 'flex items-start justify-between gap-4 rounded-lg border border-border p-4',

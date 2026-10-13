@@ -20,6 +20,7 @@ import MCPWorkspacePanel from '@/components/settings/mcp/MCPWorkspacePanel.vue'
 import MediaSettingsPanel from '@/components/settings/media/MediaSettingsPanel.vue'
 import ModelsPanel from '@/components/settings/models/ModelsPanel.vue'
 import PrivacySettingsPanel from '@/components/settings/privacy/PrivacySettingsPanel.vue'
+import ServiceSetupPanel from '@/components/settings/service-setup/ServiceSetupPanel.vue'
 import StorageSettingsPanel from '@/components/settings/storage/StorageSettingsPanel.vue'
 import ToolAccessSettingsPanel from '@/components/settings/tool-access/ToolAccessSettingsPanel.vue'
 import ToolbarSettingsPanel from '@/components/settings/toolbar/ToolbarSettingsPanel.vue'
@@ -45,6 +46,7 @@ const { editing, confirming } = navigation
 const sections = computed(
   () =>
     [
+      { value: 'setup', label: settings.value.serviceSetup },
       { value: 'general', label: settings.value.general },
       { value: 'toolbar', label: settings.value.toolbar },
       { value: 'ai', label: settings.value.aiAndAgents },
@@ -103,6 +105,10 @@ function onOpenChange(open: boolean): void {
         />
       </div>
       <AppTabsList v-show="!isMobile" :label="settings.title">
+        <AppTabsTrigger value="setup" data-test-id="settings-section-setup">
+          <template #leading><icon-lucide-list-checks class="size-3.5" /></template>
+          {{ settings.serviceSetup }}
+        </AppTabsTrigger>
         <AppTabsTrigger value="general" data-test-id="settings-section-general">
           <template #leading><icon-lucide-settings class="size-3.5" /></template>
           {{ settings.general }}
@@ -145,6 +151,9 @@ function onOpenChange(open: boolean): void {
         </AppTabsTrigger>
       </AppTabsList>
 
+      <AppTabsContent value="setup" as-child>
+        <ServiceSetupPanel />
+      </AppTabsContent>
       <AppTabsContent value="general" as-child>
         <SettingsPage><GeneralSettingsPanel /></SettingsPage>
       </AppTabsContent>

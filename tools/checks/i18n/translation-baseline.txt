@@ -249,6 +249,7 @@ ja:panels.colorFormatOkhcl
 ja:panels.colorFormatRgb
 ja:panels.framePresetCategoryFigmaCommunity
 ja:settings.mcp
+ja:settings.setupGroupAI
 ja:storage.providerAmazonS3
 ja:storage.providerBackblaze
 ja:storage.providerR2
@@ -286,6 +287,7 @@ pl:panels.behaviourMin
 pl:panels.shader
 pl:settings.mcp
 pl:settings.media
+pl:settings.setupGroupAI
 pl:storage.providerAmazonS3
 pl:storage.providerBackblaze
 pl:storage.providerR2
@@ -331,6 +333,7 @@ zh-cn:panels.colorFormatRgb
 zh-cn:panels.framePresetCategoryFigmaCommunity
 zh-cn:panels.maskTypeAlpha
 zh-cn:settings.mcp
+zh-cn:settings.setupGroupAI
 zh-cn:storage.providerAmazonS3
 zh-cn:storage.providerBackblaze
 zh-cn:storage.providerR2

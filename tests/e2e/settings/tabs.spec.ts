@@ -31,7 +31,12 @@ test('settings tabs associate panels and support vertical keyboard navigation', 
     'aria-labelledby',
     (await ai.getAttribute('id')) ?? ''
   )
+  // Service setup is the first tab.
   await ai.press('Home')
+  const setup = page.getByTestId('settings-section-setup')
+  await expect(setup).toBeFocused()
+  await expect(page.getByTestId('settings-service-setup-panel')).toBeVisible()
+  await setup.press('ArrowDown')
   await expect(general).toBeFocused()
   await expect(page.getByTestId('settings-general-panel')).toBeVisible()
   await general.press('End')

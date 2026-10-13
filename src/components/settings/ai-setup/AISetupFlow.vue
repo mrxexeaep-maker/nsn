@@ -8,7 +8,9 @@ import { useI18n } from '@open-pencil/vue'
 import { type AISetupEntry, hideWelcomeOnLaunch } from '@/app/ai/models/settings/onboarding/dialog'
 import type { OnboardingAccess } from '@/app/ai/models/settings/onboarding/plan'
 import { AI_SETUP_STEPS, useAIOnboarding } from '@/app/ai/models/settings/onboarding/use'
+import type { SettingsSection } from '@/app/settings/dialog'
 import SettingsSaveFeedback from '@/components/settings/layout/SettingsSaveFeedback.vue'
+import ServiceSetupSummary from '@/components/settings/service-setup/ServiceSetupSummary.vue'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import { AppDialogBody, AppDialogFooter, AppDialogHeader } from '@/components/ui/dialog'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
@@ -25,7 +27,12 @@ const { entry, agentsAvailable = IS_TAURI } = defineProps<{
   entry: AISetupEntry
   agentsAvailable?: boolean
 }>()
-const emit = defineEmits<{ close: []; advanced: []; tour: [] }>()
+const emit = defineEmits<{
+  close: []
+  advanced: []
+  tour: []
+  services: [section: SettingsSection]
+}>()
 const { ai, common } = useI18n()
 const styles = tv(theme)()
 
@@ -94,6 +101,11 @@ async function finish(): Promise<void> {
     :description="header.description"
     :close-label="common.close"
   >
+    <!-- The welcome is OpenPencil's front door, so it shows the lockup; the title stays for screen readers. -->
+    <template v-if="phase === 'welcome'" #title>
+      <span class="sr-only">{{ header.heading }}</span>
+      <icon-brand-lockup aria-hidden="true" class="mb-1 block h-7 w-auto text-surface" />
+    </template>
     <template #actions>
       <AppButton v-if="phase === 'wizard'" size="xs" class="mr-1 ml-auto" @click="emit('advanced')">
         {{ ai.aiSetupAdvanced }}
@@ -104,9 +116,9 @@ async function finish(): Promise<void> {
   <AppDialogBody>
     <div :class="styles.body()" :data-ai-setup-step="phase === 'wizard' ? step : phase">
       <template v-if="phase === 'welcome'">
-        <section :class="styles.intro()">
-          <h3 :class="styles.introHeading()">{{ ai.aiSetupWelcomeAITitle }}</h3>
-          <p :class="styles.introText()">{{ ai.aiSetupWelcomeAIDescription }}</p>
+        <!-- What is set up so far, AI first; Set up AI in the footer starts with the first gap. -->
+        <section :class="styles.services()" data-test-id="ai-setup-services">
+          <ServiceSetupSummary @open="emit('services', $event)" />
         </section>
         <section :class="styles.tour()" data-test-id="ai-setup-tour">
           <div>
