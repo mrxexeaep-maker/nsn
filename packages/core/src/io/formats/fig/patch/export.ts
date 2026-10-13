@@ -5,9 +5,14 @@ import {
   type FigArchiveRecordInfo,
   type FigRecordPatch
 } from '@open-pencil/fig'
-import type { FigNodeChangeExportRuntime } from '@open-pencil/fig/node-change'
+import { nameImagesForFigma, type FigNodeChangeExportRuntime } from '@open-pencil/fig/node-change'
 import { stringToGuid } from '@open-pencil/kiwi/fig/guid'
-import { ownsSlotContent, type SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
+import {
+  computeImageHash,
+  ownsSlotContent,
+  type SceneGraph,
+  type SceneNode
+} from '@open-pencil/scene-graph'
 import { siblingOrderKeys } from '@open-pencil/scene-graph/order-keys'
 import type { GUID } from '@open-pencil/scene-graph/primitives'
 
@@ -19,6 +24,7 @@ import {
   type FigExportSetup,
   type KiwiNodeChange
 } from '#core/io/formats/fig/export-setup'
+import { appendVariableNodeChanges } from '#core/io/formats/fig/variable-export'
 import { sceneNodeToKiwi } from '#core/kiwi/fig/node-change/serialize'
 import { figArchive, type FigArchiveAccess } from '#core/kiwi/fig/session/archive'
 import { archiveChanges, type ArchiveChangeSummary } from '#core/kiwi/fig/session/archive-changes'
@@ -28,7 +34,7 @@ import {
   readerCheckpoint
 } from '#core/kiwi/fig/session/document-state'
 
-import { appendVariableNodeChanges } from './variable-export'
+import { narrowToChangedFields, type RecordWriter } from './fields'
 
 export interface PatchedFigFileOptions {
   ck?: CanvasKit
@@ -301,6 +307,31 @@ function variableRecords(setup: FigExportSetup, archiveInternalCanvas: boolean):
   return records
 }
 
+/** The document record, under the archive's GUID for it. */
+function documentRecord(setup: FigExportSetup, info: FigArchiveRecordInfo): KiwiNodeChange {
+  const guid = info.documentId ? stringToGuid(info.documentId) : setup.docGuid
+  return { ...setup.documentNc, guid }
+}
+
+/**
+ * Writes an untouched copy's records as the patch writes the document's: each layer at the
+ * position the archive saved, the document record, and every variable.
+ */
+function baselineWriter(info: FigArchiveRecordInfo): RecordWriter {
+  return (graph, setup, records) => {
+    const orderKeys = new Map<string, string>()
+    for (const id of records) {
+      const orderKey = graph.getNode(id)?.source.orderKey
+      if (orderKey) orderKeys.set(id, orderKey)
+    }
+    const plan = { records: new Set(records), orderKeys, removed: [], replaceVariables: false }
+    const written = writeRecords(setup, plan)
+    if (!written) return null
+    const internalPage = graph.getPages(true).find((page) => page.internalOnly)
+    return [documentRecord(setup, info), ...written, ...variableRecords(setup, !!internalPage)]
+  }
+}
+
 async function buildPatch(
   source: SceneGraph,
   runtime: FigNodeChangeExportRuntime,
@@ -321,10 +352,8 @@ async function buildPatch(
   const records = writeRecords(setup, plan)
   if (!records) return null
   // The document's own fields, its plugin data among them, are written on the document record.
-  if (changes.documentChanged || changes.touched.has(graph.rootId)) {
-    const guid = info.documentId ? stringToGuid(info.documentId) : setup.docGuid
-    records.unshift({ ...setup.documentNc, guid })
-  }
+  if (changes.documentChanged || changes.touched.has(graph.rootId))
+    records.unshift(documentRecord(setup, info))
   if (plan.replaceVariables) {
     const internalPage = graph.getPages(true).find((page) => page.internalOnly)
     const internal = setup.canvasEntries.find((entry) => entry.page.internalOnly)
@@ -332,15 +361,49 @@ async function buildPatch(
     for (const record of variableRecords(setup, !!internalPage || canvasWritten))
       records.push(record)
   }
+  const narrowed = await narrowToChangedFields(
+    graph,
+    runtime,
+    info,
+    archived.byGuid,
+    records,
+    baselineWriter(info)
+  )
   return {
     graph,
     patch: {
-      records,
+      records: narrowed.records,
+      fields: narrowed.fields,
       blobs: setup.blobs.slice(info.blobCount),
       removed: plan.removed,
       replaceVariables: plan.replaceVariables
     }
   }
+}
+
+const archiveImagesChecked = new WeakMap<FigArchiveAccess, Promise<boolean>>()
+
+/**
+ * Whether every image the archive `graph` was opened from holds is stored under the SHA-1 of its
+ * bytes, the only name Figma reads. Archives OpenPencil wrote before image names were SHA-1 are
+ * not, and records a save leaves untouched point at those names, so such a document is written
+ * whole, which names every image as Figma needs, instead of reusing its archive. The archive
+ * does not change, so it is checked once; a document with no archive has nothing to check.
+ */
+export function archiveImagesNamedForFigma(graph: SceneGraph): Promise<boolean> {
+  const archive = figArchive(graph)
+  if (!archive) return Promise.resolve(true)
+  let checked = archiveImagesChecked.get(archive)
+  if (!checked) {
+    checked = archive.info().then(({ imageHashes }) =>
+      imageHashes.every((name) => {
+        const bytes = graph.images.get(name)
+        return !bytes || computeImageHash(bytes) === name
+      })
+    )
+    archiveImagesChecked.set(archive, checked)
+  }
+  return checked
 }
 
 /**
@@ -372,8 +435,10 @@ export async function writePatchedFigFile(
     throw error
   }
   if (!built) return null
+  const imageNames = nameImagesForFigma(built.patch.records, built.graph.images)
   const extras = await figFileExtras(
     built.graph,
+    imageNames,
     options.pageId,
     options.ck,
     options.renderer,

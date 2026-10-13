@@ -67,7 +67,7 @@ import type { Color } from '@open-pencil/scene-graph/primitives'
  * The collaboration namespace. It names the shared document format, so builds that sync the layer
  * tree differently never join each other's rooms; change it with the format.
  */
-export const COLLAB_APP_ID = 'openpencil/2'
+export const COLLAB_APP_ID = 'openpencil/3'
 // 32 base36 characters provide roughly 165 bits of entropy. The room ID is a
 // bearer credential and must resist offline enumeration from public signaling topics.
 export const ROOM_ID_LENGTH = 32
@@ -80,6 +80,8 @@ export const ROOM_STATUS_TICK_MS = 500
 export const WEB_APP_ORIGIN = 'https://app.openpencil.dev'
 /** The privacy page: every request the app makes, and every usage event and field. */
 export const PRIVACY_URL = 'https://openpencil.dev/overview/privacy'
+/** The OpenPencil Cloud section of the website, with its waitlist form. */
+export const CLOUD_WAITLIST_URL = 'https://openpencil.dev/#cloud'
 /** Where the desktop app's installers are published. */
 export const DESKTOP_DOWNLOAD_URL = 'https://github.com/open-pencil/open-pencil/releases/latest'
 export const NODE_DOWNLOAD_URL = 'https://nodejs.org/en/download'

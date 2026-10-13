@@ -15,7 +15,8 @@ export interface FeedbackBindings {
   POSTHOG_HOST: string
   POSTHOG_KEY: string
   EMAIL_FROM: string
-  TURNSTILE_HOSTNAME: string
+  /** The sites whose Turnstile passes a sign-up accepts, separated by commas. */
+  TURNSTILE_HOSTNAMES: string
   TURNSTILE_SECRET: string
 }
 

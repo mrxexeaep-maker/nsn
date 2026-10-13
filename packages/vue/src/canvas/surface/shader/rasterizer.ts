@@ -1,4 +1,5 @@
 import type { ShaderRasterizer } from '@open-pencil/core/editor'
+import { shaderFrameEncoding } from '@open-pencil/scene-graph'
 
 /** Whether this browser can draw shaders, which need WebGPU. */
 export function canDrawShaders(): boolean {
@@ -10,8 +11,26 @@ export function canDrawShaders(): boolean {
 }
 
 /**
+ * The drawn frame on `canvas`, encoded as its pixels call for. A WebGPU canvas has no pixels to
+ * read, so the frame is copied to a 2D canvas first, and encoded from there.
+ */
+async function encodeFrame(canvas: HTMLCanvasElement): Promise<Blob | null> {
+  const copy = document.createElement('canvas')
+  copy.width = canvas.width
+  copy.height = canvas.height
+  const context = copy.getContext('2d')
+  if (!context) return null
+  context.drawImage(canvas, 0, 0)
+  const { data } = context.getImageData(0, 0, copy.width, copy.height)
+  const { type, quality } = shaderFrameEncoding(data)
+  return new Promise<Blob | null>((resolve) => {
+    copy.toBlob(resolve, type, quality)
+  })
+}
+
+/**
  * Draws shader frames with the `shaders` library's preset renderer on a detached WebGPU canvas,
- * one at a time, and encodes each as PNG. The library is loaded on the first frame, so documents
+ * one at a time, and encodes each as `shaderFrameEncoding` picks from its pixels. The library is loaded on the first frame, so documents
  * without shaders never fetch it. Null where the browser has no WebGPU.
  */
 export function createShaderRasterizer(): ShaderRasterizer | null {
@@ -35,10 +54,7 @@ export function createShaderRasterizer(): ShaderRasterizer | null {
         // pipelines, so the one kept is the second; reading the canvas waits for the GPU.
         await renderer.renderFrame({ deltaSeconds: 0, waitForGpu: false })
         await renderer.renderFrame({ deltaSeconds: 0, waitForGpu: false })
-        const encoded = new Promise<Blob | null>((resolve) => {
-          canvas.toBlob(resolve, 'image/png')
-        })
-        const blob = await encoded
+        const blob = await encodeFrame(canvas)
         if (isDestroyed() || !blob) return null
         const bytes = new Uint8Array(await blob.arrayBuffer())
         return isDestroyed() ? null : bytes

@@ -23,6 +23,10 @@ export type { PresentationColorSpace } from '#vue/canvas/surface/color-space'
 export { useCanvas } from '#vue/canvas/surface/use'
 export type { UseCanvasOptions } from '#vue/canvas/surface/use'
 export { useCanvasInput } from '#vue/canvas/useCanvasInput'
+export {
+  autoLayoutValueAnchor,
+  type AutoLayoutValueField
+} from '#vue/shared/input/auto-layout-hover'
 export { useCanvasIssueMarkers } from '#vue/canvas/issues/use'
 export type { CanvasIssueMarkerOptions } from '#vue/canvas/issues/use'
 export type { CanvasLabelEdit, CanvasLabelKind } from '#vue/canvas/labels/edit'

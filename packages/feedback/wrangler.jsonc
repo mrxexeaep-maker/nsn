@@ -9,7 +9,8 @@
   "vars": {
     "POSTHOG_HOST": "https://eu.i.posthog.com",
     "EMAIL_FROM": "hello@openpencil.dev",
-    "TURNSTILE_HOSTNAME": "openpencil.dev"
+    // The website's form and the web app's Settings; the desktop app opens the website.
+    "TURNSTILE_HOSTNAMES": "openpencil.dev,app.openpencil.dev"
   },
   // Created with `wrangler d1 create feedback --jurisdiction eu`, so rows stay in the EU.
   "d1_databases": [

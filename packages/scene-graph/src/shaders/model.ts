@@ -1,5 +1,7 @@
+import { sha1 } from '@noble/hashes/legacy.js'
+import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js'
+
 import { TRANSPARENT } from '../constants'
-import { computeImageHash } from '../images'
 import { readAllPluginData, withAllPluginData } from '../plugin-data/field'
 import { OPEN_PENCIL_PLUGIN_DATA } from '../plugin-data/fields'
 import { randomHex } from '../random'
@@ -77,7 +79,7 @@ export function createShaderPaint(preset: ShaderPreset): {
 
 /** A short key that tells one preset from another, which a rendered frame records. */
 export function shaderPresetKey(preset: ShaderPreset): string {
-  return computeImageHash(new TextEncoder().encode(JSON.stringify(preset)))
+  return bytesToHex(sha1(utf8ToBytes(JSON.stringify(preset))))
 }
 
 /**

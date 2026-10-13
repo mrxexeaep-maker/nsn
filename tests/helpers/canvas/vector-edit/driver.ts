@@ -9,8 +9,6 @@ export function vectorEditDriver(page: () => Page) {
       return page().evaluate(async () => {
         const store = window.openPencil?.getStore?.()
         if (!store) throw new Error('OpenPencil store not initialized')
-        // An earlier case may leave its path open.
-        store.exitNodeEditMode(false)
         const fixtureURL = '/tests/helpers/canvas/vector-edit/scene.ts'
         const scene: typeof VectorEditScene = await import(fixtureURL)
         const ids = scene.createComponentVectorScene(store.graph, store.state.currentPageId)

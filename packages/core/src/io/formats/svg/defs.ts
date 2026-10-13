@@ -1,6 +1,12 @@
 import { fromUint8Array } from 'js-base64'
 
-import type { Effect, Fill, SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import {
+  imageMimeType,
+  type Effect,
+  type Fill,
+  type SceneGraph,
+  type SceneNode
+} from '@open-pencil/scene-graph'
 import {
   colorToHex,
   colorToDisplayCSS,
@@ -133,7 +139,7 @@ function createImagePattern(
 
   const id = nextDefId(ctx, 'img')
   const base64 = fromUint8Array(data)
-  const mime = detectImageMime(data)
+  const mime = imageMimeType(data)
 
   return {
     id,
@@ -153,13 +159,6 @@ function createImagePattern(
       })
     )
   }
-}
-
-function detectImageMime(data: Uint8Array): string {
-  if (data[0] === 0x89 && data[1] === 0x50) return 'image/png'
-  if (data[0] === 0xff && data[1] === 0xd8) return 'image/jpeg'
-  if (data[0] === 0x52 && data[1] === 0x49) return 'image/webp'
-  return 'image/png'
 }
 
 export function createFilterDef(

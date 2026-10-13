@@ -10,6 +10,8 @@ import type {
 } from '@open-pencil/scene-graph'
 import type { Color, GUID, Matrix } from '@open-pencil/scene-graph/primitives'
 
+import { variableAlias } from '../variable/bindings'
+
 export type KiwiNodeChange = NodeChange & Record<string, unknown>
 
 export interface KiwiSymbolOverridePayload {
@@ -252,7 +254,7 @@ export function applyColorVariableBinding(
     colorVar: {
       dataType: 'ALIAS',
       resolvedDataType: 'COLOR',
-      value: { alias: { guid: context.varIdToGuid?.get(variableId) ?? stringToGuid(variableId) } }
+      value: { alias: variableAlias(context.graph, variableId, context.varIdToGuid) }
     }
   }
 }

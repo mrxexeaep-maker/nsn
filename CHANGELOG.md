@@ -2,25 +2,56 @@
 
 ## Unreleased
 
+### Breaking changes
+
+- `computeImageHash` from `@open-pencil/core` and `@open-pencil/scene-graph` returns the hex SHA-1 of the bytes, the name Figma gives an image, instead of an OpenPencil-only hash of the same length. New images are stored under that name, so `.fig` files and the Figma clipboard carry it as it is; images in documents saved before keep their names.
+
+### Added
+
+- Settings → Cloud storage offers the OpenPencil Cloud waitlist: the web app signs you up there, with a confirmation email, and the desktop app opens the sign-up on openpencil.dev.
+- Drop design token files, `.tokens`, `.tokens.json`, or `.resolver.json`, on the editor to import them into the document's variables, as the Variables dialog's Import button does.
+
+### Changed
+
+- Trackpads and mouse wheels pan and zoom the canvas as in Figma. A two-finger pan moves the canvas twice as far, up to 120 px per scroll event. A pinch zooms as far in the desktop app and Safari as in other browsers, where it zooms a little less than before. In the desktop app and Safari, a pinch over Preview's live controls or comment pins now zooms the canvas, where it did nothing. On Windows each mouse wheel notch pans 16 px instead of 100 px, and notches less than 50 ms apart pan up to 120 px each.
+
+### Fixed
+
+- People in a shared room see the overrides of instances in the shared document: text, slot content, and every other overridden field arrived empty, and editing such an instance could throw. Rooms opened by earlier builds do not meet rooms opened by this one.
+- Showing or hiding a layer of an instance that a boolean component property drives sets the property, as in Figma, so every layer it drives follows and Figma shows the instance as OpenPencil does. Before, only that layer changed, which Figma ignored.
+- Figma shows shader fills and images from older documents in `.fig` files OpenPencil writes: every image is stored under the SHA-1 of its bytes, the only name Figma reads, and a shader keeps its preset through `.fig` files and the Figma clipboard.
+- HTML, Vue, and React exports name a JPEG, GIF, or WebP image fill by its own type in the data URL instead of calling every image PNG.
+- Saving an opened `.fig` file writes only what an edit changed in a layer or variable, and keeps the rest as Figma saved it. That includes data OpenPencil does not model, an instance's library link and saved overrides, and an edited text's letter spacing in percent and font names. Before, saving rewrote each edited layer whole. Importing design tokens or adding a mode also rewrote every layer and variable in the file that uses variable modes.
+- Variables that alias library variables still point at the library after a save, and a collection's modes keep their order in Figma.
+- Importing design tokens adds them to the file's own collections, never to a collection copied from a library, where Figma did not show them. A token collection named like a library's, such as Tokens in Preline UI files, becomes a new collection of the file.
+
+### Performance
+
+- Shader fills store their still frame as JPEG when no pixel is transparent, about 25 times smaller than PNG, so documents with shaders save and open faster; frames with transparency stay PNG. Figma opens both.
+
 ## 0.16.0-beta.2 — 2026-10-12
 
 This is a pre-release that lists changes since 0.16.0-beta.1: npm packages are published under the `next` tag, and installed apps on the stable release do not update to it. Linux package managers see `0.16.0-beta.2` as newer than `0.16.0`, so `.deb` and `.rpm` users should remove the beta before installing the final 0.16.0.
 
 ### Breaking changes
 
+- `useCanvasInput` in `@open-pencil/vue` returns `autoLayoutValueEdit` with `updateAutoLayoutValueEdit`, `commitAutoLayoutValueEdit`, and `cancelAutoLayoutValueEdit` in place of the padding-only `autoLayoutPaddingEdit` and its functions; the edit names its `field` (a padding or `itemSpacing`), and `autoLayoutValueAnchor` places its editor.
 - `CORNER_ROTATE_ZONE` is removed from `@open-pencil/core/constants`; the selection's resize and rotation zones are `TRANSFORM_ZONE` and `transformZoneAt` in `@open-pencil/core/geometry`, which also owns the `HandlePosition` and `CornerPosition` types.
 - In scripts, a text node's `textCase`, `textStyleId`, and `fillStyleId` now also read `figma.mixed` while its characters differ, as in Figma, instead of the text's own value, and setting one restyles every character.
 
 ### Added
 
+- Double-click an auto layout gap on the canvas to edit it, as a padding, as in Figma.
+- In scripts, an instance's `overrides` lists each layer edited in it, nested instances included, under Figma's field names, and `resetOverrides()` returns the instance and the instances inside it to their components, keeping the values component properties set.
 - Enter opens a selected vector's path for editing, as a double-click does, as in Figma.
 - Text keeps a case, a link, text and fill styles, and variable bindings for any range of its characters, as in Figma: the canvas draws each range in its own case, `.fig` files and the Figma clipboard keep them, apart from font weight bindings, HTML, Tailwind, and JSX exports write links as `<a href>` and cases as `text-transform` and HTML import reads them back, Design JSX `<Span>` takes `textCase` and `href`, and the Typography section's text case changes the selected characters while text is edited. Scripts read and set them with `getRangeTextCase`, `setRangeTextCase`, `getRangeHyperlink`, `setRangeHyperlink`, `getRangeTextStyleId`, `setRangeTextStyleIdAsync`, `getRangeFillStyleId`, `setRangeFillStyleIdAsync`, `getRangeBoundVariable`, `setRangeBoundVariable`, and the text's `hyperlink`.
-- Switch a frame to a group and back from the layer type menu in the properties panel header, as in Figma. A frame becomes a group that keeps its layers, effects, and opacity and fits them; a group becomes a frame of its bounds that clips.
+- Switch a frame, group, or section to another of them from the layer type menu in the properties panel header, as in Figma. A frame becomes a group that keeps its layers, effects, and opacity and fits them; a group becomes a frame of its bounds that clips. A frame or group on the page or in a section becomes a section that keeps its fill, strokes, corners, and layers where they are, and a section becomes a frame.
 - Edit the layout guides of several frames at once: the panel lists them while the frames' guides match and edits every frame in one undo step, and while they differ offers Add, which gives each frame one new guide. A new guide is Figma's 10 px grid.
 - Official builds send one anonymous ping a day, with the app version, operating system, architecture, desktop or web, and whether usage stats are shared, and no ID; turn it off in Settings → Privacy or with `OPENPENCIL_TELEMETRY=0` or `DO_NOT_TRACK=1` in the desktop app's environment. Usage stats (launches, file formats opened and exported, and which AI provider answered) are sent only after you agree in a one-time prompt after the welcome screen. The [privacy page](https://openpencil.dev/overview/privacy) lists every field.
 
 ### Changed
 
+- In scripts, as in Figma, a new frame or component hugs along its main axis once auto layout is on, `resize` fixes a hugging auto layout frame's size, a grid's sizing is fixed, setting a layer inside an instance to the value it already has makes no override, and `counterAxisAlignContent` is refused on a layer inside an instance.
 - The Layout guide section follows Figma: each guide is a row with a summary such as "5 columns" or "Grid 10px" that switches between grid, columns, and rows, and its settings open from the row's icon with Count, Type, Width or Height, Margin or Offset, Gutter, and Color fields. The section now sits after Selection colors.
 - A selected layer resizes and rotates where Figma's does: every edge resizes along its whole length within 7.5 px outside it and up to a tenth of the side inside it, corners within 7.5 px, and the area outside a corner within 16 px rotates; a frame's name takes a press before rotation but not before resizing. Layers under 24 px keep these zones outside them, and a layer under 10 px on both sides has none, taking presses within 16 px across its centre instead. A selection draws Figma's four corner handles, without the edge midpoints, and none on such a small layer.
 - Pasted layers keep how they were turned and flipped on the canvas, as in Figma, so a layer copied out of a rotated frame stays at its angle in an upright one, and paste to replace keeps the copied layer's angle too. Layers copied out of a frame or section keep their offset from its box on the canvas, and move into the frame only when they start past its far edge, or, for top-level layers, miss it: then layers that fit are centred on that axis, and larger ones go to the frame's top-left, or are centred if top-level. Layers overlapping an edge stay where they are, and layers copied from different places are placed each from its own.
@@ -34,6 +65,9 @@ This is a pre-release that lists changes since 0.16.0-beta.1: npm packages are p
 
 ### Fixed
 
+- A row that hugs its height around a stretched layer keeps that height when pasted or saved into Figma, which shrank it to its other layers. The padding and gap values shown on hover fit their numbers, as in Figma.
+- Editing a component keeps the size of a text copy that styles its text on its own and of a copy that fills its parent, so instances around them no longer grow or shrink.
+- Path editing closes when its vector is deleted, by undo or a script, or when another document opens.
 - Preview draws controls as the canvas does: in the variable modes the canvas is showing, also after a mode switch or a variable edit, with icons and vector layers as drawn and shader fills playing behind their layers from the canvas's own shader players.
 - Opening a page also loads the pages holding the component sets its instances use, so the variant picker and preview can switch to any variant of a set kept on a page not opened yet. Library copies on Figma's internal canvas stay as the file stores them, and a page that opens later no longer re-reads components an earlier page already built.
 - A slot frame whose corner radius or other field is bound to a variable stays a slot when the file is saved and reopened.

@@ -46,6 +46,7 @@ import {
 import { installComponentPropertyAccessors } from './components'
 import type { FigmaFontName } from './fonts'
 import type { FigmaFrameNode, FigmaInstanceNode } from './node-types'
+import { installInstanceOverrideAccessors, type FigmaInstanceOverride } from './overrides'
 import { getPageBackgrounds, setPageBackgrounds } from './page-backgrounds'
 import * as PluginData from './plugin-data'
 import { nodeProxyToJSON } from './serialization'
@@ -160,6 +161,8 @@ export class FigmaNodeProxy {
   declare handleMirroring: SceneNode['handleMirroring'] | typeof MIXED
   declare readonly explicitVariableModes: Readonly<Record<string, string>>
   declare readonly resolvedVariableModes: Readonly<Record<string, string>>
+  declare readonly overrides: FigmaInstanceOverride[] | undefined
+  declare resetOverrides: () => void
 
   declare strokeWeight: number
   declare strokeAlign: string
@@ -572,4 +575,5 @@ installTextRangeMethods(FigmaNodeProxy.prototype, proxyInternals, MIXED)
 installLayoutNodeProxyAccessors(FigmaNodeProxy.prototype, proxyInternals)
 installVariableModeNodeProxyAccessors(FigmaNodeProxy.prototype, proxyInternals)
 installComponentPropertyAccessors(FigmaNodeProxy.prototype, proxyInternals)
+installInstanceOverrideAccessors(FigmaNodeProxy.prototype, proxyInternals)
 installSlotAccessors(FigmaNodeProxy.prototype, proxyInternals)

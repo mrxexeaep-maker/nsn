@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, test } from 'bun:test'
 
 import { buildDemoGraph, measuringRenderer } from '#demo/build'
+import { CHAPTERS, sectionName } from '#demo/document/chapters/names'
 
 import { exportFigFile, readFigFile } from '@open-pencil/core/io'
 import { populateAllFigPages } from '@open-pencil/core/io/formats/fig'
@@ -61,18 +62,21 @@ describe('the demo document', () => {
       .getChildren(page.id)
       .filter((node) => node.type === 'SECTION')
       .sort((a, b) => a.y - b.y)
-    expect(chapters.map((chapter) => chapter.name)).toEqual([
-      '1 · Hello',
-      '2 · Slots',
-      '3 · Controls',
-      '4 · Modes',
-      '5 · Shaders',
-      '6 · Code',
-      '7 · Lint',
-      '8 · Yours'
-    ])
+    expect(chapters.map((chapter) => chapter.name)).toEqual(
+      Object.values(CHAPTERS).map(sectionName)
+    )
     // The layer list reads the first child first.
-    expect(graph.getChildren(page.id)[0]?.name).toBe('1 · Hello')
+    expect(graph.getChildren(page.id)[0]?.name).toBe(sectionName(CHAPTERS.hello))
+  })
+
+  test("names each chapter's subject as hosts look it up", () => {
+    const [page] = graph.getPages()
+    const sections = graph.getChildren(page.id)
+    for (const chapter of Object.values(CHAPTERS)) {
+      const section = sections.find((node) => node.name === sectionName(chapter))
+      const children = section ? graph.getChildren(section.id) : []
+      expect(children.filter((child) => child.name === chapter.subject)).toHaveLength(1)
+    }
   })
 
   test('keeps complete behaviours on the player controls', () => {

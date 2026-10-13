@@ -3,6 +3,7 @@ import type { ShaderPreset } from '@open-pencil/scene-graph'
 
 import { previewButton } from '../chrome'
 import { layoutChapter, type Chapter, type ChapterContext } from './chapter'
+import { CHAPTERS } from './names'
 import type { Player } from './slots'
 
 export const HERO_WIDTH = 880
@@ -31,15 +32,13 @@ export const HERO_PRESET: ShaderPreset = {
 /** Hello: the player on a live background, and the one thing to try first. */
 export function createHelloChapter(context: ChapterContext, player: Player): Promise<Chapter> {
   return layoutChapter(context, {
-    index: 1,
-    name: 'Hello',
+    chapter: CHAPTERS.hello,
     heading: {
       title: 'Hello.',
       subtitle:
         'This file is a short tour. Scroll down, or drag the canvas with the hand tool, to follow it: every chapter shows one thing and a card tells you what to try. Nothing here is a mock-up: it is all editable.'
     },
     subject: Frame({
-      name: 'Hero',
       flex: 'row',
       w: HERO_WIDTH,
       h: HERO_HEIGHT,

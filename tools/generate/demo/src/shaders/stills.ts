@@ -5,6 +5,7 @@ import { toUint8Array } from 'js-base64'
 
 import {
   isShaderFrameCurrent,
+  shaderFramePixels,
   shaderOfPaint,
   shaderPresetKey,
   withShaderPaints,
@@ -14,10 +15,6 @@ import {
 } from '@open-pencil/scene-graph'
 
 import type { ShaderStillPage } from './page'
-
-/** Frames are drawn at twice the layer's size, as the editor draws them, up to this edge. */
-const FRAME_SCALE = 2
-const MAX_FRAME_EDGE = 1600
 
 /** Headless Chromium has WebGPU only with SwiftShader, and only on a secure origin. */
 const BROWSER_ARGS = [
@@ -39,14 +36,6 @@ function staleShaders(graph: SceneGraph, node: SceneNode): ShaderPaint[] {
     if (!shader) return []
     return isShaderFrameCurrent(shader, size) && graph.images.has(shader.image) ? [] : [shader]
   })
-}
-
-function framePixels(node: SceneNode): { width: number; height: number } {
-  const scale = Math.min(FRAME_SCALE, MAX_FRAME_EDGE / Math.max(node.width, node.height, 1))
-  return {
-    width: Math.max(1, Math.round(node.width * scale)),
-    height: Math.max(1, Math.round(node.height * scale))
-  }
 }
 
 /** The still page as one HTML document and its script, served from a loopback port. */
@@ -92,7 +81,7 @@ export async function drawShaderStills(graph: SceneGraph): Promise<number> {
     await page.goto(`http://127.0.0.1:${server.port}/`)
     await page.waitForFunction(() => Reflect.has(window, 'shaderStill'))
     for (const { node, shader } of jobs) {
-      const pixels = framePixels(node)
+      const pixels = shaderFramePixels(node)
       // Runs in the page, so the check is written out here rather than shared.
       const dataURL = await page.evaluate(
         ({ preset, width, height }) => {
