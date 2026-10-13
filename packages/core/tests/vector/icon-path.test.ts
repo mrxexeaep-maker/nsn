@@ -36,11 +36,11 @@ describe('a vector’s layer icon', () => {
     expect(path?.endsWith('Z')).toBe(true)
     const xs = points(path).map(([x]) => x)
     const ys = points(path).map(([, y]) => y)
-    // Width fills the icon less its padding; height is half of that, centered.
-    expect(Math.min(...xs)).toBeCloseTo(1.5, 2)
-    expect(Math.max(...xs)).toBeCloseTo(VECTOR_ICON_SIZE - 1.5, 2)
-    expect(Math.min(...ys)).toBeCloseTo(4.75, 2)
-    expect(Math.max(...ys)).toBeCloseTo(11.25, 2)
+    // Width fills 9 of the 10 pixels, as in Figma; height is half of that, centered.
+    expect(Math.min(...xs)).toBeCloseTo(0.5, 2)
+    expect(Math.max(...xs)).toBeCloseTo(VECTOR_ICON_SIZE - 0.5, 2)
+    expect(Math.min(...ys)).toBeCloseTo(2.75, 2)
+    expect(Math.max(...ys)).toBeCloseTo(7.25, 2)
   })
 
   test('keeps a straight line’s slope', () => {
@@ -58,6 +58,17 @@ describe('a vector’s layer icon', () => {
     expect(
       vectorIconPath({ vertices: [zero, zero], segments: [line(0, 1)], regions: [] })
     ).toBeNull()
+  })
+
+  test('falls back to the generic icon at 129 vertices and segments, as Figma does', () => {
+    // An open zigzag: n vertices and n - 1 segments.
+    const zigzag = (n: number) => ({
+      vertices: Array.from({ length: n }, (_, i) => ({ x: i * 10, y: (i % 2) * 10 })),
+      segments: Array.from({ length: n - 1 }, (_, i) => line(i, i + 1)),
+      regions: []
+    })
+    expect(vectorIconPath(zigzag(64))).not.toBeNull()
+    expect(vectorIconPath(zigzag(65))).toBeNull()
   })
 
   test('has nothing to draw when a segment names a vertex that does not exist', () => {

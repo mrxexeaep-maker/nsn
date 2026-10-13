@@ -2,21 +2,25 @@ import type { VectorNetwork } from '@open-pencil/scene-graph'
 
 import { addStrokeRunToPath, strokeRuns, type PathSink } from './path-helpers'
 
-/** Side of the square a layer icon is drawn in, in its own units. */
-export const VECTOR_ICON_SIZE = 16
-const PADDING = 1.5
+/** Side of the square a layer icon is drawn in, in pixels: Figma's objects panel icon is 10×10. */
+export const VECTOR_ICON_SIZE = 10
+/** The shape fills 9 of the 10 pixels, as in Figma. */
+const PADDING = 0.5
+/** Figma shows its generic vector icon once vertices and segments together reach this many. */
+const MAX_ICON_ELEMENTS = 129
 
 const round = (value: number) => Math.round(value * 100) / 100
 
 /**
  * The outline of a vector as SVG path data fitted to a {@link VECTOR_ICON_SIZE} square, as Figma
  * draws a vector's row in the layers panel: its own shape rather than a generic glyph. The shape
- * keeps its proportions and is centered; a straight line keeps its slope. Null for a network
- * with nothing to draw.
+ * keeps its proportions and is centered; a straight line keeps its slope. Null, so the row keeps
+ * the generic vector glyph, for a network with no segments or with 129 or more vertices and
+ * segments together (Figma's `generateObjectsPanelIcon`, wasm f42365).
  */
 export function vectorIconPath(network: VectorNetwork): string | null {
   const { vertices, segments } = network
-  if (segments.length === 0) return null
+  if (segments.length === 0 || vertices.length + segments.length >= MAX_ICON_ELEMENTS) return null
 
   // The vertices and handle ends bound the curves, which is close enough for a 16-unit icon.
   let minX = Infinity

@@ -49,16 +49,16 @@ const modeNames = computed(() =>
   })
 )
 /**
- * A vector's row shows its own outline, as in Figma. It is drawn as a mask over the row's text
- * color, so it follows selection and hidden states like the glyph icons.
+ * A vector's row shows its own outline, as in Figma: a 10 px icon, stroked 1 px and never filled,
+ * centered in the icon slot. It is drawn as a mask over the row's text color, so it follows
+ * selection and hidden states like the glyph icons.
  */
 const vectorIconStyle = computed(() => {
   if (!node.iconPath) return null
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VECTOR_ICON_SIZE} ${VECTOR_ICON_SIZE}">` +
-    `<path d="${node.iconPath}" fill="none" stroke="black" stroke-width="1.25" ` +
-    `stroke-linecap="round" stroke-linejoin="round"/></svg>`
-  const mask = `url("data:image/svg+xml,${encodeURIComponent(svg)}") center / contain no-repeat`
+    `<path d="${node.iconPath}" fill="none" stroke="black" stroke-width="1"/></svg>`
+  const mask = `url("data:image/svg+xml,${encodeURIComponent(svg)}") center / ${VECTOR_ICON_SIZE}px ${VECTOR_ICON_SIZE}px no-repeat`
   return { mask, WebkitMask: mask, backgroundColor: 'currentColor' }
 })
 const layerTree = tv(layerTreeTheme)
