@@ -14,6 +14,7 @@ import { handleToolMouseDown } from '#vue/canvas/tools/input'
 import { createCanvasTransformInput } from '#vue/canvas/transform/input'
 import { finishMarquee } from '#vue/canvas/transform/marquee'
 import {
+  cancelNodeEditDrag,
   handleBendHandleMove,
   handleNodeEditPointerUp,
   updateNodeEditHover
@@ -28,7 +29,7 @@ import { updateHoverCursor } from '#vue/shared/input/select'
 import { resolveShapeHandleHover } from '#vue/shared/input/shape-handles'
 import { useSpaceHeld } from '#vue/shared/input/space-key'
 import type { DragState } from '#vue/shared/input/types'
-import { handleNodeEditMove } from '#vue/shared/input/vector'
+import { handleNodeEditMarqueeMove, handleNodeEditMove } from '#vue/shared/input/vector'
 
 /**
  * Wires pointer and mouse interaction to an OpenPencil canvas.
@@ -318,6 +319,11 @@ export function useCanvasInput(
       return
     }
 
+    if (d.type === 'edit-marquee') {
+      handleNodeEditMarqueeMove(d, cx, cy, editor)
+      return
+    }
+
     if (d.type === 'draw') {
       handleDrawMove(d, cx, cy, e.shiftKey)
       return
@@ -389,16 +395,7 @@ export function useCanvasInput(
       drag.value = null
       drawing.cancel()
     }
-    if (
-      drag.value?.type === 'edit-node' ||
-      drag.value?.type === 'edit-handle' ||
-      drag.value?.type === 'bend-handle'
-    ) {
-      const methods = editor as Editor & {
-        nodeEditCancelDrag?: () => void
-      }
-      methods.nodeEditCancelDrag?.()
-    }
+    cancelNodeEditDrag(drag.value, editor)
     drag.value = null
     cursorOverride.value = null
     clearTransientInteractionFeedback()
