@@ -157,6 +157,19 @@ describe('variables in a room', () => {
     })
   })
 
+  test('an edit not yet in the history still reaches the room when a peer’s edit lands first', async () => {
+    await withRoom(async ({ host, guest, settle, ids }) => {
+      // A plugin script changes the graph at once and records its undo step when it ends.
+      const theme = expectDefined(host.graph.variableCollections.get(ids.collection), 'Theme')
+      theme.name = 'Palette'
+      guest.updateVariableValue(ids.brand, ids.light, GREEN)
+      await settle()
+      host.updateVariableValue(ids.brand, ids.dark, GREEN)
+      await settle()
+      expect(guest.graph.variableCollections.get(ids.collection)?.name).toBe('Palette')
+    })
+  })
+
   test('which mode a collection shows stays each viewer’s own', async () => {
     await withRoom(async ({ host, guest, settle, ids }) => {
       host.setActiveMode(ids.collection, ids.dark)

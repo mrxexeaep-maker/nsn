@@ -177,21 +177,34 @@ export function bindVariableSync({ store, ydoc, yvariables, ycollections }: Vari
     return ids
   }
 
-  /** Lays out what the received records reach, and takes them as what the room holds. */
-  function settle(variableIds: Iterable<string>, collectionIds: Iterable<string>) {
+  /** Takes the records a peer sent as what the room holds; others may hold unsent edits. */
+  function markReceived<T>(sent: Map<string, T>, records: Map<string, T>, ids: Set<string>) {
+    for (const id of ids) {
+      const record = records.get(id)
+      if (record) sent.set(id, structuredClone(record))
+      else sent.delete(id)
+    }
+  }
+
+  /**
+   * Lays out what the received records reach. Only those records are taken as sent: an edit not
+   * yet in the history, such as a running plugin script's, still goes out with the next change.
+   */
+  function settle(variableIds: Set<string>, collectionIds: Set<string>) {
     const { variables, variableCollections } = graph()
+    markReceived(sentVariables, variables, variableIds)
+    markReceived(sentCollections, variableCollections, collectionIds)
     const collections = new Set(collectionIds)
     for (const id of variableIds) {
       const collectionId = variables.get(id)?.collectionId
       if (collectionId) collections.add(collectionId)
     }
+    // A list completed here differs from the room's, and goes out with the next change.
     keepCollectionsComplete(collections)
     const scope = new Set(variableIds)
     for (const id of collections) {
       for (const variableId of variableCollections.get(id)?.variableIds ?? []) scope.add(variableId)
     }
-    sentVariables = structuredClone(variables)
-    sentCollections = structuredClone(variableCollections)
     store.refreshVariables({ variables: scope })
   }
 
@@ -199,13 +212,13 @@ export function bindVariableSync({ store, ydoc, yvariables, ycollections }: Vari
   function onVariables(events: Y.YEvent<Y.Map<unknown>>[], transaction: Y.Transaction) {
     if (transaction.local) return
     const ids = receive(yvariables, graph().variables, isVariable, events)
-    if (ids.size > 0) settle(ids, [])
+    if (ids.size > 0) settle(ids, new Set())
   }
 
   function onCollections(events: Y.YEvent<Y.Map<unknown>>[], transaction: Y.Transaction) {
     if (transaction.local) return
     const ids = receive(ycollections, graph().variableCollections, isCollection, events)
-    if (ids.size > 0) settle([], ids)
+    if (ids.size > 0) settle(new Set(), ids)
   }
 
   yvariables.observeDeep(onVariables)
