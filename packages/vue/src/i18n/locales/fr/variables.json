@@ -98,6 +98,7 @@
   "scopeFontFamily": "Famille de police",
   "exportDesignTokens": "Exporter en design tokens",
   "importDesignTokens": "Importer des design tokens",
+  "libraryCollection": "Cette collection provient d’une bibliothèque et est en lecture seule ici.",
   "importTokensDescription": "Choisissez où va chaque collection et chaque mode. Les variables de même nom sont mises à jour ; rien n’est supprimé.",
   "importNewCollection": "Nouvelle collection",
   "importNewMode": "Nouveau mode",

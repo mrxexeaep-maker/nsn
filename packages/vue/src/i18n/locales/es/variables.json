@@ -98,6 +98,7 @@
   "scopeFontFamily": "Familia tipográfica",
   "exportDesignTokens": "Exportar como design tokens",
   "importDesignTokens": "Importar design tokens",
+  "libraryCollection": "Esta colección procede de una biblioteca y aquí es de solo lectura.",
   "importTokensDescription": "Elige adónde va cada colección y cada modo. Las variables con el mismo nombre se actualizan; no se elimina nada.",
   "importNewCollection": "Nueva colección",
   "importNewMode": "Nuevo modo",

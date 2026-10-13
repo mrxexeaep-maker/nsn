@@ -20,8 +20,10 @@ import { VARIABLE_TYPE_ICONS } from '@/components/variables/type-icons'
 import { useConditionLabels } from '@/components/variables/useConditionLabels'
 import tokensPanelTheme from '@/theme/tokens-panel'
 
-const { collection, groups, labels, modeIds, groupOptions } = defineProps<{
+const { collection, groups, labels, modeIds, groupOptions, readonly } = defineProps<{
   collection: VariableCollection
+  /** The tokens are shown but not changed, as those of a library's collection. */
+  readonly?: boolean
   groups: TokenGroup[]
   labels: { name: string; cssName: string; empty: string }
   /** Modes to show values for; every mode by default. */
@@ -115,7 +117,7 @@ function isEditing(id: string, modeId?: string) {
 }
 
 function startRename(id: string) {
-  editing.value = { id }
+  if (!readonly) editing.value = { id }
 }
 
 function commitName(row: TokenRow, text: string) {
@@ -128,6 +130,7 @@ function commitName(row: TokenRow, text: string) {
 
 /** Numbers and text edit in place; colors, booleans and aliases open the inspector instead. */
 function editableValue(row: TokenRow, modeId: string) {
+  if (readonly) return false
   const value = row.variable.valuesByMode[modeId]
   const aliased = typeof value === 'object' && 'aliasId' in value
   return !aliased && (row.variable.type === 'FLOAT' || row.variable.type === 'STRING')
@@ -152,7 +155,7 @@ function onContextMenu(event: MouseEvent) {
 }
 
 function onKeydown(event: KeyboardEvent) {
-  if (editing.value || selectedIds.value.length === 0) return
+  if (readonly || editing.value || selectedIds.value.length === 0) return
   if (event.code !== 'Delete' && event.code !== 'Backspace') return
   event.preventDefault()
   emit('remove', [...selectedIds.value])
@@ -165,7 +168,7 @@ const reorder = useFlatReorderDrag({
 
 function dragTarget(id: string, element: Element | ComponentPublicInstance | null) {
   const node = element instanceof Element ? element : element?.$el
-  reorder.setupItem(node instanceof HTMLElement ? node : null, () => ({ id }))
+  reorder.setupItem(!readonly && node instanceof HTMLElement ? node : null, () => ({ id }))
 }
 
 function dropEdge(id: string) {
@@ -201,6 +204,7 @@ function dropEdge(id: string) {
     <TokenRowMenu
       :groups="groupOptions"
       :single="selectedIds.length === 1"
+      :disabled="readonly"
       @rename="selectedIds[0] && startRename(selectedIds[0])"
       @duplicate="emit('duplicate', [...selectedIds])"
       @move-to-group="emit('moveToGroup', [...selectedIds], $event)"

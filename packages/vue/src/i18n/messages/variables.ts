@@ -105,6 +105,7 @@ export const variablesMessageDefaults = {
   scopeFontFamily: 'Font family',
   exportDesignTokens: 'Export as design tokens',
   importDesignTokens: 'Import design tokens',
+  libraryCollection: 'This collection comes from a library and is read-only here.',
   importTokensDescription:
     'Choose where each collection and mode goes. Variables with the same name are updated; nothing is deleted.',
   importNewCollection: 'New collection',

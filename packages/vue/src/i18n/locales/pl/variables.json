@@ -98,6 +98,7 @@
   "scopeFontFamily": "Rodzina czcionek",
   "exportDesignTokens": "Eksportuj jako tokeny projektowe",
   "importDesignTokens": "Importuj tokeny projektowe",
+  "libraryCollection": "Ta kolekcja pochodzi z biblioteki i jest tu tylko do odczytu.",
   "importTokensDescription": "Wybierz, dokąd trafi każda kolekcja i każdy tryb. Zmienne o tej samej nazwie zostaną zaktualizowane; nic nie zostanie usunięte.",
   "importNewCollection": "Nowa kolekcja",
   "importNewMode": "Nowy tryb",

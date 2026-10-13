@@ -19,11 +19,13 @@ import { useMenuUI } from '@/components/ui/menu/menu'
  * Right-click actions for the selected tokens. The list selects the row under the pointer before
  * the menu opens, so every action applies to what is highlighted.
  */
-const { groups, single } = defineProps<{
+const { groups, single, disabled } = defineProps<{
   /** Groups the tokens can move into, as their paths. */
   groups: string[]
   /** One token is selected, so it can be renamed in place. */
   single: boolean
+  /** The tokens cannot be changed, as those of a library's collection. */
+  disabled?: boolean
 }>()
 const emit = defineEmits<{
   rename: []
@@ -40,7 +42,7 @@ const dangerItem = useMenuUI({ item: 'justify-start gap-2 text-error' }).item
 
 <template>
   <ContextMenuRoot>
-    <ContextMenuTrigger as-child>
+    <ContextMenuTrigger as-child :disabled="disabled">
       <slot />
     </ContextMenuTrigger>
     <ContextMenuPortal>

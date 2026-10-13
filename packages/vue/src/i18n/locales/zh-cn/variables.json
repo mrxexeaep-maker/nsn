@@ -98,6 +98,7 @@
   "scopeFontFamily": "字体",
   "exportDesignTokens": "导出为设计令牌",
   "importDesignTokens": "导入设计令牌",
+  "libraryCollection": "此集合来自库，在此处为只读。",
   "importTokensDescription": "选择每个集合和模式导入到哪里。同名变量会被更新，不会删除任何内容。",
   "importNewCollection": "新集合",
   "importNewMode": "新模式",
