@@ -1,0 +1,1 @@
+- SVG import omits content under `display="none"` and keeps `visibility="hidden"` or `collapse` layers hidden, including inherited and inline styles (#1166).
