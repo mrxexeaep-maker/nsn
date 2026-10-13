@@ -1,0 +1,1 @@
+- Shader fills store their still frame as JPEG when no pixel is transparent, about 25 times smaller than PNG, so documents with shaders save and open faster; frames with transparency stay PNG. Figma opens both.

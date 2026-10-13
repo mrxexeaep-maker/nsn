@@ -62,6 +62,8 @@ export class CanvasHelper {
   }
 
   async clearCanvas() {
+    // Inside path editing, Select All and Backspace act on the path's points, not the layers.
+    await this.pressKey('Escape')
     await this.selectAll()
     await this.pressKey('Backspace')
     await this.waitForRender()
