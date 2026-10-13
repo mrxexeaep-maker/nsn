@@ -50,7 +50,7 @@ export function decodeVectorNetworkBlob(
     }
     if (style?.strokeCap) vertex.strokeCap = style.strokeCap
     if (style?.strokeJoin) vertex.strokeJoin = style.strokeJoin
-    if (style?.cornerRadius) vertex.cornerRadius = style.cornerRadius
+    if (style?.cornerRadius !== undefined) vertex.cornerRadius = style.cornerRadius
     vertices.push(vertex)
   }
 
@@ -107,7 +107,7 @@ function vertexStyleKey(vertex: VectorVertex): string {
     vertex.handleMirroring ?? 'NONE',
     vertex.strokeCap ?? '',
     vertex.strokeJoin ?? '',
-    vertex.cornerRadius ?? 0
+    vertex.cornerRadius ?? ''
   ].join('|')
 }
 
@@ -120,7 +120,12 @@ export function buildStyleOverrideTable(network: VectorNetwork): {
   let nextId = 1
   for (const vertex of network.vertices) {
     const mirroring = vertex.handleMirroring ?? 'NONE'
-    if (mirroring === 'NONE' && !vertex.strokeCap && !vertex.strokeJoin && !vertex.cornerRadius)
+    if (
+      mirroring === 'NONE' &&
+      !vertex.strokeCap &&
+      !vertex.strokeJoin &&
+      vertex.cornerRadius === undefined
+    )
       continue
     const key = vertexStyleKey(vertex)
     if (styleToId.has(key)) continue
@@ -129,7 +134,7 @@ export function buildStyleOverrideTable(network: VectorNetwork): {
     if (mirroring !== 'NONE') entry.handleMirroring = mirroring
     if (vertex.strokeCap) entry.strokeCap = vertex.strokeCap
     if (vertex.strokeJoin) entry.strokeJoin = vertex.strokeJoin
-    if (vertex.cornerRadius) entry.cornerRadius = vertex.cornerRadius
+    if (vertex.cornerRadius !== undefined) entry.cornerRadius = vertex.cornerRadius
     table.push(entry)
     nextId++
   }

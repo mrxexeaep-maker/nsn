@@ -153,6 +153,17 @@ describe('vertex corners in the style override table', () => {
     expect(decoded.vertices.map((vertex) => vertex.cornerRadius)).toEqual([8, undefined, 4])
     expect(decoded.vertices[0].strokeJoin).toBe('ROUND')
   })
+
+  test('an explicit zero radius survives, so a rounded layer keeps that point sharp', () => {
+    const network = vectorNetwork(
+      [{ ...vectorVertex(0, 0), cornerRadius: 0 }, vectorVertex(100, 0), vectorVertex(100, 100)],
+      [vectorSegment(0, 1), vectorSegment(1, 2)]
+    )
+    const { table, styleToId } = buildStyleOverrideTable(network)
+    expect(table).toEqual([{ styleID: 1, cornerRadius: 0 }])
+    const decoded = decodeVectorNetworkBlob(encodeVectorNetworkBlob(network, styleToId), table)
+    expect(decoded.vertices.map((vertex) => vertex.cornerRadius)).toEqual([0, undefined, undefined])
+  })
 })
 
 describe('region style words', () => {
@@ -166,7 +177,8 @@ describe('region style words', () => {
   }
 
   test('the winding rule is the low bit, under the region’s style ID', () => {
-    // Style 3 with even-odd winding, then with nonzero winding, as Figma writes them.
+    // Style 3 with even-odd winding, then with nonzero winding. Every styled region in the fixtures
+    // is nonzero, so the even-odd case follows the bit layout rather than a Figma file.
     expect(decodeVectorNetworkBlob(regionBlob((3 << 1) | 0)).regions[0].windingRule).toBe('EVENODD')
     expect(decodeVectorNetworkBlob(regionBlob((3 << 1) | 1)).regions[0].windingRule).toBe('NONZERO')
   })
