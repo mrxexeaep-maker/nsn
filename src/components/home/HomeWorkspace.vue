@@ -165,7 +165,7 @@ function formattedDate(updatedAt: string): string {
 
 <template>
   <main
-    class="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-app text-surface"
+    class="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-canvas text-surface"
     data-test-id="recent-files-home"
   >
     <section
@@ -173,7 +173,7 @@ function formattedDate(updatedAt: string): string {
     >
       <HomeSearchActions v-model="query" @new-document="emit('new-document')" />
 
-      <p v-if="openError" class="mb-4 text-xs text-danger" role="alert">{{ openError }}</p>
+      <p v-if="openError" class="mb-4 text-xs text-error" role="alert">{{ openError }}</p>
       <p
         v-if="noSearchMatches"
         class="rounded-lg border border-dashed border-border px-4 py-8 text-center text-xs text-muted"
@@ -297,11 +297,11 @@ function formattedDate(updatedAt: string): string {
 
         <div
           v-else-if="storageError && storageDocuments.length === 0"
-          class="rounded-lg border border-danger/40 px-4 py-6 text-center"
+          class="rounded-lg border border-error/40 px-4 py-6 text-center"
           role="alert"
         >
           <template v-if="credentialAccess.paused.value">
-            <p class="text-xs text-danger">{{ credentials.accessPaused }}</p>
+            <p class="text-xs text-error">{{ credentials.accessPaused }}</p>
             <AppButton
               variant="outline"
               class="mt-3"
@@ -313,7 +313,7 @@ function formattedDate(updatedAt: string): string {
             </AppButton>
           </template>
           <template v-else>
-            <p class="text-xs text-danger">{{ storageError }}</p>
+            <p class="text-xs text-error">{{ storageError }}</p>
             <AppButton variant="outline" class="mt-3" @click="storageWorkspace.refresh">
               {{ common.refresh }}
             </AppButton>

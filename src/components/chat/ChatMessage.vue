@@ -152,7 +152,7 @@ function groupKey(group: MessagePartGroup): string {
                 class="absolute right-1 bottom-1 opacity-0 focus-visible:opacity-100 group-hover/response:opacity-100"
                 @click="copyResponse"
               >
-                <icon-lucide-check v-if="copied" class="size-3 text-green-400" />
+                <icon-lucide-check v-if="copied" class="size-3 text-success" />
                 <icon-lucide-copy v-else class="size-3" />
               </IconButton>
             </div>

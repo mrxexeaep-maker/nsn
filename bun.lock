@@ -532,6 +532,7 @@
     "tools/checks/lint": {
       "name": "@open-pencil/lint-tools",
       "dependencies": {
+        "@tailwindcss/node": "^4.3.3",
         "es-toolkit": "^1.52.0",
       },
       "devDependencies": {

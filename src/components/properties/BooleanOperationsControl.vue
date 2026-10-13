@@ -47,7 +47,7 @@ const itemCls = menuItem({ justify: 'between' })
       <DropdownMenuTrigger as-child>
         <button
           data-test-id="boolean-operations-trigger"
-          class="flex h-7 items-center gap-1 rounded-md px-1.5 text-muted hover:bg-hover hover:text-surface data-[state=open]:bg-active data-[state=open]:text-surface"
+          class="flex h-7 items-center gap-1 rounded-md px-1.5 text-muted hover:bg-hover hover:text-surface data-[state=open]:bg-hover data-[state=open]:text-surface"
         >
           <IconCombine class="size-4" />
           <IconChevronDown class="size-3" />
