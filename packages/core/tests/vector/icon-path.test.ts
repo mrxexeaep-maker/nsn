@@ -59,4 +59,10 @@ describe('a vector’s layer icon', () => {
       vectorIconPath({ vertices: [zero, zero], segments: [line(0, 1)], regions: [] })
     ).toBeNull()
   })
+
+  test('has nothing to draw when a segment names a vertex that does not exist', () => {
+    const network = { vertices: [zero, { x: 10, y: 0 }], regions: [] }
+    expect(vectorIconPath({ ...network, segments: [line(-1, 1)] })).toBeNull()
+    expect(vectorIconPath({ ...network, segments: [line(0, 5)] })).toBeNull()
+  })
 })

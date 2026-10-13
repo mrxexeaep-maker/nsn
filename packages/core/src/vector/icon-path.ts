@@ -30,6 +30,8 @@ export function vectorIconPath(network: VectorNetwork): string | null {
     maxY = Math.max(maxY, y)
   }
   for (const segment of segments) {
+    // `at` would wrap a negative index to the end; a bad endpoint means nothing to draw.
+    if (segment.start < 0 || segment.end < 0) return null
     const start = vertices.at(segment.start)
     const end = vertices.at(segment.end)
     if (!start || !end) return null
