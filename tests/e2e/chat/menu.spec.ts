@@ -96,9 +96,10 @@ test('a conversation saves its raw trace with tool calls and run events', async 
     page.getByRole('menuitem', { name: 'Save trace…' }).click()
   ])
 
-  expect(download.suggestedFilename()).toMatch(/^create-a-frame-trace-\d{4}-\d{2}-\d{2}\.json$/)
   const path = await download.path()
   const trace = v.parse(TraceJSON, await readFile(path, 'utf8'))
+  // Named after the conversation, as other exports are named after their layer or document.
+  expect(download.suggestedFilename()).toBe(`${trace.conversation.title} trace.json`)
   expect(trace.messages.map((row) => row.message.role)).toEqual(['user', 'assistant'])
   expect(JSON.stringify(trace.messages[1]?.message.parts)).toContain('"toolCallId"')
   expect(trace.events.map((event) => event.name)).toContain('chat.completed')

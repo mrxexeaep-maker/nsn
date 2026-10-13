@@ -6,6 +6,7 @@ import { useI18n } from '@open-pencil/vue'
 
 import { diagnostics } from '@/app/diagnostics'
 import { diagnosticsEnvironment } from '@/app/diagnostics/environment'
+import { saveDiagnosticsReport } from '@/app/diagnostics/save'
 import {
   DIAGNOSTICS_RETENTION_MAX,
   DIAGNOSTICS_RETENTION_MIN,
@@ -13,7 +14,6 @@ import {
   pruneDiagnostics,
   useDiagnosticsSettings
 } from '@/app/diagnostics/settings'
-import { datedJSONFileName, saveJSONFile } from '@/app/document/export/json'
 import { toast } from '@/app/shell/ui'
 import DiagnosticsEventList from '@/components/settings/diagnostics/DiagnosticsEventList.vue'
 import SettingsGroup from '@/components/settings/layout/SettingsGroup.vue'
@@ -67,8 +67,7 @@ async function exportDiagnostics() {
 
 async function saveDiagnostics() {
   try {
-    const report = await diagnostics.export(diagnosticsEnvironment())
-    await saveJSONFile(report, datedJSONFileName('openpencil-diagnostics'))
+    await saveDiagnosticsReport()
   } catch {
     toast.error(diagnosticMessages.value.saveFailed)
   }

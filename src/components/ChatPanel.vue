@@ -10,11 +10,10 @@ import { chatDocumentId } from '@/app/ai/chat/history/document'
 import { useChatRunLocation } from '@/app/ai/chat/run-location'
 import type { ChatSubmission } from '@/app/ai/chat/submission/types'
 import { useChatSubmission } from '@/app/ai/chat/submission/use'
-import { chatTrace } from '@/app/ai/chat/trace/export'
+import { saveChatTrace } from '@/app/ai/chat/trace/export'
 import { useAIChat } from '@/app/ai/chat/use'
 import { openAISetup } from '@/app/ai/models/settings/onboarding/dialog'
 import { didHitStepLimit } from '@/app/ai/tools'
-import { datedJSONFileName, saveJSONFile } from '@/app/document/export/json'
 import { getActiveEditorStore } from '@/app/editor/active-store'
 import { openSettingsDialog } from '@/app/settings/dialog'
 import { toast } from '@/app/shell/ui'
@@ -119,8 +118,7 @@ async function saveTrace(id: string) {
   const conversation = history.current.value
   if (conversation?.id !== id) return
   try {
-    const trace = await chatTrace(conversation, messages.value)
-    await saveJSONFile(trace, datedJSONFileName(`${conversation.title} trace`))
+    await saveChatTrace(conversation, messages.value)
   } catch {
     toast.error(ai.value.chatTraceFailed)
   }

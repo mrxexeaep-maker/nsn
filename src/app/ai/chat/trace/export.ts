@@ -6,6 +6,8 @@ import { snapshotMessages } from '@/app/ai/chat/history/messages'
 import type { Conversation } from '@/app/ai/chat/history/types'
 import { diagnostics } from '@/app/diagnostics'
 import { diagnosticsEnvironment } from '@/app/diagnostics/environment'
+import { getExportBytes, saveExportedFile } from '@/app/document/export/files'
+import { downloadBlob } from '@/app/document/io/browser'
 
 import type { TraceAsset, TraceStore } from './types'
 
@@ -47,5 +49,17 @@ export async function chatTrace(
     },
     null,
     2
+  )
+}
+
+/** Saves a conversation's trace where the person chooses; `false` means they cancelled. */
+export async function saveChatTrace(conversation: Conversation, messages: UIMessage[]) {
+  return saveExportedFile(
+    getExportBytes(await chatTrace(conversation, messages)),
+    `${conversation.title || 'Chat'} trace.json`,
+    'JSON',
+    '.json',
+    'application/json',
+    downloadBlob
   )
 }

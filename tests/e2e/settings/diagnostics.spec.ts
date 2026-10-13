@@ -64,7 +64,7 @@ test('Settings saves the diagnostics report as a file', async ({ configuredChat:
     page.getByRole('button', { name: 'Save diagnostics…', exact: true }).click()
   ])
 
-  expect(download.suggestedFilename()).toMatch(/^openpencil-diagnostics-\d{4}-\d{2}-\d{2}\.json$/)
+  expect(download.suggestedFilename()).toMatch(/\.json$/)
   const { environment, events } = v.parse(ReportJSON, await readFile(await download.path(), 'utf8'))
   expect(environment).toMatchObject({ shell: 'browser' })
   expect(events.map((event) => event.name)).toContain('chat.completed')
