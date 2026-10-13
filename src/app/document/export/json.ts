@@ -21,7 +21,7 @@ export function datedJSONFileName(name: string, date = new Date()): string {
   const slug = name
     .normalize('NFKC')
     .toLocaleLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 60)
     .replace(/-+$/, '')

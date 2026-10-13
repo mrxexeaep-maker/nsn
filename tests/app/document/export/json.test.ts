@@ -9,6 +9,8 @@ test('a JSON file name keeps letters and digits of any script and the date', () 
     'add-a-queue-screen-trace-2026-10-13.json'
   )
   expect(datedJSONFileName('Экран «Очередь» / v2', day)).toBe('экран-очередь-v2-2026-10-13.json')
+  // Vowel signs are combining marks, not separators.
+  expect(datedJSONFileName('संवाद', day)).toBe('संवाद-2026-10-13.json')
 })
 
 test('a JSON file name drops path separators and falls back when nothing is left', () => {
