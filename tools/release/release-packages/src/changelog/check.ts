@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
-import { validateChangelog } from './changelog'
 import { assembleUnreleased, readFragments } from './fragments'
+import { validateChangelog } from './validate'
 
 const root = resolve(process.argv[2] ?? '.')
 const changelogPath = resolve(root, 'CHANGELOG.md')

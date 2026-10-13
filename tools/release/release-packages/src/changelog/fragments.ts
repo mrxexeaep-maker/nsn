@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import type { List, ListItem, Root, RootContent } from 'mdast'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 
-import { ALLOWED_CATEGORIES, headingText, sectionEnd } from './changelog'
+import { ALLOWED_CATEGORIES, headingText, sectionEnd } from './validate'
 
 type Category = (typeof ALLOWED_CATEGORIES)[number]
 
