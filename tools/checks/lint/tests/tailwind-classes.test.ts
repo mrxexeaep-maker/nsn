@@ -88,16 +88,18 @@ describe('no-unknown-tailwind-classes', () => {
   })
 })
 
-test('checks SDK examples against the docs stylesheet that builds them', async () => {
+test('checks SDK examples and the landing against the docs stylesheet that builds them', async () => {
   const diagnostics = ruleDiagnostics(
     await lintFiles(
       {
-        'packages/vue/src/primitives/Demo/examples/AppToken.vue': `${SCRIPT}<template><p class="bg-panel" /></template>\n`,
-        'packages/vue/src/primitives/Demo/examples/Palette.vue': `${SCRIPT}<template><p class="bg-violet-600 text-[var(--vp-c-text-1)]" /></template>\n`
+        // The docs stylesheet takes the app's tokens, which leave Tailwind's palette out.
+        'packages/vue/src/primitives/Demo/examples/AppToken.vue': `${SCRIPT}<template><p class="bg-panel text-[var(--vp-c-text-1)]" /></template>\n`,
+        'packages/vue/src/primitives/Demo/examples/Palette.vue': `${SCRIPT}<template><p class="bg-violet-600" /></template>\n`,
+        'packages/docs/.vitepress/theme/landing/Section.vue': `${SCRIPT}<template><p class="text-surface" /></template>\n`
       },
       rules
     ),
     rule
   )
-  expect(diagnostics.map((item) => item.filename?.split('/').pop())).toEqual(['AppToken.vue'])
+  expect(diagnostics.map((item) => item.filename?.split('/').pop())).toEqual(['Palette.vue'])
 })
