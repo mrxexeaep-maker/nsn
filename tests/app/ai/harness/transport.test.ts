@@ -83,7 +83,7 @@ const configuration = {
  * A companion that answers session requests at once and holds each turn open, so the test
  * decides when its events and its answer arrive, as Pi's do after a Stop.
  */
-function fakeCompanion() {
+function fakeCompanion({ turnsFail = false } = {}) {
   let output: ReadableStreamDefaultController<HarnessSidecarMessage> | undefined
   const methods: string[] = []
   const turns: string[] = []
@@ -102,6 +102,7 @@ function fakeCompanion() {
         const { id, method } = request
         if (typeof id !== 'string' || typeof method !== 'string') throw new Error('Invalid request')
         methods.push(method)
+        if (method === 'session.turn' && turnsFail) throw new Error('Pipe closed')
         if (method === 'session.turn') turns.push(id)
         else output?.enqueue({ type: 'response', id, result: {} })
       }
@@ -162,5 +163,43 @@ test('stopping a turn keeps the session, and its late events and answer are igno
   expect(companion.spawns).toBe(1)
   expect(companion.methods.filter((method) => method === 'session.create')).toHaveLength(1)
   expect(companion.methods.filter((method) => method === 'session.cancel')).toHaveLength(1)
+  await transport.destroy()
+})
+
+test('stopping a turn that already ended does not cancel the next one', async () => {
+  const companion = fakeCompanion()
+  const transport = new HarnessChatTransport('late-stop', configuration, {}, companion.spawn)
+  const stop = new AbortController()
+  const reader = (await send(transport, stop.signal)).getReader()
+  await Promise.resolve()
+  companion.complete(companion.turns[0] ?? '')
+  while (!(await reader.read()).done);
+
+  const next = (await send(transport)).getReader()
+  await Promise.resolve()
+  stop.abort()
+  const second = companion.turns.at(1) ?? ''
+  companion.text(second, 'pong')
+  companion.complete(second)
+  const chunks: string[] = []
+  for (let read = await next.read(); !read.done; read = await next.read()) {
+    if (read.value.type === 'text-delta') chunks.push(read.value.delta)
+  }
+
+  expect(chunks).toEqual(['pong'])
+  expect(companion.methods).not.toContain('session.cancel')
+  await transport.destroy()
+})
+
+test('a turn the companion could not be sent ends with an error', async () => {
+  const companion = fakeCompanion({ turnsFail: true })
+  const transport = new HarnessChatTransport('broken-pipe', configuration, {}, companion.spawn)
+  const reader = (await send(transport)).getReader()
+  const types: string[] = []
+  for (let read = await reader.read(); !read.done; read = await reader.read()) {
+    types.push(read.value.type)
+  }
+
+  expect(types.at(-1)).toBe('error')
   await transport.destroy()
 })

@@ -116,7 +116,7 @@ export class HarnessChatTransport implements ChatTransport<UIMessage> {
       cancelled = true
       void process
         .send({ id: requestID(), method: 'session.cancel', params: { sessionId: this.sessionId } })
-        .catch((error) => this.failAll(error instanceof Error ? error : new Error(String(error))))
+        .catch(this.fail)
     }
 
     return new ReadableStream<UIMessageChunk>({
@@ -132,17 +132,21 @@ export class HarnessChatTransport implements ChatTransport<UIMessage> {
         abortSignal?.addEventListener(
           'abort',
           () => {
+            // A turn already answered has nothing to stop, and a cancel now would hit the next one.
+            if (!this.pending.has(requestId)) return
             cancel()
             emit(pending, { type: 'finish-step' }, { type: 'finish', finishReason: 'stop' })
             close(pending)
           },
           { once: true }
         )
-        void process.send({
-          id: requestId,
-          method: 'session.turn',
-          params: { sessionId: this.sessionId, prompt: text }
-        })
+        void process
+          .send({
+            id: requestId,
+            method: 'session.turn',
+            params: { sessionId: this.sessionId, prompt: text }
+          })
+          .catch(this.fail)
       },
       // The reader went away, as Stop makes it: nothing more is read from this turn.
       cancel: () => {
@@ -266,8 +270,12 @@ export class HarnessChatTransport implements ChatTransport<UIMessage> {
     } catch (error) {
       // A process whose messages can no longer be read is given up on, so it must not outlive it.
       await process.child.kill().catch(() => undefined)
-      this.failAll(error instanceof Error ? error : new Error(String(error)))
+      this.fail(error)
     }
+  }
+
+  private readonly fail = (error: unknown): void => {
+    this.failAll(error instanceof Error ? error : new Error(String(error)))
   }
 
   private failAll(error: Error): void {
