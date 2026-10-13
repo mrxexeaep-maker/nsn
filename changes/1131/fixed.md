@@ -1,0 +1,4 @@
+- Fill and stroke bindings to variables made in OpenPencil survive a paste into Figma, which keeps them as remote variables as it does for variables copied from another Figma file.
+- Instances pasted into Figma keep their names and no longer carry their component's library identity.
+- The Variables panel shows a collection copied from a library read-only, as Figma does, since edits there never reach the library.
+- CLI `eval` and the CLI tools measure text in the document they edit, so text with line breaks or a fixed width gets its real height.
