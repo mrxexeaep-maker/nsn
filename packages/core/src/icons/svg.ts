@@ -207,13 +207,17 @@ function collectPaths(
   const tagName = element.localName || element.tagName
   if (NON_RENDERED_CONTAINERS.has(tagName) && !inherited.referenced) return
 
+  const presentation = presentationFor(element, inherited.presentation)
+  // An effects container is still usable when display:none; its children are not.
+  if (presentation.display === 'none' && !NON_RENDERED_CONTAINERS.has(tagName)) return
+
   const transform = combinedTransform(inherited.transform, element)
   const ownClipPath = collectClipPath(element.getAttribute('clip-path'), transform, traversal)
   const clipPaths = ownClipPath ? [...inherited.clipPaths, ownClipPath] : inherited.clipPaths
   const clip = ownClipPath ? clipPaths.length - 1 : null
   const scope: Scope = {
     ...inherited,
-    presentation: presentationFor(element, inherited.presentation),
+    presentation,
     transform,
     clipPaths
   }

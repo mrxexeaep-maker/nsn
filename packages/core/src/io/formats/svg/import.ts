@@ -106,6 +106,7 @@ function drawables(graph: SceneGraph, data: SVGImportData, parentIds: Set<string
       const vector = createPlacedVector(graph, parentId, path.vectorNetwork, {
         name: element.name ?? 'Vector',
         opacity: element.opacity,
+        visible: element.visible ?? true,
         ...vectorizedPathPaints(path)
       })
       if (vector) parentIds.add(parentId)

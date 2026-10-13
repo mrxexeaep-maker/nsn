@@ -2,6 +2,8 @@ import type { Element, Node } from '@xmldom/xmldom'
 
 /** SVG presentation attributes as an element inherits them, still as source strings. */
 export interface PresentationAttributes {
+  display: string
+  visibility: string
   fill: string
   stroke: string
   strokeWidth: string
@@ -20,6 +22,8 @@ export interface PresentationAttributes {
 }
 
 export const DEFAULT_PRESENTATION: PresentationAttributes = {
+  display: 'inline',
+  visibility: 'visible',
   fill: 'currentColor',
   stroke: 'none',
   strokeWidth: '1',
@@ -72,7 +76,13 @@ export function presentationFor(
   const styles = inlineStyles(element)
   const attribute = (name: string, value: string) =>
     inheritedAttribute(element, styles, name, value)
+  let visibility = attribute('visibility', inherited.visibility)
+  if (visibility === 'inherit' || visibility === 'unset') visibility = inherited.visibility
+  if (visibility === 'initial') visibility = 'visible'
+  const display = attribute('display', 'inline')
   return {
+    display: display === 'inherit' ? inherited.display : display,
+    visibility,
     fill: attribute('fill', inherited.fill),
     stroke: attribute('stroke', inherited.stroke),
     strokeWidth: attribute('stroke-width', inherited.strokeWidth),

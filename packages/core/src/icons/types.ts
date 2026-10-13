@@ -76,6 +76,8 @@ export interface SVGElementLayer {
   /** The element's `id`, when it is drawn directly rather than through `<use>`. */
   name: string | null
   opacity: number
+  /** Visibility applies to shapes, not groups: descendants can make themselves visible. */
+  visible?: boolean
   /** The clip region this element adds to `clipPaths`, by index. */
   clip: number | null
 }

@@ -28,6 +28,25 @@ test('pasted SVG clip paths draw through their mask groups', async () => {
   expect(await editor.canvas.screenshotCanvasRegion()).toMatchSnapshot('svg-clip-mask-groups.png')
 })
 
+test('SVG visibility hides shapes without hiding explicitly visible descendants (#1166)', async () => {
+  const pasted = await editor.canvas.pasteSVG(
+    `<svg viewBox="0 0 100 100" width="100" height="100">
+      <g visibility="hidden">
+        <path d="M0 0 L50 0 L50 50 Z" fill="#ff0000"/>
+        <rect x="60" y="60" width="30" height="30" fill="#4F46E5" visibility="visible"/>
+      </g>
+      <g display="none"><path d="M60 0 L90 0 L90 30 Z" fill="#00ff00" visibility="visible"/></g>
+      <path d="M0 60 L30 60 L30 90 Z" fill="#0000ff"/>
+    </svg>`,
+    220,
+    160
+  )
+  expect(pasted).toBe(true)
+  await editor.canvas.waitForRender()
+  editor.canvas.assertNoErrors()
+  expect(await editor.canvas.screenshotCanvasRegion()).toMatchSnapshot('svg-visibility.png')
+})
+
 // Figma 126 makes these layers 48×24, 44×24, and 35×24, the last centred on x = 100.
 const TEXT_SVG = `<svg viewBox="0 0 200 130" width="200" height="130">
   <text x="10" y="30" font-family="Inter" font-size="20">Hello</text>

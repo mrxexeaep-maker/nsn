@@ -27,7 +27,7 @@ export function elementLayer(
   traversal: Traversal,
   element: Element,
   kind: SVGElementLayer['kind'],
-  scope: Pick<Scope, 'referenced'>,
+  scope: Pick<Scope, 'referenced' | 'presentation'>,
   clip: number | null
 ): SVGElementLayer {
   return {
@@ -35,6 +35,9 @@ export function elementLayer(
     kind,
     name: scope.referenced ? null : element.getAttribute('id') || null,
     opacity: opacityValue(inlineStyles(element).get('opacity') ?? element.getAttribute('opacity')),
+    visible:
+      kind === 'group' ||
+      (scope.presentation.visibility !== 'hidden' && scope.presentation.visibility !== 'collapse'),
     clip
   }
 }
