@@ -52,11 +52,11 @@ describe('variable mode choices', () => {
     const { editor, theme, light, dark, outer, inner, node } = setup()
     const [auto] = variableModeChoices(editor, [node(inner.id)])
     expect(auto?.value).toBeNull()
-    expect(auto?.inherited).toEqual({ id: light, name: 'Light' })
+    expect(auto?.inherited).toEqual({ modeId: light, name: 'Light' })
 
     setVariableMode(editor, [node(outer.id)], theme.id, dark)
     const [inherited] = variableModeChoices(editor, [node(inner.id)])
-    expect(inherited?.inherited).toEqual({ id: dark, name: 'Dark' })
+    expect(inherited?.inherited).toEqual({ modeId: dark, name: 'Dark' })
     expect(variableModeChoices(editor, [node(outer.id)])[0]?.value).toBe(dark)
     expect(variableModeChoices(editor, [node(outer.id), node(inner.id)])[0]?.value).toBe(MIXED)
   })

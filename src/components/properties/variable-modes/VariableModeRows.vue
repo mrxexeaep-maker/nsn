@@ -22,7 +22,7 @@ function groups(choice: VariableModeChoice): AppSelectGroup<string>[] {
     { options: [{ value: AUTO_MODE, label: autoModeLabel(panels.value, choice) }] },
     {
       label: panels.value.variableModeHeading,
-      options: choice.modes.map((mode) => ({ value: mode.id, label: mode.name }))
+      options: choice.modes.map((mode) => ({ value: mode.modeId, label: mode.name }))
     }
   ]
 }

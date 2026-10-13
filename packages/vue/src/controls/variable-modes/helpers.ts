@@ -5,15 +5,14 @@ import {
   collectionsBoundIn,
   isLibraryCollection,
   type SceneNode,
-  type VariableCollection
+  type VariableCollection,
+  type VariableCollectionMode
 } from '@open-pencil/scene-graph'
 
 import { MIXED, type MixedValue } from '#vue/controls/node-props/use'
 
-export interface VariableModeOption {
-  id: string
-  name: string
-}
+/** A mode as the control lists it. */
+export type VariableModeOption = Pick<VariableCollectionMode, 'modeId' | 'name'>
 
 /** One collection a variable mode can be set for, as Figma's Apply variable mode menu lists it. */
 export interface VariableModeChoice {
@@ -30,7 +29,7 @@ export interface VariableModeChoice {
 
 function modeOption(collection: VariableCollection, modeId: string): VariableModeOption | null {
   const mode = collection.modes.find((candidate) => candidate.modeId === modeId)
-  return mode ? { id: mode.modeId, name: mode.name } : null
+  return mode ? { modeId: mode.modeId, name: mode.name } : null
 }
 
 function shared<T>(values: readonly T[]): MixedValue<T> {
@@ -67,7 +66,7 @@ export function variableModeChoices(editor: Editor, targets: SceneNode[]): Varia
       collectionId: collection.id,
       name: collection.name,
       library: isLibraryCollection(collection),
-      modes: collection.modes.map((mode) => ({ id: mode.modeId, name: mode.name })),
+      modes: collection.modes.map((mode) => ({ modeId: mode.modeId, name: mode.name })),
       value: shared(targets.map((target) => target.variableModes[collection.id] ?? null)),
       inherited: inherited === MIXED ? null : modeOption(collection, inherited)
     })

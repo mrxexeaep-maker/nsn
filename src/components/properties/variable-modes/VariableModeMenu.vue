@@ -86,8 +86,8 @@ function select(choice: VariableModeChoice, value: string) {
                   </DropdownMenuLabel>
                   <DropdownMenuRadioItem
                     v-for="mode in choice.modes"
-                    :key="mode.id"
-                    :value="mode.id"
+                    :key="mode.modeId"
+                    :value="mode.modeId"
                     :class="item"
                   >
                     <DropdownMenuItemIndicator class="absolute left-1.5">
