@@ -26,7 +26,7 @@ function vueComponentSource(source: string, filename: string): string {
 }
 
 function vueSfcDescriptor(source: string, filename: string) {
-  return parseVueSfc(source, { filename }).descriptor
+  return parseVueSfc(vueComponentSource(source, filename), { filename }).descriptor
 }
 
 function vueTemplateAst(source: string, filename: string): RootNode | null {

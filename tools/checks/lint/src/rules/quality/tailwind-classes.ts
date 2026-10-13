@@ -6,7 +6,6 @@ import {
   VUE_DIRECTIVE_NODE,
   VUE_ELEMENT_NODE,
   isVueSourceFile,
-  vueComponentSource,
   vueTemplateAst,
   walkVueTemplateAst
 } from '#lint/support/vue.ts'
@@ -157,8 +156,7 @@ export const noUnknownTailwindClassesRule = defineRule({
     return {
       Program(node) {
         if (!isVueSourceFile(file)) return
-        const source = vueComponentSource(context.sourceCode.getText(), file)
-        const template = vueTemplateAst(source, file)
+        const template = vueTemplateAst(context.sourceCode.getText(), file)
         if (!template) return
         walkVueTemplateAst(template, (templateNode) => {
           if (templateNode.type !== VUE_ELEMENT_NODE) return
