@@ -1,7 +1,14 @@
+import { isEqual } from 'es-toolkit'
+
 import { readIcon, slotPropertyId } from '@open-pencil/scene-graph'
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 
 import type { LayerNode, LayerRow, LayerSelectionMode } from '#vue/primitives/LayerTree/context'
+
+function explicitModeIds(node: SceneNode): string[] | undefined {
+  const ids = Object.values(node.variableModes)
+  return ids.length > 0 ? ids : undefined
+}
 
 function nodeToLayerNode(node: SceneNode): LayerNode {
   return {
@@ -12,7 +19,8 @@ function nodeToLayerNode(node: SceneNode): LayerNode {
     slot: !!slotPropertyId(node),
     icon: !!readIcon(node),
     visible: node.visible,
-    locked: node.locked
+    locked: node.locked,
+    modeIds: explicitModeIds(node)
   }
 }
 
@@ -62,7 +70,8 @@ export function patchLayerNode(target: LayerNode, source: SceneNode): boolean {
     target.slot !== !!slotPropertyId(source) ||
     target.icon !== !!readIcon(source) ||
     target.visible !== source.visible ||
-    target.locked !== source.locked
+    target.locked !== source.locked ||
+    !isEqual(target.modeIds, explicitModeIds(source))
   if (!changed) return false
   target.name = source.name
   target.type = source.type
@@ -71,6 +80,7 @@ export function patchLayerNode(target: LayerNode, source: SceneNode): boolean {
   target.icon = !!readIcon(source)
   target.visible = source.visible
   target.locked = source.locked
+  target.modeIds = explicitModeIds(source)
   return true
 }
 
