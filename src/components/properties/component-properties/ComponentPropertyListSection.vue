@@ -171,7 +171,7 @@ function valueLabel(type: ComponentPropertyType, value: string) {
           v-for="conflict in conflicts"
           :key="conflict.label"
           role="alert"
-          class="flex items-start gap-1.5 rounded bg-issue-warning/10 px-2 py-1.5 text-[11px] leading-4 text-issue-warning"
+          class="flex items-start gap-1.5 rounded bg-warning/10 px-2 py-1.5 text-[11px] leading-4 text-warning"
         >
           <icon-lucide-triangle-alert class="mt-0.5 size-3 shrink-0" aria-hidden="true" />
           <span class="min-w-0 flex-1">
