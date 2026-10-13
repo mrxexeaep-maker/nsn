@@ -67,7 +67,7 @@
   "modelIDHint": "请使用提供商给出的准确模型标识。",
   "baseURLHint": "请输入 API 端点，包括所需的路径。",
   "designToolsRequired": "设计模型必须支持工具。请选择兼容的模型，或在高级设置中启用工具支持。",
-  "serviceSetup": "服务设置",
+  "serviceSetup": "系统设置",
   "serviceSetupDescription": "OpenPencil 无需这些服务也能使用。设置它们以充分发挥其功能。",
   "serviceSetupProgress": "已设置 {done}/{total}",
   "serviceSetupLocalOnly": "仅文件：设计只保存在你保存的文件中",
@@ -94,6 +94,6 @@
   "serviceSetupFilesOnly": "仅文件",
   "serviceSetupPartial": "{done}/{total}",
   "serviceSetupAllDone": "全部已设置",
-  "serviceSetupComeBack": "你随时可以在“设置 → 服务设置”中回到这里，所以请放心继续，例如先看看导览。",
+  "serviceSetupComeBack": "你随时可以在“设置 → 系统设置”中回到这里，所以请放心继续，例如先看看导览。",
   "serviceSetupSeeAll": "查看所有服务"
 }

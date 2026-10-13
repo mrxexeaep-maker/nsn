@@ -67,7 +67,7 @@
   "modelIDHint": "プロバイダーが指定する正確なモデル ID を使用してください。",
   "baseURLHint": "必要なパスを含めて API エンドポイントを入力してください。",
   "designToolsRequired": "デザイン用モデルはツールに対応している必要があります。対応モデルを選ぶか、詳細設定でツール対応を有効にしてください。",
-  "serviceSetup": "サービスの設定",
+  "serviceSetup": "システム設定",
   "serviceSetupDescription": "OpenPencil はこれらのサービスがなくても使えます。設定すると、より多くの機能を活用できます。",
   "serviceSetupProgress": "{total} 件中 {done} 件設定済み",
   "serviceSetupLocalOnly": "ファイルのみ: デザインは保存したファイルにのみ残ります",
@@ -94,6 +94,6 @@
   "serviceSetupFilesOnly": "ファイルのみ",
   "serviceSetupPartial": "{total} 件中 {done} 件",
   "serviceSetupAllDone": "すべて設定済み",
-  "serviceSetupComeBack": "設定 → サービスの設定からいつでもここに戻れます。ツアーなど、このまま先へ進んでかまいません。",
+  "serviceSetupComeBack": "設定 → システム設定からいつでもここに戻れます。ツアーなど、このまま先へ進んでかまいません。",
   "serviceSetupSeeAll": "すべてのサービスを表示"
 }

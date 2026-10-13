@@ -67,7 +67,7 @@
   "modelIDHint": "Usa el identificador exacto del modelo que proporciona tu proveedor.",
   "baseURLHint": "Introduce el endpoint de la API, incluida cualquier ruta necesaria.",
   "designToolsRequired": "El modelo de diseño debe admitir herramientas. Elige un modelo compatible o activa las herramientas en los ajustes avanzados.",
-  "serviceSetup": "Configuración de servicios",
+  "serviceSetup": "Configuración del sistema",
   "serviceSetupDescription": "OpenPencil funciona sin estos servicios. Configúralos para sacarle el máximo partido.",
   "serviceSetupProgress": "{done} de {total} configurados",
   "serviceSetupLocalOnly": "Solo archivos: los diseños quedan en los archivos que guardas",
@@ -94,6 +94,6 @@
   "serviceSetupFilesOnly": "Solo archivos",
   "serviceSetupPartial": "{done} de {total}",
   "serviceSetupAllDone": "Todo está configurado",
-  "serviceSetupComeBack": "Siempre puedes volver aquí desde Ajustes → Configuración de servicios, así que sigue adelante, por ejemplo con el recorrido.",
+  "serviceSetupComeBack": "Siempre puedes volver aquí desde Ajustes → Configuración del sistema, así que sigue adelante, por ejemplo con el recorrido.",
   "serviceSetupSeeAll": "Ver todos los servicios"
 }

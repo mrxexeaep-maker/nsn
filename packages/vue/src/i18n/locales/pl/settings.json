@@ -67,7 +67,7 @@
   "modelIDHint": "Użyj dokładnego identyfikatora modelu podanego przez dostawcę.",
   "baseURLHint": "Wpisz adres API wraz z wymaganą ścieżką.",
   "designToolsRequired": "Model projektowy musi obsługiwać narzędzia. Wybierz zgodny model lub włącz obsługę narzędzi w ustawieniach zaawansowanych.",
-  "serviceSetup": "Konfiguracja usług",
+  "serviceSetup": "Konfiguracja systemu",
   "serviceSetupDescription": "OpenPencil działa bez tych usług. Skonfiguruj je, aby w pełni wykorzystać jego możliwości.",
   "serviceSetupProgress": "Skonfigurowano {done} z {total}",
   "serviceSetupLocalOnly": "Tylko pliki: projekty zostają w zapisanych plikach",
@@ -94,6 +94,6 @@
   "serviceSetupFilesOnly": "Tylko pliki",
   "serviceSetupPartial": "{done} z {total}",
   "serviceSetupAllDone": "Wszystko skonfigurowane",
-  "serviceSetupComeBack": "Zawsze możesz tu wrócić w Ustawienia → Konfiguracja usług, więc śmiało kontynuuj, na przykład z przewodnikiem.",
+  "serviceSetupComeBack": "Zawsze możesz tu wrócić w Ustawienia → Konfiguracja systemu, więc śmiało kontynuuj, na przykład z przewodnikiem.",
   "serviceSetupSeeAll": "Zobacz wszystkie usługi"
 }

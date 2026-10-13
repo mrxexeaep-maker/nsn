@@ -54,7 +54,7 @@ export const settingsMessageDefaults = {
   edit: 'Edit',
   configured: 'Configured',
   notConfigured: 'Not configured',
-  serviceSetup: 'Service setup',
+  serviceSetup: 'System setup',
   serviceSetupDescription:
     'OpenPencil works without these services. Set them up to get the most out of it.',
   serviceSetupProgress: params('{done} of {total} set up'),
@@ -65,7 +65,7 @@ export const settingsMessageDefaults = {
   serviceSetupAllDone: 'Everything is set up',
   serviceSetupSeeAll: 'See all services',
   serviceSetupComeBack:
-    'You can always come back to this in Settings → Service setup, so feel free to carry on, for example with the tour.',
+    'You can always come back to this in Settings → System setup, so feel free to carry on, for example with the tour.',
   serviceSetupSetUp: 'Set up',
   serviceSetupReview: 'Review',
   setupGroupAI: 'AI',

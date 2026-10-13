@@ -22,25 +22,23 @@ test('settings tabs associate panels and support vertical keyboard navigation', 
   await expect(toolbar).toBeFocused()
   await expect(page.getByTestId('settings-toolbar-panel')).toBeVisible()
   await toolbar.press('ArrowDown')
-  const ai = page.getByTestId('settings-section-ai')
-  await expect(ai).toBeFocused()
-  await expect(ai).toHaveAttribute('aria-selected', 'true')
+  const usage = page.getByTestId('settings-section-usage')
+  await expect(usage).toBeFocused()
   await expect(dialog.getByRole('tabpanel')).toHaveCount(1)
-  await expect(page.getByTestId('settings-ai-panel')).toBeVisible()
   await expect(dialog.getByRole('tabpanel')).toHaveAttribute(
     'aria-labelledby',
-    (await ai.getAttribute('id')) ?? ''
+    (await usage.getAttribute('id')) ?? ''
   )
-  // Service setup is the first tab.
-  await ai.press('Home')
+  // System setup is the first tab, with the services it lists nested under it.
+  await usage.press('Home')
   const setup = page.getByTestId('settings-section-setup')
   await expect(setup).toBeFocused()
   await expect(page.getByTestId('settings-service-setup-panel')).toBeVisible()
   await setup.press('ArrowDown')
-  await expect(general).toBeFocused()
-  await expect(page.getByTestId('settings-general-panel')).toBeVisible()
-  await general.press('End')
-  await expect(page.getByTestId('settings-section-storage')).toBeFocused()
+  await expect(page.getByTestId('settings-section-ai')).toBeFocused()
+  await expect(page.getByTestId('settings-ai-panel')).toBeVisible()
+  await setup.press('End')
+  await expect(page.getByTestId('settings-section-privacy')).toBeFocused()
   await page.getByTestId('app-settings-done').click()
   await expect(dialog).not.toBeVisible()
 })
