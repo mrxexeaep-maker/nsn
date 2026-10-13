@@ -57,6 +57,20 @@ describe('conditional head updates', () => {
     expect((await conditional.getDocumentMetadata?.('doc'))?.name).toBe('V2')
   })
 
+  test('a metadata commit over a deleted design conflicts instead of bringing it back', async () => {
+    const adapter = createS3StorageAdapterWithConfig(async () => MEMORY_S3_CONFIG)
+    const first = await adapter.putDocumentVersion('gone', BODY, async () => writtenFor('V1', BODY))
+    await adapter.deleteDocument('gone')
+
+    await expect(
+      adapter.putMetadataVersion('gone', await writtenFor('Renamed', BODY), {
+        expectedBase: { baseStateId: first.stateId, lastPublishedStateId: first.stateId }
+      })
+    ).rejects.toBeInstanceOf(StorageConflictError)
+    // Only the first commit ever wrote the head.
+    expect(headIfMatches('gone')).toHaveLength(1)
+  })
+
   test('a lost race surfaces as a conflict and leaves the head untouched', async () => {
     const conditional = createS3StorageAdapterWithConfig(async () => MEMORY_S3_CONFIG, {
       conditionalHeadUpdates: true

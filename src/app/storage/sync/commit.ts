@@ -57,6 +57,8 @@ export type SyncedRevision = {
   /** The confirmation came from a versioned commit. */
   versioned?: boolean
   destination?: string | null
+  /** False when no head holds the state, as with a legacy sidecar: it is a base, not a publish. */
+  publish?: boolean
 }
 
 /**
@@ -83,12 +85,13 @@ export async function markRevisionSynced(
         syncDestination: synced.destination ?? latest.syncDestination
       }
     : {}
-  const publish = synced.stateId
-    ? {
-        lastPublishedStateId: synced.stateId,
-        lastPublishedParentStateId: synced.parentStateId ?? null
-      }
-    : {}
+  const publish =
+    synced.stateId && synced.publish !== false
+      ? {
+          lastPublishedStateId: synced.stateId,
+          lastPublishedParentStateId: synced.parentStateId ?? null
+        }
+      : {}
 
   if (latest.revision !== revision) {
     await store.updateMeta(
@@ -250,8 +253,11 @@ export async function commitMetadata(context: CommitContext, meta: LocalCanvasMe
     throw new Error('Storage cannot record this design’s metadata')
   }
   await adapter.putDocumentMetadata(meta.id, written)
+  // The legacy layout has no head, so this state is never in a head's history: recording it as a
+  // publish would make the next listing see a fork once another device moves the design on.
   await markRevisionSynced(store, meta.id, meta.revision, {
     stateId: written.stateId,
+    publish: false,
     destination: context.destination
   })
 }

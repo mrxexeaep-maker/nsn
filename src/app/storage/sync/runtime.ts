@@ -1,6 +1,7 @@
 import { useEventListener, useLocalStorage } from '@vueuse/core'
 
 import { IS_BROWSER } from '@open-pencil/core/constants'
+import { randomInt } from '@open-pencil/scene-graph/random'
 
 import { createActiveStorageAdapter } from '@/app/integrations/storage'
 import {
@@ -106,7 +107,7 @@ export const syncEngine = createSyncEngine({
     return () => clearTimeout(timer)
   },
   now: () => Date.now(),
-  random: () => (crypto.getRandomValues(new Uint8Array(1))[0] ?? 0) / 256,
+  random: () => (randomInt() >>> 0) / 0x1_0000_0000,
   runExclusive: runWithWebLock,
   emit: emitWithConflictResolution,
   collectGarbage: collectGarbageDaily

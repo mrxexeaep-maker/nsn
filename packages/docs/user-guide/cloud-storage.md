@@ -50,11 +50,11 @@ Add a rule like this one, with the origins you open OpenPencil from:
 
 Set it in the AWS console under the bucket's **Permissions → Cross-origin resource sharing**, in the Cloudflare dashboard under the R2 bucket's **Settings → CORS policy**, or with your provider's CLI. When the rule is missing, **Test connection** says the browser could not reach the bucket from the current site.
 
-## Save a Document to Storage
+## Designs in Storage
 
-Open or create a document, then choose **File → Save to storage…**. The document is saved into the bucket and the tab stays bound to it: **Save** and auto-save now write to storage instead of a local file. A local `.fig` you had open keeps its last saved contents.
+Every design saves itself to the library on this device. Once storage is set up, the library syncs to the bucket, the designs saved before included; there is nothing to save by hand. **File → Save Local Copy…** writes a design to a `.fig` file of your own.
 
-To open stored documents, choose **File → Open storage workspace…**. The workspace lists every document in the bucket with a preview read from the document itself, so listing a large file downloads only its embedded thumbnail.
+Stored designs appear in **Recents** on the start page, which the home button opens. Each card shows a preview read from the design itself, so listing a large file downloads only its embedded thumbnail.
 
 ## How Saving Works
 

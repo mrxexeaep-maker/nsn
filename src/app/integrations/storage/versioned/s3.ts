@@ -54,6 +54,22 @@ async function readHead(config: S3CompatibleConfig, id: string): Promise<HeadRea
  * Nothing known (a fresh or rebased row) never conflicts on its own, and a head that already
  * holds the intended state means identical edits converged.
  */
+/**
+ * A metadata-only commit reuses a stored body. When the head is gone, another device deleted the
+ * design and its body may be collected, so writing a head would bring back a broken copy.
+ */
+function assertNotDeleted(
+  id: string,
+  metadataOnly: boolean,
+  headExists: boolean,
+  expected: VersionCommitBase | undefined
+): void {
+  const knowsAState = expected?.baseStateId != null || expected?.lastPublishedStateId != null
+  if (metadataOnly && !headExists && knowsAState) {
+    throw new StorageConflictError(`"${id}" was deleted on another device.`)
+  }
+}
+
 function assertHeadIsKnown(
   id: string,
   head: DocumentHead | null,
@@ -120,6 +136,7 @@ export async function s3CommitVersion(
 ): Promise<CommittedVersion> {
   const dispatched = identified(id, await readWritten())
   const previous = await readHead(config, id)
+  assertNotDeleted(id, bytes === null, previous !== null, options.expectedBase)
   assertHeadIsKnown(id, previous?.head ?? null, dispatched.stateId, options.expectedBase)
   if (previous?.head.stateId === dispatched.stateId) {
     // The remote already holds exactly this state: nothing to write.

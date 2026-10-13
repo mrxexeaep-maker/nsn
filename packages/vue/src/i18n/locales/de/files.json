@@ -39,7 +39,7 @@
   "emptyTrashDescription": "Alle Designs im Papierkorb werden von diesem Gerät und aus dem Speicher entfernt. Das kann nicht rückgängig gemacht werden.",
   "deletePermanentlyDescription": "Es wird von diesem Gerät und aus dem Speicher entfernt. Das kann nicht rückgängig gemacht werden.",
   "deletePermanentlyHeading": "„{name}“ endgültig löschen?",
-  "trashedOn": "Gelöscht am {date}",
+  "trashedOn": "In den Papierkorb verschoben am {date}",
   "syncedTo": "Synchronisiert mit {location}",
   "syncingTo": "Wird mit {location} synchronisiert…",
   "syncFailed": "Synchronisierung mit {location} nicht möglich",
