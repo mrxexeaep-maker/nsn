@@ -162,6 +162,31 @@ test('a change outside the history keeps the document unsaved after undoing back
   })
 })
 
+test('changes typed while editing text belong to the step the edit records when it ends', async () => {
+  await withSavedRectangle(async (editor, id, changes) => {
+    // Typing resizes the layer as it goes; the text edit records one step when it is committed.
+    editor.state.editingTextId = id
+    editor.graph.updateNode(id, { name: 'Typing', width: 31 })
+    await settle()
+    editor.graph.updateNode(id, { name: 'Typing more', width: 47 })
+    await settle()
+    expect(changes.hasUnsavedChanges()).toBe(true)
+
+    editor.state.editingTextId = null
+    editor.undo.push({
+      label: 'Edit text',
+      forward: () => editor.graph.updateNode(id, { name: 'Typing more', width: 47 }),
+      inverse: () => editor.graph.updateNode(id, { name: 'Rectangle', width: 20 })
+    })
+    await settle()
+    expect(changes.hasUnsavedChanges()).toBe(true)
+
+    editor.undoAction()
+    await settle()
+    expect(changes.hasUnsavedChanges()).toBe(false)
+  })
+})
+
 test('an edit made after undoing past the save leaves the saved state out of reach', async () => {
   await withSavedRectangle(async (editor, id, changes) => {
     editor.undoAction()

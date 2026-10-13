@@ -11,9 +11,11 @@ const UNKNOWN_HISTORY: UndoEntry = { label: '', forward: () => undefined, invers
  * never mark a document changed or saved. Autosave and recovery follow the same revision.
  *
  * A document whose history goes back to where it was saved, by undo or redo, is saved again,
- * unless something changed it outside the history since, such as a collaborator. Every editor
- * edit records its step in the same task as the change, so a change no step follows within its
- * task is one of those; an edit still being coalesced, such as a picker drag, counts as one too.
+ * unless something changed it outside the history since, such as a collaborator. An editor edit
+ * records its step in the same task as the change, or, while text is being edited or an edit is
+ * being coalesced, such as a picker drag, when that edit ends. A change no step follows within
+ * its task, with neither of those open, is one made outside the history; one an open edit makes
+ * waits for that edit's step, and keeps the document unsaved if the edit records none.
  */
 export function createDocumentChanges(editor: Editor) {
   const revision = ref(0)
@@ -44,6 +46,8 @@ export function createDocumentChanges(editor: Editor) {
     revision.value++
     contentRevision = revision.value
     const at = contentRevision
+    // Text editing and coalesced edits record their step when they end, not with each change.
+    if (editor.state.editingTextId !== null || editor.undo.isBatching) return
     queueMicrotask(() => {
       if (historyRevision < at) outsideRevision = Math.max(outsideRevision, at)
     })
