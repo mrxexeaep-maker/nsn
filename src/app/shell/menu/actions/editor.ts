@@ -89,14 +89,14 @@ export function createSharedEditorMenuActions(
     'theme-light': () => setTheme('light'),
     'theme-dark': () => setTheme('dark'),
     'theme-auto': () => setTheme('auto'),
-    'text.bold': onCanvasSelection(store, toggleSelectedTextBold),
-    'text.italic': onCanvasSelection(store, toggleSelectedTextItalic),
-    'text.underline': onCanvasSelection(store, toggleSelectedTextUnderline),
-    'arrange.align-left': onCanvasSelection(store, () => alignSelected('horizontal', 'min')),
-    'arrange.align-center': onCanvasSelection(store, () => alignSelected('horizontal', 'center')),
-    'arrange.align-right': onCanvasSelection(store, () => alignSelected('horizontal', 'max')),
-    'arrange.align-top': onCanvasSelection(store, () => alignSelected('vertical', 'min')),
-    'arrange.align-middle': onCanvasSelection(store, () => alignSelected('vertical', 'center')),
-    'arrange.align-bottom': onCanvasSelection(store, () => alignSelected('vertical', 'max'))
+    'text.bold': onCanvasSelection(toggleSelectedTextBold),
+    'text.italic': onCanvasSelection(toggleSelectedTextItalic),
+    'text.underline': onCanvasSelection(toggleSelectedTextUnderline),
+    'arrange.align-left': onCanvasSelection(() => alignSelected('horizontal', 'min')),
+    'arrange.align-center': onCanvasSelection(() => alignSelected('horizontal', 'center')),
+    'arrange.align-right': onCanvasSelection(() => alignSelected('horizontal', 'max')),
+    'arrange.align-top': onCanvasSelection(() => alignSelected('vertical', 'min')),
+    'arrange.align-middle': onCanvasSelection(() => alignSelected('vertical', 'center')),
+    'arrange.align-bottom': onCanvasSelection(() => alignSelected('vertical', 'max'))
   }
 }

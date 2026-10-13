@@ -68,3 +68,19 @@ test('menu commands act on the document when the canvas has focus', async () => 
   expect(await runAsNativeMenu('selection.selectAll')).toEqual(['selection.selectAll'])
   expect(await runAsNativeMenu('edit.undo')).toEqual(['edit.undo'])
 })
+
+test('a page field keeps its edits while a canvas text edit stays open', async () => {
+  await editor.canvas.selectTool('text')
+  await editor.canvas.click(300, 300)
+  await editor.page.keyboard.type('Hi')
+  // In the canvas text editor, Select All selects its text and leaves the document alone.
+  expect(await runAsNativeMenu('selection.selectAll')).toEqual([])
+
+  // Focus leaves for a page field; the text edit stays open behind it.
+  const field = await focusTextField('')
+  await field.pressSequentially('abc')
+
+  expect(await runAsNativeMenu('selection.duplicate')).toEqual([])
+  expect(await runAsNativeMenu('edit.undo')).toEqual([])
+  await expect(field).toHaveValue('')
+})

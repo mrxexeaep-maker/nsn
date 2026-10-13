@@ -1,3 +1,4 @@
+import { isCanvasTextInput } from '@open-pencil/vue'
 import type { EditorCommandId } from '@open-pencil/vue'
 
 import type { EditorStore } from '@/app/editor/active-store'
@@ -15,8 +16,9 @@ const TEXT_FIELD_EDITS: Partial<Record<EditorCommandId, 'selectAll' | 'undo' | '
 }
 
 /** A text field in the page has focus; the canvas text editor types through its own textarea. */
-export function textFieldFocused(store: EditorStore): boolean {
-  return isInputElement(document.activeElement) && !store.state.editingTextId
+export function textFieldFocused(): boolean {
+  const active = document.activeElement
+  return isInputElement(active) && !isCanvasTextInput(active)
 }
 
 /**
@@ -32,12 +34,12 @@ export function runFocusedCommand(
   runCommand: (id: EditorCommandId) => void,
   id: EditorCommandId
 ): void {
-  if (store.state.editingTextId && id === 'selection.selectAll') {
+  if (id === 'selection.selectAll' && isCanvasTextInput(document.activeElement)) {
     store.textEditor?.selectAll()
     store.requestRender()
     return
   }
-  if (textFieldFocused(store)) {
+  if (textFieldFocused()) {
     const edit = TEXT_FIELD_EDITS[id]
     if (edit) document.execCommand(edit)
     else if (id.startsWith('view.')) runCommand(id)
@@ -47,8 +49,8 @@ export function runFocusedCommand(
 }
 
 /** An action on the canvas selection that waits, like the commands above, while a field has focus. */
-export function onCanvasSelection(store: EditorStore, action: () => void): () => void {
+export function onCanvasSelection(action: () => void): () => void {
   return () => {
-    if (!textFieldFocused(store)) action()
+    if (!textFieldFocused()) action()
   }
 }

@@ -9,7 +9,7 @@ export function createSelectionMenuActions(store: EditorStore) {
     copy: () => void executeClipboardCommand(store, 'copy'),
     cut: () => void executeClipboardCommand(store, 'cut'),
     paste: () => void executeClipboardCommand(store, 'paste'),
-    'paste-to-replace': onCanvasSelection(store, () => void pasteClipboardToReplace(store)),
-    'selection.rename': onCanvasSelection(store, () => requestRenameSelection(store))
+    'paste-to-replace': onCanvasSelection(() => void pasteClipboardToReplace(store)),
+    'selection.rename': onCanvasSelection(() => requestRenameSelection(store))
   }
 }
