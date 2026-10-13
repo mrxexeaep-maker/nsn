@@ -3,6 +3,8 @@ import { describe, expect, test } from 'bun:test'
 import { SceneGraph, withIcon } from '@open-pencil/scene-graph'
 import { buildLayerTreeModel, patchLayerNode } from '@open-pencil/vue'
 
+import { dropIndex } from '#vue/primitives/LayerTree/model'
+
 describe('layer tree model', () => {
   test('marks icon frames, so rows can show them as icons', () => {
     const graph = new SceneGraph()
@@ -37,5 +39,17 @@ describe('layer tree model', () => {
     graph.updateNode(frame.id, { variableModes: { [theme.id]: dark } })
     expect(patchLayerNode(row, frame)).toBe(true)
     expect(row.modeIds).toEqual([dark])
+  })
+})
+
+describe('drop index', () => {
+  test('a layer dragged down past a later sibling lands right after it', () => {
+    // Dropping A below B in [A, B, C]: B's index + 1 is 2, counted without A it is 1.
+    expect(dropIndex(['A', 'B', 'C'], 'A', 2)).toBe(1)
+  })
+
+  test('a layer dragged up, or from another parent, keeps the target index', () => {
+    expect(dropIndex(['A', 'B', 'C'], 'C', 1)).toBe(1)
+    expect(dropIndex(['A', 'B', 'C'], 'X', 2)).toBe(2)
   })
 })

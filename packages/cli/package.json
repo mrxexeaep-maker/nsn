@@ -11,6 +11,13 @@
     "openpencil": "./bin/openpencil.js"
   },
   "exports": {
+    "./package.json": "./package.json",
+    "./commands": {
+      "types": "./dist/commands/index.d.mts",
+      "bun": "./src/commands/index.ts",
+      "import": "./dist/commands/index.mjs",
+      "default": "./dist/commands/index.mjs"
+    },
     "./library": {
       "types": "./dist/library/index.d.mts",
       "bun": "./src/library/index.ts",
