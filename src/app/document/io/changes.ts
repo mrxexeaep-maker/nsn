@@ -81,7 +81,10 @@ export function createDocumentChanges(editor: Editor) {
     capture,
     markSaved: (version = capture()) => {
       savedHistory = capturedHistory.has(version) ? capturedHistory.get(version) : UNKNOWN_HISTORY
-      capturedHistory.clear()
+      // A later save still in progress, such as a manual save overlapping an autosave, keeps its own.
+      for (const captured of capturedHistory.keys()) {
+        if (captured <= version) capturedHistory.delete(captured)
+      }
       savedRevision.value = version
     },
     markChanged: changed,

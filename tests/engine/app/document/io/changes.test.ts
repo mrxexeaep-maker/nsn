@@ -187,6 +187,26 @@ test('changes typed while editing text belong to the step the edit records when 
   })
 })
 
+test('a save that finishes after an earlier one still returns to saved by undo', async () => {
+  await withSavedRectangle(async (editor, id, changes) => {
+    // An autosave starts, then a manual save starts after another edit; the autosave ends first.
+    editor.updateNodeWithUndo(id, { width: 30 }, 'Resize')
+    await settle()
+    const autosave = changes.capture()
+    editor.updateNodeWithUndo(id, { width: 40 }, 'Resize')
+    await settle()
+    const manualSave = changes.capture()
+    changes.markSaved(autosave)
+    changes.markSaved(manualSave)
+    expect(changes.hasUnsavedChanges()).toBe(false)
+
+    editor.updateNodeWithUndo(id, { width: 50 }, 'Resize')
+    editor.undoAction()
+    await settle()
+    expect(changes.hasUnsavedChanges()).toBe(false)
+  })
+})
+
 test('an edit made after undoing past the save leaves the saved state out of reach', async () => {
   await withSavedRectangle(async (editor, id, changes) => {
     editor.undoAction()
