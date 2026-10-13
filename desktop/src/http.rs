@@ -3,7 +3,7 @@ use reqwest::{
     Method,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 use std::time::Duration;
 use tauri::async_runtime::JoinHandle;
@@ -70,16 +70,45 @@ enum ProxyHttpBodyEnd {
     Error { error: ProxyHttpError },
 }
 
-/// Requests in flight, so the page can cancel one.
+/// Requests in flight, so the page can cancel one, and cancellations that arrived
+/// first: Tauri runs `proxy_http_request` on its own task, so `cancel_http_request`
+/// can run before the request is registered.
 #[derive(Default)]
-pub struct ProxyHttpRequests(Mutex<HashMap<String, JoinHandle<()>>>);
+pub struct ProxyHttpRequests(Mutex<Requests>);
+
+#[derive(Default)]
+struct Requests {
+    tasks: HashMap<String, JoinHandle<()>>,
+    cancelled: HashSet<String>,
+}
+
+impl Requests {
+    /// Stops a registered request, or refuses it when it registers later.
+    fn cancel(&mut self, id: String) {
+        match self.tasks.remove(&id) {
+            Some(task) => task.abort(),
+            None => {
+                self.cancelled.insert(id);
+            }
+        }
+    }
+
+    /// Whether a request may start; false once the page cancelled it.
+    fn admit(&mut self, id: &str) -> bool {
+        !self.cancelled.remove(id)
+    }
+}
 
 impl ProxyHttpRequests {
-    fn tasks(&self) -> std::sync::MutexGuard<'_, HashMap<String, JoinHandle<()>>> {
+    fn requests(&self) -> std::sync::MutexGuard<'_, Requests> {
         self.0
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
+}
+
+fn cancelled() -> ProxyHttpError {
+    ProxyHttpError::request("The request was cancelled")
 }
 
 type HeadResult = Result<ProxyHttpHead, ProxyHttpError>;
@@ -238,30 +267,46 @@ pub async fn proxy_http_request<R: tauri::Runtime>(
     let (head, head_received) = oneshot::channel();
     {
         // Held while spawning, so the task cannot remove its entry before it exists.
-        let requests = app.state::<ProxyHttpRequests>();
-        let mut tasks = requests.tasks();
+        let state = app.state::<ProxyHttpRequests>();
+        let mut requests = state.requests();
+        if !requests.admit(&id) {
+            return Err(cancelled());
+        }
         let task_app = app.clone();
         let task_id = id.clone();
         let task = tauri::async_runtime::spawn(async move {
             run(request, head, on_body).await;
             task_app
                 .state::<ProxyHttpRequests>()
-                .tasks()
+                .requests()
+                .tasks
                 .remove(&task_id);
         });
-        if let Some(previous) = tasks.insert(id, task) {
+        if let Some(previous) = requests.tasks.insert(id, task) {
             previous.abort();
         }
     }
-    head_received
-        .await
-        .map_err(|_| ProxyHttpError::request("The request was cancelled"))?
+    head_received.await.map_err(|_| cancelled())?
 }
 
 /// Stops a request and its body stream, closing the connection.
 #[tauri::command]
 pub fn cancel_http_request(requests: tauri::State<'_, ProxyHttpRequests>, id: String) {
-    if let Some(task) = requests.tasks().remove(&id) {
-        task.abort();
+    requests.requests().cancel(id);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Requests;
+
+    #[test]
+    fn a_cancel_before_registration_refuses_the_request() {
+        let mut requests = Requests::default();
+        requests.cancel("early".into());
+
+        assert!(!requests.admit("early"));
+        // The refusal is spent; the id is not refused again.
+        assert!(requests.admit("early"));
+        assert!(requests.admit("other"));
     }
 }
