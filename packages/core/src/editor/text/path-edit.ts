@@ -1,12 +1,13 @@
 import { encodePathCommandsBlob } from '@open-pencil/fig/node-change'
-import type { SceneNode } from '@open-pencil/scene-graph'
+import type { SceneNode, TextPathData } from '@open-pencil/scene-graph'
 
 import { weightToStyle } from '#core/text/fonts'
 import { getGlyphOutlineMetricsSync } from '#core/text/opentype'
 import {
   calibratePathTextLayout,
   getTextPathData,
-  layoutPathTextFromAdvances
+  layoutPathTextFromAdvances,
+  sampleTextPath
 } from '#core/text/path'
 
 /**
@@ -49,11 +50,12 @@ export function pathTextEditChanges(
   const layout = calibratePathTextLayout(node.derivedTextGlyphs, data, node.textPathBox)
   if (!layout) return {}
   const offset = layout.offsets.reduce((sum, o) => sum + o, 0) / layout.offsets.length
+  const anchor = alignedAnchor(node, data, layout.anchor, metrics, letterSpacing)
 
   const glyphs = layoutPathTextFromAdvances(
     data,
     node.textPathBox,
-    layout.anchor,
+    anchor,
     offset,
     metrics.map((m) => ({
       commandsBlob: encodePathCommandsBlob(m.commands, fontSize),
@@ -68,4 +70,44 @@ export function pathTextEditChanges(
   // Baked silhouettes belong to the OLD string — clear them so the renderer
   // rebuilds per-glyph silhouettes for the new lettering.
   return glyphs ? { derivedTextGlyphs: glyphs, strokeGeometry: [] } : {}
+}
+
+/** How far along the path the start of new text moves so it keeps its alignment, px. */
+function alignmentShift(align: SceneNode['textAlignHorizontal'], before: number, after: number) {
+  if (align === 'CENTER') return (before - after) / 2
+  if (align === 'RIGHT') return before - after
+  return 0
+}
+
+/**
+ * Where new text starts on the path, as a fraction of its length. Figma places path text by its
+ * alignment, so centered text keeps its middle where it was and right-aligned text its end; text
+ * aligned left keeps its start. The old and new runs are measured the same way, so the shift is
+ * the difference in their widths.
+ */
+function alignedAnchor(
+  node: SceneNode,
+  data: TextPathData,
+  anchor: number,
+  metrics: Array<{ advance: number }>,
+  letterSpacing: number
+): number {
+  if (node.textAlignHorizontal !== 'CENTER' && node.textAlignHorizontal !== 'RIGHT') return anchor
+  const box = node.textPathBox
+  const path = box ? sampleTextPath(data, box) : null
+  const old = getGlyphOutlineMetricsSync(
+    node.fontFamily,
+    weightToStyle(node.fontWeight, node.italic),
+    node.text,
+    node.fontSize
+  )
+  if (!path || path.length === 0 || !old) return anchor
+  const width = (run: Array<{ advance: number }>, spacing: number) =>
+    run.reduce((sum, glyph) => sum + glyph.advance + spacing, 0)
+  const shift = alignmentShift(
+    node.textAlignHorizontal,
+    width(old, node.letterSpacing),
+    width(metrics, letterSpacing)
+  )
+  return anchor + ((data.forward ? 1 : -1) * shift) / path.length
 }
