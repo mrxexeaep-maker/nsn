@@ -35,10 +35,8 @@ export function offerAIWelcomeOnLaunch(): boolean {
   // The native test binary starts every run with an empty data store.
   if (import.meta.env.MODE === 'native-test') return false
   if (hideWelcomeOnLaunch.value) return false
-  if (!isUnconfiguredModelSettings(aiModelSettings.value)) {
-    updateAISetupState('done')
-    return false
-  }
+  // Configured AI skips the welcome without touching the opt-out, which stays the person's choice.
+  if (!isUnconfiguredModelSettings(aiModelSettings.value)) return false
   openAISetup('welcome')
   return true
 }
