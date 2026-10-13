@@ -3,3 +3,4 @@
 - Saving an opened `.fig` file writes a variable's new value into every layer that uses it, through an alias too, so Figma shows the edit. Before, layers bound through an alias, or any layer read from the file, kept the color Figma had saved.
 - The Variables panel marks collections copied from a library, whose edits are saved and show in Figma, and warns on a variable added to one, which Figma doesn't show.
 - CLI `eval` and the CLI tools measure text in the document they edit, so text with line breaks or a fixed width gets its real height.
+- The Variables dialog keeps variable names in view in a collection with more modes than fit, such as Tokens in Preline UI files, and scrolls sideways instead. Before, the name column shrank to nothing and its header ran into the first mode's.
