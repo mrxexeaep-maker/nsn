@@ -17,7 +17,10 @@ use deep_link::path_matches_suffix;
 use fig_container::build_fig_file;
 use fonts::{list_system_fonts, load_system_font};
 use http::proxy_http_request;
-use menu::{install_app_menu, native_menu_checked, set_native_menu_checked};
+use menu::{
+    install_app_menu, native_menu_checked, set_native_menu_checked, set_text_field_focus,
+    TextFieldFocus,
+};
 use menu_events::handle_menu_event;
 use std::{
     path::{Path, PathBuf},
@@ -359,6 +362,7 @@ pub fn run() {
 
     builder
         .manage(PendingOpen(Mutex::new(Vec::new())))
+        .manage(TextFieldFocus::default())
         .manage(PendingRooms(Mutex::new(Vec::new())))
         .invoke_handler(tauri::generate_handler![
             agents::agent_lookup,
@@ -378,6 +382,7 @@ pub fn run() {
             set_recent_files,
             native_menu_checked,
             set_native_menu_checked,
+            set_text_field_focus,
             take_pending_open,
             take_pending_rooms,
             sharing_disabled_by_env,
