@@ -5,36 +5,10 @@ import * as v from 'valibot'
 
 import { FigmaAPI } from '@open-pencil/core/figma-api'
 import { exportFigFile, parseFigFile } from '@open-pencil/core/io'
-import { parseFigBuffer } from '@open-pencil/fig'
+import { parseFigBuffer, pngSize, readFigArchiveMeta } from '@open-pencil/fig'
 import { SceneGraph } from '@open-pencil/scene-graph'
 
 setDefaultTimeout(60_000)
-
-// The keys Figma's "Save local copy…" writes, and only those.
-const FigMetaJSON = v.pipe(
-  v.string(),
-  v.parseJson(),
-  v.strictObject({
-    client_meta: v.strictObject({
-      background_color: v.strictObject({
-        r: v.number(),
-        g: v.number(),
-        b: v.number(),
-        a: v.number()
-      }),
-      thumbnail_size: v.strictObject({ width: v.number(), height: v.number() }),
-      render_coordinates: v.strictObject({
-        x: v.number(),
-        y: v.number(),
-        width: v.number(),
-        height: v.number()
-      })
-    }),
-    file_name: v.string(),
-    developer_related_links: v.array(v.unknown()),
-    exported_at: v.pipe(v.string(), v.isoTimestamp())
-  })
-)
 
 // The float32 values the canvas record stores for rgb(0.2, 0.4, 0.6).
 const BLUE_GRAY = { r: 0.20000000298023224, g: 0.4000000059604645, b: 0.6000000238418579, a: 1 }
@@ -51,14 +25,14 @@ function landingPage() {
 
 function readArchive(bytes: Uint8Array) {
   const parsed = parseFigBuffer(bytes.slice().buffer)
-  const meta = v.safeParse(FigMetaJSON, parsed.metaJSON)
+  const raw = expectDefined(parsed.metaJSON, 'meta.json')
+  const meta = readFigArchiveMeta(raw)
   if (!meta.success) throw new Error(`meta.json: ${v.summarize(meta.issues)}`)
   const png = expectDefined(parsed.thumbnailPNG, 'thumbnail.png')
-  const dimensions = new DataView(png.buffer, png.byteOffset, png.byteLength)
   return {
-    raw: parsed.metaJSON,
+    raw,
     meta: meta.output,
-    thumbnailSize: { width: dimensions.getUint32(16), height: dimensions.getUint32(20) }
+    thumbnailSize: expectDefined(pngSize(png), 'thumbnail size')
   }
 }
 

@@ -4,6 +4,7 @@ import {
   FIG_PACKAGE_STATUS,
   figArchiveMetaJSON,
   parseFigBuffer,
+  readFigArchiveMeta,
   readFigContainer,
   writeFigArchive,
   writeFigContainer
@@ -96,6 +97,8 @@ describe('@open-pencil/fig package API', () => {
         exportedAt: new Date('2026-10-13T06:25:07.134Z')
       })
     ).toBe(figmaMetaJSON)
+    expect(readFigArchiveMeta(figmaMetaJSON).success).toBe(true)
+    expect(readFigArchiveMeta('{"version":1,"app":"OpenPencil"}').success).toBe(false)
   })
 
   it('parses legacy raw fig-kiwi files and preserves their thumbnail chunk', () => {

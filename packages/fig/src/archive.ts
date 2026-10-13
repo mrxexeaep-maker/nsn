@@ -1,4 +1,5 @@
 import { unzipSync, zipSync, type Unzipped, type Zippable } from 'fflate'
+import * as v from 'valibot'
 
 import type { FigPageManifestEntry } from '@open-pencil/kiwi/fig'
 import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
@@ -176,6 +177,30 @@ export interface FigArchiveMeta {
   exportedAt: Date
 }
 
+/** The `meta.json` Figma's "Save local copy…" writes: these keys, and only these. */
+export const FigArchiveMetaSchema = v.strictObject({
+  client_meta: v.strictObject({
+    background_color: v.strictObject({
+      r: v.number(),
+      g: v.number(),
+      b: v.number(),
+      a: v.number()
+    }),
+    thumbnail_size: v.strictObject({ width: v.number(), height: v.number() }),
+    render_coordinates: v.strictObject({
+      x: v.number(),
+      y: v.number(),
+      width: v.number(),
+      height: v.number()
+    })
+  }),
+  file_name: v.string(),
+  developer_related_links: v.array(v.unknown()),
+  exported_at: v.pipe(v.string(), v.isoTimestamp())
+})
+
+export type FigArchiveMetaJSON = v.InferOutput<typeof FigArchiveMetaSchema>
+
 /**
  * The `meta.json` Figma's "Save local copy…" writes, in its key order. Colour channels are
  * rounded to the 32-bit floats the canvas records store, so they read as Figma's do.
@@ -183,7 +208,7 @@ export interface FigArchiveMeta {
 export function figArchiveMetaJSON(meta: FigArchiveMeta): string {
   const { r, g, b, a } = meta.backgroundColor
   const { x, y, width, height } = meta.renderCoordinates
-  return JSON.stringify({
+  const json: FigArchiveMetaJSON = {
     client_meta: {
       background_color: {
         r: Math.fround(r),
@@ -197,7 +222,13 @@ export function figArchiveMetaJSON(meta: FigArchiveMeta): string {
     file_name: meta.fileName,
     developer_related_links: [],
     exported_at: meta.exportedAt.toISOString()
-  })
+  }
+  return JSON.stringify(json)
+}
+
+/** Decode an archive's `meta.json`, failing on malformed JSON and on a shape Figma does not write. */
+export function readFigArchiveMeta(text: string) {
+  return v.safeParse(v.pipe(v.string(), v.parseJson(), FigArchiveMetaSchema), text)
 }
 
 /** Assemble a complete zipped `.fig` archive from an encoded Kiwi message and resources. */

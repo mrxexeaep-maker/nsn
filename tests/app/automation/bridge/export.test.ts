@@ -5,6 +5,7 @@ import { toUint8Array } from 'js-base64'
 
 import { SkiaRenderer } from '@open-pencil/core/canvas'
 import { BUILTIN_IO_FORMATS, IORegistry, initCanvasKit, parseFigFile } from '@open-pencil/core/io'
+import { pngSize } from '@open-pencil/fig'
 import { SceneGraph } from '@open-pencil/scene-graph'
 
 import { makeFigmaFromStore } from '@/app/automation/bridge/figma-factory'
@@ -68,11 +69,6 @@ function target(store: EditorStore, pageId: string): AutomationTarget {
     pageId,
     pageName: page?.name ?? ''
   }
-}
-
-function pngSize(bytes: Uint8Array): { width: number; height: number } {
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-  return { width: view.getUint32(16), height: view.getUint32(20) }
 }
 
 function resultBytes(response: unknown): Uint8Array {
