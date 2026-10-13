@@ -22,6 +22,7 @@ import { openDemoDocument } from '@/app/demo/document'
 import type { PendingOpenFile } from '@/app/document/io/pending-open'
 import { openPendingFiles } from '@/app/document/io/pending-open'
 import { openWebLinkFromLocation, withoutWebLinkParams } from '@/app/document/io/web-link'
+import { recoveryPromptSettled } from '@/app/document/recovery/prompt'
 import { focusNodesByName } from '@/app/editor/selection/focus'
 import { notificationMessages } from '@/app/i18n/notifications'
 import { appRuntimeConfig } from '@/app/runtime/config'
@@ -89,24 +90,26 @@ function openFirstTab(): Tab {
   }
 }
 
-const welcomeShown =
+const offerWelcome =
   createdInitialTab && route.path === '/' && !appRuntimeConfig.test && !route.meta.demo
-    ? offerAIWelcomeOnLaunch()
-    : false
 const sharingStarted = startSharing()
-// One question per surface: a first run is asked about usage stats once the welcome closes.
-if (welcomeShown) {
-  whenever(
-    () => !aiSetupDialogOpen.value,
-    async () => {
-      await sharingStarted
-      offerUsageStatsPrompt('welcome')
-    },
-    { once: true }
-  )
-} else {
-  void sharingStarted.then(() => offerUsageStatsPrompt('prompt'))
-}
+// One dialog at a time: unsaved work comes first, then the welcome, then, on a first run, the
+// usage stats question once the welcome closes.
+void recoveryPromptSettled().then(() => {
+  if (offerWelcome && offerAIWelcomeOnLaunch()) {
+    whenever(
+      () => !aiSetupDialogOpen.value,
+      async () => {
+        await sharingStarted
+        offerUsageStatsPrompt('welcome')
+      },
+      { once: true }
+    )
+  } else {
+    void sharingStarted.then(() => offerUsageStatsPrompt('prompt'))
+  }
+  return undefined
+})
 
 useHead({ title: route.meta.demo ? 'Demo' : undefined })
 useKeyboard()
