@@ -103,3 +103,71 @@ test("loading a page's layers from the opened file does not dirty a document", a
     editor.dispose()
   }
 })
+
+/** Lets the tracker tell a change outside the history from one a step follows in its task. */
+const settle = () =>
+  new Promise<void>((resolve) => {
+    queueMicrotask(resolve)
+  })
+
+type Changes = ReturnType<typeof createDocumentChanges>
+
+/** A saved document holding one rectangle, resized once with undo before it was saved. */
+async function withSavedRectangle(
+  run: (editor: ReturnType<typeof createEditor>, id: string, changes: Changes) => Promise<void>
+) {
+  const editor = createEditor()
+  const page = editor.state.currentPageId
+  const id = editor.graph.createNode('RECTANGLE', page, { width: 10 }).id
+  const changes = createDocumentChanges(editor)
+  try {
+    editor.updateNodeWithUndo(id, { width: 20 }, 'Resize')
+    await settle()
+    changes.markSaved()
+    await run(editor, id, changes)
+  } finally {
+    changes.dispose()
+    editor.dispose()
+  }
+}
+
+test('undoing or redoing back to the saved state saves the document again', async () => {
+  await withSavedRectangle(async (editor, id, changes) => {
+    const states: boolean[] = []
+    const record = async () => {
+      await settle()
+      states.push(changes.hasUnsavedChanges())
+    }
+    editor.updateNodeWithUndo(id, { width: 30 }, 'Resize')
+    await record()
+    editor.undoAction()
+    await record()
+    editor.undoAction()
+    await record()
+    editor.redoAction()
+    await record()
+    expect(states).toEqual([true, false, true, false])
+  })
+})
+
+test('a change outside the history keeps the document unsaved after undoing back', async () => {
+  await withSavedRectangle(async (editor, id, changes) => {
+    // A collaborator's change reaches the graph without a step of this tab's history.
+    editor.graph.updateNode(id, { name: 'Renamed by a peer' })
+    await settle()
+    editor.updateNodeWithUndo(id, { width: 30 }, 'Resize')
+    editor.undoAction()
+    await settle()
+    expect(changes.hasUnsavedChanges()).toBe(true)
+  })
+})
+
+test('an edit made after undoing past the save leaves the saved state out of reach', async () => {
+  await withSavedRectangle(async (editor, id, changes) => {
+    editor.undoAction()
+    editor.updateNodeWithUndo(id, { width: 40 }, 'Resize')
+    editor.undoAction()
+    await settle()
+    expect(changes.hasUnsavedChanges()).toBe(true)
+  })
+})
