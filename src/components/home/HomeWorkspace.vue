@@ -31,6 +31,8 @@ import HomeSearchActions from '@/components/home/search/HomeSearchActions.vue'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import IconButton from '@/components/ui/button/IconButton.vue'
 import AppConfirmationDialog from '@/components/ui/dialog/AppConfirmationDialog.vue'
+import AppAlert from '@/components/ui/feedback/AppAlert.vue'
+import AppPlaceholder from '@/components/ui/feedback/AppPlaceholder.vue'
 import SegmentedControl from '@/components/ui/select/SegmentedControl.vue'
 
 const emit = defineEmits<{ 'new-document': [] }>()
@@ -263,14 +265,16 @@ function trashedDate(design: TrashedDesign): string {
         </div>
       </div>
 
-      <div
+      <AppAlert
         v-if="libraryError && !showingTrash"
-        class="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-error/40 px-4 py-3"
-        role="alert"
+        tone="error"
+        class="mb-4"
+        :heading="files.syncFailed({ location: storageDescription })"
+        :description="credentialAccess.paused.value ? credentials.accessPaused : libraryError"
       >
-        <template v-if="credentialAccess.paused.value">
-          <p class="min-w-0 flex-1 text-xs text-error">{{ credentials.accessPaused }}</p>
+        <template #actions>
           <AppButton
+            v-if="credentialAccess.paused.value"
             variant="outline"
             :loading="credentialAccess.busy.value"
             data-test-id="home-storage-retry-access"
@@ -278,14 +282,11 @@ function trashedDate(design: TrashedDesign): string {
           >
             {{ credentials.retryAccess }}
           </AppButton>
-        </template>
-        <template v-else>
-          <p class="min-w-0 flex-1 text-xs text-error">{{ libraryError }}</p>
-          <AppButton variant="outline" @click="library.refresh">
+          <AppButton v-else variant="outline" @click="library.refresh">
             {{ common.refresh }}
           </AppButton>
         </template>
-      </div>
+      </AppAlert>
 
       <p
         v-if="noMatches"
@@ -357,15 +358,18 @@ function trashedDate(design: TrashedDesign): string {
         </template>
       </div>
 
-      <div
+      <AppPlaceholder
         v-else-if="!normalizedQuery"
-        class="rounded-lg border border-dashed border-border px-4 py-4 text-center sm:py-6"
+        size="compact"
+        :fill="false"
+        :label="showingTrash ? files.trashEmpty : files.noDesigns"
+        :description="showingTrash ? files.trashEmptyDescription : files.noDesignsDescription"
       >
-        <p class="text-xs font-medium">{{ showingTrash ? files.trashEmpty : files.noDesigns }}</p>
-        <p class="mt-1 text-xs text-muted">
-          {{ showingTrash ? files.trashEmptyDescription : files.noDesignsDescription }}
-        </p>
-      </div>
+        <template #icon>
+          <icon-lucide-trash-2 v-if="showingTrash" />
+          <icon-lucide-layout-grid v-else />
+        </template>
+      </AppPlaceholder>
     </section>
     <AppConfirmationDialog
       v-model:open="deletionOpen"

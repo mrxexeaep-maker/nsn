@@ -67,15 +67,21 @@ describe('canonical state identity', () => {
   test('encoding is canonical: field concatenation cannot collide', async () => {
     // Length-prefixing must keep ["ab","c"] distinct from ["a","bc"].
     const a = await computeMetaId({
-      documentId: 'doc',
-      name: 'ab',
+      documentId: 'docab',
+      name: 'c',
+      sourceFormat: 'fig',
+      isTrashed: false
+    })
+    const d = await computeMetaId({
+      documentId: 'doca',
+      name: 'bc',
       sourceFormat: 'fig',
       isTrashed: false
     })
     const b = await computeStateId('sha256:a', 'sha256:bc')
     const c = await computeStateId('sha256:ab', 'sha256:c')
     expect(b).not.toBe(c)
-    expect(a).toBeTruthy()
+    expect(a).not.toBe(d)
   })
 
   test('two designs with the same content and name are distinct states', async () => {

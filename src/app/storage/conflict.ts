@@ -170,6 +170,11 @@ export async function resolveStorageConflict(
   await settleParkedJobs(deps.outbox, canvasId)
 
   if (!remote) {
+    // Deleted on the other device, and nothing here to bring it back from: let it go.
+    if (!row.hasFig) {
+      await deps.store.remove(canvasId)
+      return { copyId: null }
+    }
     // Deleted on the other device: this device's version is the design again.
     const updated = await deps.store.updateMeta(canvasId, {
       syncStatus: 'pending',
