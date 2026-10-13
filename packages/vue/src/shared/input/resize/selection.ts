@@ -90,11 +90,15 @@ export function applySelectionResize(
   editor.requestRepaint()
 }
 
-/** Commits every member's resize as one undo step. */
+/** Commits every member's resize, then fits the groups around them once, as one undo step. */
 export function commitSelectionResize(dragState: DragResizeSelection, editor: Editor) {
   const d = toRaw(dragState)
   editor.undo.runBatch('Resize', () => {
-    for (const { drag } of d.members) commitResizePreview(drag, editor)
+    for (const { drag } of d.members) commitResizePreview(drag, editor, { fitGroups: false })
+    const parentIds = compact(
+      d.members.map(({ drag }) => editor.graph.getNode(drag.nodeId)?.parentId)
+    )
+    editor.fitEnclosingGroups(new Set(parentIds))
   })
 }
 

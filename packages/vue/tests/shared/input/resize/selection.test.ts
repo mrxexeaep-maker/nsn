@@ -95,3 +95,27 @@ describe('resizing a multi-selection from its bounds', () => {
     expect(tryStartSelectionResize(50, 50, editor)).toBeNull()
   })
 })
+
+describe('resizing a multi-selection inside a group', () => {
+  test('the group fits its resized children', () => {
+    editor = createEditor()
+    const page = editor.state.currentPageId
+    const group = editor.graph.createNode('GROUP', page, { x: 0, y: 0, width: 150, height: 150 })
+    const a = editor.graph.createNode('RECTANGLE', group.id, { x: 0, y: 0, width: 50, height: 50 })
+    const b = editor.graph.createNode('RECTANGLE', group.id, {
+      x: 100,
+      y: 100,
+      width: 50,
+      height: 50
+    })
+    editor.select([a.id, b.id])
+    const drag = start(150, 150)
+    applySelectionResize(drag, 300, 300, false, editor)
+    commitSelectionResize(drag, editor)
+    expect(box(editor.graph.getNode(group.id))).toEqual({ x: 0, y: 0, width: 300, height: 300 })
+
+    editor.undo.undo()
+    expect(box(editor.graph.getNode(group.id))).toEqual({ x: 0, y: 0, width: 150, height: 150 })
+    expect(box(editor.graph.getNode(b.id))).toEqual({ x: 100, y: 100, width: 50, height: 50 })
+  })
+})
