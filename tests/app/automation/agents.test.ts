@@ -9,6 +9,7 @@ import {
   agentStarted,
   endAgentSession,
   readAgentSession,
+  restAgents,
   touchedNodeIds,
   type AgentSession
 } from '@/app/automation/agents'
@@ -18,6 +19,7 @@ import { presenceOf } from '@/app/presence/registry'
 import { expectDefined } from '#tests/helpers/assert'
 
 const claude: AgentSession = { session: 'session-1', kind: 'mcp', client: 'claude-code' }
+const pi: AgentSession = { session: 'session-pi', kind: 'harness', client: 'pi' }
 
 let store: EditorStore
 
@@ -28,6 +30,7 @@ beforeEach(() => {
 
 afterEach(() => {
   endAgentSession(claude.session)
+  endAgentSession(pi.session)
   store.preparationController.dispose()
   jest.useRealTimers()
 })
@@ -115,5 +118,32 @@ describe('MCP sessions as agents', () => {
     expect(readAgentSession({ session: '', kind: 'mcp' })).toBeNull()
     expect(readAgentSession({ session: 'a', kind: 'chat' })).toBeNull()
     expect(readAgentSession(undefined)).toBeNull()
+  })
+})
+
+describe("the app's own ACP and Pi chats", () => {
+  const status = (session: AgentSession) =>
+    agents().find((agent) => agent.kind === session.kind)?.status
+
+  test("when a chat's reply ends, its agent rests at once and outside clients keep working", () => {
+    agentStarted(store, pi, pageId())
+    agentStarted(store, claude, pageId())
+
+    restAgents('harness')
+
+    expect(status(pi)).toBe('idle')
+    expect(status(claude)).toBe('thinking')
+  })
+
+  test('a call that was running when the reply ended does not bring the agent back', () => {
+    agentStarted(store, pi, pageId())
+    restAgents('harness')
+
+    agentFinished(store, pi, { pageId: pageId(), nodeIds: [], edited: true })
+    expect(status(pi)).toBe('idle')
+
+    // The chat's next reply calls a tool again.
+    agentStarted(store, pi, pageId())
+    expect(status(pi)).toBe('thinking')
   })
 })

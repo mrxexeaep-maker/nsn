@@ -33,6 +33,9 @@ export function readAgentSession(value: unknown): AgentSession | null {
 
 interface SessionAgent {
   handle: AgentHandle
+  kind: AgentSession['kind']
+  /** Put to rest when its chat's reply ended; only a tool call started since brings it back. */
+  rested: boolean
   idleTimer?: ReturnType<typeof setTimeout>
   goneTimer?: ReturnType<typeof setTimeout>
 }
@@ -48,7 +51,11 @@ function sessionAgent(store: EditorStore, session: AgentSession): SessionAgent {
   }
   let agent = agents.get(store)
   if (!agent) {
-    agent = { handle: addAgent(store, session.kind, session.client || undefined) }
+    agent = {
+      handle: addAgent(store, session.kind, session.client || undefined),
+      kind: session.kind,
+      rested: false
+    }
     agents.set(store, agent)
   }
   return agent
@@ -108,6 +115,7 @@ export function touchedNodeIds(store: EditorStore, args: unknown, result: unknow
 /** A session started a tool call on `pageId`: its agent shows it is at work there. */
 export function agentStarted(store: EditorStore, session: AgentSession, pageId: string): void {
   const agent = sessionAgent(store, session)
+  agent.rested = false
   agent.handle.update({ status: 'thinking', pageId })
   restartTimers(store, session.session, agent)
 }
@@ -122,6 +130,8 @@ export function agentFinished(
   work: { pageId: string; nodeIds: readonly string[]; edited: boolean }
 ): void {
   const agent = sessionAgent(store, session)
+  // A call that was running when its chat's reply ended lands without bringing the agent back.
+  if (agent.rested) return
   const placement = agentPlacement(store, work.nodeIds, work.pageId)
   agent.handle.update({
     status: work.edited ? 'editing' : 'thinking',
@@ -129,6 +139,22 @@ export function agentFinished(
     ...placement
   })
   restartTimers(store, session.session, agent)
+}
+
+/**
+ * The app's own ACP or Pi chat ended a reply, finished, stopped, or failed: that chat's agents
+ * rest now rather than when their idle timer runs out. Only the app's chats send these kinds
+ * (`src/app/integrations/mcp`), so no outside MCP client is touched.
+ */
+export function restAgents(kind: Exclude<AgentSession['kind'], 'mcp'>): void {
+  for (const agents of sessions.values()) {
+    for (const agent of agents.values()) {
+      if (agent.kind !== kind) continue
+      clearTimeout(agent.idleTimer)
+      agent.rested = true
+      agent.handle.update({ status: 'idle', cursor: undefined, selection: undefined })
+    }
+  }
 }
 
 /** The MCP server says a session ended: its agents leave every document. */
