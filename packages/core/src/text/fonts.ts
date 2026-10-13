@@ -333,7 +333,8 @@ export class FontManager {
   private async readBundledFont(url: string): Promise<ArrayBuffer | null> {
     if (IS_BROWSER) {
       const response = await fetch(this.bundledFontLocator(url.replace(/^\//, '')))
-      return response.arrayBuffer()
+      // A missing file answers with an error page, which must not be read as a font.
+      return response.ok ? response.arrayBuffer() : null
     }
     const { readFile } = await import(/* @vite-ignore */ 'node:fs/promises')
     const { resolve, dirname } = await import(/* @vite-ignore */ 'node:path')
