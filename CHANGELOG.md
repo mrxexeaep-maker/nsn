@@ -17,6 +17,7 @@
 
 ### Fixed
 
+- `.fig` files whose text content is bound to a number or boolean variable, as Figma's UI binds one, open instead of failing with "Unsupported variable expression STRINGIFY". The text follows the variable as Figma writes it, a whole number as an integer and others with two decimals, and saving keeps the binding (#1110).
 - Showing or hiding a layer of an instance that a boolean component property drives sets the property, as in Figma, so every layer it drives follows and Figma shows the instance as OpenPencil does. Before, only that layer changed, which Figma ignored.
 - Figma shows shader fills and images from older documents in `.fig` files OpenPencil writes: every image is stored under the SHA-1 of its bytes, the only name Figma reads, and a shader keeps its preset through `.fig` files and the Figma clipboard.
 - HTML, Vue, and React exports name a JPEG, GIF, or WebP image fill by its own type in the data URL instead of calling every image PNG.
@@ -118,7 +119,7 @@ This is a pre-release: npm packages are published under the `next` tag, and inst
 ### Added
 
 - Comment on designs, as in Figma: the **Comment** tool (<kbd>C</kbd>) pins threads to layers, with replies, resolving, rich text, and a searchable, filterable list in the sidebar. Comments are saved in the `.fig` file, so they travel through storage and shared rooms, and scripts, the AI chat, and MCP clients read, add, reply to, and resolve them.
-- Be in several shared rooms at once, each in its own tab and syncing in the background, and talk with the people in a room in a peer-to-peer voice call from the headphones beside the avatars. Join from Home with **Join room…** or a pasted link, open a browser room in the desktop app with **Open in desktop app**, and join right away under a generated name such as *Teal Fox*.
+- Be in several shared rooms at once, each in its own tab and syncing in the background, and talk with the people in a room in a peer-to-peer voice call from the headphones beside the avatars. Join from Home with **Join room…** or a pasted link, open a browser room in the desktop app with **Open in desktop app**, and join right away under a generated name such as _Teal Fox_.
 - Follow collaborators and AI agents: avatars count each person's agents and show what they are doing, clicking follows them, and your own agents are followed while they work. Agents from the AI chat, ACP and Pi harness chats, and MCP clients show labeled cursors at the layers they touch, and the Pages panel and command palette show who is on each page. The command palette also lists recent pages and **Go to page…**.
 - Create and fill slots, as in Figma, from the canvas, the properties panel, scripts, and AI and MCP tools: slots have names, limits, and preferred components, instances show each slot as Default or Modified, and **Reset slot** brings back the component's content.
 - Create and edit component properties and variants from the properties panel, as in Figma (#847): link text, visibility, and swapped components to text, boolean, and instance swap properties, expose nested instances, reorder properties, and turn a component into a set with **Add variant**.

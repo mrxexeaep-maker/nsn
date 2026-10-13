@@ -7,7 +7,10 @@ interface LinearValue {
 }
 const MAX_EXPRESSION_DEPTH = 64
 
-/** Decode only exactly representable constant × alias expressions, never approximate. */
+/**
+ * Decode only exactly representable expressions, never approximate: a constant × alias, or an
+ * alias Figma turns into text.
+ */
 export function linearVariableExpression(
   data: VariableDataEntry | undefined,
   depth = 0
@@ -22,10 +25,23 @@ export function linearVariableExpression(
     return { multiplier: value.floatValue }
   const expression = value.expressionValue
   if (!expression) return undefined
+  // Figma binds a number or boolean to text content as its text: the variable itself.
+  if (expression.expressionFunction === 'STRINGIFY') return stringifiedVariable(expression, depth)
   if (expression.expressionFunction !== 'MULTIPLY' || !expression.expressionArguments?.length) {
     throw new Error(`Unsupported variable expression ${expression.expressionFunction}`)
   }
   return multiplyLinearValues(expression.expressionArguments, depth)
+}
+
+function stringifiedVariable(
+  expression: NonNullable<NonNullable<VariableDataEntry['value']>['expressionValue']>,
+  depth: number
+): LinearValue {
+  const [argument, ...rest] = expression.expressionArguments ?? []
+  const inner = rest.length === 0 ? linearVariableExpression(argument, depth + 1) : undefined
+  if (!inner?.reference || inner.multiplier !== 1)
+    throw new Error('Variable expression STRINGIFY must wrap one alias')
+  return inner
 }
 
 function multiplyLinearValues(factors: VariableDataEntry[], depth: number): LinearValue {

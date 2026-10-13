@@ -70,3 +70,18 @@ test('nonlinear, unsupported, overflowing, and unbounded expressions fail rather
   for (let index = 0; index < 66; index++) deep = multiply(literal(1), deep)
   expect(() => linearVariableExpression(deep)).toThrow('maximum depth')
 })
+
+test('STRINGIFY of one alias is that alias, as Figma binds a number to text content', () => {
+  const stringify = (...expressionArguments: VariableDataEntry[]): VariableDataEntry => ({
+    dataType: 'EXPRESSION',
+    value: { expressionValue: { expressionFunction: 'STRINGIFY', expressionArguments } }
+  })
+  expect(linearVariableExpression(stringify(alias))).toEqual({
+    reference: alias.value?.alias,
+    multiplier: 1
+  })
+  expect(() => linearVariableExpression(stringify(multiply(literal(2), alias)))).toThrow(
+    'STRINGIFY'
+  )
+  expect(() => linearVariableExpression(stringify(alias, alias))).toThrow('STRINGIFY')
+})
