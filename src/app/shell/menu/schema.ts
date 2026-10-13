@@ -107,7 +107,6 @@ export const APP_MENU_SCHEMA = [
       { id: 'new', label: 'New', shortcut: 'MOD+N' },
       { id: 'open', label: 'Open…', shortcut: 'MOD+O' },
       { id: 'open-recent', label: 'Open Recent', target: 'native' },
-      { id: 'open-storage-workspace', label: 'Open Storage Workspace…', handler: 'shell' },
       { type: 'separator' },
       // Figma's File › Place image: bringing outside content into the file.
       {
@@ -116,9 +115,9 @@ export const APP_MENU_SCHEMA = [
         palette: { keywords: ['iconify', 'symbol', 'glyph', 'lucide'] }
       },
       { type: 'separator' },
-      { id: 'save', label: 'Save', shortcut: 'MOD+S' },
-      { id: 'save-as', label: 'Save As…', shortcut: 'MOD+SHIFT+S' },
-      { id: 'save-to-storage', label: 'Save to Storage…' },
+      // Figma's model: designs save themselves to the library, so there is no Save; a local
+      // copy is how a design leaves as a .fig file.
+      { id: 'save-local-copy', label: 'Save Local Copy…' },
       { type: 'separator' },
       {
         id: 'export-selection',
@@ -149,7 +148,6 @@ export const APP_MENU_SCHEMA = [
         ]
       },
       { type: 'separator' },
-      { id: 'autosave', label: 'Autosave', checkbox: true },
       { id: 'close', label: 'Close Tab', shortcut: 'MOD+W' },
       // The native File menu; the browser shows both in its main menu, and macOS shows
       // Settings… in the application menu instead.

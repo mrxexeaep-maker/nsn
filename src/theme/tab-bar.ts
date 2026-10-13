@@ -17,7 +17,9 @@ const tabBarTheme = {
     close:
       'flex size-6 shrink-0 cursor-pointer touch-manipulation items-center justify-center rounded transition-opacity group-hover/tab:opacity-100 hover:bg-tab-separator focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-panel-focus sm:size-5',
     closeIcon: 'size-3.5',
-    dirtyDot: 'size-1.5 shrink-0 rounded-full bg-accent',
+    // The name being renamed, in place of the tab's label.
+    renameInput:
+      'mx-2 h-6 min-w-0 flex-1 rounded border border-accent bg-input px-1.5 text-xs text-surface outline-none selection:bg-accent/40',
     newTab:
       'flex size-6 shrink-0 cursor-pointer touch-manipulation items-center justify-center self-center rounded text-surface/70 transition-colors outline-none hover:bg-tab-separator hover:text-surface focus-visible:ring-1 focus-visible:ring-panel-focus ms-1.75',
     newIcon: 'size-4',

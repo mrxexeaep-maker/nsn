@@ -21,17 +21,13 @@ export const menuMessageDefaults = {
 
   new: 'New',
   open: 'Open…',
-  openStorageWorkspace: 'Open storage workspace…',
   showWelcome: 'Show welcome',
-  save: 'Save',
-  saveAs: 'Save as…',
-  saveToStorage: 'Save to storage…',
+  saveLocalCopy: 'Save local copy…',
   exportSelection: 'Export selection…',
   exportSelectionAsPNG: 'Export selection as PNG',
   exportSelectionAsSVG: 'Export selection as SVG',
   exportSelectionAsPPTX: 'Export selection as PPTX',
   exportSelectionAsFig: 'Export selection as .fig',
-  autosave: 'Auto-save to local file',
   closeTab: 'Close tab',
 
   copy: 'Copy',

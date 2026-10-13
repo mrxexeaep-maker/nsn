@@ -3,10 +3,10 @@ import { TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import { tv } from 'tailwind-variants'
 import { computed, useTemplateRef, watch } from 'vue'
 
-import { useI18n } from '@open-pencil/vue'
+import { useI18n, useInlineRename } from '@open-pencil/vue'
 
 import { animationsEnabled } from '@/app/shell/motion'
-import { createTab, homeActive, showHome, useTabsStore } from '@/app/tabs'
+import { createTab, getTabById, homeActive, showHome, useTabsStore } from '@/app/tabs'
 import PreparationIndicator from '@/components/preparation/tab/Indicator.vue'
 import { useScrollOverflow } from '@/components/shell/useScrollOverflow'
 import Tip from '@/components/ui/overlay/Tip.vue'
@@ -34,6 +34,21 @@ watch(
       inline: 'nearest',
       behavior: animationsEnabled.value ? 'smooth' : 'auto'
     })
+  },
+  { flush: 'post' }
+)
+
+// Double-click a tab to rename its design, as in Figma.
+const rename = useInlineRename<string>((tabId, name) => {
+  getTabById(tabId)?.store.renameDocument(name)
+})
+const renamingTabId = rename.editingId
+const renameInputs = useTemplateRef<HTMLInputElement[]>('renameInput')
+watch(
+  renameInputs,
+  (inputs) => {
+    const input = inputs?.at(0)
+    if (input) void rename.focusInput(input)
   },
   { flush: 'post' }
 )
@@ -97,19 +112,26 @@ function onClose(e: MouseEvent, tabId: string) {
           :class="tabBarStyles({ active: tab.isActive }).item()"
           @mousedown="onMiddleClick($event, tab.id)"
         >
+          <input
+            v-if="renamingTabId === tab.id"
+            ref="renameInput"
+            data-test-id="tabbar-rename"
+            :class="baseStyles.renameInput()"
+            :value="tab.name"
+            @blur="rename.commit(tab.id, $event)"
+            @keydown="rename.onKeydown"
+          />
           <TabsTrigger
+            v-else
             :value="tab.id"
             data-test-id="tabbar-tab"
             :class="tabBarStyles({ active: tab.isActive }).trigger()"
             :data-active="tab.isActive || undefined"
-            :data-dirty="tab.isDirty || undefined"
+            @dblclick="rename.start(tab.id, tab.name)"
           >
             <PreparationIndicator v-if="tab.isPreparing" :progress="tab.preparationProgress" />
             <icon-lucide-file v-else :class="tabBarStyles({ active: tab.isActive }).icon()" />
             <span :class="baseStyles.label()">{{ tab.name }}</span>
-            <Tip v-if="tab.isDirty" :label="files.unsavedChanges" side="bottom">
-              <span role="img" :aria-label="files.unsavedChanges" :class="baseStyles.dirtyDot()" />
-            </Tip>
           </TabsTrigger>
           <Tip :label="files.closeTab({ name: tab.name })" side="bottom">
             <button

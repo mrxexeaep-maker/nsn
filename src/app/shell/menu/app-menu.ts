@@ -1,6 +1,5 @@
 import type { Component } from 'vue'
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
 import IconHelp from '~icons/lucide/circle-help'
 import IconDownload from '~icons/lucide/download'
 import IconEye from '~icons/lucide/eye'
@@ -36,7 +35,6 @@ import { appPreferences } from '@/app/settings/preferences/store'
 import { openCommandPalette } from '@/app/shell/command-palette'
 import { createSharedEditorMenuActions } from '@/app/shell/menu/editor-actions'
 import { HELP_MENU_ACTIONS } from '@/app/shell/menu/help'
-import { openStorageWorkspace } from '@/app/shell/menu/navigation'
 import type {
   AppMenuActionItem,
   AppMenuEntry,
@@ -52,7 +50,6 @@ import { createSelectionMenuActions } from '@/app/shell/menu/selection-actions'
 import { appMenuShortcutLabel } from '@/app/shell/menu/shortcut'
 import { openFileDialog } from '@/app/shell/menu/use'
 import { useAppTheme } from '@/app/shell/theme'
-import { saveDocumentToStorage } from '@/app/storage/workspace/save'
 import { closeTab, activeTab } from '@/app/tabs'
 
 export interface AppMenuGroup {
@@ -103,7 +100,6 @@ function isSeparator(entry: AppMenuEntry): entry is Extract<AppMenuEntry, { type
 
 export function useAppMenu() {
   const store = useEditorStore()
-  const router = useRouter()
   const {
     commands,
     menuItem: commandMenuItem,
@@ -116,7 +112,6 @@ export function useAppMenu() {
   const translatedMenuItemLabels: Partial<Record<string, keyof typeof menu.value>> = {
     new: 'new',
     open: 'open',
-    'open-storage-workspace': 'openStorageWorkspace',
     'show-welcome': 'showWelcome',
     actions: 'actions',
     'help-docs': 'documentation',
@@ -125,11 +120,8 @@ export function useAppMenu() {
     'help-desktop-app': 'getDesktopApp',
     developer: 'developer',
     'boolean-operations': 'booleanOperations',
-    save: 'save',
-    'save-as': 'saveAs',
-    'save-to-storage': 'saveToStorage',
+    'save-local-copy': 'saveLocalCopy',
     'export-selection': 'exportSelection',
-    autosave: 'autosave',
     close: 'closeTab',
     copy: 'copy',
     cut: 'cut',
@@ -191,13 +183,10 @@ export function useAppMenu() {
       void import('@/app/tabs').then((m) => m.createTab())
     },
     open: () => void openFileDialog(),
-    'open-storage-workspace': () => openStorageWorkspace(router),
     'show-welcome': () => openAISetup('welcome'),
     actions: openCommandPalette,
     ...HELP_MENU_ACTIONS,
-    save: () => void store.saveFigFile(),
-    'save-as': () => void store.saveFigFileAs(),
-    'save-to-storage': () => void saveDocumentToStorage(store),
+    'save-local-copy': () => void store.saveLocalCopy(),
     'export-selection': () => exportSelection('png'),
     ...createSelectionMenuActions(store),
     close: () => {
@@ -221,8 +210,6 @@ export function useAppMenu() {
 
   function checked(item: AppMenuActionItem): boolean | undefined {
     switch (item.id) {
-      case 'autosave':
-        return store.state.autosaveEnabled
       case 'profiler':
         return store.renderer?.profiler.hudVisible ?? false
       case 'view-rulers':
@@ -254,10 +241,6 @@ export function useAppMenu() {
 
   function onCheckedChange(item: AppMenuActionItem): ((checked: boolean) => void) | undefined {
     switch (item.id) {
-      case 'autosave':
-        return (value: boolean) => {
-          store.state.autosaveEnabled = value
-        }
       case 'profiler':
         return () => store.toggleProfiler()
       case 'view-rulers':

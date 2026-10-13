@@ -14,7 +14,7 @@ import { useStorageSettingsFeedback } from '@/app/integrations/storage/settings/
 import { useStorageSettings } from '@/app/integrations/storage/settings/use'
 import { settingsDialogOpen } from '@/app/settings/dialog'
 import { useSettingsFormGuard } from '@/app/settings/navigation/use'
-import { openStorageWorkspace } from '@/app/shell/menu/navigation'
+import { openHome } from '@/app/shell/menu/navigation'
 import ConfiguredStatusIcon from '@/components/settings/layout/ConfiguredStatusIcon.vue'
 import { focusInvalidField } from '@/components/settings/layout/focus'
 import SettingsPage from '@/components/settings/layout/SettingsPage.vue'
@@ -85,7 +85,7 @@ async function save() {
 }
 function openWorkspace() {
   settingsDialogOpen.value = false
-  openStorageWorkspace(router)
+  openHome(router)
 }
 async function testConnection() {
   if (busy.value) return

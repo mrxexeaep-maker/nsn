@@ -17,10 +17,6 @@
         "label": "Open Recent"
       },
       {
-        "id": "open-storage-workspace",
-        "label": "Open Storage Workspace…"
-      },
-      {
         "type": "separator"
       },
       {
@@ -31,18 +27,8 @@
         "type": "separator"
       },
       {
-        "id": "save",
-        "label": "Save",
-        "accelerator": "CmdOrCtrl+S"
-      },
-      {
-        "id": "save-as",
-        "label": "Save As…",
-        "accelerator": "CmdOrCtrl+Shift+S"
-      },
-      {
-        "id": "save-to-storage",
-        "label": "Save to Storage…"
+        "id": "save-local-copy",
+        "label": "Save Local Copy…"
       },
       {
         "type": "separator"
@@ -72,11 +58,6 @@
       },
       {
         "type": "separator"
-      },
-      {
-        "id": "autosave",
-        "label": "Autosave",
-        "checkbox": true
       },
       {
         "id": "close",

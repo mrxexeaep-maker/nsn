@@ -17,12 +17,3 @@ export {
   loadCachedRecentFileThumbnail,
   loadRecentFileThumbnail
 } from './thumbnails'
-export {
-  homeFileFilter,
-  homeFileType,
-  homeSection,
-  matchesHomeFileFilter,
-  type HomeFileFilter,
-  type HomeFileType,
-  type HomeSection
-} from './home-view'

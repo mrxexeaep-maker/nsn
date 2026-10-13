@@ -68,7 +68,7 @@ test('preserves source publication identity across FIG save and reopen', async (
       }) as FileSystemFileHandle
     const store = window.openPencil?.getStore?.()
     if (!store) throw new Error('OpenPencil store not initialized')
-    await store.saveFigFileAs()
+    await store.saveLocalCopy()
     return Array.from(writes[0] ?? [])
   })
   expect(saved.length).toBeGreaterThan(0)
@@ -237,7 +237,7 @@ test('publishes, consumes, saves, and reopens a multidimensional library instanc
       }) as FileSystemFileHandle
     const store = window.openPencil?.getStore?.()
     if (!store) throw new Error('OpenPencil store not initialized')
-    await store.saveFigFileAs()
+    await store.saveLocalCopy()
     return Array.from(writes[0] ?? [])
   })
   expect(saved.length).toBeGreaterThan(0)
