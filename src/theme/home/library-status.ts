@@ -14,7 +14,7 @@ const libraryStatusTheme = {
         icon: 'animate-spin motion-reduce:animate-none'
       },
       offline: { root: 'border-warning-action/40 bg-warning-action/10 text-warning-action' },
-      error: { root: 'border-danger/40 bg-danger/10 text-danger' },
+      error: { root: 'border-error/40 bg-error/10 text-error' },
       conflict: { root: 'border-warning-action/40 bg-warning-action/10 text-warning-action' }
     }
   },

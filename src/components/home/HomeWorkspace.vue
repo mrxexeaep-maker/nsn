@@ -195,7 +195,7 @@ function trashedDate(design: TrashedDesign): string {
       />
       <HomeSearchActions v-model="query" @new-document="emit('new-document')" />
 
-      <p v-if="openError" class="mb-4 text-xs text-danger" role="alert">{{ openError }}</p>
+      <p v-if="openError" class="mb-4 text-xs text-error" role="alert">{{ openError }}</p>
 
       <div class="mb-4 flex flex-wrap items-center gap-2">
         <IconButton
@@ -265,11 +265,11 @@ function trashedDate(design: TrashedDesign): string {
 
       <div
         v-if="libraryError && !showingTrash"
-        class="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-danger/40 px-4 py-3"
+        class="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-error/40 px-4 py-3"
         role="alert"
       >
         <template v-if="credentialAccess.paused.value">
-          <p class="min-w-0 flex-1 text-xs text-danger">{{ credentials.accessPaused }}</p>
+          <p class="min-w-0 flex-1 text-xs text-error">{{ credentials.accessPaused }}</p>
           <AppButton
             variant="outline"
             :loading="credentialAccess.busy.value"
@@ -280,7 +280,7 @@ function trashedDate(design: TrashedDesign): string {
           </AppButton>
         </template>
         <template v-else>
-          <p class="min-w-0 flex-1 text-xs text-danger">{{ libraryError }}</p>
+          <p class="min-w-0 flex-1 text-xs text-error">{{ libraryError }}</p>
           <AppButton variant="outline" @click="library.refresh">
             {{ common.refresh }}
           </AppButton>
