@@ -33,9 +33,24 @@ const emit = defineEmits<{
   'download-deck': []
   'keep-copy': []
   'use-remote': []
+  duplicate: []
+  rename: []
 }>()
 
 const { files } = useI18n()
+
+// Rename puts the focus in the card's name field. The menu holds the focus until it has closed,
+// so the field appears only then, and the menu does not hand the focus back to the card.
+let renamePending = false
+function startRename() {
+  renamePending = true
+}
+function onCloseAutoFocus(event: Event) {
+  if (!renamePending) return
+  renamePending = false
+  event.preventDefault()
+  emit('rename')
+}
 const menu = useMenuUI({ content: 'w-56', item: 'justify-start' })
 const dangerItem = useMenuUI({ item: 'justify-start text-error' }).item
 </script>
@@ -46,7 +61,11 @@ const dangerItem = useMenuUI({ item: 'justify-start text-error' }).item
       <slot />
     </ContextMenuTrigger>
     <ContextMenuPortal>
-      <ContextMenuContent :class="menu.content" data-test-id="home-design-menu">
+      <ContextMenuContent
+        :class="menu.content"
+        data-test-id="home-design-menu"
+        @close-auto-focus="onCloseAutoFocus"
+      >
         <template v-if="trashed">
           <ContextMenuItem :class="menu.item" @select="emit('restore')">
             {{ files.restore }}
@@ -71,6 +90,13 @@ const dangerItem = useMenuUI({ item: 'justify-start text-error' }).item
               {{ files.useOtherDeviceVersion }}
             </ContextMenuItem>
           </template>
+          <ContextMenuSeparator :class="menu.separator" />
+          <ContextMenuItem v-if="!deck" :class="menu.item" @select="emit('duplicate')">
+            {{ files.duplicate }}
+          </ContextMenuItem>
+          <ContextMenuItem :class="menu.item" @select="startRename">
+            {{ files.rename }}
+          </ContextMenuItem>
           <ContextMenuSeparator :class="menu.separator" />
           <ContextMenuItem :class="menu.item" @select="emit('trash')">
             {{ files.moveToTrash }}

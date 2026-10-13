@@ -28,6 +28,8 @@
   "noDesigns": "还没有设计",
   "noDesignsDescription": "你创建或打开的设计会自动保存在这里。",
   "open": "打开",
+  "rename": "重命名",
+  "duplicate": "创建副本",
   "moveToTrash": "移到废纸篓",
   "trash": "废纸篓",
   "restore": "恢复",
@@ -49,6 +51,7 @@
   "deckCannotOpen": "此版本的 OpenPencil 无法打开幻灯片。",
   "downloadDeck": "下载 .deck",
   "conflictedCopy": "{name}（冲突副本）",
+  "duplicateName": "{name}（副本）",
   "changedOnAnotherDevice": "已在其他设备上更改",
   "keepMyVersionAsCopy": "将我的版本保留为副本",
   "useOtherDeviceVersion": "使用其他设备的版本"

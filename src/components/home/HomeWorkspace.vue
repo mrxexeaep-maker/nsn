@@ -14,6 +14,7 @@ import {
 import { useCredentialSettings } from '@/app/settings/credentials/preferences/use'
 import { openSettingsDialog } from '@/app/settings/dialog'
 import { resolveLibraryConflict } from '@/app/storage/workspace/conflict'
+import { duplicateDesign, renameDesign } from '@/app/storage/workspace/files'
 import { downloadSlideDeck } from '@/app/storage/workspace/open'
 import { createStorageWorkspaceSource, type LibraryDocument } from '@/app/storage/workspace/source'
 import {
@@ -154,6 +155,19 @@ function openDesign(design: StorageDocument): Promise<void> {
 function downloadDeck(design: StorageDocument): Promise<void> {
   return run(async () => {
     await downloadSlideDeck(design, activeStorageProviderID.value)
+  })
+}
+
+/** The design whose name is an inline field, after Rename in its menu. */
+const renamingId = ref<string | null>(null)
+
+function rename(design: StorageDocument, name: string) {
+  return run(() => renameDesign(design, activeStorageProviderID.value, name))
+}
+
+function duplicate(design: StorageDocument) {
+  return run(async () => {
+    await duplicateDesign(design, activeStorageProviderID.value)
   })
 }
 
@@ -344,6 +358,8 @@ function trashedDate(design: TrashedDesign): string {
             @download-deck="downloadDeck(design)"
             @keep-copy="resolveConflict(design, 'keep-both')"
             @use-remote="resolveConflict(design, 'use-remote')"
+            @duplicate="duplicate(design)"
+            @rename="renamingId = design.id"
           >
             <DocumentEntry
               v-library-preview="design.id"
@@ -352,7 +368,10 @@ function trashedDate(design: TrashedDesign): string {
               :metadata="designMetadata(design)"
               :previewURL="previewURL(design.id)"
               :data-format="design.sourceFormat"
+              :renaming="renamingId === design.id"
               @open="openDesign(design)"
+              @rename="rename(design, $event)"
+              @rename-end="renamingId = null"
             />
           </DesignCardMenu>
         </template>

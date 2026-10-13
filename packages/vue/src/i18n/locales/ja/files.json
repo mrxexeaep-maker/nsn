@@ -28,6 +28,8 @@
   "noDesigns": "デザインはまだありません",
   "noDesignsDescription": "作成または開いたデザインは自動的にここに保存されます。",
   "open": "開く",
+  "rename": "名前を変更",
+  "duplicate": "複製",
   "moveToTrash": "ゴミ箱に移動",
   "trash": "ゴミ箱",
   "restore": "復元",
@@ -49,6 +51,7 @@
   "deckCannotOpen": "このバージョンの OpenPencil ではスライドを開けません。",
   "downloadDeck": ".deck をダウンロード",
   "conflictedCopy": "{name}（競合コピー）",
+  "duplicateName": "{name}（コピー）",
   "changedOnAnotherDevice": "別のデバイスで変更されました",
   "keepMyVersionAsCopy": "自分のバージョンをコピーとして保持",
   "useOtherDeviceVersion": "別のデバイスのバージョンを使用"

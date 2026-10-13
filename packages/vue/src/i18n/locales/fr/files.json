@@ -28,6 +28,8 @@
   "noDesigns": "Aucun design pour l’instant",
   "noDesignsDescription": "Les designs que vous créez ou ouvrez sont enregistrés ici automatiquement.",
   "open": "Ouvrir",
+  "rename": "Renommer",
+  "duplicate": "Dupliquer",
   "moveToTrash": "Mettre à la corbeille",
   "trash": "Corbeille",
   "restore": "Restaurer",
@@ -49,6 +51,7 @@
   "deckCannotOpen": "Les présentations ne peuvent pas être ouvertes dans cette version d’OpenPencil.",
   "downloadDeck": "Télécharger le .deck",
   "conflictedCopy": "{name} (copie en conflit)",
+  "duplicateName": "{name} (copie)",
   "changedOnAnotherDevice": "Modifié sur un autre appareil",
   "keepMyVersionAsCopy": "Conserver ma version comme copie",
   "useOtherDeviceVersion": "Utiliser la version de l’autre appareil"

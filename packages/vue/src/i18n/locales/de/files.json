@@ -28,6 +28,8 @@
   "noDesigns": "Noch keine Designs",
   "noDesignsDescription": "Designs, die du erstellst oder öffnest, werden hier automatisch gespeichert.",
   "open": "Öffnen",
+  "rename": "Umbenennen",
+  "duplicate": "Duplizieren",
   "moveToTrash": "In den Papierkorb verschieben",
   "trash": "Papierkorb",
   "restore": "Wiederherstellen",
@@ -49,6 +51,7 @@
   "deckCannotOpen": "Präsentationen können in dieser Version von OpenPencil nicht geöffnet werden.",
   "downloadDeck": ".deck herunterladen",
   "conflictedCopy": "{name} (Konfliktkopie)",
+  "duplicateName": "{name} (Kopie)",
   "changedOnAnotherDevice": "Auf einem anderen Gerät geändert",
   "keepMyVersionAsCopy": "Meine Version als Kopie behalten",
   "useOtherDeviceVersion": "Version des anderen Geräts verwenden"

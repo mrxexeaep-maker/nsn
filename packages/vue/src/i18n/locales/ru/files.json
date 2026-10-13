@@ -28,6 +28,8 @@
   "noDesigns": "Пока нет дизайнов",
   "noDesignsDescription": "Созданные и открытые дизайны автоматически сохраняются здесь.",
   "open": "Открыть",
+  "rename": "Переименовать",
+  "duplicate": "Дублировать",
   "moveToTrash": "Переместить в корзину",
   "trash": "Корзина",
   "restore": "Восстановить",
@@ -49,6 +51,7 @@
   "deckCannotOpen": "Презентации нельзя открыть в этой версии OpenPencil.",
   "downloadDeck": "Скачать .deck",
   "conflictedCopy": "{name} (конфликтная копия)",
+  "duplicateName": "{name} (копия)",
   "changedOnAnotherDevice": "Изменено на другом устройстве",
   "keepMyVersionAsCopy": "Сохранить мою версию как копию",
   "useOtherDeviceVersion": "Использовать версию с другого устройства"
