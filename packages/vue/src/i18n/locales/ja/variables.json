@@ -98,7 +98,6 @@
   "scopeFontFamily": "フォントファミリー",
   "exportDesignTokens": "デザイントークンとして書き出す",
   "importDesignTokens": "デザイントークンを読み込む",
-  "libraryCollection": "このコレクションはライブラリのものなので、ここでは編集できません。",
   "importTokensDescription": "各コレクションとモードの読み込み先を選びます。同じ名前の変数は更新され、削除されるものはありません。",
   "importNewCollection": "新しいコレクション",
   "importNewMode": "新しいモード",

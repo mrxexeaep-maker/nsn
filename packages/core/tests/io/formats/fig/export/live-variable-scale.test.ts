@@ -33,10 +33,6 @@ test('Gold imported binding units survive token edits and undo/redo', async () =
   const variable = graph.variables.get(variableId)
   if (!variable) throw new Error('Missing padding binding')
   const mode = graph.getNodeVariableModeId(tags.id, variable.collectionId)
-  // Gold's collections are its library's, which the editor does not change; this edits one as
-  // the file's own, to follow the scaled binding through it.
-  const collection = graph.variableCollections.get(variable.collectionId)
-  if (collection) delete collection.key
   const editor = createEditor({ graph })
   expect(graph.resolveVariable(variableId, mode)).toBe(8)
   expect(tags.paddingLeft).toBeCloseTo(7.126753330230713, 6)

@@ -98,7 +98,6 @@
   "scopeFontFamily": "Schriftfamilie",
   "exportDesignTokens": "Als Design-Tokens exportieren",
   "importDesignTokens": "Design-Tokens importieren",
-  "libraryCollection": "Diese Sammlung stammt aus einer Bibliothek und ist hier schreibgeschützt.",
   "importTokensDescription": "Wähle, wohin jede Sammlung und jeder Modus geht. Variablen mit demselben Namen werden aktualisiert; nichts wird gelöscht.",
   "importNewCollection": "Neue Sammlung",
   "importNewMode": "Neuer Modus",

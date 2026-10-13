@@ -2,7 +2,6 @@ import { omit, omitBy } from 'es-toolkit/object'
 import { isEmptyObject } from 'es-toolkit/predicate'
 
 import {
-  isLibraryCollection,
   isModeAttributeName,
   type BindingScope,
   type TokenExpression,
@@ -61,16 +60,6 @@ function setModeEntry(variable: Variable, modeId: string, entry: ModeEntry) {
 }
 
 export function createVariableActions(ctx: EditorContext) {
-  /** A library's collection belongs to the library: the file reads it but does not change it. */
-  function isReadOnlyCollection(collectionId: string | undefined): boolean {
-    const collection = collectionId ? ctx.graph.variableCollections.get(collectionId) : undefined
-    return !!collection && isLibraryCollection(collection)
-  }
-
-  function isReadOnlyVariable(id: string): boolean {
-    return isReadOnlyCollection(ctx.graph.variables.get(id)?.collectionId)
-  }
-
   /**
    * Re-resolves the layers a change to what variables resolve to can reach: those bound to the
    * changed variables or to variables aliasing them. Every other variable change, such as adding,
@@ -124,7 +113,6 @@ export function createVariableActions(ctx: EditorContext) {
   }
 
   function renameCollection(id: string, newName: string) {
-    if (isReadOnlyCollection(id)) return
     const collection = ctx.graph.variableCollections.get(id)
     if (!collection) return
     const prevName = collection.name
@@ -162,7 +150,6 @@ export function createVariableActions(ctx: EditorContext) {
   }
 
   function removeCollection(id: string) {
-    if (isReadOnlyCollection(id)) return
     const collection = ctx.graph.variableCollections.get(id)
     if (!collection) return
     const snapshot = structuredClone(collection)
@@ -188,7 +175,6 @@ export function createVariableActions(ctx: EditorContext) {
   }
 
   function addVariable(variable: Variable) {
-    if (isReadOnlyCollection(variable.collectionId)) return
     ctx.graph.addVariable(variable)
     ctx.undo.push({
       label: 'Add variable',
@@ -205,7 +191,6 @@ export function createVariableActions(ctx: EditorContext) {
   }
 
   function removeVariable(id: string) {
-    if (isReadOnlyVariable(id)) return
     const variable = ctx.graph.variables.get(id)
     if (!variable) return
     const snapshot = structuredClone(variable)
@@ -229,7 +214,6 @@ export function createVariableActions(ctx: EditorContext) {
 
   /** Puts a collection's variables in `order`; ids it does not hold are ignored. */
   function placeVariables(collectionId: string, order: readonly string[]) {
-    if (isReadOnlyCollection(collectionId)) return
     const collection = ctx.graph.variableCollections.get(collectionId)
     if (!collection) return
     const held = new Set(collection.variableIds)
@@ -240,7 +224,6 @@ export function createVariableActions(ctx: EditorContext) {
 
   /** Reorders a collection's variables in one undo step; the order is what files and lists show. */
   function setVariableOrder(collectionId: string, order: readonly string[]) {
-    if (isReadOnlyCollection(collectionId)) return
     const collection = ctx.graph.variableCollections.get(collectionId)
     if (!collection) return
     const previous = [...collection.variableIds]
@@ -263,7 +246,6 @@ export function createVariableActions(ctx: EditorContext) {
 
   /** Copies a variable, values and token fields included, right after the original. */
   function duplicateVariable(id: string, name: string): string | undefined {
-    if (isReadOnlyVariable(id)) return undefined
     const source = ctx.graph.variables.get(id)
     const collection = source && ctx.graph.variableCollections.get(source.collectionId)
     if (!source || !collection) return undefined
@@ -291,7 +273,6 @@ export function createVariableActions(ctx: EditorContext) {
   }
 
   function renameVariable(id: string, newName: string) {
-    if (isReadOnlyVariable(id)) return
     const variable = ctx.graph.variables.get(id)
     if (!variable) return
     const prevName = variable.name
@@ -313,7 +294,6 @@ export function createVariableActions(ctx: EditorContext) {
   }
 
   function addMode(collectionId: string, name?: string): string | undefined {
-    if (isReadOnlyCollection(collectionId)) return undefined
     const collection = ctx.graph.variableCollections.get(collectionId)
     if (!collection) return undefined
     const modeName = name ?? `Mode ${collection.modes.length + 1}`
@@ -335,7 +315,6 @@ export function createVariableActions(ctx: EditorContext) {
   }
 
   function removeMode(collectionId: string, modeId: string) {
-    if (isReadOnlyCollection(collectionId)) return
     const collection = ctx.graph.variableCollections.get(collectionId)
     if (!collection || collection.modes.length <= 1) return
     const modeIndex = collection.modes.findIndex((m) => m.modeId === modeId)
@@ -374,7 +353,6 @@ export function createVariableActions(ctx: EditorContext) {
   }
 
   function renameMode(collectionId: string, modeId: string, newName: string) {
-    if (isReadOnlyCollection(collectionId)) return
     const collection = ctx.graph.variableCollections.get(collectionId)
     if (!collection) return
     const mode = collection.modes.find((m) => m.modeId === modeId)
@@ -396,7 +374,6 @@ export function createVariableActions(ctx: EditorContext) {
   }
 
   function setDefaultMode(collectionId: string, modeId: string) {
-    if (isReadOnlyCollection(collectionId)) return
     const collection = ctx.graph.variableCollections.get(collectionId)
     if (!collection) return
     const prevDefault = collection.defaultModeId
@@ -423,7 +400,6 @@ export function createVariableActions(ctx: EditorContext) {
   }
 
   function duplicateMode(collectionId: string, sourceModeId: string): string | undefined {
-    if (isReadOnlyCollection(collectionId)) return undefined
     const collection = ctx.graph.variableCollections.get(collectionId)
     if (!collection) return undefined
     const sourceMode = collection.modes.find((m) => m.modeId === sourceModeId)
@@ -461,7 +437,6 @@ export function createVariableActions(ctx: EditorContext) {
     value: VariableValue,
     coalesceKey?: string
   ) {
-    if (isReadOnlyVariable(id)) return
     const variable = ctx.graph.variables.get(id)
     if (!variable) return
     const previous = modeEntry(variable, modeId)
@@ -488,7 +463,6 @@ export function createVariableActions(ctx: EditorContext) {
 
   /** Change token fields in one undo step; a field set to `undefined` is cleared. */
   function updateVariableToken(id: string, patch: Partial<VariableTokenFields>) {
-    if (isReadOnlyVariable(id)) return
     const variable = ctx.graph.variables.get(id)
     if (!variable) return
     const previous = tokenFields(variable)
@@ -519,7 +493,6 @@ export function createVariableActions(ctx: EditorContext) {
 
   /** The selector or query a mode applies under; an empty condition restores the default. */
   function setModeCondition(collectionId: string, modeId: string, condition: string | undefined) {
-    if (isReadOnlyCollection(collectionId)) return
     const mode = ctx.graph.variableCollections
       .get(collectionId)
       ?.modes.find((candidate) => candidate.modeId === modeId)
@@ -547,7 +520,6 @@ export function createVariableActions(ctx: EditorContext) {
    * name no stylesheet can select on leaves the current one.
    */
   function setModeAttribute(collectionId: string, name: string | undefined) {
-    if (isReadOnlyCollection(collectionId)) return
     const collection = ctx.graph.variableCollections.get(collectionId)
     if (!collection) return
     const previous = collection.modeAttribute
