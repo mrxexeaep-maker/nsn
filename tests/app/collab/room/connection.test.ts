@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, spyOn, test } from 'bun:test'
 
 import { deflateSync } from 'fflate'
 import { Awareness } from 'y-protocols/awareness'
@@ -33,23 +33,24 @@ function recordingJoin(rooms: ReturnType<typeof createMemoryRooms>) {
   return { join, sent }
 }
 
-function connect(join: JoinCollabRoom) {
+function connect(join: JoinCollabRoom, maxMessageBytes?: number) {
   const ydoc = new Y.Doc()
   connectCollabRoom({
     roomId: ROOM,
     ydoc,
     awareness: new Awareness(ydoc),
     updatePeersList: () => undefined,
-    joinRoom: join
+    joinRoom: join,
+    maxMessageBytes
   })
   return ydoc
 }
 
 /** Layers whose fields repeat, as a page's do. */
-function fillLayers(ydoc: Y.Doc, count: number) {
+function fillLayers(ydoc: Y.Doc, count: number, from = 0) {
   const nodes = ydoc.getMap<Y.Map<unknown>>('nodes')
   ydoc.transact(() => {
-    for (let index = 0; index < count; index++) {
+    for (let index = from; index < from + count; index++) {
       const node = new Y.Map<unknown>()
       node.set('type', 'RECTANGLE')
       node.set('name', `Rectangle ${index}`)
@@ -101,5 +102,39 @@ describe('collab room connection', () => {
     sendUpdate(garbage)
     await rooms.settle()
     expect(ydoc.getMap('nodes').size).toBe(0)
+  })
+
+  test('drops a sync reply that would inflate past the limit, however small it travels', async () => {
+    const warn = spyOn(console, 'warn').mockImplementation(() => undefined)
+    const rooms = createMemoryRooms()
+    const host = connect(rooms.join)
+    fillLayers(host, 200)
+    const update = Y.encodeStateAsUpdateV2(host)
+    const limit = update.byteLength - 1
+    expect(deflateSync(update).byteLength).toBeLessThan(limit)
+
+    const guest = connect(rooms.join, limit)
+    await rooms.settle()
+    expect(guest.getMap('nodes').size).toBe(0)
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
+  })
+
+  test('drops an edit past the limit and applies those under it', async () => {
+    const warn = spyOn(console, 'warn').mockImplementation(() => undefined)
+    const rooms = createMemoryRooms()
+    const host = connect(rooms.join)
+    const guest = connect(rooms.join, 2000)
+    await rooms.settle()
+
+    fillLayers(host, 1)
+    await rooms.settle()
+    expect(guest.getMap('nodes').size).toBe(1)
+
+    fillLayers(host, 300, 1)
+    await rooms.settle()
+    expect(guest.getMap('nodes').size).toBe(1)
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
   })
 })
