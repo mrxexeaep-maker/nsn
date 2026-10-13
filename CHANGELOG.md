@@ -17,6 +17,7 @@
 
 ### Fixed
 
+- Stopping a Pi reply in the desktop app cancels that turn and keeps the session. Pi remembers the conversation and its sandbox for your next message. Before, the stop raised an error, dropped the connection, and started a new Pi process, leaving the old one running.
 - Showing or hiding a layer of an instance that a boolean component property drives sets the property, as in Figma, so every layer it drives follows and Figma shows the instance as OpenPencil does. Before, only that layer changed, which Figma ignored.
 - Figma shows shader fills and images from older documents in `.fig` files OpenPencil writes: every image is stored under the SHA-1 of its bytes, the only name Figma reads, and a shader keeps its preset through `.fig` files and the Figma clipboard.
 - HTML, Vue, and React exports name a JPEG, GIF, or WebP image fill by its own type in the data URL instead of calling every image PNG.
