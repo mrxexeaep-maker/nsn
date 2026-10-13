@@ -1,5 +1,5 @@
 import { mkdir, stat } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 
 import { LOCALE_PREFIXES } from '#docs-config/seo'
 import { FEATURE_KINDS } from '#docs-config/theme/landing/content/features'
@@ -36,12 +36,16 @@ const CHROMIUM_ARGS = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']
 
 /** Serves the built site with its clean URLs, as the docs host does. */
 function serveSite(dist: string) {
+  const root = resolve(dist)
   return Bun.serve({
+    hostname: '127.0.0.1',
     port: 0,
     async fetch(request) {
       const path = decodeURIComponent(new URL(request.url).pathname)
       for (const candidate of [path, `${path}.html`, join(path, 'index.html')]) {
-        const file = join(dist, candidate)
+        const file = resolve(root, `.${candidate}`)
+        // An encoded `..` must not reach files outside the build.
+        if (relative(root, file).startsWith('..')) continue
         const info = await stat(file).catch(() => null)
         if (info?.isFile()) return new Response(Bun.file(file))
       }
@@ -112,18 +116,20 @@ export async function capturePosters({
     )
   )
   const server = serveSite(dist)
-  const browser = await chromium.launch({ args: CHROMIUM_ARGS })
+  let browser: Browser | null = null
   try {
+    browser = await chromium.launch({ args: CHROMIUM_ARGS })
+    const launched = browser
     const queue = [...targets]
     const worker = async () => {
       for (let target = queue.shift(); target; target = queue.shift()) {
-        await capturePage(browser, server.url.origin, target, out)
+        await capturePage(launched, server.url.origin, target, out)
         console.log(`landing posters: ${target.locale} ${target.theme} ${target.layout}`)
       }
     }
     await Promise.all(Array.from({ length: CONCURRENCY }, worker))
   } finally {
-    await browser.close()
+    await browser?.close()
     await server.stop(true)
   }
   return targets.length

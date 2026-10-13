@@ -18,9 +18,9 @@ describe('landing poster paths', () => {
   })
 
   test('split single-editor stages into canvas and panel, and keep collaboration whole', () => {
-    for (const kind of FEATURE_KINDS) {
-      expect(posterParts(kind)).toEqual(kind === 'collab' ? ['frame'] : ['canvas', 'panel'])
-    }
+    expect(posterParts('design')).toEqual(['canvas', 'panel'])
+    expect(posterParts('ai')).toEqual(['canvas', 'panel'])
+    expect(posterParts('collab')).toEqual(['frame'])
   })
 
   test('are unique across every stage and part of a page', () => {

@@ -22,7 +22,13 @@ export const LANDING_POSTER_INPUTS = {
     'tools/generate/demo/src',
     'tools/generate/landing-posters/src'
   ],
-  files: ['package.json', 'bun.lock', 'packages/docs/.vitepress/config.ts']
+  files: [
+    'package.json',
+    'bun.lock',
+    'packages/docs/.vitepress/config.ts',
+    // Its locale prefixes are the pages the stills are captured on.
+    'packages/docs/.vitepress/seo.ts'
+  ]
 }
 
 /** Short enough for a URL segment, long enough that two builds never collide. */
