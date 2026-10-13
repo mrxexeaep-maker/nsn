@@ -151,13 +151,13 @@ const filteredStorageDocuments = computed(() =>
   )
 )
 const hasRecentFiles = computed(() => documents.value.length > 0)
-const noRecentMatches = computed(
-  () => filtering.value && hasRecentFiles.value && filteredRecentFiles.value.length === 0
-)
+// A search or filter that leaves nothing says so, even over an empty list, or the tab is blank.
+const noRecentMatches = computed(() => filtering.value && filteredRecentFiles.value.length === 0)
 const noStorageMatches = computed(
   () =>
     filtering.value &&
-    storageDocuments.value.length > 0 &&
+    storageConfigured.value &&
+    !storageLoading.value &&
     filteredStorageDocuments.value.length === 0
 )
 
