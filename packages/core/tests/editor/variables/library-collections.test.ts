@@ -9,6 +9,8 @@ function libraryCollection() {
   const collection = graph.createCollection('Tokens')
   collection.key = 'bf3948d3'
   const brand = graph.createVariable('Color/Brand', 'FLOAT', collection.id, 4)
+  graph.createVariable('Color/Accent', 'FLOAT', collection.id, 2)
+  graph.createMode(collection.id, 'Dark')
   return { editor: createEditor({ graph }), graph, collection, brand }
 }
 
@@ -16,7 +18,7 @@ test("a library's collection is read, not changed, as Figma keeps it", () => {
   const { editor, graph, collection, brand } = libraryCollection()
   const before = structuredClone({
     collection: graph.variableCollections.get(collection.id),
-    brand: graph.variables.get(brand.id)
+    variables: [...graph.variables.values()]
   })
 
   editor.addVariable({
@@ -33,12 +35,21 @@ test("a library's collection is read, not changed, as Figma keeps it", () => {
   editor.updateVariableValue(brand.id, collection.defaultModeId, 8)
   expect(editor.addMode(collection.id, 'Dark')).toBeUndefined()
   expect(editor.duplicateVariable(brand.id, 'Copy')).toBeUndefined()
+  const [light, dark] = collection.modes.map((mode) => mode.modeId)
+  editor.renameMode(collection.id, dark, 'Night')
+  editor.setDefaultMode(collection.id, dark)
+  expect(editor.duplicateMode(collection.id, light)).toBeUndefined()
+  editor.setModeCondition(collection.id, dark, '(prefers-color-scheme: dark)')
+  editor.setModeAttribute(collection.id, 'data-theme')
+  editor.setVariableOrder(collection.id, [...graph.variables.keys()].reverse())
+  editor.updateVariableToken(brand.id, { description: 'Changed' })
+  editor.removeMode(collection.id, dark)
   editor.removeVariable(brand.id)
   editor.removeCollection(collection.id)
 
   expect({
     collection: graph.variableCollections.get(collection.id),
-    brand: graph.variables.get(brand.id)
+    variables: [...graph.variables.values()]
   }).toEqual(before)
   expect(graph.variables.has('var:added')).toBe(false)
 })

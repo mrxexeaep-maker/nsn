@@ -38,7 +38,10 @@ export function measureTextHeadlessly(): Promise<void> {
     const renderer = new SkiaRenderer(ck, surface)
     await renderer.loadFonts()
     installTextMeasurer((node, maxWidth) => renderer.measureTextNode(node, maxWidth))
-  })()
+  })().catch((error: unknown) => {
+    textMeasurer = null
+    throw error
+  })
   return textMeasurer
 }
 
