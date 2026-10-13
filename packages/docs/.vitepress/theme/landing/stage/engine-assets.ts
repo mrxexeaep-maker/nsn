@@ -14,9 +14,15 @@ let ready: Promise<void> | null = null
 
 /** Loads CanvasKit from the emitted binary. Stages await it before mounting a canvas. */
 export function prepareEngine(): Promise<void> {
-  ready ??= (async () => {
+  if (ready) return ready
+  const request = (async () => {
     installBundledFonts()
     await getCanvasKit({ locateFile: () => canvasKitWasm })
   })()
-  return ready
+  // A failed download is tried again by the next stage rather than shared.
+  request.catch(() => {
+    if (ready === request) ready = null
+  })
+  ready = request
+  return request
 }

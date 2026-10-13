@@ -23,6 +23,9 @@ type GitHubRelease = v.InferOutput<typeof ReleaseSchema>
 
 const ReleasesResponse = v.pipe(v.string(), v.parseJson(), v.array(ReleaseSchema))
 
+/** A stalled response takes the same fallback as a failed one rather than hold up the build. */
+const RELEASES_TIMEOUT_MS = 30_000
+
 async function fetchReleases(): Promise<GitHubRelease[] | null> {
   // CI passes the workflow's token; a local build without one stays within the anonymous limit.
   const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN
@@ -31,7 +34,8 @@ async function fetchReleases(): Promise<GitHubRelease[] | null> {
       headers: {
         accept: 'application/vnd.github+json',
         ...(token ? { authorization: `Bearer ${token}` } : {})
-      }
+      },
+      signal: AbortSignal.timeout(RELEASES_TIMEOUT_MS)
     })
     if (!response.ok) throw new Error(`GitHub answered ${response.status}`)
     const parsed = v.safeParse(ReleasesResponse, await response.text())

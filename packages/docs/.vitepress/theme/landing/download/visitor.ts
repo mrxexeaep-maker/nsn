@@ -44,10 +44,11 @@ async function reportedArch(): Promise<Arch | null> {
 export function useVisitorSystem(): ShallowRef<VisitorSystem | null> {
   const system = shallowRef<VisitorSystem | null>(null)
   onMounted(async () => {
-    system.value = {
-      platform: platformOf(navigator.userAgent, navigator.maxTouchPoints),
-      arch: await reportedArch()
-    }
+    // The platform shows at once; a processor the browser reports refines the choice later.
+    const platform = platformOf(navigator.userAgent, navigator.maxTouchPoints)
+    system.value = { platform, arch: null }
+    const arch = await reportedArch()
+    if (arch) system.value = { platform, arch }
   })
   return system
 }

@@ -31,7 +31,7 @@ v0.15.0 and v0.15.1 shipped work that earlier versions of this roadmap listed as
 Since v0.15.1, the development branch adds:
 
 - Behaviours and preview mode: components that run as Reka UI controls, with a Controls page in the demo and Storybook controls for them.
-- Variables modelled as design tokens, edited as tokens, written as a CSS token stylesheet, and used by name in exported code.
+- Variables modelled as design tokens, edited as tokens, imported and exported as W3C design tokens, written as a CSS token stylesheet, and used by name in exported code.
 - Live design checks: a Lint panel with canvas markers and one-click fixes.
 - AI agents shown on the canvas and to collaborators, with follow mode for people and agents, per-page presence, and MCP agents in rooms.
 - AI chat turns that can be reverted, regenerated, and edited, with tool calls summarised by what they changed and a thinking level per message.
@@ -51,7 +51,6 @@ See [AI chat](../programmable/ai-chat), [exporting](../user-guide/exporting), an
 
 Work with open pull requests. It may change before it merges:
 
-- Import and export of W3C design tokens.
 - Storybook stories generated as Reka UI components for Vue and Radix UI components for React.
 - Component authoring: variant editing and canvas selection inside components.
 - The OpenPencil Cloud foundation.
