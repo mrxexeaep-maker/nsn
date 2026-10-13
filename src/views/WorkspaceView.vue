@@ -8,7 +8,7 @@ import { useI18n } from '@open-pencil/vue'
 
 import {
   aiSetupDialogOpen,
-  offerAISetupOnFirstRun
+  offerAIWelcomeOnLaunch
 } from '@/app/ai/models/settings/onboarding/dialog'
 import { exposeAutomationTestRequests } from '@/app/automation/bridge/test-hooks'
 import { startMCPRuntime, stopMCPRuntime } from '@/app/automation/mcp/runtime'
@@ -90,7 +90,7 @@ function openFirstTab(): Tab {
 
 const welcomeShown =
   createdInitialTab && route.path === '/' && !appRuntimeConfig.test && !route.meta.demo
-    ? offerAISetupOnFirstRun()
+    ? offerAIWelcomeOnLaunch()
     : false
 const sharingStarted = startSharing()
 // One question per surface: a first run is asked about usage stats once the welcome closes.

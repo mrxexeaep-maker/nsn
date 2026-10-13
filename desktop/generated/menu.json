@@ -21,8 +21,8 @@
         "label": "Open Storage Workspace…"
       },
       {
-        "id": "open-tour",
-        "label": "Open the Tour"
+        "id": "show-welcome",
+        "label": "Show Welcome"
       },
       {
         "type": "separator"
