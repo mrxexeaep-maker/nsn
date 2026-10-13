@@ -34,7 +34,8 @@ import {
 } from '@/app/settings/preferences/apply'
 import { appPreferences } from '@/app/settings/preferences/store'
 import { openCommandPalette } from '@/app/shell/command-palette'
-import { createSharedEditorMenuActions } from '@/app/shell/menu/editor-actions'
+import { createSharedEditorMenuActions } from '@/app/shell/menu/actions/editor'
+import { createSelectionMenuActions } from '@/app/shell/menu/actions/selection'
 import { HELP_MENU_ACTIONS } from '@/app/shell/menu/help'
 import { openStorageWorkspace } from '@/app/shell/menu/navigation'
 import type {
@@ -48,7 +49,6 @@ import {
   MAIN_MENU_LEADING_ITEMS,
   MAIN_MENU_TRAILING_ITEMS
 } from '@/app/shell/menu/schema'
-import { createSelectionMenuActions } from '@/app/shell/menu/selection-actions'
 import { appMenuShortcutLabel } from '@/app/shell/menu/shortcut'
 import { openFileDialog } from '@/app/shell/menu/use'
 import { useAppTheme } from '@/app/shell/theme'

@@ -32,6 +32,7 @@ export type { CanvasIssueMarkerOptions } from '#vue/canvas/issues/use'
 export type { CanvasLabelEdit, CanvasLabelKind } from '#vue/canvas/labels/edit'
 export { useCanvasVirtualReference } from '#vue/canvas/overlays/useCanvasVirtualReference'
 export { useTextEdit } from '#vue/canvas/text-edit/use'
+export { isCanvasTextInput } from '#vue/canvas/text-edit/textarea'
 export {
   useCanvasDrop,
   extractImageFilesFromClipboard,
@@ -116,6 +117,13 @@ export {
 export type { TextResizeMode } from '#vue/controls/selection-layout/use'
 export type { LayoutAxis, SizeLimitProp } from '#vue/controls/layout/helpers'
 export { useAppearance } from '#vue/controls/appearance/use'
+export { useVariableModes } from '#vue/controls/variable-modes/use'
+export {
+  setVariableMode,
+  variableModeChoices,
+  type VariableModeChoice,
+  type VariableModeOption
+} from '#vue/controls/variable-modes/helpers'
 export { useMask } from '#vue/controls/mask/use'
 export { useIcon } from '#vue/controls/icon/use'
 export { useIconSearch } from '#vue/controls/icon/search'
