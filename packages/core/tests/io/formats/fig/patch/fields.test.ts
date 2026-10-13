@@ -110,3 +110,23 @@ test('a mode added to a collection of library aliases keeps the file as Figma sa
     for (const entry of entries) expect(entry.variableData?.value?.alias?.guid).toBeUndefined()
   }
 })
+
+test('layers using an edited variable, through an alias too, save the color it resolves to', async () => {
+  const { bytes, graph } = await openGoldPreview()
+  const blue = expectDefined(
+    [...graph.variables.values()].find((variable) => variable.name === 'Colors/Blue/500')
+  )
+  const collection = expectDefined(graph.variableCollections.get(blue.collectionId))
+  const editor = createEditor({ graph })
+  for (const mode of collection.modes)
+    editor.updateVariableValue(blue.id, mode.modeId, { r: 1, g: 0, b: 0, a: 1 })
+
+  const saved = recordsOf(bytes)
+  const after = recordsOf(await exportFigFile(graph))
+  // Figma draws the color a paint saves until it resolves the binding again, so the file must
+  // carry the new one; this layer binds Theme/Default/Primary 500, which aliases the blue.
+  const vector = expectDefined([...after.values()].find((record) => record.name === 'Vector 2191'))
+  expect(vector.fillPaints?.[0]?.color).toEqual({ r: 1, g: 0, b: 0, a: 1 })
+  const fields = uniq([...changes(saved, after).values()].flat())
+  expect(fields.toSorted()).toEqual(['fillPaints', 'variableDataValues'])
+})

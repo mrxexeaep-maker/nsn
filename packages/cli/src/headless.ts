@@ -1,9 +1,10 @@
 import { readFile, writeFile } from 'node:fs/promises'
 
+import { SkiaRenderer } from '@open-pencil/core/canvas'
 import { BUILTIN_IO_FORMATS, IORegistry, initCanvasKit } from '@open-pencil/core/io'
 import { populateAllFigPages, populateFigPage } from '@open-pencil/core/io/formats/fig'
 import { headlessHTMLReader } from '@open-pencil/core/io/formats/html/import'
-import { computeAllLayouts } from '@open-pencil/core/layout'
+import { computeAllLayouts, installTextMeasurer } from '@open-pencil/core/layout'
 import type { SceneGraph } from '@open-pencil/scene-graph'
 
 import { printError } from '#cli/format'
@@ -20,6 +21,28 @@ export async function loadDocument(filePath: string): Promise<SceneGraph> {
   const { graph } = await io.readDocument({ name: filePath, data: bytes })
   graph.applyDerivedLayoutDuring(() => computeAllLayouts(graph))
   return graph
+}
+
+let textMeasurer: Promise<void> | null = null
+
+/**
+ * Measure text a script or tool lays out with CanvasKit and the fonts it loads, as the app
+ * does, instead of the estimate that knows neither line breaks nor wrapping. The document as
+ * loaded keeps the layout its file gives it; only edits made afterwards are measured.
+ */
+export function measureTextHeadlessly(): Promise<void> {
+  textMeasurer ??= (async () => {
+    const ck = await initCanvasKit()
+    const surface = ck.MakeSurface(1, 1)
+    if (!surface) throw new Error('CanvasKit could not make a surface to measure text')
+    const renderer = new SkiaRenderer(ck, surface)
+    await renderer.loadFonts()
+    installTextMeasurer((node, maxWidth) => renderer.measureTextNode(node, maxWidth))
+  })().catch((error: unknown) => {
+    textMeasurer = null
+    throw error
+  })
+  return textMeasurer
 }
 
 /** `--write` and `--output` for commands that change a headless document. */
