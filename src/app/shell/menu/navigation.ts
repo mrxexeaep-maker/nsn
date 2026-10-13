@@ -4,5 +4,5 @@ export function openStorageWorkspace(router: Router): void {
   void router
     .push('/')
     .then(() => import('@/app/tabs'))
-    .then(({ showNewTab }) => showNewTab())
+    .then(({ showHome }) => showHome())
 }
