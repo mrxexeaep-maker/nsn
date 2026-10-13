@@ -7,12 +7,14 @@ import { useI18n } from '@open-pencil/vue'
 
 import { revokeImagePreviewURL } from '@/app/ai/attachment/image/prepare'
 import { chatDocumentId } from '@/app/ai/chat/history/document'
+import { chatTrace } from '@/app/ai/chat/history/trace'
 import { useChatRunLocation } from '@/app/ai/chat/run-location'
 import type { ChatSubmission } from '@/app/ai/chat/submission/types'
 import { useChatSubmission } from '@/app/ai/chat/submission/use'
 import { useAIChat } from '@/app/ai/chat/use'
 import { openAISetup } from '@/app/ai/models/settings/onboarding/dialog'
 import { didHitStepLimit } from '@/app/ai/tools'
+import { datedJSONFileName, saveJSONFile } from '@/app/document/export/json'
 import { getActiveEditorStore } from '@/app/editor/active-store'
 import { openSettingsDialog } from '@/app/settings/dialog'
 import { toast } from '@/app/shell/ui'
@@ -110,6 +112,17 @@ async function renameConversation(id: string, title: string) {
     await history.rename(id, title)
   } catch {
     toast.error(ai.value.chatHistoryFailed)
+  }
+}
+
+async function saveTrace(id: string) {
+  const conversation = history.current.value
+  if (conversation?.id !== id) return
+  try {
+    const trace = await chatTrace(conversation, messages.value)
+    await saveJSONFile(trace, datedJSONFileName(`${conversation.title} trace`))
+  } catch {
+    toast.error(ai.value.chatTraceFailed)
   }
 }
 
@@ -218,6 +231,7 @@ function handleStop() {
       @create="historyAction(history.newChat)"
       @select="historyAction(() => history.open($event))"
       @rename="renameConversation"
+      @save-trace="saveTrace"
       @delete="historyAction(() => history.remove($event))"
     >
       <template #actions><FollowAgentsToggle /></template>
