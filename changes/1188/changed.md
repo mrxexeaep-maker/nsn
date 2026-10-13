@@ -1,1 +1,0 @@
-- The canvas no longer draws a dashed box around a group or frame you have drilled into, as in Figma.
