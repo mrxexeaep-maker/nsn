@@ -13,6 +13,7 @@ import {
   pruneDiagnostics,
   useDiagnosticsSettings
 } from '@/app/diagnostics/settings'
+import { datedJSONFileName, saveJSONFile } from '@/app/document/export/json'
 import { toast } from '@/app/shell/ui'
 import DiagnosticsEventList from '@/components/settings/diagnostics/DiagnosticsEventList.vue'
 import SettingsGroup from '@/components/settings/layout/SettingsGroup.vue'
@@ -61,6 +62,15 @@ async function exportDiagnostics() {
     await copyText(await diagnostics.export(diagnosticsEnvironment()))
   } catch {
     toast.error(diagnosticMessages.value.copyFailed)
+  }
+}
+
+async function saveDiagnostics() {
+  try {
+    const report = await diagnostics.export(diagnosticsEnvironment())
+    await saveJSONFile(report, datedJSONFileName('openpencil-diagnostics'))
+  } catch {
+    toast.error(diagnosticMessages.value.saveFailed)
   }
 }
 </script>
@@ -123,6 +133,10 @@ async function exportDiagnostics() {
           ><template #leading
             ><icon-lucide-check v-if="copied" /><icon-lucide-copy v-else /></template
           >{{ copied ? common.copied : diagnosticMessages.copy }}</AppButton
+        >
+        <AppButton size="xs" color="neutral" variant="ghost" @click="saveDiagnostics"
+          ><template #leading><icon-lucide-download /></template
+          >{{ diagnosticMessages.save }}</AppButton
         >
         <AppButton
           size="xs"
