@@ -1,5 +1,3 @@
-import { pick } from 'es-toolkit'
-
 import type {
   SceneNode,
   VectorNetwork,
@@ -10,11 +8,7 @@ import type { Vector } from '@open-pencil/scene-graph/primitives'
 
 import { BLACK } from '#core/constants'
 import type { EditorContext } from '#core/editor/types'
-import {
-  computeAccurateBounds,
-  vectorChangesFromPagePath,
-  type VectorPathChanges
-} from '#core/vector'
+import { computeAccurateBounds, vectorChangesFromPagePath } from '#core/vector'
 
 export interface PenDragOptions {
   keepOpposite?: boolean
@@ -30,6 +24,8 @@ type CreateShape = (
   h: number,
   parentId?: string
 ) => string
+
+export type UpdateNodeWithUndo = (id: string, changes: Partial<SceneNode>, label?: string) => void
 
 const PEN_DEFAULT_STROKE: SceneNode['strokes'][number] = {
   type: 'SOLID',
@@ -66,7 +62,11 @@ function applyAnchorTangent(
   }
 }
 
-export function createPenActions(ctx: EditorContext, createShape: CreateShape) {
+export function createPenActions(
+  ctx: EditorContext,
+  createShape: CreateShape,
+  updateNodeWithUndo: UpdateNodeWithUndo
+) {
   function penAddVertex(x: number, y: number) {
     if (!ctx.state.penState) {
       ctx.state.penState = {
@@ -230,21 +230,20 @@ export function createPenActions(ctx: EditorContext, createShape: CreateShape) {
    * another layer: the layer keeps its name, place and style, and one undo puts its path back.
    */
   function commitIntoLayer(node: SceneNode, network: VectorNetwork): boolean {
-    const changes = vectorChangesFromPagePath(ctx.graph, node, network)
-    if (!changes) return false
-    const { id, parentId } = node
-    const previous = pick(node, Object.keys(changes) as (keyof VectorPathChanges)[])
-    const apply = (values: Partial<SceneNode>) => {
-      ctx.graph.updateNode(id, values)
-      if (parentId) ctx.runLayoutForNode(parentId)
+    // The pen only adds points and segments to a continued path, so equal counts mean nothing
+    // was drawn: the layer stays as it was, with no undo step.
+    const before = node.vectorNetwork
+    const unchanged =
+      before &&
+      before.vertices.length === network.vertices.length &&
+      before.segments.length === network.segments.length &&
+      before.regions.length === network.regions.length
+    if (!unchanged) {
+      const changes = vectorChangesFromPagePath(ctx.graph, node, network)
+      if (!changes) return false
+      updateNodeWithUndo(node.id, changes, 'Edit vector')
     }
-    apply(changes)
-    ctx.undo.push({
-      label: 'Edit vector',
-      forward: () => apply(changes),
-      inverse: () => apply(previous)
-    })
-    ctx.setSelectedIds(new Set([id]))
+    ctx.setSelectedIds(new Set([node.id]))
     return true
   }
 
