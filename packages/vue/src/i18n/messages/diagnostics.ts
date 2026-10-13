@@ -66,10 +66,12 @@ export const diagnosticsMessageDefaults = {
   usageHistoryDescription: 'Keep local AI usage summaries.',
   eventCount: params('{count} events · {size} KB'),
   copy: 'Copy diagnostics',
+  save: 'Save diagnostics…',
   clear: 'Clear',
   clearDescription: 'This removes locally stored diagnostic events from this device.',
   cleared: 'Diagnostics cleared.',
   copyFailed: 'Could not copy diagnostics to the clipboard.',
+  saveFailed: 'Could not save diagnostics.',
   sharingTitle: 'Sharing with OpenPencil',
   sharingDescription:
     'What this app sends to the OpenPencil team. Your designs, file names, prompts, and keys are never sent.',
