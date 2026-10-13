@@ -243,6 +243,10 @@ export const de: LandingMessages = {
     docs: 'Dokumentation lesen',
     cloud: 'Auf die Cloud-Warteliste'
   },
+  clipboard: {
+    copy: 'Kopieren',
+    copied: 'Kopiert'
+  },
   stage: {
     activate: 'Live ausprobieren',
     terminal: {
@@ -269,8 +273,6 @@ export const de: LandingMessages = {
       askAgent: 'Agenten fragen'
     },
     sdk: {
-      copy: 'Kopieren',
-      copied: 'Kopiert',
       install: 'Installieren'
     }
   },
@@ -279,6 +281,7 @@ export const de: LandingMessages = {
     lede: 'Die Desktop-App für macOS, Windows und Linux. Kostenlos und quelloffen, ohne Anmeldung.',
     version: 'Version {version}, veröffentlicht am {date}',
     forPlatform: 'Für {platform} herunterladen',
+    moreFiles: 'Weitere Downloads für {platform}',
     releaseNotes: 'Versionshinweise',
     yourSystem: 'Ihr System',
     arch: {
@@ -299,12 +302,14 @@ export const de: LandingMessages = {
     allTitle: 'Alle Downloads',
     checksums: 'SHA-256-Prüfsummen',
     onGitHub: 'Release auf GitHub',
-    unavailable: 'Die Liste der Downloads konnte nicht geladen werden. Alle Dateien finden Sie auf der Release-Seite auf GitHub.',
+    unavailable:
+      'Die Liste der Downloads konnte nicht geladen werden. Alle Dateien finden Sie auf der Release-Seite auf GitHub.',
     others: {
       title: 'Weitere Wege',
       homebrew: {
         title: 'Homebrew',
-        detail: 'Die signierte macOS-App aus dem offiziellen Cask. Homebrew prüft jedes Update, daher kann es etwas später ankommen als hier.'
+        detail:
+          'Die signierte macOS-App aus dem offiziellen Cask. Homebrew prüft jedes Update, daher kann es etwas später ankommen als hier.'
       },
       web: {
         title: 'Im Browser',
@@ -313,7 +318,8 @@ export const de: LandingMessages = {
       },
       cli: {
         title: 'Kommandozeile',
-        detail: '.fig-Dateien untersuchen, exportieren, prüfen und skripten, ohne die App zu öffnen.'
+        detail:
+          '.fig-Dateien untersuchen, exportieren, prüfen und skripten, ohne die App zu öffnen.'
       },
       source: {
         title: 'Aus dem Quellcode',

@@ -5,7 +5,7 @@ import { MotionConfig } from 'motion-v'
 import { TooltipProvider } from 'reka-ui'
 import { computed, ref } from 'vue'
 
-import type { Color } from '@open-pencil/scene-graph'
+import { BLACK, type Color } from '@open-pencil/scene-graph'
 
 import { PEER_COLORS } from '@/constants'
 
@@ -24,7 +24,7 @@ const joinRoom = createLocalRoom()
 
 // Both screens are the visitor's to use; each shows the other as a named person.
 /** The app's peer palette: blue for the visitor, purple for the teammate. */
-const peerColor = (index: number): Color => PEER_COLORS[index] ?? { r: 0, g: 0, b: 0, a: 1 }
+const peerColor = (index: number): Color => PEER_COLORS[index] ?? BLACK
 const you = { name: computed(() => messages.value.stage.collab.you), color: peerColor(1) }
 const teammate = { name: computed(() => TEAMMATE), color: peerColor(4) }
 

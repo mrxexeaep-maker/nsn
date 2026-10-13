@@ -1,5 +1,6 @@
-import type { LandingMessages } from '../content/messages'
-import type { Arch, Platform, Release } from './releases'
+import { fill } from '../content/messages/fill'
+import type { LandingMessages } from '../content/messages/types'
+import type { Arch, FileFormat, Platform, Release } from './releases'
 
 type DownloadMessages = LandingMessages['download']
 
@@ -16,9 +17,19 @@ export function archLabel(messages: DownloadMessages, platform: Platform, arch: 
   return arch === 'arm64' ? messages.arch.arm : messages.arch.x64
 }
 
+/** The extension as people write it, AppImage in its own capitals. */
+export function extension(format: FileFormat): string {
+  return format === 'appimage' ? '.AppImage' : `.${format}`
+}
+
+/** A file size in megabytes, with the unit as the visitor's language writes it. */
 export function formatSize(bytes: number, lang: string): string {
   const megabytes = bytes / 1_000_000
-  return `${new Intl.NumberFormat(lang, { maximumFractionDigits: megabytes < 10 ? 1 : 0 }).format(megabytes)} MB`
+  return new Intl.NumberFormat(lang, {
+    style: 'unit',
+    unit: 'megabyte',
+    maximumFractionDigits: megabytes < 10 ? 1 : 0
+  }).format(megabytes)
 }
 
 export function formatDate(iso: string, lang: string): string {
@@ -26,7 +37,5 @@ export function formatDate(iso: string, lang: string): string {
 }
 
 export function versionLine(messages: DownloadMessages, release: Release, lang: string): string {
-  return messages.version
-    .replace('{version}', release.version)
-    .replace('{date}', formatDate(release.date, lang))
+  return fill(messages.version, { version: release.version, date: formatDate(release.date, lang) })
 }

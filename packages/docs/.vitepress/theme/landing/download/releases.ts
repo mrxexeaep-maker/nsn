@@ -1,7 +1,9 @@
 export const PLATFORMS = ['mac', 'windows', 'linux'] as const
 export type Platform = (typeof PLATFORMS)[number]
 export type Arch = 'arm64' | 'x64'
-export type FileFormat = 'dmg' | 'exe' | 'msi' | 'appimage' | 'deb' | 'rpm'
+/** Installer formats, in the order a platform's list shows them. */
+export const FILE_FORMATS = ['dmg', 'exe', 'msi', 'appimage', 'deb', 'rpm'] as const
+export type FileFormat = (typeof FILE_FORMATS)[number]
 
 /** A file someone downloads to install the app; updater payloads and signatures are left out. */
 export interface ReleaseFile {
@@ -22,7 +24,7 @@ export interface Release {
   files: ReleaseFile[]
   /** `SHA256SUMS`, when the release has it. */
   checksums: string | null
-  /** The release notes, the changelog section of the version, as HTML. */
+  /** The release notes, the changelog section of the version, as HTML; empty when not shown. */
   notes: string
 }
 
@@ -65,13 +67,12 @@ export function classifyAsset(asset: {
 
 /** Files of one platform, Apple Silicon and ARM first on the Mac, x64 first elsewhere. */
 export function filesFor(release: Release, platform: Platform): ReleaseFile[] {
-  const order: FileFormat[] = ['dmg', 'exe', 'msi', 'appimage', 'deb', 'rpm']
   const archFirst: Arch = platform === 'mac' ? 'arm64' : 'x64'
   return release.files
     .filter((file) => file.platform === platform)
     .toSorted(
       (a, b) =>
         Number(b.arch === archFirst) - Number(a.arch === archFirst) ||
-        order.indexOf(a.format) - order.indexOf(b.format)
+        FILE_FORMATS.indexOf(a.format) - FILE_FORMATS.indexOf(b.format)
     )
 }

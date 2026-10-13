@@ -1,4 +1,5 @@
-import type { FileFormat } from '../../download/releases'
+import type { FileFormat } from '#docs/theme/landing/download/releases'
+
 import type { FeatureKind } from '../features'
 
 export interface TitledDetail {
@@ -64,7 +65,7 @@ export interface LandingMessages {
     lede: string
     features: TitledDetail[]
   }
-  /** The OpenPencil Cloud waitlist form in the Cloud section. */
+  /** The OpenPencil Cloud waitlist form, in the Cloud section and the roadmap. */
   waitlist: {
     /** Accessible name of the email field. */
     label: string
@@ -92,6 +93,11 @@ export interface LandingMessages {
     /** Links to the Cloud section's waitlist. */
     cloud: string
   }
+  /** A copy button's label, and what it says once it copied. */
+  clipboard: {
+    copy: string
+    copied: string
+  }
   /** Strings shown inside the live stages, next to the app's own translated panels. */
   stage: {
     /** Starts a stage from its still on a touch screen, where stages wait to be asked. */
@@ -114,8 +120,6 @@ export interface LandingMessages {
       askAgent: string
     }
     sdk: {
-      copy: string
-      copied: string
       /** Heads the install command under the snippet. */
       install: string
     }
@@ -128,6 +132,8 @@ export interface LandingMessages {
     version: string
     /** The main button for the visitor's system; `{platform}` is replaced. */
     forPlatform: string
+    /** Opens the menu of every installer for the platform; `{platform}` is replaced. */
+    moreFiles: string
     releaseNotes: string
     /** Marks the visitor's platform in the list of downloads. */
     yourSystem: string

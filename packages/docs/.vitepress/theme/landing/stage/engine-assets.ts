@@ -1,6 +1,5 @@
 import canvasKitWasm from 'canvaskit-wasm/bin/canvaskit.wasm?url'
 
-/// <reference types="vite/client" />
 import { getCanvasKit } from '@open-pencil/core/canvaskit'
 
 import { installBundledFonts } from '@/app/editor/fonts/bundled'

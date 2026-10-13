@@ -8,10 +8,12 @@ export interface VisitorSystem {
   arch: Arch | null
 }
 
-function platformOf(userAgent: string): Platform | null {
-  // Phones and tablets get the full list rather than a desktop installer.
+/** The desktop platform a browser runs on, from its user agent and how many touches it takes. */
+export function platformOf(userAgent: string, touchPoints: number): Platform | null {
+  // Phones and tablets get the full list rather than a desktop installer. An iPad asks for
+  // desktop sites as a Mac does, but no Mac has a touch screen.
   if (/Android|iPhone|iPad/.test(userAgent)) return null
-  if (/Mac OS X|Macintosh/.test(userAgent)) return 'mac'
+  if (/Mac OS X|Macintosh/.test(userAgent)) return touchPoints > 1 ? null : 'mac'
   if (/Windows/.test(userAgent)) return 'windows'
   if (/Linux|X11/.test(userAgent)) return 'linux'
   return null
@@ -42,7 +44,10 @@ async function reportedArch(): Promise<Arch | null> {
 export function useVisitorSystem(): ShallowRef<VisitorSystem | null> {
   const system = shallowRef<VisitorSystem | null>(null)
   onMounted(async () => {
-    system.value = { platform: platformOf(navigator.userAgent), arch: await reportedArch() }
+    system.value = {
+      platform: platformOf(navigator.userAgent, navigator.maxTouchPoints),
+      arch: await reportedArch()
+    }
   })
   return system
 }

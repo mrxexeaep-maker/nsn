@@ -12,7 +12,7 @@ const DesignCheckPanel = defineAsyncComponent(
 const DesignPanel = defineAsyncComponent(() => import('@/components/DesignPanel.vue'))
 const LayerTree = defineAsyncComponent(() => import('@/components/LayerTree/LayerTree.vue'))
 const TokensPanel = defineAsyncComponent(() => import('@/components/variables/TokensPanel.vue'))
-const AiChatPanel = defineAsyncComponent(() => import('./ai/AiChatPanel.vue'))
+const AIChatPanel = defineAsyncComponent(() => import('./ai/AIChatPanel.vue'))
 const SdkSnippetPanel = defineAsyncComponent(() => import('./panels/SdkSnippetPanel.vue'))
 const TerminalPanel = defineAsyncComponent(() => import('./panels/TerminalPanel.vue'))
 
@@ -40,7 +40,7 @@ export const STAGES: Record<SingleStageKind, StageDefinition> = {
     panelProps: { active: true, initialScope: 'selection' }
   },
   // The recorded turn adds a card beside the player in the hero.
-  ai: { scene: SCENES.heroStill, panel: AiChatPanel },
+  ai: { scene: SCENES.heroStill, panel: AIChatPanel },
   // Opens on the selection as a Vue component; the panel switches to React, HTML, or design JSX.
   code: { scene: SCENES.code, panel: CodePanel, panelProps: { initialSource: 'vue' } },
   // The terminal's scripts recolor the players' accent and add a player to the row.

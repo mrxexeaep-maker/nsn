@@ -72,14 +72,6 @@ const localePath = useLocalePath()
   flex-direction: column;
 }
 
-.icon {
-  display: block;
-  width: 22px;
-  height: 22px;
-  margin-bottom: 14px;
-  color: var(--vp-c-brand-1);
-}
-
 .action {
   margin-top: auto;
   padding-top: 16px;

@@ -3,12 +3,12 @@ import IconGithub from '~icons/lucide/github'
 import IconShieldCheck from '~icons/lucide/shield-check'
 
 import { provideLandingMessages, type LandingMessages } from '../content/messages'
-import { data as releases } from '../content/releases.data'
 import ActionButton from '../ui/ActionButton.vue'
 import BetaSection from './BetaSection.vue'
 import DownloadHero from './DownloadHero.vue'
 import OtherWays from './OtherWays.vue'
 import PlatformFiles from './PlatformFiles.vue'
+import { data as releases } from './releases.data'
 import { useVisitorSystem } from './visitor'
 
 import '../landing.css'
@@ -45,19 +45,6 @@ const system = useVisitorSystem()
     <OtherWays />
   </div>
 </template>
-
-<style>
-/* Shorter than the landing's stages, so its sections sit closer together. */
-.download-page .landing-section {
-  padding-top: 112px;
-}
-
-@media (max-width: 860px) {
-  .download-page .landing-section {
-    padding-top: 72px;
-  }
-}
-</style>
 
 <style scoped>
 .section-header {

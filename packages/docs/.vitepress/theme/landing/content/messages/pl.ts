@@ -242,6 +242,10 @@ export const pl: LandingMessages = {
     docs: 'Czytaj dokumentację',
     cloud: 'Zapisz się na listę Cloud'
   },
+  clipboard: {
+    copy: 'Kopiuj',
+    copied: 'Skopiowano'
+  },
   stage: {
     activate: 'Wypróbuj na żywo',
     terminal: {
@@ -268,8 +272,6 @@ export const pl: LandingMessages = {
       askAgent: 'Poproś agenta'
     },
     sdk: {
-      copy: 'Kopiuj',
-      copied: 'Skopiowano',
       install: 'Instalacja'
     }
   },
@@ -278,6 +280,7 @@ export const pl: LandingMessages = {
     lede: 'Aplikacja desktopowa na macOS, Windows i Linux. Darmowa i otwartoźródłowa, bez rejestracji.',
     version: 'Wersja {version}, wydana {date}',
     forPlatform: 'Pobierz na {platform}',
+    moreFiles: 'Więcej plików dla {platform}',
     releaseNotes: 'Informacje o wydaniu',
     yourSystem: 'Twój system',
     arch: {
@@ -298,12 +301,14 @@ export const pl: LandingMessages = {
     allTitle: 'Wszystkie pliki',
     checksums: 'Sumy kontrolne SHA-256',
     onGitHub: 'Wydanie na GitHubie',
-    unavailable: 'Nie udało się wczytać listy plików. Wszystkie pliki są na stronie wydań na GitHubie.',
+    unavailable:
+      'Nie udało się wczytać listy plików. Wszystkie pliki są na stronie wydań na GitHubie.',
     others: {
       title: 'Inne sposoby',
       homebrew: {
         title: 'Homebrew',
-        detail: 'Podpisana aplikacja na macOS z oficjalnego casku. Homebrew sprawdza każdą aktualizację, więc może trafić tam nieco później niż tutaj.'
+        detail:
+          'Podpisana aplikacja na macOS z oficjalnego casku. Homebrew sprawdza każdą aktualizację, więc może trafić tam nieco później niż tutaj.'
       },
       web: {
         title: 'W przeglądarce',

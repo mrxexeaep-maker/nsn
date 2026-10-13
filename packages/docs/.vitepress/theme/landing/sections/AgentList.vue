@@ -18,14 +18,15 @@ const ICONS: Record<(typeof AGENTS)[number], Component> = {
   Codex: IconOpenAI,
   'Gemini CLI': IconGemini
 }
+const agents = AGENTS.map((name) => ({ name, icon: ICONS[name] }))
 </script>
 
 <template>
   <div class="agents">
     <h3>{{ messages.agents.heading }}</h3>
     <ul>
-      <li v-for="agent in AGENTS" :key="agent">
-        <component :is="ICONS[agent]" aria-hidden="true" />{{ agent }}
+      <li v-for="agent in agents" :key="agent.name">
+        <component :is="agent.icon" aria-hidden="true" />{{ agent.name }}
       </li>
       <li class="rest">{{ messages.agents.rest }}</li>
     </ul>

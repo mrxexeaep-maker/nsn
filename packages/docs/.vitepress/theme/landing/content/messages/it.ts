@@ -243,6 +243,10 @@ export const it: LandingMessages = {
     docs: 'Leggi la documentazione',
     cloud: "Iscriviti alla lista d'attesa di Cloud"
   },
+  clipboard: {
+    copy: 'Copia',
+    copied: 'Copiato'
+  },
   stage: {
     activate: 'Provalo dal vivo',
     terminal: {
@@ -269,8 +273,6 @@ export const it: LandingMessages = {
       askAgent: 'Chiedi all’agente'
     },
     sdk: {
-      copy: 'Copia',
-      copied: 'Copiato',
       install: 'Installa'
     }
   },
@@ -279,6 +281,7 @@ export const it: LandingMessages = {
     lede: 'L’app desktop per macOS, Windows e Linux. Gratuita e open source, senza registrazione.',
     version: 'Versione {version}, pubblicata il {date}',
     forPlatform: 'Scarica per {platform}',
+    moreFiles: 'Altri download per {platform}',
     releaseNotes: 'Note di rilascio',
     yourSystem: 'Il tuo sistema',
     arch: {
@@ -299,12 +302,14 @@ export const it: LandingMessages = {
     allTitle: 'Tutti i download',
     checksums: 'Checksum SHA-256',
     onGitHub: 'Versione su GitHub',
-    unavailable: 'Non è stato possibile caricare l’elenco dei download. Tutti i file sono nella pagina delle versioni su GitHub.',
+    unavailable:
+      'Non è stato possibile caricare l’elenco dei download. Tutti i file sono nella pagina delle versioni su GitHub.',
     others: {
       title: 'Altri modi per averla',
       homebrew: {
         title: 'Homebrew',
-        detail: 'L’app macOS firmata, dal cask ufficiale. Homebrew controlla ogni aggiornamento, quindi può arrivare un po’ più tardi che qui.'
+        detail:
+          'L’app macOS firmata, dal cask ufficiale. Homebrew controlla ogni aggiornamento, quindi può arrivare un po’ più tardi che qui.'
       },
       web: {
         title: 'Nel browser',

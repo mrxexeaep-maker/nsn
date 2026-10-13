@@ -17,7 +17,7 @@ const ICONS = [IconRefreshCw, IconMessageSquare, IconLibrary, IconSparkles, Icon
 <template>
   <!-- The closing section's Cloud button links here. -->
   <section id="cloud" class="landing-section">
-    <span class="badge">{{ messages.cloud.badge }}</span>
+    <span class="landing-badge">{{ messages.cloud.badge }}</span>
     <h2>{{ messages.cloud.title }}</h2>
     <p class="lede">{{ messages.cloud.lede }}</p>
     <WaitlistForm class="form" />
@@ -32,19 +32,6 @@ const ICONS = [IconRefreshCw, IconMessageSquare, IconLibrary, IconSparkles, Icon
 </template>
 
 <style scoped>
-.badge {
-  display: inline-block;
-  margin-bottom: 16px;
-  padding: 2px 10px;
-  border: 1px solid var(--vp-c-brand-soft);
-  border-radius: 999px;
-  background: var(--vp-c-brand-soft);
-  color: var(--vp-c-brand-1);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 22px;
-}
-
 .lede {
   max-width: 640px;
   margin-top: 16px;
@@ -62,13 +49,5 @@ const ICONS = [IconRefreshCw, IconMessageSquare, IconLibrary, IconSparkles, Icon
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 36px 40px;
   margin-top: 56px;
-}
-
-.icon {
-  display: block;
-  width: 24px;
-  height: 24px;
-  margin-bottom: 14px;
-  color: var(--vp-c-brand-1);
 }
 </style>

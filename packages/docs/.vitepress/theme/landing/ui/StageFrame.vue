@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useEventListener } from '@vueuse/core'
 import { defineClientComponent, useData, withBase } from 'vitepress'
 import { computed, onMounted, ref } from 'vue'
 
@@ -51,7 +52,7 @@ onMounted(() => {
   if (isPosterCapture()) start()
   else if (window.matchMedia('(pointer: coarse)').matches) waiting.value = true
   else if (document.readyState === 'complete') start()
-  else window.addEventListener('load', start, { once: true })
+  else useEventListener(window, 'load', start, { once: true })
 })
 </script>
 

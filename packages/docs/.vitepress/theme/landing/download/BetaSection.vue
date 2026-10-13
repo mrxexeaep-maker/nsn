@@ -22,8 +22,8 @@ const { lang } = useData()
   <section class="landing-section">
     <div class="beta">
       <div class="about">
-        <span class="badge">{{ messages.download.beta.badge }}</span>
-        <h2>{{ messages.download.beta.title }}</h2>
+        <span class="landing-badge">{{ messages.download.beta.badge }}</span>
+        <h2 class="landing-heading">{{ messages.download.beta.title }}</h2>
         <p class="lede">{{ messages.download.beta.lede }}</p>
         <p class="version">{{ versionLine(messages.download, release, lang) }}</p>
         <ul class="caveats">
@@ -54,26 +54,6 @@ const { lang } = useData()
   grid-template-columns: 320px minmax(0, 1fr);
   gap: 56px;
   align-items: start;
-}
-
-.badge {
-  display: inline-block;
-  margin-bottom: 16px;
-  padding: 2px 10px;
-  border: 1px solid var(--vp-c-brand-soft);
-  border-radius: 999px;
-  background: var(--vp-c-brand-soft);
-  color: var(--vp-c-brand-1);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 22px;
-}
-
-h2 {
-  font-size: clamp(26px, 3.6vw, 40px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
 }
 
 .lede {
@@ -112,10 +92,6 @@ h2 {
   border-radius: 50%;
   background: var(--vp-c-text-3);
   content: '';
-}
-
-.files :deep(.platforms) {
-  margin-top: 8px;
 }
 
 .notes {

@@ -43,7 +43,7 @@ Since v0.15.1, the development branch adds:
 - SVG and HTML imported as editable layers, with HTML and CSS laid out as a browser lays them out.
 - Shader fills from the open-source `shaders` library, on-canvas gradient and corner-radius handles, multi-selection editing, and accent colours with a customizable toolbar.
 
-These changes are not part of v0.15.1; `CHANGELOG.md` lists them under Unreleased.
+These changes are not part of v0.15.1; they ship with the next release.
 
 See [AI chat](../programmable/ai-chat), [exporting](../user-guide/exporting), and [components and libraries](../user-guide/components).
 

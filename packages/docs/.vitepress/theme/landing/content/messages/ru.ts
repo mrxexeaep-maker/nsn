@@ -241,6 +241,10 @@ export const ru: LandingMessages = {
     docs: 'Читать документацию',
     cloud: 'Записаться в лист ожидания Cloud'
   },
+  clipboard: {
+    copy: 'Копировать',
+    copied: 'Скопировано'
+  },
   stage: {
     activate: 'Попробовать вживую',
     terminal: {
@@ -267,8 +271,6 @@ export const ru: LandingMessages = {
       askAgent: 'Попросить агента'
     },
     sdk: {
-      copy: 'Копировать',
-      copied: 'Скопировано',
       install: 'Установка'
     }
   },
@@ -277,6 +279,7 @@ export const ru: LandingMessages = {
     lede: 'Настольное приложение для macOS, Windows и Linux. Бесплатное и с открытым кодом, без регистрации.',
     version: 'Версия {version}, вышла {date}',
     forPlatform: 'Скачать для {platform}',
+    moreFiles: 'Другие загрузки для {platform}',
     releaseNotes: 'Заметки о выпуске',
     yourSystem: 'Ваша система',
     arch: {
@@ -297,12 +300,14 @@ export const ru: LandingMessages = {
     allTitle: 'Все загрузки',
     checksums: 'Контрольные суммы SHA-256',
     onGitHub: 'Релиз на GitHub',
-    unavailable: 'Не удалось загрузить список файлов. Все файлы есть на странице релизов на GitHub.',
+    unavailable:
+      'Не удалось загрузить список файлов. Все файлы есть на странице релизов на GitHub.',
     others: {
       title: 'Другие способы',
       homebrew: {
         title: 'Homebrew',
-        detail: 'Подписанное приложение для macOS из официального cask. Homebrew проверяет каждое обновление, поэтому оно может прийти чуть позже, чем здесь.'
+        detail:
+          'Подписанное приложение для macOS из официального cask. Homebrew проверяет каждое обновление, поэтому оно может прийти чуть позже, чем здесь.'
       },
       web: {
         title: 'В браузере',
@@ -311,7 +316,8 @@ export const ru: LandingMessages = {
       },
       cli: {
         title: 'Командная строка',
-        detail: 'Просматривайте, экспортируйте, проверяйте и автоматизируйте файлы .fig, не открывая приложение.'
+        detail:
+          'Просматривайте, экспортируйте, проверяйте и автоматизируйте файлы .fig, не открывая приложение.'
       },
       source: {
         title: 'Из исходников',

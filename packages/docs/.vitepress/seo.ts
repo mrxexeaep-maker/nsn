@@ -32,7 +32,7 @@ const SOFTWARE_APPLICATION = {
   softwareVersion: version,
   license: 'https://opensource.org/licenses/MIT',
   screenshot: `${BASE}/screenshot.png`,
-  downloadUrl: 'https://github.com/open-pencil/open-pencil/releases/latest',
+  downloadUrl: `${BASE}/download`,
   featureList: [
     'Opens and saves Figma .fig files',
     'AI agents that design on the canvas with your own provider keys',

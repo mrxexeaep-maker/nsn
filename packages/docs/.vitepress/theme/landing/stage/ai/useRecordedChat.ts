@@ -67,6 +67,8 @@ export function useRecordedChat(store: EditorStore, copy: () => RecordedChatCopy
   const reducedMotion = usePreferredReducedMotion()
   const chat = shallowRef<Chat<UIMessage> | null>(null)
   let disposed = false
+  // A call rather than the flag itself, which a check before an await would narrow for good.
+  const isDisposed = () => disposed
   onScopeDispose(() => {
     disposed = true
     void chat.value?.stop()
@@ -86,7 +88,7 @@ export function useRecordedChat(store: EditorStore, copy: () => RecordedChatCopy
 
   async function play(): Promise<void> {
     const parentId = findByName(store, ARTBOARD_NAME)
-    if (running.value || disposed || !parentId) return
+    if (running.value || isDisposed() || !parentId) return
     clearPreviousResult()
     // The canvas previews streamed JSX only for the active document, as the app's chat does.
     const tab = getTabForStore(store)
@@ -109,7 +111,7 @@ export function useRecordedChat(store: EditorStore, copy: () => RecordedChatCopy
     await chat.value.sendMessage({ text: request })
     // The view follows the agent while it works; afterwards it frames the hero with the new card
     // beside the player, which also ends following, as any view change of the person's own does.
-    if (!disposed) reframeStage(store)
+    if (!isDisposed()) reframeStage(store)
   }
 
   return { messages, status, running, played, play }

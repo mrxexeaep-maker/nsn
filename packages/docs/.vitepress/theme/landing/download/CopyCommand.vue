@@ -18,7 +18,7 @@ const clipboard = useClipboard({ copiedDuring: COPIED_MS })
     <code>{{ command }}</code>
     <button
       type="button"
-      :aria-label="clipboard.copied.value ? messages.stage.sdk.copied : messages.stage.sdk.copy"
+      :aria-label="clipboard.copied.value ? messages.clipboard.copied : messages.clipboard.copy"
       :data-copied="clipboard.copied.value || undefined"
       @click="clipboard.copy(command)"
     >

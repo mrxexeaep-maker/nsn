@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useLandingMessages, withCount } from '../content/messages'
+import { useLandingMessages } from '../content/messages'
+import { fill } from '../content/messages/fill'
 import { data as stats } from '../content/stats.data'
 
 const messages = useLandingMessages()
@@ -7,11 +8,11 @@ const messages = useLandingMessages()
 
 <template>
   <div class="commands">
-    <h3>{{ withCount(messages.commands.cli, stats.cliCommands.length) }}</h3>
+    <h3>{{ fill(messages.commands.cli, { count: stats.cliCommands.length }) }}</h3>
     <ul>
       <li v-for="command in stats.cliCommands" :key="command">{{ command }}</li>
     </ul>
-    <h3>{{ withCount(messages.commands.mcp, stats.mcpTools) }}</h3>
+    <h3>{{ fill(messages.commands.mcp, { count: stats.mcpTools }) }}</h3>
     <p>{{ messages.commands.mcpDetail }}</p>
   </div>
 </template>

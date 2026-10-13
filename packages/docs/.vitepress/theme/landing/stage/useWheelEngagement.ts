@@ -23,5 +23,5 @@ export function useWheelEngagement() {
     event.stopPropagation()
   }
 
-  return { engaged, engage, disengage, guardWheel }
+  return { engage, disengage, guardWheel }
 }

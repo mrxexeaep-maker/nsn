@@ -5,8 +5,8 @@ import IconLinux from '~icons/simple-icons/linux'
 import IconWindows from '~icons/simple-icons/windows'
 
 import { useLandingMessages } from '../content/messages'
-import { archLabel, formatSize, PLATFORM_NAMES } from './format'
-import { filesFor, PLATFORMS, type FileFormat, type Platform, type Release } from './releases'
+import { archLabel, extension, formatSize, PLATFORM_NAMES } from './format'
+import { filesFor, PLATFORMS, type Platform, type Release } from './releases'
 
 /**
  * Every installer of a release, a column per platform. `compact` leaves out what each format is
@@ -26,10 +26,6 @@ const messages = useLandingMessages()
 const { lang } = useData()
 
 const ICONS = { mac: IconApple, windows: IconWindows, linux: IconLinux }
-
-function extension(format: FileFormat): string {
-  return format === 'appimage' ? '.AppImage' : `.${format}`
-}
 </script>
 
 <template>
@@ -48,7 +44,9 @@ function extension(format: FileFormat): string {
               <span class="ext">{{ extension(file.format) }}</span>
             </span>
             <span class="size">{{ formatSize(file.size, lang) }}</span>
-            <span v-if="!compact" class="purpose">{{ messages.download.formats[file.format] }}</span>
+            <span v-if="!compact" class="purpose">{{
+              messages.download.formats[file.format]
+            }}</span>
           </a>
         </li>
       </ul>
@@ -126,9 +124,8 @@ a:hover .name {
   font-size: 13px;
 }
 
-[data-compact] .platforms,
 .platforms[data-compact] {
-  margin-top: 28px;
+  margin-top: 8px;
 }
 
 @media (max-width: 860px) {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useData } from 'vitepress'
 import { computed } from 'vue'
+import IconArrowDown from '~icons/lucide/arrow-down'
 import IconGithub from '~icons/lucide/github'
 
 import { LINKS } from '../content/links'
@@ -55,6 +56,12 @@ const choice = computed<{ main: ReleaseFile; files: ReleaseFile[] } | null>(() =
               {{ formatSize(choice.main.size, lang) }}
             </p>
           </template>
+          <!-- A phone, a tablet, or a system the browser does not name: the list has them all. -->
+          <div v-else-if="system" class="landing-actions">
+            <ActionButton href="#all" :icon="IconArrowDown" primary>
+              {{ messages.download.allTitle }}
+            </ActionButton>
+          </div>
         </div>
         <p class="version">
           {{ versionLine(messages.download, release, lang) }}

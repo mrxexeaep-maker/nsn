@@ -59,7 +59,9 @@ async function guestScene(store: EditorStore): Promise<void> {
   await until(joined.hasDocument).toBe(true)
   // The document arrives before its layers reach the page on screen; fit once they have.
   await until(() => store.graph.getChildren(store.state.currentPageId).length > 0).toBe(true)
-  await new Promise((resolve) => requestAnimationFrame(resolve))
+  await new Promise((resolve) => {
+    requestAnimationFrame(resolve)
+  })
   frameStage(store, chapterSubject(store, CHAPTERS.hello))
 }
 

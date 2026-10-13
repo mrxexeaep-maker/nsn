@@ -33,7 +33,3 @@ export function useLocalePath() {
     return withBase(`${prefix}${path}`)
   }
 }
-
-export function withCount(template: string, count: number): string {
-  return template.replace('{count}', String(count))
-}

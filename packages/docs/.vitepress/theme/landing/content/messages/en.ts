@@ -232,6 +232,10 @@ export const en: LandingMessages = {
     docs: 'Read the docs',
     cloud: 'Join the Cloud waitlist'
   },
+  clipboard: {
+    copy: 'Copy',
+    copied: 'Copied'
+  },
   stage: {
     activate: 'Try it live',
     terminal: {
@@ -258,8 +262,6 @@ export const en: LandingMessages = {
       askAgent: 'Ask the agent'
     },
     sdk: {
-      copy: 'Copy',
-      copied: 'Copied',
       install: 'Install'
     }
   },
@@ -268,6 +270,7 @@ export const en: LandingMessages = {
     lede: 'The desktop app for macOS, Windows, and Linux. Free and open source, with nothing to sign up for.',
     version: 'Version {version}, released {date}',
     forPlatform: 'Download for {platform}',
+    moreFiles: 'More downloads for {platform}',
     releaseNotes: 'Release notes',
     yourSystem: 'Your system',
     arch: {
@@ -288,12 +291,14 @@ export const en: LandingMessages = {
     allTitle: 'All downloads',
     checksums: 'SHA-256 checksums',
     onGitHub: 'Release on GitHub',
-    unavailable: 'The list of downloads could not be loaded. Every file is on the releases page on GitHub.',
+    unavailable:
+      'The list of downloads could not be loaded. Every file is on the releases page on GitHub.',
     others: {
       title: 'Other ways to get it',
       homebrew: {
         title: 'Homebrew',
-        detail: 'The signed macOS app from the official cask. Homebrew reviews each update, so it can arrive a little later than here.'
+        detail:
+          'The signed macOS app from the official cask. Homebrew reviews each update, so it can arrive a little later than here.'
       },
       web: {
         title: 'In the browser',

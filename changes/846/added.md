@@ -1,0 +1,3 @@
+- openpencil.dev opens on live editor demos of design, AI, code export, the CLI, the SDK, and collaboration, in every docs language, with a short roadmap and an OpenPencil Cloud waitlist.
+- A download page offers the latest release's installer for the visitor's system, lists every installer for macOS, Windows, and Linux with Homebrew and the web app, and shows a newer beta with its release notes when there is one.
+- `FontManager.setBundledFontLocator()` lets an SDK host say where its bundler put the fonts from the new `@open-pencil/core/assets` export.

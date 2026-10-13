@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { useLandingMessages } from '#docs/theme/landing/content/messages'
+import { COPIED_MS } from '#docs/theme/landing/ui/copy'
 import { useClipboard } from '@vueuse/core'
 import dedent from 'dedent'
 
 import CodeEditor from '@/components/code-editor/CodeEditor.vue'
 import IconButton from '@/components/ui/button/IconButton.vue'
-import { COPIED_MS } from '#docs/theme/landing/ui/copy'
 
 // A literal closing tag here would end this component's own script block.
 const CLOSE_SCRIPT = `</${'script'}>`
@@ -51,7 +51,7 @@ const installClipboard = useClipboard({ copiedDuring: COPIED_MS })
       <IconButton
         class="ml-auto"
         size="xs"
-        :label="snippetClipboard.copied.value ? messages.stage.sdk.copied : messages.stage.sdk.copy"
+        :label="snippetClipboard.copied.value ? messages.clipboard.copied : messages.clipboard.copy"
         @click="snippetClipboard.copy(SNIPPET)"
       >
         <icon-lucide-check v-if="snippetClipboard.copied.value" class="size-3.5" />
@@ -72,7 +72,7 @@ const installClipboard = useClipboard({ copiedDuring: COPIED_MS })
           class="ml-auto"
           size="xs"
           :label="
-            installClipboard.copied.value ? messages.stage.sdk.copied : messages.stage.sdk.copy
+            installClipboard.copied.value ? messages.clipboard.copied : messages.clipboard.copy
           "
           @click="installClipboard.copy(INSTALL)"
         >

@@ -243,6 +243,10 @@ export const fr: LandingMessages = {
     docs: 'Lire la documentation',
     cloud: "Rejoindre la liste d'attente Cloud"
   },
+  clipboard: {
+    copy: 'Copier',
+    copied: 'Copié'
+  },
   stage: {
     activate: 'Essayer en direct',
     terminal: {
@@ -269,8 +273,6 @@ export const fr: LandingMessages = {
       askAgent: 'Demander à l’agent'
     },
     sdk: {
-      copy: 'Copier',
-      copied: 'Copié',
       install: 'Installer'
     }
   },
@@ -279,6 +281,7 @@ export const fr: LandingMessages = {
     lede: 'L’app de bureau pour macOS, Windows et Linux. Gratuite et open source, sans inscription.',
     version: 'Version {version}, publiée le {date}',
     forPlatform: 'Télécharger pour {platform}',
+    moreFiles: 'Autres téléchargements pour {platform}',
     releaseNotes: 'Notes de version',
     yourSystem: 'Votre système',
     arch: {
@@ -299,12 +302,14 @@ export const fr: LandingMessages = {
     allTitle: 'Tous les téléchargements',
     checksums: 'Sommes de contrôle SHA-256',
     onGitHub: 'Version sur GitHub',
-    unavailable: 'La liste des téléchargements n’a pas pu être chargée. Tous les fichiers sont sur la page des versions sur GitHub.',
+    unavailable:
+      'La liste des téléchargements n’a pas pu être chargée. Tous les fichiers sont sur la page des versions sur GitHub.',
     others: {
       title: 'Autres façons de l’obtenir',
       homebrew: {
         title: 'Homebrew',
-        detail: 'L’app macOS signée, depuis le cask officiel. Homebrew vérifie chaque mise à jour, qui peut donc arriver un peu plus tard qu’ici.'
+        detail:
+          'L’app macOS signée, depuis le cask officiel. Homebrew vérifie chaque mise à jour, qui peut donc arriver un peu plus tard qu’ici.'
       },
       web: {
         title: 'Dans le navigateur',

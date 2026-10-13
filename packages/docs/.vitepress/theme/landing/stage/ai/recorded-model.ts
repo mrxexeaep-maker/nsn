@@ -1,3 +1,4 @@
+import { promiseTimeout } from '@vueuse/core'
 import { MockLanguageModelV4 } from 'ai/test'
 
 type ModelStream = Awaited<ReturnType<MockLanguageModelV4['doStream']>>
@@ -100,13 +101,13 @@ function playback(chunks: PacedChunk[], pace: StreamPace | null): ReadableStream
   let index = 0
   return new ReadableStream<ModelChunk>({
     async pull(controller) {
-      const next = chunks[index++]
-      if (!next) {
+      if (index >= chunks.length) {
         controller.close()
         return
       }
+      const next = chunks[index++]
       const wait = pace && next.wait ? pace[next.wait] : 0
-      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait))
+      if (wait > 0) await promiseTimeout(wait)
       controller.enqueue(next.chunk)
     }
   })

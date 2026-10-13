@@ -24,13 +24,3 @@ const ICONS = [IconHardDrive, IconCloud, IconFileOutput, IconScale]
     </dl>
   </section>
 </template>
-
-<style scoped>
-.icon {
-  display: block;
-  width: 24px;
-  height: 24px;
-  margin-bottom: 14px;
-  color: var(--vp-c-brand-1);
-}
-</style>

@@ -12,15 +12,17 @@ import { resolvedAppTheme } from '@/app/shell/theme'
 let tourBytes: Promise<ArrayBuffer> | null = null
 
 function fetchTour(): Promise<ArrayBuffer> {
-  tourBytes ??= fetch(demoFigURL).then((response) => {
+  if (tourBytes) return tourBytes
+  const request = fetch(demoFigURL).then((response) => {
     if (!response.ok) throw new Error(`The tour is unavailable (${response.status})`)
     return response.arrayBuffer()
   })
   // A failed download is tried again by the next stage rather than shared.
-  tourBytes.catch(() => {
-    tourBytes = null
+  request.catch(() => {
+    if (tourBytes === request) tourBytes = null
   })
-  return tourBytes
+  tourBytes = request
+  return request
 }
 
 /** Opens the tour like any `.fig` file, in the theme the docs site shows, as `/demo` does. */
@@ -47,18 +49,15 @@ export function chapterSubject(store: EditorStore, chapter: TourChapter): SceneN
   return subject
 }
 
-/** Room around a framed layer, above it for the preview's workspace pill, and below it for
- * the toolbar of stages that show one. */
+// Room around a framed layer, above it for the preview's workspace pill, and below it for the
+// toolbar of stages that show one.
 const FRAME_MARGIN = 24
 const PREVIEW_PILL_INSET = 56
 const TOOLBAR_INSET = 64
 /** Small subjects are enlarged to fill the canvas, up to this zoom. */
 const MAX_FRAME_ZOOM = 2
 
-/**
- * Fill the canvas with `node`, past the 100% that fitting stops at, so the rest of the tour,
- * its prose and its tip cards, stays out of view; the landing says those things itself.
- */
+/** What sits over the canvas of a stage, and so the room a framed layer leaves for it. */
 interface FrameInsets {
   /** The preview's workspace pill sits above the canvas. */
   preview?: boolean
@@ -66,6 +65,10 @@ interface FrameInsets {
   toolbar?: boolean
 }
 
+/**
+ * Fill the canvas with `node`, past the 100% that fitting stops at, so the rest of the tour,
+ * its prose and its tip cards, stays out of view; the landing says those things itself.
+ */
 function frameNode(store: EditorStore, node: SceneNode, insets: FrameInsets = {}): void {
   const { x, y } = store.graph.getAbsolutePosition(node.id)
   const { width, height } = store.getViewportSize()
@@ -137,29 +140,28 @@ async function chapter(
   if (options.preview) store.startPlay()
 }
 
-/** The first layer under `node` with `name`, searching breadth first. */
-function descendant(store: EditorStore, node: SceneNode, name: string): string | undefined {
-  const pending = [...node.childIds]
-  while (pending.length > 0) {
-    const id = pending.shift()
-    const current = id ? store.graph.getNode(id) : undefined
-    if (!current) continue
-    if (current.name === name) return current.id
-    pending.push(...current.childIds)
-  }
-  return undefined
-}
-
-export function findByName(store: EditorStore, name: string): string | null {
-  const pending = store.graph.getChildren(store.state.currentPageId).map((node) => node.id)
-  while (pending.length > 0) {
-    const id = pending.shift()
-    const node = id ? store.graph.getNode(id) : undefined
+/** The first layer named `name` among `roots` and their layers, searching breadth first. */
+function layerNamed(store: EditorStore, roots: readonly string[], name: string): string | null {
+  const pending = [...roots]
+  // The loop also reaches the layers it appends.
+  for (const id of pending) {
+    const node = store.graph.getNode(id)
     if (!node) continue
     if (node.name === name) return node.id
     pending.push(...node.childIds)
   }
   return null
+}
+
+/** The first layer under `node` with `name`. */
+function descendant(store: EditorStore, node: SceneNode, name: string): string | undefined {
+  return layerNamed(store, node.childIds, name) ?? undefined
+}
+
+/** The first layer on the current page with `name`. */
+export function findByName(store: EditorStore, name: string): string | null {
+  const page = store.graph.getChildren(store.state.currentPageId).map((node) => node.id)
+  return layerNamed(store, page, name)
 }
 
 /**

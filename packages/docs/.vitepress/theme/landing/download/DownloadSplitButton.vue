@@ -14,7 +14,8 @@ import IconDownload from '~icons/lucide/download'
 import { menuItem, useMenuUI } from '@/components/ui/menu/menu'
 
 import { useLandingMessages } from '../content/messages'
-import { archLabel, formatSize, PLATFORM_NAMES } from './format'
+import { fill } from '../content/messages/fill'
+import { archLabel, extension, formatSize, PLATFORM_NAMES } from './format'
 import type { ReleaseFile } from './releases'
 
 /**
@@ -27,20 +28,19 @@ const messages = useLandingMessages()
 const { lang } = useData()
 const menu = useMenuUI({ content: 'min-w-60' })
 const item = menuItem({ justify: 'start', class: 'gap-2.5' })
-
-function extension(file: ReleaseFile): string {
-  return file.format === 'appimage' ? '.AppImage' : `.${file.format}`
-}
 </script>
 
 <template>
   <div class="split">
     <a class="main" :href="main.url">
       <IconDownload aria-hidden="true" />
-      {{ messages.download.forPlatform.replace('{platform}', PLATFORM_NAMES[main.platform]) }}
+      {{ fill(messages.download.forPlatform, { platform: PLATFORM_NAMES[main.platform] }) }}
     </a>
     <DropdownMenuRoot v-if="files.length > 1">
-      <DropdownMenuTrigger class="more" :aria-label="messages.download.allTitle">
+      <DropdownMenuTrigger
+        class="more"
+        :aria-label="fill(messages.download.moreFiles, { platform: PLATFORM_NAMES[main.platform] })"
+      >
         <IconChevronDown aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuPortal>
@@ -53,7 +53,7 @@ function extension(file: ReleaseFile): string {
               />
               <span class="flex-1">
                 {{ archLabel(messages.download, file.platform, file.arch) }}
-                <span class="text-muted">{{ extension(file) }}</span>
+                <span class="text-muted">{{ extension(file.format) }}</span>
               </span>
               <span :class="menu.shortcut">{{ formatSize(file.size, lang) }}</span>
             </a>
@@ -97,6 +97,13 @@ function extension(file: ReleaseFile): string {
   justify-content: center;
   width: 40px;
   border-left: 1px solid rgb(255 255 255 / 0.25);
+}
+
+/* The rounded clip would cut an outside focus ring, so it is drawn inside. */
+.main:focus-visible,
+.more:focus-visible {
+  outline: 2px solid var(--vp-button-brand-text);
+  outline-offset: -4px;
 }
 
 .main:hover,
