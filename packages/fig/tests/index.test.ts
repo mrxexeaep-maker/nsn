@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'bun:test'
 
 import {
   FIG_PACKAGE_STATUS,
+  figArchiveMetaJSON,
   parseFigBuffer,
   readFigContainer,
   writeFigArchive,
@@ -74,6 +75,27 @@ describe('@open-pencil/fig package API', () => {
     expect(parsed.images).toEqual([['hash', new Uint8Array([9, 8, 7])]])
     expect(parsed.thumbnailPNG).toEqual(thumbnailPNG)
     expect(parsed.metaJSON).toBe(metaJSON)
+  })
+
+  it('writes meta.json as Figma does', () => {
+    // Recorded from Figma's "Save local copy…" of a one-rectangle page with a #1E1E1E background.
+    const figmaMetaJSON =
+      '{"client_meta":{"background_color":{"r":0.11764705926179886,"g":0.11764705926179886,' +
+      '"b":0.11764705926179886,"a":1},"thumbnail_size":{"width":400,"height":357},' +
+      '"render_coordinates":{"x":49,"y":3,"width":345,"height":308}},' +
+      '"file_name":"OP-capture-test","developer_related_links":[],' +
+      '"exported_at":"2026-10-13T06:25:07.134Z"}'
+    const gray = 30 / 255
+
+    expect(
+      figArchiveMetaJSON({
+        fileName: 'OP-capture-test',
+        backgroundColor: { r: gray, g: gray, b: gray, a: 1 },
+        thumbnailSize: { width: 400, height: 357 },
+        renderCoordinates: { x: 49, y: 3, width: 345, height: 308 },
+        exportedAt: new Date('2026-10-13T06:25:07.134Z')
+      })
+    ).toBe(figmaMetaJSON)
   })
 
   it('parses legacy raw fig-kiwi files and preserves their thumbnail chunk', () => {

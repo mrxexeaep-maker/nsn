@@ -2,6 +2,7 @@ import type { CanvasKit } from 'canvaskit-wasm'
 import { deflateSync, inflateSync } from 'fflate'
 import { toUint8Array } from 'js-base64'
 
+import { figArchiveMetaJSON } from '@open-pencil/fig'
 import {
   buildComponentPropIndex,
   exportCanvasGuides,
@@ -24,13 +25,14 @@ import {
   type SceneNode
 } from '@open-pencil/scene-graph'
 import { fractionalPosition } from '@open-pencil/scene-graph/order-keys'
-import type { GUID } from '@open-pencil/scene-graph/primitives'
+import type { GUID, Rect, Size } from '@open-pencil/scene-graph/primitives'
 
 import type { SkiaRenderer } from '#core/canvas'
 import { CANVAS_BG_COLOR, IS_BROWSER, IS_TAURI } from '#core/constants'
+import { getPageColor } from '#core/figma-api/page-backgrounds'
 import { applyEnabledLibrariesPluginData } from '#core/io/formats/fig/library-metadata'
 import { findFigThumbnailPageId } from '#core/io/formats/fig/thumbnail-page'
-import { renderThumbnail } from '#core/io/formats/raster'
+import { renderThumbnail, thumbnailFrame } from '#core/io/formats/raster'
 import {
   makeCanvasNodeChange,
   makeDocumentNodeChange,
@@ -58,27 +60,53 @@ export interface CanvasExportEntry {
 
 const THUMBNAIL_WIDTH = 512
 const THUMBNAIL_HEIGHT = 512
+/** The name Figma gives a file it was not told the name of. */
+const UNTITLED_FILE_NAME = 'Untitled'
+
+interface FigThumbnail {
+  png: Uint8Array
+  size: Size
+  /** The page-space rectangle the thumbnail shows; empty for the 1×1 placeholder. */
+  region: Rect
+}
+
+function placeholderThumbnail(): FigThumbnail {
+  return {
+    png: THUMBNAIL_1X1,
+    size: { width: 1, height: 1 },
+    region: { x: 0, y: 0, width: 0, height: 0 }
+  }
+}
+
+async function renderFigThumbnailPNG(
+  graph: SceneGraph,
+  pageId: string,
+  options: FigFileExtrasOptions
+): Promise<Uint8Array | null> {
+  const { ck, renderer } = options
+  if (ck && renderer) {
+    return renderThumbnail(ck, renderer, graph, pageId, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
+  }
+  if (!options.renderHeadlessThumbnail || IS_BROWSER || IS_TAURI) return null
+  const { headlessRenderThumbnail } = await import('#core/io/formats/raster')
+  return headlessRenderThumbnail(graph, pageId, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
+}
 
 async function renderFigThumbnail(
   graph: SceneGraph,
   pageId: string | undefined,
-  ck?: CanvasKit,
-  renderer?: SkiaRenderer,
-  renderHeadless = false
-): Promise<Uint8Array> {
-  if (!pageId) return THUMBNAIL_1X1
-  if (ck && renderer) {
-    return (
-      renderThumbnail(ck, renderer, graph, pageId, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT) ??
-      THUMBNAIL_1X1
-    )
+  options: FigFileExtrasOptions
+): Promise<FigThumbnail> {
+  const frame = pageId ? thumbnailFrame(graph, pageId, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT) : null
+  if (!pageId || !frame) return placeholderThumbnail()
+  const png = await renderFigThumbnailPNG(graph, pageId, options)
+  if (!png) return placeholderThumbnail()
+  const { minX, minY, maxX, maxY } = frame.bounds
+  return {
+    png,
+    size: { width: frame.width, height: frame.height },
+    region: { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
   }
-  if (!renderHeadless || IS_BROWSER || IS_TAURI) return THUMBNAIL_1X1
-  const { headlessRenderThumbnail } = await import('#core/io/formats/raster')
-  return (
-    (await headlessRenderThumbnail(graph, pageId, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)) ??
-    THUMBNAIL_1X1
-  )
 }
 
 /**
@@ -495,6 +523,16 @@ export interface FigFileExtras {
   images: Array<{ name: string; data: Uint8Array }>
 }
 
+export interface FigFileExtrasOptions {
+  ck?: CanvasKit
+  renderer?: SkiaRenderer
+  /** The page the thumbnail shows; the cover page when absent. */
+  pageId?: string
+  renderHeadlessThumbnail?: boolean
+  /** The name `meta.json` records for the file. */
+  documentName?: string
+}
+
 /**
  * The thumbnail, metadata and images a written `.fig` carries besides its records, the images
  * under the names `nameImagesForFigma` gave them in those records.
@@ -502,23 +540,20 @@ export interface FigFileExtras {
 export async function figFileExtras(
   graph: SceneGraph,
   imageNames: ReadonlyMap<string, string>,
-  pageId: string | undefined,
-  ck: CanvasKit | undefined,
-  renderer: SkiaRenderer | undefined,
-  renderHeadlessThumbnail: boolean
+  options: FigFileExtrasOptions
 ): Promise<FigFileExtras> {
-  const currentPageId = pageId ?? findFigThumbnailPageId(graph.getPages(true))
-  const thumbnailPNG = await renderFigThumbnail(
-    graph,
-    currentPageId,
-    ck,
-    renderer,
-    renderHeadlessThumbnail
-  )
-  const metaJSON = JSON.stringify({
-    version: 1,
-    app: 'OpenPencil',
-    createdAt: new Date().toISOString()
+  const thumbnailPageId = options.pageId ?? findFigThumbnailPageId(graph.getPages(true))
+  const thumbnail = await renderFigThumbnail(graph, thumbnailPageId, options)
+  const metaJSON = figArchiveMetaJSON({
+    fileName: options.documentName || UNTITLED_FILE_NAME,
+    backgroundColor: getPageColor(thumbnailPageId ? graph.getNode(thumbnailPageId) : undefined),
+    thumbnailSize: thumbnail.size,
+    renderCoordinates: thumbnail.region,
+    exportedAt: new Date()
   })
-  return { thumbnailPNG, metaJSON, images: figImageEntries(graph.images, imageNames) }
+  return {
+    thumbnailPNG: thumbnail.png,
+    metaJSON,
+    images: figImageEntries(graph.images, imageNames)
+  }
 }

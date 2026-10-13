@@ -1,5 +1,3 @@
-import type { CanvasKit } from 'canvaskit-wasm'
-
 import {
   figCheckpointRecords,
   type FigArchiveRecordInfo,
@@ -16,11 +14,11 @@ import {
 import { siblingOrderKeys } from '@open-pencil/scene-graph/order-keys'
 import type { GUID } from '@open-pencil/scene-graph/primitives'
 
-import type { SkiaRenderer } from '#core/canvas'
 import {
   figExportRecordOptions,
   figFileExtras,
   prepareFigExport,
+  type FigFileExtrasOptions,
   type FigExportSetup,
   type KiwiNodeChange
 } from '#core/io/formats/fig/export-setup'
@@ -35,13 +33,6 @@ import {
 } from '#core/kiwi/fig/session/document-state'
 
 import { narrowToChangedFields, type RecordWriter } from './fields'
-
-export interface PatchedFigFileOptions {
-  ck?: CanvasKit
-  renderer?: SkiaRenderer
-  pageId?: string
-  renderHeadlessThumbnail?: boolean
-}
 
 /** Slot content an instance writes as records of its own, which this path leaves alone. */
 class UnpatchableChangeError extends Error {
@@ -415,7 +406,7 @@ export function archiveImagesNamedForFigma(graph: SceneGraph): Promise<boolean> 
 export async function writePatchedFigFile(
   source: SceneGraph,
   runtime: FigNodeChangeExportRuntime,
-  options: PatchedFigFileOptions = {}
+  options: FigFileExtrasOptions = {}
 ): Promise<Uint8Array | null> {
   const archive = figArchive(source)
   const changes = archiveChanges(source)
@@ -436,14 +427,7 @@ export async function writePatchedFigFile(
   }
   if (!built) return null
   const imageNames = nameImagesForFigma(built.patch.records, built.graph.images)
-  const extras = await figFileExtras(
-    built.graph,
-    imageNames,
-    options.pageId,
-    options.ck,
-    options.renderer,
-    options.renderHeadlessThumbnail ?? false
-  )
+  const extras = await figFileExtras(built.graph, imageNames, options)
   const archivedImages = new Set(info.imageHashes.map((hash) => `images/${hash}`))
   return archive.patch(built.patch, {
     thumbnailPNG: extras.thumbnailPNG,

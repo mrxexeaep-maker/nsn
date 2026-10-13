@@ -4,7 +4,12 @@ import { basename, dirname, extname, join, resolve } from 'node:path'
 import { defineCommand } from 'citty'
 import { toUint8Array } from 'js-base64'
 
-import { BUILTIN_IO_FORMATS, IORegistry, type ExportResult } from '@open-pencil/core/io'
+import {
+  BUILTIN_IO_FORMATS,
+  IORegistry,
+  type ExportResult,
+  type FigWriteOptions
+} from '@open-pencil/core/io'
 import type { AutomationDocumentSummary } from '@open-pencil/core/rpc'
 
 import { isAppMode, requireFile, rpc } from '#cli/app/client'
@@ -200,8 +205,8 @@ async function executeFileExport(
   return io.exportContent(formatId, { graph, target, fileName }, options)
 }
 
-function exportOptions(format: string, args: ExportArgs): unknown {
-  if (format === 'FIG') return { renderThumbnail: true }
+function exportOptions(format: string, args: ExportArgs, documentName: string): unknown {
+  if (format === 'FIG') return { renderThumbnail: true, documentName } satisfies FigWriteOptions
   if (format === 'HTML')
     return { html: args.html, style: args.css, assets: args.assets, fonts: args.fonts ?? 'none' }
   if (formatSupportsScale(format))
@@ -258,7 +263,7 @@ async function exportFromFile(format: string, args: ExportArgs) {
     formatId,
     graph,
     target,
-    exportOptions(format, args),
+    exportOptions(format, args, basename(output, extname(output))),
     wholeDocument,
     basename(output)
   )

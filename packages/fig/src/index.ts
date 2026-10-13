@@ -10,8 +10,10 @@ export {
 } from './document/materialize'
 export {
   compressFigDataSync,
+  figArchiveMetaJSON,
   parseFigBuffer,
   writeFigArchive,
+  type FigArchiveMeta,
   type FigImageEntry,
   type FigParseResult,
   type WriteFigArchiveInput

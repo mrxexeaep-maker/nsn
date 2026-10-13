@@ -19,6 +19,7 @@ import {
   exportSchema,
   figExportRecordOptions,
   figFileExtras,
+  type FigFileExtrasOptions,
   prepareFigExport,
   type FigExportSetup,
   type KiwiNodeChange
@@ -103,39 +104,33 @@ function appendInternalResources(context: InternalResourceContext): void {
   }
 }
 
+/** `documentName` is the name the archive's `meta.json` records for the file. */
 export async function exportFigFile(
   sourceGraph: SceneGraph,
   ck?: CanvasKit,
   renderer?: SkiaRenderer,
   pageId?: string,
-  renderHeadlessThumbnail = false
+  renderHeadlessThumbnail = false,
+  documentName?: string
 ): Promise<Uint8Array> {
   // An archive whose images Figma cannot read is written whole rather than reused.
   const reuseArchive = await archiveImagesNamedForFigma(sourceGraph)
   const originalArchive = reuseArchive ? await originalFigArchive(sourceGraph) : null
   if (originalArchive) return originalArchive.slice()
+  const options = { ck, renderer, pageId, renderHeadlessThumbnail, documentName }
   return withFigExportRuntime(
     sourceGraph,
     ck,
     async (runtime) =>
-      (reuseArchive
-        ? await writePatchedFigFile(sourceGraph, runtime, {
-            ck,
-            renderer,
-            pageId,
-            renderHeadlessThumbnail
-          })
-        : null) ?? writeFigFile(sourceGraph, runtime, ck, renderer, pageId, renderHeadlessThumbnail)
+      (reuseArchive ? await writePatchedFigFile(sourceGraph, runtime, options) : null) ??
+      writeFigFile(sourceGraph, runtime, options)
   )
 }
 
 async function writeFigFile(
   sourceGraph: SceneGraph,
   runtime: FigNodeChangeExportRuntime,
-  ck: CanvasKit | undefined,
-  renderer: SkiaRenderer | undefined,
-  pageId: string | undefined,
-  renderHeadlessThumbnail: boolean
+  options: FigFileExtrasOptions
 ): Promise<Uint8Array> {
   await initCodec()
   populateFigInternalPages(sourceGraph)
@@ -198,14 +193,7 @@ async function writeFigFile(
 
   const imageNames = nameImagesForFigma(nodeChanges, graph.images)
   const kiwiData = compiled.encodeMessage(msg)
-  const extras = await figFileExtras(
-    graph,
-    imageNames,
-    pageId,
-    ck,
-    renderer,
-    renderHeadlessThumbnail
-  )
+  const extras = await figFileExtras(graph, imageNames, options)
 
   const version = graph.figKiwiVersion ?? undefined
 

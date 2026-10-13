@@ -62,11 +62,25 @@ export function createDocumentSourceActions({
 
   function buildFigFile() {
     const renderer = getRenderer()
-    return exportFigFile(editor.graph, renderer?.ck, renderer ?? undefined, state.currentPageId)
+    return exportFigFile(
+      editor.graph,
+      renderer?.ck,
+      renderer ?? undefined,
+      state.currentPageId,
+      false,
+      state.documentName
+    )
   }
 
   function buildRecoveryFigFile() {
-    return exportFigFile(editor.graph, undefined, undefined, state.currentPageId)
+    return exportFigFile(
+      editor.graph,
+      undefined,
+      undefined,
+      state.currentPageId,
+      false,
+      state.documentName
+    )
   }
 
   const recovery = createDocumentRecovery({

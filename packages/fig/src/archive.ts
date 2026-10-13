@@ -5,6 +5,7 @@ import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
 import { buildFigKiwi, parseFigKiwiChunks } from '@open-pencil/kiwi/fig/container'
 import { decodeFigKiwiCanvas, parseFigKiwiContainer } from '@open-pencil/kiwi/fig/parse'
 import type { HeaderFields } from '@open-pencil/kiwi/schema-runtime'
+import type { Color, Rect, Size } from '@open-pencil/scene-graph/primitives'
 
 import { hasPNGSignature } from './thumbnail'
 
@@ -161,6 +162,42 @@ export function readFigArchiveParts(buffer: ArrayBuffer): FigArchiveParts {
       ? new TextDecoder().decode(archive['meta.json'])
       : null
   }
+}
+
+/** What an archive's `meta.json` records about the file and its `thumbnail.png`. */
+export interface FigArchiveMeta {
+  fileName: string
+  /** The background of the page the thumbnail shows. */
+  backgroundColor: Color
+  /** The thumbnail's size in pixels. */
+  thumbnailSize: Size
+  /** The page-space rectangle the thumbnail shows. */
+  renderCoordinates: Rect
+  exportedAt: Date
+}
+
+/**
+ * The `meta.json` Figma's "Save local copy…" writes, in its key order. Colour channels are
+ * rounded to the 32-bit floats the canvas records store, so they read as Figma's do.
+ */
+export function figArchiveMetaJSON(meta: FigArchiveMeta): string {
+  const { r, g, b, a } = meta.backgroundColor
+  const { x, y, width, height } = meta.renderCoordinates
+  return JSON.stringify({
+    client_meta: {
+      background_color: {
+        r: Math.fround(r),
+        g: Math.fround(g),
+        b: Math.fround(b),
+        a: Math.fround(a)
+      },
+      thumbnail_size: { width: meta.thumbnailSize.width, height: meta.thumbnailSize.height },
+      render_coordinates: { x, y, width, height }
+    },
+    file_name: meta.fileName,
+    developer_related_links: [],
+    exported_at: meta.exportedAt.toISOString()
+  })
 }
 
 /** Assemble a complete zipped `.fig` archive from an encoded Kiwi message and resources. */
