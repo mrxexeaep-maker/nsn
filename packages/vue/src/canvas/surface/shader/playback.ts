@@ -90,6 +90,12 @@ export function useShaderPlayback(options: {
   const players = new Map<string, Player>()
   /** Players starting at a new size beside the ones they replace, by image. */
   const replacing = new Map<string, Player>()
+  /**
+   * Sizes a replacement failed to start at, by image, with the preset it was for. The player it
+   * would have replaced plays on, and no replacement is tried again near that size until the
+   * preset changes or the view moves well away from it.
+   */
+  const failedSizes = new Map<string, { preset: string; size: { width: number; height: number } }>()
   /** Shaders that failed to start, by the preset that failed, which are not tried again. */
   const failed = new Map<string, string>()
   /** Renderers to let go of once the frame being drawn is done with them. */
@@ -109,6 +115,7 @@ export function useShaderPlayback(options: {
   }
 
   function stop(hash: string) {
+    failedSizes.delete(hash)
     const replacement = replacing.get(hash)
     if (replacement) {
       replacement.disposed = true
@@ -191,8 +198,10 @@ export function useShaderPlayback(options: {
       console.warn('Could not play a shader', error)
       renderer?.dispose()
       // A replacement that fails leaves the player it would have replaced playing.
-      if (replacing.get(hash) === player) replacing.delete(hash)
-      else if (players.get(hash) === player) {
+      if (replacing.get(hash) === player) {
+        replacing.delete(hash)
+        failedSizes.set(hash, { preset: player.preset, size })
+      } else if (players.get(hash) === player) {
         stop(hash)
         failed.set(hash, player.preset)
       }
@@ -225,10 +234,23 @@ export function useShaderPlayback(options: {
   }
 
   /** Whether a player drawing at `canvas`'s size should be redrawn at `size` instead. */
-  function resized(canvas: HTMLCanvasElement, size: { width: number; height: number }) {
-    const ratio = window.devicePixelRatio || 1
-    const factor = size.width / Math.max(1, canvas.width * ratio)
+  /** Whether `size` is far enough from `from`, in pixels, to draw at again. */
+  function differs(from: number, size: { width: number; height: number }) {
+    const factor = size.width / Math.max(1, from)
     return factor > RESIZE_FACTOR || factor < 1 / RESIZE_FACTOR
+  }
+
+  function resized(canvas: HTMLCanvasElement, size: { width: number; height: number }) {
+    return differs(canvas.width * (window.devicePixelRatio || 1), size)
+  }
+
+  /** Whether a replacement for `hash` failed at about `size`, for the preset it plays now. */
+  function failedNear(hash: string, preset: string, size: { width: number; height: number }) {
+    const failure = failedSizes.get(hash)
+    if (!failure) return false
+    if (failure.preset === preset && !differs(failure.size.width, size)) return true
+    failedSizes.delete(hash)
+    return false
   }
 
   function sync() {
@@ -244,7 +266,13 @@ export function useShaderPlayback(options: {
       const visible = onScreen(shader.bounds)
       const size = screenSize(shader.bounds)
       const existing = players.get(hash)
-      if (existing && visible && !replacing.has(hash) && resized(existing.canvas, size)) {
+      if (
+        existing &&
+        visible &&
+        !replacing.has(hash) &&
+        resized(existing.canvas, size) &&
+        !failedNear(hash, existing.preset, size)
+      ) {
         void start(hash, shader.preset, size, existing)
       }
       if (!players.has(hash) && visible && !failed.has(hash)) void start(hash, shader.preset, size)
