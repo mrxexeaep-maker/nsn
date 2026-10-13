@@ -26,5 +26,13 @@
   "noMatchingFiles": "Keine Dateien entsprechen „{query}“.",
   "saveAsPrompt": "Speichern unter:",
   "browserFileAPINotSupported": "Dein Browser unterstützt die lokale Datei-API nicht. Dateien werden heruntergeladen, statt direkt gespeichert zu werden.",
-  "home": "Startseite"
+  "home": "Startseite",
+  "recents": "Zuletzt verwendet",
+  "recentlyViewed": "Zuletzt angesehen",
+  "storageList": "Speicher",
+  "fileType": "Dateityp",
+  "allFiles": "Alle Dateien",
+  "figmaFiles": "Figma-Dateien",
+  "pencilFiles": "Pencil-Dateien",
+  "otherFiles": "Andere Dateien"
 }

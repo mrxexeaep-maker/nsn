@@ -36,7 +36,7 @@ import { appPreferences } from '@/app/settings/preferences/store'
 import { openCommandPalette } from '@/app/shell/command-palette'
 import { createSharedEditorMenuActions } from '@/app/shell/menu/editor-actions'
 import { HELP_MENU_ACTIONS } from '@/app/shell/menu/help'
-import { openStorageWorkspace } from '@/app/shell/menu/navigation'
+import { openHome, openStorageWorkspace } from '@/app/shell/menu/navigation'
 import type {
   AppMenuActionItem,
   AppMenuEntry,
@@ -194,7 +194,7 @@ export function useAppMenu() {
     open: () => void openFileDialog(),
     'open-storage-workspace': () => openStorageWorkspace(router),
     'show-welcome': () => openAISetup('welcome'),
-    'back-to-files': () => openStorageWorkspace(router),
+    'back-to-files': () => openHome(router),
     actions: openCommandPalette,
     ...HELP_MENU_ACTIONS,
     save: () => void store.saveFigFile(),

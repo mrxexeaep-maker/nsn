@@ -118,6 +118,7 @@ test('storage workspace directs unconfigured users to Settings', async ({ page }
   await page.getByTestId('tabbar-home').click()
 
   await expect(page.getByTestId('recent-files-home')).toBeVisible()
+  await page.getByRole('tab', { name: 'Storage', exact: true }).click()
   await expect(page.getByText('Configure storage before using this workspace.')).toBeVisible()
   await expect(page.getByTestId('home-new-document')).toBeEnabled()
 
