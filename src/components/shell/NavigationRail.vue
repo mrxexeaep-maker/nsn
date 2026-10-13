@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import IconFile from '~icons/lucide/file'
 import IconShapes from '~icons/lucide/shapes'
 
-import { useI18n } from '@open-pencil/vue'
+import { useI18n, vTestId } from '@open-pencil/vue'
 
 import MainMenuButton from '@/components/shell/MainMenuButton.vue'
 import Tip from '@/components/ui/overlay/Tip.vue'
@@ -44,7 +44,7 @@ const views = computed(() => [
     <Tip v-for="item in views" :key="item.value" as-child :label="item.label" side="right">
       <button
         type="button"
-        :data-test-id="item.testId"
+        v-test-id="item.testId"
         :aria-label="item.label"
         :aria-pressed="view === item.value"
         :class="
