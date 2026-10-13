@@ -17,6 +17,9 @@ This is a pre-release that lists changes since 0.16.0-beta.2: npm packages are p
 - Settings → Cloud storage offers the OpenPencil Cloud waitlist: the web app signs you up there, with a confirmation email, and the desktop app opens the sign-up on openpencil.dev.
 - The conversation menu saves a chat's trace as a JSON file: every message, reasoning step, and tool call, and each run's model, settings, usage, timing, and errors, with enough to rebuild and check every request the model received.
 - Settings → Diagnostics saves the diagnostics report as a JSON file, next to Copy diagnostics.
+- openpencil.dev opens on live editor demos of design, AI, code export, the CLI, the SDK, and collaboration, in every docs language, with a short roadmap and an OpenPencil Cloud waitlist.
+- A download page offers the latest release's installer for the visitor's system, lists every installer for macOS, Windows, and Linux with Homebrew and the web app, and shows a newer beta with its release notes when there is one.
+- `FontManager.setBundledFontLocator()` lets an SDK host say where its bundler put the fonts from the new `@open-pencil/core/assets` export.
 
 ### Changed
 
