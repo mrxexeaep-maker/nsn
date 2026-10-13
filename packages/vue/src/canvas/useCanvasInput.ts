@@ -439,7 +439,8 @@ export function useCanvasInput(
     (event) => {
       if (event.code !== 'Escape' || event.isComposing || !isEnabled()) return
       const type = drag.value?.type
-      if (type !== 'draw' && type !== 'gradient' && type !== 'rotate') return
+      if (type !== 'draw' && type !== 'gradient' && type !== 'rotate' && type !== 'edit-marquee')
+        return
       event.preventDefault()
       event.stopImmediatePropagation()
       cancelPointerInteraction()
