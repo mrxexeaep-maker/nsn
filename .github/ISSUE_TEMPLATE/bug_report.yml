@@ -57,6 +57,7 @@ body:
         - SVG/PDF/raster export
         - CLI
         - MCP / automation
+        - AI assistant
         - Tauri desktop
         - Collaboration
         - Documentation
@@ -85,8 +86,8 @@ body:
   - type: textarea
     id: logs
     attributes:
-      label: Console output or logs
-      description: Paste any relevant logs. This field is formatted as shell output.
+      label: Diagnostics or logs
+      description: In the app, open Settings → Diagnostics, reproduce the problem, click Copy diagnostics, and paste the result here. Keys and tokens are redacted; review it before posting. Console output works too.
       render: shell
 
   - type: checkboxes

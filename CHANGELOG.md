@@ -2,34 +2,6 @@
 
 ## Unreleased
 
-### Breaking changes
-
-- `computeImageHash` from `@open-pencil/core` and `@open-pencil/scene-graph` returns the hex SHA-1 of the bytes, the name Figma gives an image, instead of an OpenPencil-only hash of the same length. New images are stored under that name, so `.fig` files and the Figma clipboard carry it as it is; images in documents saved before keep their names.
-
-### Added
-
-- Settings → Cloud storage offers the OpenPencil Cloud waitlist: the web app signs you up there, with a confirmation email, and the desktop app opens the sign-up on openpencil.dev.
-- Drop design token files, `.tokens`, `.tokens.json`, or `.resolver.json`, on the editor to import them into the document's variables, as the Variables dialog's Import button does.
-
-### Changed
-
-- Trackpads and mouse wheels pan and zoom the canvas as in Figma. A two-finger pan moves the canvas twice as far, up to 120 px per scroll event. A pinch zooms as far in the desktop app and Safari as in other browsers, where it zooms a little less than before. In the desktop app and Safari, a pinch over Preview's live controls or comment pins now zooms the canvas, where it did nothing. On Windows each mouse wheel notch pans 16 px instead of 100 px, and notches less than 50 ms apart pan up to 120 px each.
-
-### Fixed
-
-- The thumbnail in a `.fig` file shows its page's own background between layers. Before, it took the colour of the page open in the editor, and files written from the CLI always showed light grey.
-- People in a shared room see the overrides of instances in the shared document: text, slot content, and every other overridden field arrived empty, and editing such an instance could throw. Rooms opened by earlier builds do not meet rooms opened by this one.
-- Showing or hiding a layer of an instance that a boolean component property drives sets the property, as in Figma, so every layer it drives follows and Figma shows the instance as OpenPencil does. Before, only that layer changed, which Figma ignored.
-- Figma shows shader fills and images from older documents in `.fig` files OpenPencil writes: every image is stored under the SHA-1 of its bytes, the only name Figma reads, and a shader keeps its preset through `.fig` files and the Figma clipboard.
-- HTML, Vue, and React exports name a JPEG, GIF, or WebP image fill by its own type in the data URL instead of calling every image PNG.
-- Saving an opened `.fig` file writes only what an edit changed in a layer or variable, and keeps the rest as Figma saved it. That includes data OpenPencil does not model, an instance's library link and saved overrides, and an edited text's letter spacing in percent and font names. Before, saving rewrote each edited layer whole. Importing design tokens or adding a mode also rewrote every layer and variable in the file that uses variable modes.
-- Variables that alias library variables still point at the library after a save, and a collection's modes keep their order in Figma.
-- Importing design tokens adds them to the file's own collections, never to a collection copied from a library, where Figma did not show them. A token collection named like a library's, such as Tokens in Preline UI files, becomes a new collection of the file.
-
-### Performance
-
-- Shader fills store their still frame as JPEG when no pixel is transparent, about 25 times smaller than PNG, so documents with shaders save and open faster; frames with transparency stay PNG. Figma opens both.
-
 ## 0.16.0-beta.2 — 2026-10-12
 
 This is a pre-release that lists changes since 0.16.0-beta.1: npm packages are published under the `next` tag, and installed apps on the stable release do not update to it. Linux package managers see `0.16.0-beta.2` as newer than `0.16.0`, so `.deb` and `.rpm` users should remove the beta before installing the final 0.16.0.

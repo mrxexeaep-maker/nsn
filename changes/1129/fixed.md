@@ -1,0 +1,1 @@
+- The thumbnail in a `.fig` file shows its page's own background between layers. Before, it took the colour of the page open in the editor, and files written from the CLI always showed light grey.

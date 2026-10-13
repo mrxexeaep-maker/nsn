@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { validateChangelog } from '#release/changelog'
+import { unreleasedContentLine, validateChangelog } from '#release/changelog/validate'
 
 const validChangelog = `# Changelog
 
@@ -142,5 +142,17 @@ describe('validateChangelog', () => {
     expect(errors(prose).some((error) => error.includes('unexpected content in Unreleased'))).toBe(
       true
     )
+  })
+})
+
+describe('unreleasedContentLine', () => {
+  test('finds the first entry under Unreleased, which belongs in a fragment', () => {
+    expect(unreleasedContentLine(validChangelog)).toBe(5)
+  })
+
+  test('is null when Unreleased is empty, as on every commit', () => {
+    const empty =
+      '# Changelog\n\n## Unreleased\n\n## 1.2.0 — 2026-08-16\n\n### Added\n\n- Ship it.\n'
+    expect(unreleasedContentLine(empty)).toBeNull()
   })
 })
