@@ -26,7 +26,7 @@ export function linearVariableExpression(
   const expression = value.expressionValue
   if (!expression) return undefined
   // Figma binds a number or boolean to text content as its text: the variable itself.
-  if (expression.expressionFunction === 'STRINGIFY') return stringifiedVariable(expression, depth)
+  if (expression.expressionFunction === 'STRINGIFY') return stringifiedVariable(expression)
   if (expression.expressionFunction !== 'MULTIPLY' || !expression.expressionArguments?.length) {
     throw new Error(`Unsupported variable expression ${expression.expressionFunction}`)
   }
@@ -34,14 +34,12 @@ export function linearVariableExpression(
 }
 
 function stringifiedVariable(
-  expression: NonNullable<NonNullable<VariableDataEntry['value']>['expressionValue']>,
-  depth: number
+  expression: NonNullable<NonNullable<VariableDataEntry['value']>['expressionValue']>
 ): LinearValue {
-  const [argument, ...rest] = expression.expressionArguments ?? []
-  const inner = rest.length === 0 ? linearVariableExpression(argument, depth + 1) : undefined
-  if (!inner?.reference || inner.multiplier !== 1)
-    throw new Error('Variable expression STRINGIFY must wrap one alias')
-  return inner
+  const args = expression.expressionArguments ?? []
+  const reference = args.length === 1 ? args[0].value?.alias : undefined
+  if (!reference) throw new Error('Variable expression STRINGIFY must wrap one alias')
+  return { multiplier: 1, reference }
 }
 
 function multiplyLinearValues(factors: VariableDataEntry[], depth: number): LinearValue {

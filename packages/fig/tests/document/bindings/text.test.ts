@@ -156,7 +156,7 @@ test('reads a layer whose text is a number variable, as Figma binds one through 
       type: 'TEXT',
       name: 'Size',
       parentIndex: { guid: page, position: '!' },
-      textData: { characters: '12.50' },
+      textData: { characters: '16' },
       variableConsumptionMap: {
         entries: [
           {

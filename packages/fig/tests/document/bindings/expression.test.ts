@@ -84,4 +84,8 @@ test('STRINGIFY of one alias is that alias, as Figma binds a number to text cont
     'STRINGIFY'
   )
   expect(() => linearVariableExpression(stringify(alias, alias))).toThrow('STRINGIFY')
+  // Reads as a multiplier of 1, but saving it as a plain binding would drop the product.
+  expect(() =>
+    linearVariableExpression(stringify(multiply(literal(2), literal(0.5), alias)))
+  ).toThrow('STRINGIFY')
 })
