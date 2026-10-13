@@ -229,13 +229,42 @@ function subtreeNodes(graph: SceneGraph, roots: Iterable<string>): SceneNode[] {
   return nodes
 }
 
-function scopedNodes(graph: SceneGraph, scope: BindingScope | undefined): Iterable<SceneNode> {
-  if (!scope) return graph.getAllNodes()
-  if ('subtrees' in scope) return subtreeNodes(graph, scope.subtrees)
-  const variables = variablesResolvingThrough(graph, scope.variables)
+/**
+ * The collections whose variables the layers in these subtrees resolve: those they bind, and
+ * those the bound variables alias, so a mode set on the subtrees can change what they show.
+ */
+export function collectionsBoundIn(graph: SceneGraph, roots: Iterable<string>): Set<string> {
+  const pending = subtreeNodes(graph, roots).flatMap(boundVariableIds)
+  const seen = new Set<string>()
+  const collections = new Set<string>()
+  for (let id = pending.pop(); id !== undefined; id = pending.pop()) {
+    if (seen.has(id)) continue
+    seen.add(id)
+    const variable = graph.variables.get(id)
+    if (!variable) continue
+    collections.add(variable.collectionId)
+    for (const value of Object.values(variable.valuesByMode)) {
+      if (typeof value === 'object' && 'aliasId' in value) pending.push(value.aliasId)
+    }
+  }
+  return collections
+}
+
+/**
+ * The layers a change to these variables reaches: those binding one of them, or a variable that
+ * aliases one, on the layer itself or on its characters.
+ */
+export function layersUsingVariables(graph: SceneGraph, ids: Iterable<string>): SceneNode[] {
+  const variables = variablesResolvingThrough(graph, ids)
   return [...graph.getAllNodes()].filter((node) =>
     boundVariableIds(node).some((id) => variables.has(id))
   )
+}
+
+function scopedNodes(graph: SceneGraph, scope: BindingScope | undefined): Iterable<SceneNode> {
+  if (!scope) return graph.getAllNodes()
+  if ('subtrees' in scope) return subtreeNodes(graph, scope.subtrees)
+  return layersUsingVariables(graph, scope.variables)
 }
 
 /**

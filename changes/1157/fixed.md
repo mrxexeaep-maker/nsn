@@ -1,0 +1,1 @@
+- Undoing or redoing back to the last save shows the document as saved again, unless a collaborator or another change outside undo changed it since.

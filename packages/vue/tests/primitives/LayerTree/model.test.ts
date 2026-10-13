@@ -21,4 +21,21 @@ describe('layer tree model', () => {
     expect(patchLayerNode(row, frame)).toBe(true)
     expect(row.icon).toBe(true)
   })
+
+  test('carries the variable modes set on a layer itself, so rows can tag them', () => {
+    const graph = new SceneGraph()
+    const pageId = graph.getPages()[0].id
+    const theme = graph.createCollection('Theme')
+    const dark = graph.createMode(theme.id, 'Dark') ?? ''
+    const frame = graph.createNode('FRAME', pageId, { name: 'Frame' })
+
+    const model = buildLayerTreeModel(graph, pageId)
+    const row = model.byId.get(frame.id)
+    if (!row) throw new Error('Expected the frame in the model')
+    expect(row.modeIds).toBeUndefined()
+
+    graph.updateNode(frame.id, { variableModes: { [theme.id]: dark } })
+    expect(patchLayerNode(row, frame)).toBe(true)
+    expect(row.modeIds).toEqual([dark])
+  })
 })
