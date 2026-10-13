@@ -1,1 +1,1 @@
-- Editing centered or right-aligned text on a path keeps it aligned, as in Figma. Centered text grows in both directions and right-aligned text keeps its end, instead of growing from where the first character was.
+- Editing aligned text on a path lays it out from the path's text start point, as in Figma: left-aligned text starts there, centered text is centered on it and right-aligned text ends there. Opening a `.fig` keeps which segment that start point is on.
