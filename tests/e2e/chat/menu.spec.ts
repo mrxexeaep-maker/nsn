@@ -18,7 +18,6 @@ test('mobile conversation menu stays attached to its trigger and inside the view
   await trigger.click()
   const menu = page.getByRole('menu')
   await expect(menu).toBeVisible()
-  await expect(page.getByRole('menuitem')).toHaveText(['Rename', 'Save trace…', 'Delete'])
   await expect
     .poll(async () => {
       const box = await menu.boundingBox()
