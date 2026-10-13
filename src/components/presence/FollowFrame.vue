@@ -16,8 +16,9 @@ const { collaboration: messages } = useI18n()
 const ui = followFrame()
 
 const color = computed(() => colorToCSS(followed.color))
-// People's colors range from pale to deep, so the bar's text takes whichever reads on it.
-const foreground = computed(() => colorToCSS(readableForeground(followed.color)))
+// People's colors range from pale to deep, so the bar's text takes whichever reads on it, by
+// APCA, which keeps white on the mid-tone blues and reds WCAG 2 would give black text.
+const foreground = computed(() => colorToCSS(readableForeground(followed.color, 'apca')))
 const text = computed(() =>
   followed.owner
     ? messages.value.followingAgent({ agent: followed.name, owner: followed.owner })

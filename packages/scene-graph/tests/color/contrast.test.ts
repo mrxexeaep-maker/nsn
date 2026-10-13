@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 
-import { compositeOver, contrastRatio, readableForeground } from '@open-pencil/scene-graph/color'
+import {
+  apcaContrast,
+  compositeOver,
+  contrastRatio,
+  readableForeground
+} from '@open-pencil/scene-graph/color'
 import type { Color } from '@open-pencil/scene-graph/primitives'
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 1 }
@@ -37,5 +42,25 @@ describe('readableForeground', () => {
     expect(readableForeground({ r: 0xeb / 255, g: 0x57 / 255, b: 0x4a / 255 })).toEqual(BLACK)
     expect(readableForeground({ r: 0x25 / 255, g: 0x63 / 255, b: 0xeb / 255 })).toEqual(WHITE)
     expect(readableForeground(GRAY_94)).toEqual(BLACK)
+  })
+
+  test('by APCA, keeps white on mid-tone blues and reds and black on pale colors', () => {
+    const blue = { r: 0x4c / 255, g: 0x80 / 255, b: 0xf0 / 255 }
+    const red = { r: 0xeb / 255, g: 0x57 / 255, b: 0x4a / 255 }
+    const yellow = { r: 0xfd / 255, g: 0xe6 / 255, b: 0x8a / 255 }
+
+    expect(readableForeground(blue)).toEqual(BLACK)
+    expect(readableForeground(blue, 'apca')).toEqual(WHITE)
+    expect(readableForeground(red, 'apca')).toEqual(WHITE)
+    expect(readableForeground(yellow, 'apca')).toEqual(BLACK)
+    expect(readableForeground({ r: 0.94, g: 0.94, b: 0.94 }, 'apca')).toEqual(BLACK)
+  })
+})
+
+describe('apcaContrast', () => {
+  test('matches the APCA reference values', () => {
+    // Reference: black on white Lc 106.04, white on black Lc -107.88 (APCA 0.0.98G).
+    expect(apcaContrast(BLACK, WHITE)).toBeCloseTo(106.04, 1)
+    expect(apcaContrast(WHITE, BLACK)).toBeCloseTo(-107.88, 1)
   })
 })
