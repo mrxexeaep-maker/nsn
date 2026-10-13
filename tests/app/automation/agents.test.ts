@@ -53,11 +53,12 @@ describe('MCP sessions as agents', () => {
 
   test('the agent points at what a call reads and what it edits', () => {
     const card = store.graph.createNode('FRAME', pageId(), { x: 40, y: 60, width: 100, height: 80 })
-    agentStarted(store, claude, pageId())
+    const reply = agentStarted(store, claude, pageId())
     agentFinished(store, claude, {
       pageId: pageId(),
       nodeIds: touchedNodeIds(store, { id: card.id }, { name: 'Card' }),
-      edited: false
+      edited: false,
+      reply
     })
     expect(agents()[0]).toMatchObject({
       status: 'thinking',
@@ -69,7 +70,8 @@ describe('MCP sessions as agents', () => {
     agentFinished(store, claude, {
       pageId: pageId(),
       nodeIds: touchedNodeIds(store, {}, { results: [{ id: made.id }] }),
-      edited: true
+      edited: true,
+      reply
     })
     expect(agents()[0]).toMatchObject({ status: 'editing', selection: [made.id] })
   })
@@ -77,7 +79,8 @@ describe('MCP sessions as agents', () => {
   test('the agent works on the page of the layers it touched', () => {
     const other = store.graph.addPage('Other')
     const node = store.graph.createNode('RECTANGLE', other.id, {})
-    agentFinished(store, claude, { pageId: pageId(), nodeIds: [node.id], edited: true })
+    const reply = agentStarted(store, claude, pageId())
+    agentFinished(store, claude, { pageId: pageId(), nodeIds: [node.id], edited: true, reply })
     expect(agents()[0]).toMatchObject({ pageId: other.id, cursor: { pageId: other.id } })
   })
 
@@ -136,14 +139,18 @@ describe("the app's own ACP and Pi chats", () => {
   })
 
   test('a call that was running when the reply ended does not bring the agent back', () => {
-    agentStarted(store, pi, pageId())
+    const card = store.graph.createNode('FRAME', pageId(), {})
+    const late = agentStarted(store, pi, pageId())
     restAgents('harness')
 
-    agentFinished(store, pi, { pageId: pageId(), nodeIds: [], edited: true })
+    agentFinished(store, pi, { pageId: pageId(), nodeIds: [card.id], edited: true, reply: late })
     expect(status(pi)).toBe('idle')
 
-    // The chat's next reply calls a tool again.
-    agentStarted(store, pi, pageId())
+    // The chat's next reply calls a tool, and the earlier call landing then leaves it be.
+    const next = agentStarted(store, pi, pageId())
+    agentFinished(store, pi, { pageId: pageId(), nodeIds: [card.id], edited: true, reply: late })
     expect(status(pi)).toBe('thinking')
+    agentFinished(store, pi, { pageId: pageId(), nodeIds: [card.id], edited: true, reply: next })
+    expect(status(pi)).toBe('editing')
   })
 })
