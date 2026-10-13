@@ -7,7 +7,6 @@ test('the logo opens the main menu in Figma order', async () => {
   const menu = await openMainMenu(editor.page)
   const labels = await menu.locator(':scope > [role^="menuitem"]').allTextContents()
   expect(labels.map((label) => label.replace(/[⌘⇧⌥].*$|Ctrl.*$/, '').trim())).toEqual([
-    'Back to files',
     'Actions…',
     'File',
     'Edit',

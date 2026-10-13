@@ -2,7 +2,7 @@ import type { Router } from 'vue-router'
 
 import { homeSection } from '@/app/recent-files'
 
-/** Shows the start page: Back to Files and the tab bar's home button. */
+/** Shows the start page. */
 export function openHome(router: Router): void {
   void router
     .push('/')

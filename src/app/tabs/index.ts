@@ -129,7 +129,7 @@ export function createDocumentInCurrentTab(): Tab {
   return getTabById(current.id) ?? current
 }
 
-/** Shows the start page, the one home there is: Back to files and the tab bar's home button. */
+/** Shows the start page, the one home there is: the tab bar's home button. */
 export function showHome(): void {
   const homeTab = tabsRef.value.find((tab) => tab.kind === 'home')
   if (homeTab) {

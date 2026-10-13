@@ -482,12 +482,11 @@ export const APP_MENU_SCHEMA = [
 ] satisfies AppMenuGroupSchema[]
 
 /**
- * The browser's main menu, opened from the logo, follows Figma's: leaving the file and searching
- * actions first, then the schema's menus, then preferences, with Help last. The desktop app
- * shows the schema's menus in the native menu bar instead.
+ * The browser's main menu, opened from the logo, follows Figma's: searching actions first, then
+ * the schema's menus, then preferences, with Help last. The tab bar's home button stands in for
+ * Figma's Back to files. The desktop app shows the schema's menus in the native menu bar instead.
  */
 export const MAIN_MENU_LEADING_ITEMS = [
-  { id: 'back-to-files', label: 'Back to Files' },
   { id: 'actions', label: 'Actions…', shortcut: 'MOD+K' }
 ] satisfies AppMenuActionItem[]
 

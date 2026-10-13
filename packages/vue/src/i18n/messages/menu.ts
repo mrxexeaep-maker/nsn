@@ -12,7 +12,6 @@ export const menuMessageDefaults = {
   mainMenu: 'Main menu',
   navigation: 'Navigation',
 
-  backToFiles: 'Back to files',
   actions: 'Actions…',
   documentation: 'Documentation',
   whatsNew: "What's new",
