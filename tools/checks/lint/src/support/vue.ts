@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 import type {
   AttributeNode,
@@ -18,15 +18,11 @@ export type VueTemplateNode =
 
 /**
  * The whole single-file component a rule is linting. Oxlint hands JS plugins only the `<script>`
- * of a `.vue` file, so the template is read from the file itself.
+ * of a `.vue` file, so a component on disk is read from its file; text for a path with no file,
+ * as rule tests pass it, is the component itself.
  */
 function vueComponentSource(source: string, filename: string): string {
-  if (!filename.endsWith('.vue') || /<template[\s>]/.test(source)) return source
-  try {
-    return readFileSync(filename, 'utf8')
-  } catch {
-    return source
-  }
+  return filename.endsWith('.vue') && existsSync(filename) ? readFileSync(filename, 'utf8') : source
 }
 
 function vueSfcDescriptor(source: string, filename: string) {
