@@ -22,6 +22,8 @@ The colour mark sits bare on white, black, and neutral greys, including the dark
 
 The app icon is the colour mark on the ink (`#111111`) rounded tile, holding the mark at 76% of the tile's height; it reads on light and dark tabs alike. The same tile is the favicon in both browser themes, the any-purpose PWA icon, the profile image, and the editor header's 24px mark. Native desktop icons keep their platform-specific outer margin with the mark at the same share of the tile. Apple Touch keeps an opaque square for platform rounding; maskable artwork stays opaque and inside the central 80%-diameter safe circle.
 
+`icons/mark-modular.svg` is the kit's modular outline: the P and the lines between its three pieces, drawn with `currentColor` on a 24px grid with a 1.5px line, so it takes the text color wherever it is shown. Vite serves `icons/` as the `brand` icon collection (`<icon-brand-mark-modular />`). `icons/lockup.svg` is the horizontal lockup with its wordmark in `currentColor`.
+
 Minimum sizes: the colour mark 24px tall; the one-colour mark 16px. Keep half a cell, a quarter of the mark's width, clear on every side.
 
 Edit these SVGs, not generated files. The tile colour, the one-colour ink and paper, and platform padding live in `tools/generate/brand/src/config.ts`.
