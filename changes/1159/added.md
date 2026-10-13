@@ -1,0 +1,2 @@
+- The conversation menu saves a chat's raw trace, with every message, reasoning step, and tool call and the run's model, token, and timing data, as a JSON file.
+- Settings › Diagnostics saves the diagnostics report as a JSON file, next to Copy diagnostics.
