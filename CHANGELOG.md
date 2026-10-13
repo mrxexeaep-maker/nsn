@@ -15,7 +15,7 @@
 ### Changed
 
 - Trackpads and mouse wheels pan and zoom the canvas as in Figma. A two-finger pan moves the canvas twice as far, up to 120 px per scroll event. A pinch zooms as far in the desktop app and Safari as in other browsers, where it zooms a little less than before. In the desktop app and Safari, a pinch over Preview's live controls or comment pins now zooms the canvas, where it did nothing. On Windows each mouse wheel notch pans 16 px instead of 100 px, and notches less than 50 ms apart pan up to 120 px each.
-- `.fig` files OpenPencil writes carry the `meta.json` Figma writes: the document's name, the thumbnail page's background, and the thumbnail's size and the page area it shows, instead of an OpenPencil version, app name, and creation time. The name is the `documentName` write option, else the exported file's name, else Untitled.
+- `.fig` files OpenPencil writes carry the `meta.json` Figma writes: the document's name, the thumbnail page's background, and the thumbnail's size and the page area it shows, instead of an OpenPencil version, app name, and creation time. The name is the `documentName` write option, else the exported file's name, else Untitled; an opened file saved unchanged under another name keeps its archive and records the new name.
 
 ### Fixed
 

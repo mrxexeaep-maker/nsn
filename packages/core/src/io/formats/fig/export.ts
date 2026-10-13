@@ -1,4 +1,4 @@
-import { compressFigDataSync } from '@open-pencil/fig'
+import { compressFigDataSync, renameFigArchive } from '@open-pencil/fig'
 import {
   nameImagesForFigma,
   placeSlotContent,
@@ -103,7 +103,7 @@ function appendInternalResources(context: InternalResourceContext): void {
 
 /**
  * Write `sourceGraph` as a `.fig`. A document opened from an archive and left unchanged is that
- * archive.
+ * archive, with only its `meta.json` renamed when `documentName` differs from the name it records.
  */
 export async function exportFigFile(
   sourceGraph: SceneGraph,
@@ -112,7 +112,11 @@ export async function exportFigFile(
   // An archive whose images Figma cannot read is written whole rather than reused.
   const reuseArchive = await archiveImagesNamedForFigma(sourceGraph)
   const originalArchive = reuseArchive ? await originalFigArchive(sourceGraph) : null
-  if (originalArchive) return originalArchive.slice()
+  const reused =
+    originalArchive && options.documentName
+      ? renameFigArchive(originalArchive, options.documentName)
+      : originalArchive
+  if (reused) return reused === originalArchive ? reused.slice() : reused
   return withFigExportRuntime(
     sourceGraph,
     options.ck,

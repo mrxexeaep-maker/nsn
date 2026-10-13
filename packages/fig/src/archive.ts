@@ -231,6 +231,28 @@ export function readFigArchiveMeta(text: string) {
   return v.safeParse(v.pipe(v.string(), v.parseJson(), FigArchiveMetaSchema), text)
 }
 
+/**
+ * The archive with its `meta.json` recording `fileName`, every other entry's bytes as they were;
+ * the archive itself when it already records that name. Null when it has no `meta.json` in the
+ * shape Figma writes, which only a full write can give it.
+ */
+export function renameFigArchive(bytes: Uint8Array, fileName: string): Uint8Array | null {
+  if (parseFigKiwiChunks(bytes)) return null
+  const stored = unzipSync(bytes, { filter: ({ name }) => name === 'meta.json' })
+  if (!Object.hasOwn(stored, 'meta.json')) return null
+  const meta = readFigArchiveMeta(new TextDecoder().decode(stored['meta.json']))
+  if (!meta.success) return null
+  if (meta.output.file_name === fileName) return bytes
+  const renamed: Zippable = {}
+  for (const [name, data] of Object.entries(unzipSync(bytes))) {
+    renamed[name] =
+      name === 'meta.json'
+        ? new TextEncoder().encode(JSON.stringify({ ...meta.output, file_name: fileName }))
+        : [data, { level: 0 }]
+  }
+  return zipSync(renamed)
+}
+
 /** Assemble a complete zipped `.fig` archive from an encoded Kiwi message and resources. */
 export function writeFigArchive(input: WriteFigArchiveInput): Uint8Array {
   const canvasData = buildFigKiwi(input.schemaDeflated, input.kiwiData, input.figKiwiVersion)

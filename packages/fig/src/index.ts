@@ -14,6 +14,7 @@ export {
   FigArchiveMetaSchema,
   parseFigBuffer,
   readFigArchiveMeta,
+  renameFigArchive,
   writeFigArchive,
   type FigArchiveMeta,
   type FigArchiveMetaJSON,

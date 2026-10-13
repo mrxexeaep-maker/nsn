@@ -1,6 +1,8 @@
 import { describe, expect, setDefaultTimeout, test } from 'bun:test'
 
 import { expectDefined } from '#core-tests/helpers/assert'
+import { omit } from 'es-toolkit'
+import { unzipSync } from 'fflate'
 import * as v from 'valibot'
 
 import { FigmaAPI } from '@open-pencil/core/figma-api'
@@ -86,5 +88,24 @@ describe('.fig meta.json', () => {
     expect(meta.client_meta.background_color).toEqual(BLUE_GRAY)
     expect(meta.client_meta.thumbnail_size).toEqual(thumbnailSize)
     expect(meta.client_meta.render_coordinates).toEqual({ x: 49, y: 3, width: 345, height: 308 })
+  })
+
+  test('an unchanged reopened file saved under another name changes only its meta.json name', async () => {
+    const { graph, pageId } = landingPage()
+    const saved = await exportFigFile(graph, {
+      pageId,
+      renderHeadlessThumbnail: true,
+      documentName: 'Landing'
+    })
+    const reopened = await parseFigFile(saved.slice().buffer, { populate: 'first-page' })
+
+    expect(await exportFigFile(reopened, { documentName: 'Landing' })).toEqual(saved)
+
+    const renamed = await exportFigFile(reopened, { documentName: 'Landing copy' })
+    expect(readArchive(renamed).meta).toEqual({
+      ...readArchive(saved).meta,
+      file_name: 'Landing copy'
+    })
+    expect(omit(unzipSync(renamed), ['meta.json'])).toEqual(omit(unzipSync(saved), ['meta.json']))
   })
 })
