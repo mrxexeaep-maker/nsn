@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 
-import { SceneGraph, sceneNodeToKiwi } from '@open-pencil/core'
+import { sceneNodeToKiwi } from '#fig/node-change/index'
 
-import { pageId, ROOT_GUID } from '../helpers'
+import { SceneGraph } from '@open-pencil/scene-graph'
+
+const ROOT_GUID = { sessionID: 1, localID: 0 }
 
 const zero = { x: 0, y: 0 }
 const line = (start: number, end: number) => ({ start, end, tangentStart: zero, tangentEnd: zero })
@@ -33,7 +35,7 @@ describe('a vector whose regions have their own colors', () => {
   test('names each region’s style in the network, as Figma does, so its edit mode keeps them', () => {
     const graph = new SceneGraph()
     // Two triangles sharing an edge, one red and one plain.
-    const node = graph.createNode('VECTOR', pageId(graph), {
+    const node = graph.createNode('VECTOR', graph.getPages()[0].id, {
       width: 20,
       height: 10,
       vectorNetwork: {
