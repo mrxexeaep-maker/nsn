@@ -6,6 +6,7 @@ import { initCodec } from '@open-pencil/kiwi/fig/codec'
 import type { GUID, NodeChange as KiwiNodeChange } from '@open-pencil/kiwi/fig/codec'
 import {
   derivedAssetKey,
+  derivedAssetVersion,
   ownsSlotContent,
   type SceneGraph,
   type SceneNode
@@ -57,14 +58,12 @@ export function importClipboardNodes(
   return operation.plan.rootIds
 }
 
-/** The version a key derived for the clipboard is written with; Figma reads it with the key. */
-const DERIVED_ASSET_VERSION = '0:0'
-
 /**
  * The document as the clipboard writes it. Figma names the variables and collections a paste
  * uses by key, and keeps a binding to one it knows only by key as a remote variable, as it does
  * for its own clipboard; variables made in OpenPencil have no key, so they take one derived from
- * their ID here, for this copy only.
+ * their ID here, for this copy only. Figma keeps the first value it pasted for a key and version,
+ * so the version follows their content and an edited variable pastes with its new value.
  */
 function clipboardGraph(graph: SceneGraph): SceneGraph {
   const unkeyed =
@@ -80,7 +79,7 @@ function clipboardGraph(graph: SceneGraph): SceneGraph {
         : {
             ...collection,
             key: derivedAssetKey(`collection:${id}`),
-            version: DERIVED_ASSET_VERSION
+            version: derivedAssetVersion(JSON.stringify(collection))
           }
     ])
   )
@@ -89,7 +88,11 @@ function clipboardGraph(graph: SceneGraph): SceneGraph {
       id,
       variable.key
         ? variable
-        : { ...variable, key: derivedAssetKey(`variable:${id}`), version: DERIVED_ASSET_VERSION }
+        : {
+            ...variable,
+            key: derivedAssetKey(`variable:${id}`),
+            version: derivedAssetVersion(JSON.stringify(variable))
+          }
     ])
   )
   return copy

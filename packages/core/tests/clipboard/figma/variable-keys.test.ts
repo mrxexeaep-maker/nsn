@@ -55,3 +55,20 @@ test('copies a variable made in OpenPencil by key, as Figma copies its own', asy
   expect([...graph.variables.values()].every((candidate) => !candidate.key)).toBe(true)
   expect((await copied(graph, rect)).variable.key).toBe(alias.key)
 })
+
+test('an edited variable copies with a new version, which Figma reads its new value by', async () => {
+  const { graph, rect } = boundRectangle()
+  const first = (await copied(graph, rect)).variable
+  expect((await copied(graph, rect)).variable.version).toBe(first.version)
+
+  const [variable] = graph.variables.values()
+  const collection = expectDefined(graph.variableCollections.get(variable.collectionId))
+  graph.variables.set(variable.id, {
+    ...variable,
+    valuesByMode: { [collection.defaultModeId]: { r: 0, g: 0, b: 1, a: 1 } }
+  })
+  const edited = (await copied(graph, rect)).variable
+  expect(edited.key).toBe(first.key)
+  expect(edited.version).not.toBe(first.version)
+  expect(edited.version).toMatch(/^\d+:\d+$/)
+})

@@ -9,3 +9,17 @@ import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js'
 export function derivedAssetKey(seed: string): string {
   return bytesToHex(sha1(utf8ToBytes(seed)))
 }
+
+/** Largest part of a Figma GUID, which Figma reads as a signed 32-bit integer. */
+const MAX_GUID_PART = 0x7fffffff
+
+/**
+ * A version shaped as Figma's asset versions, `session:local`, derived from `content` so that
+ * copying an unchanged asset again gives the same version and copying a changed one gives another.
+ * Figma keeps the first value it pasted for a key and version, so a version that stayed the same
+ * across an edit would bring the old value back.
+ */
+export function derivedAssetVersion(content: string): string {
+  const view = new DataView(sha1(utf8ToBytes(content)).buffer)
+  return `${view.getUint32(0) & MAX_GUID_PART}:${view.getUint32(4) & MAX_GUID_PART}`
+}
