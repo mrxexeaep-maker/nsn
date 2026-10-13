@@ -16,8 +16,9 @@ const { collaboration: messages } = useI18n()
 const ui = followFrame()
 
 // People's colors range from pale to deep, so the frame takes theirs darkened just enough for
-// the bar's white label to read at WCAG AA, keeping its hue.
-const color = computed(() => colorToCSS(darkenForContrast(followed.color)))
+// the bar's white label to read at WCAG AA, keeping its hue. A peer's color can arrive with
+// alpha; the bar is drawn opaque, so the contrast holds over any canvas.
+const color = computed(() => colorToCSS(darkenForContrast({ ...followed.color, a: 1 })))
 const text = computed(() =>
   followed.owner
     ? messages.value.followingAgent({ agent: followed.name, owner: followed.owner })
