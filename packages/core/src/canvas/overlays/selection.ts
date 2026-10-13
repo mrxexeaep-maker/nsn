@@ -22,6 +22,7 @@ import {
   selectionPath,
   rotationHandleLayout,
   type RotationHandleLayout,
+  storedSelectionAngle,
   type RotationPreview
 } from '#core/geometry'
 import { pathTextSelectionBand, pointAtArc } from '#core/text/path'
@@ -162,7 +163,9 @@ export function drawSelection(
     .filter((n): n is SceneNode => n !== undefined)
   if (nodes.length === 0) return
   // A selection whose layers share an angle draws its box turned to it, as in Figma.
-  const frame = overlays.selectionRotationPreview ?? selectionFrame(nodes, graph)
+  const frame =
+    overlays.selectionRotationPreview ??
+    selectionFrame(nodes, graph, storedSelectionAngle(selectedIds, overlays.selectionAngle))
   if (frame.angle !== 0) drawFrameBounds(r, canvas, frame)
   else r.drawGroupBounds(canvas, nodes, graph, preview)
 

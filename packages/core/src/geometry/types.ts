@@ -11,6 +11,12 @@ export interface RotationPreview {
  */
 export type SelectionRotationPreview = SelectionFrame
 
+/** The angle a rotation left a selection's box at, for the selection with this key. */
+export interface SelectionAngle {
+  key: string
+  angle: number
+}
+
 export interface ViewportTransform {
   panX: number
   panY: number

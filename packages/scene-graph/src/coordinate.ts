@@ -440,13 +440,19 @@ export function selectionFrameAt(
 }
 
 /**
- * A multi-selection's frame as Figma draws it: turned to the angle every selected layer shares on
- * the canvas, or upright when their angles differ or any is mirrored.
+ * A multi-selection's frame as Figma draws it: turned to `angle` when a rotation left the selection
+ * there, else to the angle every selected layer shares on the canvas, or upright when their angles
+ * differ or any is mirrored.
  */
 export function selectionFrame(
   nodes: readonly SceneNode[],
-  graph: Pick<SceneGraph, 'getNode'>
+  graph: Pick<SceneGraph, 'getNode'>,
+  angle?: number
 ): SelectionFrame {
+  if (angle !== undefined) {
+    const turned = normalizeDegrees(angle)
+    return selectionFrameAt(nodes, graph, Math.abs(turned) < FRAME_ANGLE_TOLERANCE ? 0 : turned)
+  }
   const angles = nodes.map((node) => drawnAngle(node, graph))
   const first = angles.at(0)
   const shared =
@@ -455,6 +461,10 @@ export function selectionFrame(
     angles.every(
       (angle) => angle !== null && Math.abs(normalizeDegrees(angle - first)) < FRAME_ANGLE_TOLERANCE
     )
-  const angle = shared ? normalizeDegrees(first) : 0
-  return selectionFrameAt(nodes, graph, Math.abs(angle) < FRAME_ANGLE_TOLERANCE ? 0 : angle)
+  const sharedAngle = shared ? normalizeDegrees(first) : 0
+  return selectionFrameAt(
+    nodes,
+    graph,
+    Math.abs(sharedAngle) < FRAME_ANGLE_TOLERANCE ? 0 : sharedAngle
+  )
 }

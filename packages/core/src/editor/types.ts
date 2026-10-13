@@ -26,7 +26,12 @@ import type { InterfaceTheme } from '#core/constants'
 import type { PlayState } from '#core/editor/play/actions'
 import type { SnappingPreferences } from '#core/editor/preferences'
 import type { ShaderRasterizer } from '#core/editor/shaders/types'
-import type { RotationPreview, SelectionRotationPreview, ShapeHandleKind } from '#core/geometry'
+import type {
+  RotationPreview,
+  SelectionAngle,
+  SelectionRotationPreview,
+  ShapeHandleKind
+} from '#core/geometry'
 import type { IconProvider } from '#core/icons/provider'
 import type { TextEditor } from '#core/text/editor'
 import type { FontResolutionEvent, FontResolutionSnapshot } from '#core/text/resolver'
@@ -102,6 +107,7 @@ export interface EditorViewState {
   guides: GuideOverlayState
   rotationPreview: RotationPreview | null
   selectionRotationPreview: SelectionRotationPreview | null
+  selectionAngle: SelectionAngle | null
   dropTargetId: string | null
   layoutInsertIndicator: {
     parentId: string

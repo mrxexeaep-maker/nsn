@@ -119,3 +119,63 @@ describe('rotating a multi-selection', () => {
     expect(press(75, 75).hit).toBe(false)
   })
 })
+
+describe('a rotated multi-selection’s box', () => {
+  /** Squares at 0° and 20°, both selected: their angles differ, so the box starts upright. */
+  function mixed() {
+    editor = createEditor()
+    const page = editor.state.currentPageId
+    const a = editor.graph.createNode('RECTANGLE', page, { x: 0, y: 0, width: 50, height: 50 })
+    const b = editor.graph.createNode('RECTANGLE', page, {
+      x: 100,
+      y: 100,
+      width: 50,
+      height: 50,
+      rotation: 20
+    })
+    editor.select([a.id, b.id])
+    return { a: a.id, b: b.id }
+  }
+
+  function turnBy(degrees: number) {
+    const frame = selectionBox(editor)
+    if (!frame) throw new Error('expected a selection box')
+    const { box } = frame
+    const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+    // Press the stalk straight above the center, then swing the pointer `degrees` around it.
+    const { drag } = press(center.x, box.y - 24)
+    if (drag?.type !== 'rotate-selection') throw new Error('expected a selection rotation')
+    const radians = ((-90 + degrees) * Math.PI) / 180
+    const reach = center.y - (box.y - 24)
+    handleSelectionRotateMove(
+      editor,
+      drag,
+      center.x + reach * Math.cos(radians),
+      center.y + reach * Math.sin(radians),
+      false
+    )
+    commitRotationDrag(editor, drag)
+  }
+
+  test('stays turned after release even when the layers’ angles differ', () => {
+    mixed()
+    expect(selectionBox(editor)?.angle).toBe(0)
+    turnBy(30)
+    expect(selectionBox(editor)?.angle).toBeCloseTo(30, 6)
+  })
+
+  test('undo straightens it with the layers', () => {
+    mixed()
+    turnBy(30)
+    editor.undo.undo()
+    expect(selectionBox(editor)?.angle).toBe(0)
+  })
+
+  test('another selection forgets it', () => {
+    const { a, b } = mixed()
+    turnBy(30)
+    editor.select([a])
+    editor.select([a, b])
+    expect(selectionBox(editor)?.angle).toBe(0)
+  })
+})

@@ -13,7 +13,7 @@ import {
   SIZE_PILL_RADIUS,
   SIZE_PILL_TEXT_OFFSET_Y
 } from '#core/constants'
-import { createSceneGeometry, hasTransformHandles } from '#core/geometry'
+import { createSceneGeometry, hasTransformHandles, storedSelectionAngle } from '#core/geometry'
 
 import { measureGlyphWidth } from './paragraph-cache'
 import { frameLabelPlacement, labelScreenMatrix, readableEdgePlacement } from './transform'
@@ -175,7 +175,9 @@ export function drawSelectionLabels(
     return
   }
 
-  const frame = activeOverlays.selectionRotationPreview ?? selectionFrame(nodes, graph)
+  const frame =
+    activeOverlays.selectionRotationPreview ??
+    selectionFrame(nodes, graph, storedSelectionAngle(selectedIds, activeOverlays.selectionAngle))
   if (frame.angle !== 0) {
     drawTurningSelectionSize(r, canvas, graph, nodes, frame, sizeFont)
     return

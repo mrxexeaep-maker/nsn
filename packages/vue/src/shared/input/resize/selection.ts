@@ -2,7 +2,11 @@ import { compact } from 'es-toolkit'
 import { toRaw } from 'vue'
 
 import type { Editor } from '@open-pencil/core/editor'
-import { transformZoneAt, type HandlePosition } from '@open-pencil/core/geometry'
+import {
+  storedSelectionAngle,
+  transformZoneAt,
+  type HandlePosition
+} from '@open-pencil/core/geometry'
 import {
   placeInResizedBounds,
   selectionFrame,
@@ -24,13 +28,21 @@ import type { DragResizeSelection, DragState } from '#vue/shared/input/types'
 
 /**
  * A multi-selection's box in its frame, the box the overlay draws its handles on: turned to the
- * angle its layers share, or while it turns, its turning frame. Null for fewer than two layers.
+ * angle a rotation left it at or its layers share, or while it turns, its turning frame. Null for
+ * fewer than two layers.
  */
 export function selectionBox(editor: Editor): SelectionFrame | null {
   if (editor.state.selectedIds.size < 2) return null
   const nodes = compact([...editor.state.selectedIds].map((id) => editor.graph.getNode(id)))
   if (nodes.length < 2) return null
-  return editor.state.selectionRotationPreview ?? selectionFrame(nodes, editor.graph)
+  return (
+    editor.state.selectionRotationPreview ??
+    selectionFrame(
+      nodes,
+      editor.graph,
+      storedSelectionAngle(editor.state.selectedIds, editor.state.selectionAngle)
+    )
+  )
 }
 
 /** The multi-selection box's resize handle under a canvas point, with the box's angle. */

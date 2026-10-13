@@ -3,7 +3,7 @@ import { toRaw } from 'vue'
 
 import { ROTATION_SNAP_DEGREES } from '@open-pencil/core/constants'
 import type { Editor } from '@open-pencil/core/editor'
-import { createSceneGeometry } from '@open-pencil/core/geometry'
+import { createSceneGeometry, selectionKey } from '@open-pencil/core/geometry'
 import {
   placeRotatedAbout,
   selectionPlacement,
@@ -149,6 +149,7 @@ function startingPlace({ placement }: DragRotateSelection['members'][number]) {
 /** Commits every member's turn and fits the groups around them, as one undo step. */
 export function commitSelectionRotation(editor: Editor, dragState: DragRotateSelection) {
   const d = toRaw(dragState)
+  const angle = editor.state.selectionRotationPreview?.angle
   editor.setSelectionRotationPreview(null)
   const finals = d.members.map((member) => {
     const node = editor.graph.getNode(member.nodeId)
@@ -167,6 +168,20 @@ export function commitSelectionRotation(editor: Editor, dragState: DragRotateSel
       turned.map(({ member }) => editor.graph.getNode(member.nodeId)?.parentId)
     )
     editor.fitEnclosingGroups(new Set(parentIds))
+    // The selection's box stays turned for as long as this selection lasts, as in Figma.
+    if (angle !== undefined) keepSelectionAngle(editor, angle)
+  })
+}
+
+/** Records the angle the selection's box was turned to, undoable with the rotation. */
+function keepSelectionAngle(editor: Editor, angle: number) {
+  const previous = editor.state.selectionAngle
+  const next = { key: selectionKey(editor.state.selectedIds), angle }
+  editor.setSelectionAngle(next)
+  editor.undo.push({
+    label: 'Rotate',
+    forward: () => editor.setSelectionAngle(next),
+    inverse: () => editor.setSelectionAngle(previous)
   })
 }
 
