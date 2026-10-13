@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { lintFiles, ruleDiagnostics } from './helpers/lint.ts'
 
-const rule = 'no-undefined-color-classes'
+const rule = 'no-unknown-tailwind-classes'
 const rules = { [`open-pencil/${rule}`]: 'error' }
 const SCRIPT = '<script setup lang="ts">\nconst ok = true\n</script>\n'
 
@@ -20,14 +20,15 @@ async function themeDiagnostics(classes: readonly string[]) {
   )
 }
 
-describe('no-undefined-color-classes', () => {
+describe('no-unknown-tailwind-classes', () => {
   const rejected = [
     'text-danger',
     'hover:border-border-strong',
     'data-[state=open]:text-foreground',
     'bg-red-600',
     'text-sky-400/80',
-    'text-[var(--color-warning)]'
+    'text-[var(--color-warning)]',
+    'flex-colm'
   ]
   const accepted = [
     'text-surface',
@@ -49,15 +50,17 @@ describe('no-undefined-color-classes', () => {
     'bg-[image:linear-gradient(red,blue)]',
     'text-[11px]',
     'divide-y',
-    'fill-current'
+    'fill-current',
+    'group',
+    'cm-layer-tag'
   ]
 
-  test('rejects color classes that name no theme token', async () => {
+  test('rejects classes Tailwind cannot build from the theme', async () => {
     const results = await themeDiagnostics(rejected)
     expect(results.map((items) => items.length)).toEqual(rejected.map(() => 1))
   })
 
-  test('accepts theme tokens, built-in colors, and the same utilities without a color', async () => {
+  test("accepts theme colors, other utilities, and classes that are not Tailwind's", async () => {
     const results = await themeDiagnostics(accepted)
     expect(results.map((items) => items.length)).toEqual(accepted.map(() => 0))
   })
