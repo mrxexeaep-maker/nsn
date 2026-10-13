@@ -229,6 +229,27 @@ function subtreeNodes(graph: SceneGraph, roots: Iterable<string>): SceneNode[] {
   return nodes
 }
 
+/**
+ * The collections whose variables the layers in these subtrees resolve: those they bind, and
+ * those the bound variables alias, so a mode set on the subtrees can change what they show.
+ */
+export function collectionsBoundIn(graph: SceneGraph, roots: Iterable<string>): Set<string> {
+  const pending = subtreeNodes(graph, roots).flatMap(boundVariableIds)
+  const seen = new Set<string>()
+  const collections = new Set<string>()
+  for (let id = pending.pop(); id !== undefined; id = pending.pop()) {
+    if (seen.has(id)) continue
+    seen.add(id)
+    const variable = graph.variables.get(id)
+    if (!variable) continue
+    collections.add(variable.collectionId)
+    for (const value of Object.values(variable.valuesByMode)) {
+      if (typeof value === 'object' && 'aliasId' in value) pending.push(value.aliasId)
+    }
+  }
+  return collections
+}
+
 function scopedNodes(graph: SceneGraph, scope: BindingScope | undefined): Iterable<SceneNode> {
   if (!scope) return graph.getAllNodes()
   if ('subtrees' in scope) return subtreeNodes(graph, scope.subtrees)
