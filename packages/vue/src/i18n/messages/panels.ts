@@ -126,6 +126,13 @@ export const panelMessageDefaults = {
   height: 'Height',
   opacity: 'Opacity',
   blendMode: 'Blend mode',
+  applyVariableMode: 'Apply variable mode',
+  removeVariableMode: params('Remove {collection} mode'),
+  variableModesInFile: 'Created in this file',
+  variableModesFromLibraries: 'From libraries',
+  variableModeAuto: params('Auto ({mode})'),
+  variableModeAutoMixed: 'Auto',
+  variableModeHeading: 'Mode',
   radius: 'Radius',
   cornerSmoothing: 'Corner smoothing',
   /** A polygon's sides or a star's points. */

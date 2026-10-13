@@ -419,11 +419,15 @@ ja:variables.expression
 ja:variables.expressionHint
 ja:variables.conditionHint
 ja:variables.conditionCustom
+ja:variables.libraryCollectionHint
+ja:variables.addedToLibraryCollection
 zh-cn:variables.cssName
 zh-cn:variables.expression
 zh-cn:variables.expressionHint
 zh-cn:variables.conditionHint
 zh-cn:variables.conditionCustom
+zh-cn:variables.libraryCollectionHint
+zh-cn:variables.addedToLibraryCollection
 zh-cn:panels.shaderPreset
 zh-cn:panels.invalidShaderPreset
 zh-cn:panels.shaderNeedsWebGPU
