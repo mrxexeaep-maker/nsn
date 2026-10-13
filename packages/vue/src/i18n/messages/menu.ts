@@ -7,6 +7,17 @@ export const menuMessageDefaults = {
   object: 'Object',
   arrange: 'Arrange',
   text: 'Text',
+  vector: 'Vector',
+  help: 'Help',
+  mainMenu: 'Main menu',
+
+  backToFiles: 'Back to files',
+  actions: 'Actions…',
+  documentation: 'Documentation',
+  whatsNew: "What's new",
+  reportIssue: 'Report an issue',
+  getDesktopApp: 'Get the desktop app',
+  developer: 'Developer',
 
   new: 'New',
   open: 'Open…',

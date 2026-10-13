@@ -30,7 +30,7 @@ test('the welcome returns on each launch until the person opts out', async ({ pa
   await new CanvasHelper(page).waitForInit()
   await expect(setup).toHaveCount(0)
 
-  const menu = await openAppMenu(page, 'File')
+  const menu = await openAppMenu(page, 'Help')
   await menu.getByRole('menuitem', { name: /Show welcome/i }).click()
   await expect(welcome).toBeVisible()
   await expect(setup.getByRole('checkbox', { name: "Don't show this again" })).toBeChecked()

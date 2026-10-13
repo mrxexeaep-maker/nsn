@@ -78,5 +78,15 @@
   "exportSelectionAsSVG": "将所选内容导出为 SVG",
   "exportSelectionAsPPTX": "将所选内容导出为 PPTX",
   "exportSelectionAsFig": "将所选内容导出为 .fig",
-  "togglePreview": "预览"
+  "togglePreview": "预览",
+  "vector": "矢量",
+  "help": "帮助",
+  "mainMenu": "主菜单",
+  "backToFiles": "返回文件",
+  "actions": "操作…",
+  "documentation": "文档",
+  "whatsNew": "新功能",
+  "reportIssue": "报告问题",
+  "getDesktopApp": "获取桌面应用",
+  "developer": "开发者"
 }

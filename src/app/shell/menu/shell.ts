@@ -10,6 +10,7 @@ import {
   syncNativeSnappingMenu
 } from '@/app/settings/preferences/native-menu'
 import { appPreferences } from '@/app/settings/preferences/store'
+import { HELP_MENU_ACTIONS } from '@/app/shell/menu/help'
 import { useNativeMenuEvents } from '@/app/shell/menu/native-events'
 import { openStorageWorkspace } from '@/app/shell/menu/navigation'
 import { APP_MENU_SCHEMA, type AppMenuEntry } from '@/app/shell/menu/schema'
@@ -57,6 +58,7 @@ export function useShellMenu() {
       void import('@/router').then(({ default: router }) => openStorageWorkspace(router))
     },
     'show-welcome': () => openAISetup('welcome'),
+    ...HELP_MENU_ACTIONS,
     settings: openSettingsDialog,
     'snap-geometry': () => {
       const current = appPreferences.value.editing.snapping.geometry
