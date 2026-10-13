@@ -49,7 +49,11 @@ function classProblem(system: DesignSystem, className: string): string | null {
     for (const candidate of candidates) {
       if (candidate.kind !== 'functional' || candidate.value?.kind !== 'arbitrary') continue
       const color = /^var\(--color-([\w-]+)\)$/.exec(candidate.value.value)
-      if (color) problem = `use \`${candidate.root}-${color[1]}\` instead of \`${className}\``
+      if (!color) continue
+      problem =
+        system.resolveThemeValue(`--color-${color[1]}`) === undefined
+          ? `\`${className}\` names \`--color-${color[1]}\`, which src/app.css does not define`
+          : `use \`${candidate.root}-${color[1]}\` instead of \`${className}\``
     }
   }
   verdicts.set(className, problem)

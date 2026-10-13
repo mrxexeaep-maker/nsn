@@ -28,7 +28,11 @@ describe('no-unknown-tailwind-classes', () => {
     'bg-red-600',
     'text-sky-400/80',
     'text-[var(--color-warning)]',
-    'flex-colm'
+    'flex-colm',
+    'text-404',
+    'text-small',
+    'text-(--color-warning)',
+    'text-(--color-missing)'
   ]
   const accepted = [
     'text-surface',
