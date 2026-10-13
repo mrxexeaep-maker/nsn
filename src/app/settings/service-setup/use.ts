@@ -69,7 +69,10 @@ export function useServiceSetup() {
   async function refresh(): Promise<void> {
     const vision = resolveAIModelRole('vision')
     const [visionStatus, storage, vectorize] = await Promise.all([
-      vision ? modelConnectionCredentialStatus(vision.connection.id) : 'missing',
+      // Like the others, a status that cannot be read counts as not set up.
+      vision
+        ? modelConnectionCredentialStatus(vision.connection.id).catch(() => 'missing' as const)
+        : 'missing',
       isStorageConfigured(activeStorageProviderID.value).catch(() => false),
       vectorizeCredentialStatus(vectorizeProviderID.value).catch(() => 'missing')
     ])
