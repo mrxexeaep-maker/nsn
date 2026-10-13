@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { fill } from '#docs-config/theme/landing/content/messages/fill'
 import { formatSize } from '#docs-config/theme/landing/download/format'
+import { latestReleases } from '#docs-config/theme/landing/download/releases'
 import { platformOf } from '#docs-config/theme/landing/download/visitor'
 
 const AGENTS = {
@@ -41,5 +42,41 @@ describe('download copy', () => {
     expect(formatSize(8_450_000, 'en')).toBe('8.5 MB')
     expect(formatSize(98_400_000, 'en')).toBe('98 MB')
     expect(formatSize(8_450_000, 'de')).toBe('8,5 MB')
+  })
+})
+
+describe('the releases a build shows', () => {
+  const release = (version: string, published: string, prerelease = false) => ({
+    tag_name: `v${version}`,
+    published_at: published,
+    prerelease
+  })
+
+  test('pick the latest stable release by when it was published, not listed', () => {
+    const { stable } = latestReleases([
+      release('0.15.0', '2026-09-01T00:00:00Z'),
+      release('0.15.1', '2026-09-18T00:00:00Z')
+    ])
+    expect(stable?.tag_name).toBe('v0.15.1')
+  })
+
+  test('show a beta only when it came out after the stable release', () => {
+    const newer = latestReleases([
+      release('0.16.0-beta.1', '2026-10-01T00:00:00Z', true),
+      release('0.16.0-beta.2', '2026-10-10T00:00:00Z', true),
+      release('0.15.1', '2026-09-18T00:00:00Z')
+    ])
+    expect(newer.beta?.tag_name).toBe('v0.16.0-beta.2')
+    const older = latestReleases([
+      release('0.16.0-beta.2', '2026-10-10T00:00:00Z', true),
+      release('0.16.0', '2026-10-12T00:00:00Z')
+    ])
+    expect(older.beta).toBeNull()
+  })
+
+  test('show a beta without any stable release', () => {
+    const { stable, beta } = latestReleases([release('0.1.0-beta.1', '2026-01-01T00:00:00Z', true)])
+    expect(stable).toBeNull()
+    expect(beta?.tag_name).toBe('v0.1.0-beta.1')
   })
 })

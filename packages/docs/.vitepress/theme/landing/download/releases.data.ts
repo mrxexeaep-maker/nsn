@@ -1,7 +1,7 @@
 import * as v from 'valibot'
 import { createMarkdownRenderer } from 'vitepress'
 
-import { classifyAsset, type Release, type Releases } from './releases'
+import { classifyAsset, latestReleases, type Release, type Releases } from './releases'
 
 declare const data: Releases
 export { data }
@@ -62,10 +62,7 @@ export default {
       (release): release is GitHubRelease & { published_at: string } =>
         !release.draft && release.published_at !== null
     )
-    const stable = published.find((release) => !release.prerelease)
-    const beta = published.find(
-      (release) => release.prerelease && (!stable || release.published_at > stable.published_at)
-    )
+    const { stable, beta } = latestReleases(published)
     const markdown = await createMarkdownRenderer(process.cwd())
     const toRelease = (
       release: GitHubRelease & { published_at: string },

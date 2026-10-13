@@ -1,3 +1,5 @@
+import { maxBy, partition } from 'es-toolkit/array'
+
 export const PLATFORMS = ['mac', 'windows', 'linux'] as const
 export type Platform = (typeof PLATFORMS)[number]
 export type Arch = 'arm64' | 'x64'
@@ -75,4 +77,18 @@ export function filesFor(release: Release, platform: Platform): ReleaseFile[] {
         Number(b.arch === archFirst) - Number(a.arch === archFirst) ||
         FILE_FORMATS.indexOf(a.format) - FILE_FORMATS.indexOf(b.format)
     )
+}
+
+/**
+ * The newest stable release, and the newest pre-release when it came out after it. Releases are
+ * drafted before they are published, so they are compared by when they were published.
+ */
+export function latestReleases<T extends { prerelease: boolean; published_at: string }>(
+  published: readonly T[]
+): { stable: T | null; beta: T | null } {
+  const [betas, stables] = partition(published, (release) => release.prerelease)
+  const stable = maxBy(stables, (release) => Date.parse(release.published_at)) ?? null
+  const beta = maxBy(betas, (release) => Date.parse(release.published_at)) ?? null
+  const newer = beta && (!stable || Date.parse(beta.published_at) > Date.parse(stable.published_at))
+  return { stable, beta: newer ? beta : null }
 }
