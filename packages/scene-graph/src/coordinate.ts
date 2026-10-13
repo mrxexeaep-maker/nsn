@@ -281,3 +281,74 @@ export function getParentToContainerMatrix(
   }
   return matrix
 }
+
+/**
+ * A selected layer's place in a multi-selection's canvas bounds, taken when a resize starts so
+ * every step re-places the layer from where it began rather than from its previewed state.
+ */
+export interface SelectionPlacement {
+  node: SceneNode
+  center: Vector
+  /** The layer's own x and y axes on the canvas, as unit vectors (rotation and flips applied). */
+  axisX: Vector
+  axisY: Vector
+  /** Maps canvas points into the layer's parent's space, or null when it cannot be inverted. */
+  parentInverse: Mat3 | null
+}
+
+export function selectionPlacement(
+  node: SceneNode,
+  graph: Pick<SceneGraph, 'getNode' | 'rootId'>
+): SelectionPlacement {
+  const world = getWorldMatrix(node, graph)
+  const [cx, cy, ox, oy, xx, xy, yx, yy] = Matrix.mapPoints(world, [
+    node.width / 2,
+    node.height / 2,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1
+  ])
+  const unit = (x: number, y: number): Vector => {
+    const length = Math.hypot(x, y) || 1
+    return { x: x / length, y: y / length }
+  }
+  const parent = node.parentId ? graph.getNode(node.parentId) : undefined
+  return {
+    node: { ...node },
+    center: { x: cx, y: cy },
+    axisX: unit(xx - ox, xy - oy),
+    axisY: unit(yx - ox, yy - oy),
+    parentInverse: Matrix.invert(getParentWorldMatrix(parent, graph))
+  }
+}
+
+/**
+ * The box, in its parent's space, a layer takes when a multi-selection's canvas bounds `from`
+ * are resized to `to`, as Figma scales every selected layer: its center keeps its relative place
+ * in the bounds and its width and height scale along its own axes, so a rotated layer keeps its
+ * angle instead of skewing.
+ */
+export function placeInResizedBounds(placement: SelectionPlacement, from: Rect, to: Rect): Rect {
+  const scaleX = from.width > 0 ? to.width / from.width : 1
+  const scaleY = from.height > 0 ? to.height / from.height : 1
+  const { node, center, axisX, axisY, parentInverse } = placement
+  const width = node.width * Math.hypot(scaleX * axisX.x, scaleY * axisX.y)
+  const height = node.height * Math.hypot(scaleX * axisY.x, scaleY * axisY.y)
+  const target = {
+    x: to.x + (center.x - from.x) * scaleX,
+    y: to.y + (center.y - from.y) * scaleY
+  }
+  const [px, py] = parentInverse
+    ? Matrix.mapPoints(parentInverse, [target.x, target.y])
+    : [target.x, target.y]
+  // The local matrix translates last, so the sized layer's center at the origin gives the offset.
+  const sized = { ...node, width, height }
+  const [qx, qy] = Matrix.mapPoints(getNodeLocalMatrix(sized, { x: 0, y: 0 }), [
+    width / 2,
+    height / 2
+  ])
+  return { x: px - qx, y: py - qy, width, height }
+}

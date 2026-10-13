@@ -135,29 +135,36 @@ export function unrotate(
   }
 }
 
+const HANDLE_CURSOR_DIRECTIONS: Record<HandlePosition, [number, number]> = {
+  nw: [1, 1],
+  ne: [-1, 1],
+  se: [-1, -1],
+  sw: [1, -1],
+
+  n: [0, 1],
+  e: [1, 0],
+  s: [0, -1],
+  w: [-1, 0]
+}
+
+function cursorAngle(direction: Vector): number {
+  const angle = (Math.atan2(direction.y, direction.x) * 180) / Math.PI
+  return (angle + 360) % 360
+}
+
 function getCursorAngleFromHandle(
   handle: HandlePosition,
   node: SceneNode,
   geometry: SceneGeometry
 ): number {
-  const map: Record<HandlePosition, [number, number]> = {
-    nw: [1, 1],
-    ne: [-1, 1],
-    se: [-1, -1],
-    sw: [1, -1],
+  const [bx, by] = HANDLE_CURSOR_DIRECTIONS[handle]
+  return cursorAngle(geometry.direction(node, { x: bx, y: by }))
+}
 
-    n: [0, 1],
-    e: [1, 0],
-    s: [0, -1],
-    w: [-1, 0]
-  }
-
-  const [bx, by] = map[handle]
-
-  const direction = geometry.direction(node, { x: bx, y: by })
-  const angle = (Math.atan2(direction.y, direction.x) * 180) / Math.PI
-
-  return (angle + 360) % 360
+/** The resize cursor's angle for a handle of an axis-aligned box, such as a multi-selection's. */
+export function axisAlignedCursorAngle(handle: HandlePosition): number {
+  const [bx, by] = HANDLE_CURSOR_DIRECTIONS[handle]
+  return cursorAngle({ x: bx, y: by })
 }
 
 /** The resize or rotation zone of a selected layer under a canvas point, in its own frame. */

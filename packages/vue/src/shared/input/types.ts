@@ -9,6 +9,7 @@ import type {
   TextPathData,
   VectorNetwork
 } from '@open-pencil/scene-graph'
+import type { SelectionPlacement } from '@open-pencil/scene-graph/coordinate'
 import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
 import type { ResizeSnapshot } from '@open-pencil/scene-graph/resize'
 
@@ -97,6 +98,25 @@ export interface DragResize {
   origSizing?: LayerSizing
   /** The sizing the latest step left, which the commit keeps. */
   appliedSizing?: LayerSizing
+}
+
+/**
+ * A resize of a multi-selection from its bounds' handles, as Figma scales every selected layer:
+ * one layer resize per member, each re-placed in the resized bounds and committed as one step.
+ */
+export interface DragResizeSelection {
+  type: 'resize-selection'
+  handle: HandlePosition
+  startX: number
+  startY: number
+  /** The selection's axis-aligned canvas bounds when the drag started. */
+  origBounds: Rect
+  members: DragResizeMember[]
+}
+
+export interface DragResizeMember {
+  drag: DragResize
+  placement: SelectionPlacement
 }
 
 export interface DragMarquee {
@@ -205,6 +225,7 @@ export type DragState =
   | DragMove
   | DragPan
   | DragResize
+  | DragResizeSelection
   | DragMarquee
   | DragRotate
   | DragPen

@@ -7,6 +7,7 @@ import type { SceneNode } from '@open-pencil/scene-graph'
 
 import { tryStartGradientDrag } from '#vue/shared/input/gradient'
 import { tryStartResize } from '#vue/shared/input/resize'
+import { tryStartSelectionResize } from '#vue/shared/input/resize/selection'
 import {
   createSelectionMoveDrag,
   clickSelectsInside,
@@ -50,7 +51,11 @@ function tryStartHandleDrag(
   // An open gradient's handles replace the layer's selection handles, which then do not respond.
   if (editedGradient(editor.graph, editor.state.gradientEdit)) return false
   if (tryStartShapeHandleDrag(editor, sx, sy, altKey, setDrag)) return true
-  const resizeDrag = tryStartResize(cx, cy, editor)
+  // A multi-selection resizes from its bounds' handles, the only ones it draws.
+  const resizeDrag =
+    editor.state.selectedIds.size > 1
+      ? tryStartSelectionResize(cx, cy, editor)
+      : tryStartResize(cx, cy, editor)
   if (resizeDrag) {
     setDrag(resizeDrag)
     return true

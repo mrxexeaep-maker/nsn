@@ -99,8 +99,12 @@ function resizeChanges(
   )
   const newRect =
     aspect !== null ? calculatedRect : applyResizeSnap(d, calculatedRect, editor, ctrlKey)
+  return { changes: scaledChanges(d, newRect), newRect }
+}
 
-  const changes: Partial<SceneNode> = {
+/** The layer's box and its own geometry scaled from the drag's start to `newRect`. */
+export function scaledChanges(d: DragResize, newRect: Rect): Partial<SceneNode> {
+  return {
     ...newRect,
     ...scaledGeometryChanges(
       {
@@ -112,13 +116,12 @@ function resizeChanges(
         textPathData: d.origTextPathData,
         textPathBox: d.origTextPathBox
       },
-      origRect.width,
-      origRect.height,
+      d.origRect.width,
+      d.origRect.height,
       newRect.width,
       newRect.height
     )
   }
-  return { changes, newRect }
 }
 
 /**
@@ -168,6 +171,20 @@ export function applyResize(
   // DataCloneError. Unwrap once — also keeps the drag hot path off proxies.
   const d = toRaw(dragState)
   const { changes, newRect } = resizeChanges(d, cx, cy, shiftKey, editor, ctrlKey)
+  applyResizedRect(d, newRect, changes, editor)
+  editor.requestRepaint()
+}
+
+/**
+ * Previews a layer resized to `newRect`: its box and geometry (`changes`), its sizing, path text
+ * and constrained children, laid out around it. The caller requests the repaint.
+ */
+export function applyResizedRect(
+  d: DragResize,
+  newRect: Rect,
+  changes: Partial<SceneNode>,
+  editor: Editor
+) {
   d.appliedRect = { ...newRect }
   const node = editor.graph.getNode(d.nodeId)
   if (node) {
@@ -200,7 +217,6 @@ export function applyResize(
   editor.graph.runPreviewUpdates(() => computeAllLayouts(editor.graph, d.nodeId))
   applyConstrainedChildren(d, newRect, editor)
   editor.graph.runPreviewUpdates(() => computeAllLayouts(editor.graph, d.nodeId))
-  editor.requestRepaint()
 }
 
 /**

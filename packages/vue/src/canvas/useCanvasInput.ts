@@ -23,7 +23,12 @@ import { createClickCounter } from '#vue/shared/input/click-count'
 import { handleDrawMove } from '#vue/shared/input/draw'
 import { handleMoveMove, handleMoveUp } from '#vue/shared/input/move'
 import { setupPanZoom } from '#vue/shared/input/pan-zoom'
-import { applyResize, cancelResizePreview, commitResizePreview } from '#vue/shared/input/resize'
+import { applyResize, commitResizePreview } from '#vue/shared/input/resize'
+import {
+  applySelectionResize,
+  cancelResizeDrag,
+  commitSelectionResize
+} from '#vue/shared/input/resize/selection'
 import { updateHoverCursor } from '#vue/shared/input/select'
 import { resolveShapeHandleHover } from '#vue/shared/input/shape-handles'
 import { useSpaceHeld } from '#vue/shared/input/space-key'
@@ -52,7 +57,10 @@ export function useCanvasInput(
   // layers move, resize, or rotate.
   watch(
     () => drag.value?.type,
-    (type) => editor.setTransforming(type === 'move' || type === 'resize' || type === 'rotate')
+    (type) =>
+      editor.setTransforming(
+        type === 'move' || type === 'resize' || type === 'resize-selection' || type === 'rotate'
+      )
   )
   const canvasLabelEdit = createCanvasLabelEdit(editor)
   const cursorOverride = ref<string | null>(null)
@@ -302,6 +310,10 @@ export function useCanvasInput(
       applyResize(d, cx, cy, e.shiftKey, editor, e.ctrlKey)
       return
     }
+    if (d.type === 'resize-selection') {
+      applySelectionResize(d, cx, cy, e.shiftKey, editor)
+      return
+    }
 
     if (d.type === 'pen-drag') {
       handlePenDragMove(d, cx, cy, spaceHeld.value, e, editor)
@@ -339,6 +351,7 @@ export function useCanvasInput(
       drag.value = null
       return
     } else if (d.type === 'resize') commitResizePreview(d, editor)
+    else if (d.type === 'resize-selection') commitSelectionResize(d, editor)
     else if (d.type === 'pen-drag') {
       const penState = editor.state.penState as
         | (typeof editor.state.penState & {
@@ -374,7 +387,7 @@ export function useCanvasInput(
   }
 
   function cancelPointerInteraction() {
-    if (drag.value?.type === 'resize') cancelResizePreview(drag.value, editor)
+    cancelResizeDrag(drag.value, editor)
     if (drag.value?.type === 'rotate') {
       const rotation = drag.value
       drag.value = null
