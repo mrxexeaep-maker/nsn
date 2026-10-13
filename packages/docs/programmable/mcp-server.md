@@ -157,8 +157,6 @@ Endpoints are available over both active transports:
 7. **Save** — `save_file` to write back to `.fig`
 8. **Close** — `close_file` to close an open document tab. With unsaved changes it fails unless `unsaved` is `"save"` or `"discard"`; it never prompts in the app.
 
-`import_svg` creates editable layers from SVG markup. It omits `display="none"` subtrees and preserves `visibility="hidden"` or `collapse` on shapes, including inherited values and inline styles. A descendant can restore `visibility="visible"`, but cannot override an ancestor's `display="none"`.
-
 `undo` and `redo` step back through the agent's own changes, and `activate_document` brings a tab to the front when the user should see it.
 
 Each MCP session shows in the app as an agent with a callsign, like the built-in chat: its cursor and outline sit on the layers each tool reads or changes, it rests after a quiet spell and leaves when the session ends, and people can follow it from their avatar. Collaborators in a shared room see it too.

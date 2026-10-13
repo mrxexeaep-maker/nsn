@@ -121,14 +121,14 @@ export function createSVGText(
     createTextPiece(graph, parentId, text.pieces[0], text.matrix, {
       ...(element.name ? { name: element.name } : {}),
       opacity: element.opacity,
-      visible: element.visible ?? true
+      visible: element.visible
     })
     return
   }
   const groupId = createGroup(parentId, {
     name: element.name ?? 'Group',
     opacity: element.opacity,
-    visible: element.visible ?? true
+    visible: element.visible
   })
   for (const piece of text.pieces) createTextPiece(graph, groupId, piece, text.matrix, {})
 }

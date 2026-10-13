@@ -76,8 +76,8 @@ export interface SVGElementLayer {
   /** The element's `id`, when it is drawn directly rather than through `<use>`. */
   name: string | null
   opacity: number
-  /** Visibility applies to shapes, not groups: descendants can make themselves visible. */
-  visible?: boolean
+  /** False when `visibility` or `display` hides it; Figma imports it as a hidden layer. */
+  visible: boolean
   /** The clip region this element adds to `clipPaths`, by index. */
   clip: number | null
 }
@@ -115,11 +115,16 @@ export interface SVGTextInfo {
   pathIndex: number
 }
 
-export type SVGClipPathInfo = Pick<IconPathInfo, 'd' | 'fillRule' | 'transform'>
+export type SVGClipPathInfo = Pick<IconPathInfo, 'd' | 'fillRule' | 'transform'> & {
+  /** False when `visibility` or `display` hides the shape, which Figma keeps as a hidden layer. */
+  visible: boolean
+}
 
 export interface SVGClipPathRegion {
   /** The `<clipPath>` element's `id`. */
   id: string
   paths: SVGClipPathInfo[]
   units: 'userSpaceOnUse' | 'objectBoundingBox'
+  /** False when the `<clipPath>` itself is hidden: Figma's mask is then hidden and clips nothing. */
+  visible: boolean
 }

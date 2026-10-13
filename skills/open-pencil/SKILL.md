@@ -290,10 +290,7 @@ The CLI defaults the filesystem root to the home directory on Windows and the cu
 3. **Inspect** — `get_jsx`, `diff_jsx`, `diff_create`, `diff_visual`, `describe`, `export_image`, `export_svg`, `export_pdf`.
 4. **Modify** — `render`, `batch_update`, `update_node`, `set_fill`, `set_layout`, `create_shape`, `import_svg`, etc.
 5. **Save/export** — `save_file`, `export_image`, `export_svg`, `export_pdf`, or CLI `export`.
-
 6. **Close** — `close_file { document_id, unsaved }` closes a document tab after the workflow. With unsaved changes it fails unless `unsaved` is `"save"` or `"discard"`; automation never prompts in the app.
-
-`import_svg` omits `display="none"` subtrees and preserves hidden shapes for `visibility="hidden"` or `collapse`, including inheritance and inline styles. A descendant's `visibility="visible"` restores that shape, but `display="none"` on an ancestor still excludes it.
 
 Use `undo` / `redo { document_id }` to step back your own changes. They refuse when the newest step was made by the user in the editor; never work around that. `get_settings` and `update_settings { settings }` read and change editor preferences such as theme, language, and snapping; they never expose credentials, models, or tool access.
 

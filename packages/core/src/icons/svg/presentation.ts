@@ -2,8 +2,6 @@ import type { Element, Node } from '@xmldom/xmldom'
 
 /** SVG presentation attributes as an element inherits them, still as source strings. */
 export interface PresentationAttributes {
-  display: string
-  visibility: string
   fill: string
   stroke: string
   strokeWidth: string
@@ -19,11 +17,11 @@ export interface PresentationAttributes {
   textAnchor: string
   letterSpacing: string
   textDecoration: string
+  visibility: string
+  display: string
 }
 
 export const DEFAULT_PRESENTATION: PresentationAttributes = {
-  display: 'inline',
-  visibility: 'visible',
   fill: 'currentColor',
   stroke: 'none',
   strokeWidth: '1',
@@ -38,7 +36,9 @@ export const DEFAULT_PRESENTATION: PresentationAttributes = {
   fontStyle: 'normal',
   textAnchor: 'start',
   letterSpacing: 'normal',
-  textDecoration: 'none'
+  textDecoration: 'none',
+  visibility: 'visible',
+  display: 'inline'
 }
 
 export function isElement(node: Node): node is Element {
@@ -76,13 +76,7 @@ export function presentationFor(
   const styles = inlineStyles(element)
   const attribute = (name: string, value: string) =>
     inheritedAttribute(element, styles, name, value)
-  let visibility = attribute('visibility', inherited.visibility)
-  if (visibility === 'inherit' || visibility === 'unset') visibility = inherited.visibility
-  if (visibility === 'initial') visibility = 'visible'
-  const display = attribute('display', 'inline')
   return {
-    display: display === 'inherit' ? inherited.display : display,
-    visibility,
     fill: attribute('fill', inherited.fill),
     stroke: attribute('stroke', inherited.stroke),
     strokeWidth: attribute('stroke-width', inherited.strokeWidth),
@@ -97,8 +91,18 @@ export function presentationFor(
     fontStyle: attribute('font-style', inherited.fontStyle),
     textAnchor: attribute('text-anchor', inherited.textAnchor),
     letterSpacing: attribute('letter-spacing', inherited.letterSpacing),
-    textDecoration: attribute('text-decoration', inherited.textDecoration)
+    textDecoration: attribute('text-decoration', inherited.textDecoration),
+    // As Figma reads them: both inherit, unlike CSS `display`; any visibility but `visible`
+    // hides, `inherit` included, and any display but `none` shows.
+    visibility:
+      attribute('visibility', inherited.visibility).trim() === 'visible' ? 'visible' : 'hidden',
+    display: attribute('display', inherited.display).trim() === 'none' ? 'none' : 'inline'
   }
+}
+
+/** Whether an element with these attributes shows: `visibility: visible`, not `display: none`. */
+export function presentationVisible(presentation: PresentationAttributes): boolean {
+  return presentation.visibility === 'visible' && presentation.display !== 'none'
 }
 
 /** An SVG opacity, a number or a percentage, clamped to 0–1. */
