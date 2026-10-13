@@ -33,6 +33,18 @@ function baseRotation(p: PathPoint, forward: boolean): number {
 }
 
 /**
+ * A glyph's rotation as Figma sets it: along the line from where the glyph starts on the path to
+ * where it ends, so a wide glyph on a bend sits across the curve instead of along the tangent at
+ * its left edge. A glyph with no width takes the tangent.
+ */
+function chordRotation(start: PathPoint, end: PathPoint, forward: boolean): number {
+  const dx = end.x - start.x
+  const dy = end.y - start.y
+  if (Math.hypot(dx, dy) < 1e-6) return baseRotation(start, forward)
+  return -Math.atan2(dy, dx)
+}
+
+/**
  * Measure layout parameters from the node's current baked glyph baselines.
  * Reflowing with these on the same box reproduces the input exactly.
  */
@@ -101,7 +113,7 @@ export function layoutPathTextFromAdvances(
       x: p.x + -p.ty * offset,
       y: p.y + p.tx * offset,
       fontSize: src.fontSize,
-      rotation: normalizeAngle(baseRotation(p, data.forward))
+      rotation: normalizeAngle(chordRotation(p, pointAtArc(path, s), data.forward))
     }
   })
 }

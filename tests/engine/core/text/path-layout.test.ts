@@ -370,3 +370,36 @@ describe('selection overlay — path helpers', () => {
     }
   })
 })
+
+describe('pen-walked glyph rotation', () => {
+  test('a glyph turns along the line from where it starts on the path to where it ends', () => {
+    const zero = { x: 0, y: 0 }
+    // Right 100, then down 100: 200 long, turning a quarter at (100, 50).
+    const network: VectorNetwork = {
+      vertices: [
+        { x: 0, y: 50 },
+        { x: 100, y: 50 },
+        { x: 100, y: 150 }
+      ],
+      segments: [
+        { start: 0, end: 1, tangentStart: zero, tangentEnd: zero },
+        { start: 1, end: 2, tangentStart: zero, tangentEnd: zero }
+      ],
+      regions: []
+    }
+    const data = { network, normalizedSize: { x: 400, y: 200 }, tValue: 0, forward: true }
+    const box = { x: 0, y: 0, width: 400, height: 200 }
+    const source = { commandsBlob: new Uint8Array(4), fontSize: 40, advance: 0.5 }
+    const path = expectDefined(sampleTextPath(data, box))
+    // The glyph starts 10 before the corner and, 20 wide, ends 10 past it.
+    const [straddling] = expectDefined(
+      layoutPathTextFromAdvances(data, box, 90 / path.length, 0, [source])
+    )
+    const start = pointAtArc(path, 90)
+    const end = pointAtArc(path, 110)
+    const chord = -Math.atan2(end.y - start.y, end.x - start.x)
+    expect(Math.abs(angleDiff(expectDefined(straddling.rotation), chord))).toBeLessThan(1e-9)
+    // Close to a half turn of the corner, not level with the first leg as its left edge is.
+    expect(Math.abs(angleDiff(expectDefined(straddling.rotation), -Math.PI / 4))).toBeLessThan(0.05)
+  })
+})
