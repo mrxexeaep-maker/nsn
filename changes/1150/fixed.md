@@ -1,0 +1,1 @@
+- Editing centered or right-aligned text on a path keeps it aligned, as in Figma. Centered text grows in both directions and right-aligned text keeps its end, instead of growing from where the first character was.
