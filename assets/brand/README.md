@@ -18,7 +18,7 @@ A sunset read top to bottom: flame stem, sun bowl, dusk foot. Flat colour only: 
 
 ## Backgrounds and tiles
 
-The colour mark sits bare on white, black, and neutral greys, including the dark UI grey `#2A2A2A`, so the dark variants keep its colours. On colour or busy backgrounds, use a tile or the one-colour mark, and never place the bare colour mark on flame, sun, or dusk. The one-colour mark is ink on light backgrounds and white on dark ones.
+The colour mark sits bare on white, black, and neutral greys, including the dark UI grey `#2C2C2C`, so the dark variants keep its colours. On colour or busy backgrounds, use a tile or the one-colour mark, and never place the bare colour mark on flame, sun, or dusk. The one-colour mark is ink on light backgrounds and white on dark ones.
 
 The app icon is the colour mark on the ink (`#111111`) rounded tile, holding the mark at 76% of the tile's height; it reads on light and dark tabs alike. The same tile is the favicon in both browser themes, the any-purpose PWA icon, the profile image, and the editor header's 24px mark. Native desktop icons keep their platform-specific outer margin with the mark at the same share of the tile. Apple Touch keeps an opaque square for platform rounding; maskable artwork stays opaque and inside the central 80%-diameter safe circle.
 
