@@ -4,12 +4,7 @@ import { basename, dirname, extname, join, resolve } from 'node:path'
 import { defineCommand } from 'citty'
 import { toUint8Array } from 'js-base64'
 
-import {
-  BUILTIN_IO_FORMATS,
-  IORegistry,
-  type ExportResult,
-  type FigWriteOptions
-} from '@open-pencil/core/io'
+import { BUILTIN_IO_FORMATS, IORegistry, type ExportResult } from '@open-pencil/core/io'
 import type { AutomationDocumentSummary } from '@open-pencil/core/rpc'
 
 import { isAppMode, requireFile, rpc } from '#cli/app/client'
@@ -198,15 +193,13 @@ async function executeFileExport(
   wholeDocument: boolean,
   fileName: string
 ) {
-  if (wholeDocument) {
-    if (formatId === 'fig') return io.writeDocument(formatId, graph, options)
+  if (wholeDocument)
     return io.exportContent(formatId, { graph, target: { scope: 'document' }, fileName }, options)
-  }
   return io.exportContent(formatId, { graph, target, fileName }, options)
 }
 
-function exportOptions(format: string, args: ExportArgs, documentName: string): unknown {
-  if (format === 'FIG') return { renderThumbnail: true, documentName } satisfies FigWriteOptions
+function exportOptions(format: string, args: ExportArgs): unknown {
+  if (format === 'FIG') return { renderThumbnail: true }
   if (format === 'HTML')
     return { html: args.html, style: args.css, assets: args.assets, fonts: args.fonts ?? 'none' }
   if (formatSupportsScale(format))
@@ -263,7 +256,7 @@ async function exportFromFile(format: string, args: ExportArgs) {
     formatId,
     graph,
     target,
-    exportOptions(format, args, basename(output, extname(output))),
+    exportOptions(format, args),
     wholeDocument,
     basename(output)
   )

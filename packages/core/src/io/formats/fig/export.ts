@@ -1,5 +1,3 @@
-import type { CanvasKit } from 'canvaskit-wasm'
-
 import { compressFigDataSync } from '@open-pencil/fig'
 import {
   nameImagesForFigma,
@@ -12,7 +10,6 @@ import type { SceneGraph } from '@open-pencil/scene-graph'
 import { fractionalPosition } from '@open-pencil/scene-graph/order-keys'
 import type { GUID } from '@open-pencil/scene-graph/primitives'
 
-import type { SkiaRenderer } from '#core/canvas'
 import { withFigExportRuntime } from '#core/canvas/text/shape'
 import { IS_BROWSER, IS_TAURI } from '#core/constants'
 import {
@@ -104,23 +101,21 @@ function appendInternalResources(context: InternalResourceContext): void {
   }
 }
 
-/** `documentName` is the name the archive's `meta.json` records for the file. */
+/**
+ * Write `sourceGraph` as a `.fig`. A document opened from an archive and left unchanged is that
+ * archive.
+ */
 export async function exportFigFile(
   sourceGraph: SceneGraph,
-  ck?: CanvasKit,
-  renderer?: SkiaRenderer,
-  pageId?: string,
-  renderHeadlessThumbnail = false,
-  documentName?: string
+  options: FigFileExtrasOptions = {}
 ): Promise<Uint8Array> {
   // An archive whose images Figma cannot read is written whole rather than reused.
   const reuseArchive = await archiveImagesNamedForFigma(sourceGraph)
   const originalArchive = reuseArchive ? await originalFigArchive(sourceGraph) : null
   if (originalArchive) return originalArchive.slice()
-  const options = { ck, renderer, pageId, renderHeadlessThumbnail, documentName }
   return withFigExportRuntime(
     sourceGraph,
-    ck,
+    options.ck,
     async (runtime) =>
       (reuseArchive ? await writePatchedFigFile(sourceGraph, runtime, options) : null) ??
       writeFigFile(sourceGraph, runtime, options)
@@ -222,6 +217,7 @@ async function writeFigFile(
 }
 
 export { compressFigDataSync } from '@open-pencil/fig'
+export type { FigFileExtrasOptions }
 
 function canUseWorker(): boolean {
   return typeof Worker !== 'undefined' && IS_BROWSER

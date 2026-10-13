@@ -40,7 +40,7 @@ describe('.fig meta.json', () => {
   test('records the document name, page background, and the thumbnail it rendered', async () => {
     const { graph, pageId } = landingPage()
     const { meta, thumbnailSize } = readArchive(
-      await exportFigFile(graph, undefined, undefined, pageId, true, 'Landing')
+      await exportFigFile(graph, { pageId, renderHeadlessThumbnail: true, documentName: 'Landing' })
     )
 
     expect(meta.file_name).toBe('Landing')
@@ -62,7 +62,11 @@ describe('.fig meta.json', () => {
 
   test('a reopened file keeps its meta.json until an edit writes a new one', async () => {
     const { graph, pageId } = landingPage()
-    const saved = await exportFigFile(graph, undefined, undefined, pageId, true, 'Landing')
+    const saved = await exportFigFile(graph, {
+      pageId,
+      renderHeadlessThumbnail: true,
+      documentName: 'Landing'
+    })
     const reopened = await parseFigFile(saved.slice().buffer, { populate: 'first-page' })
     const reopenedPageId = reopened.getPages()[0].id
 
@@ -71,7 +75,11 @@ describe('.fig meta.json', () => {
     const [card] = reopened.getChildren(reopenedPageId)
     reopened.updateNode(card.id, { name: 'Edited card' })
     const { meta, thumbnailSize } = readArchive(
-      await exportFigFile(reopened, undefined, undefined, reopenedPageId, true, 'Landing v2')
+      await exportFigFile(reopened, {
+        pageId: reopenedPageId,
+        renderHeadlessThumbnail: true,
+        documentName: 'Landing v2'
+      })
     )
 
     expect(meta.file_name).toBe('Landing v2')
