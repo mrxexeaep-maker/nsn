@@ -127,3 +127,12 @@ export function layerSelectionForTarget(
   }
   return next
 }
+
+/**
+ * Where a dropped layer goes among its new siblings: `index` in `childIds` counted without the
+ * layer, so one dragged from earlier in the same parent lands one slot sooner.
+ */
+export function dropIndex(childIds: readonly string[], sourceId: string, index: number): number {
+  const sourceIndex = childIds.indexOf(sourceId)
+  return sourceIndex !== -1 && sourceIndex < index ? index - 1 : index
+}

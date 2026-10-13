@@ -24,10 +24,12 @@ interface Theme {
 
 /**
  * The stylesheet that builds each part of the repository, first match first: the SDK's
- * primitives and their examples render in the docs site, everything else in the app.
+ * primitives and their examples, and the landing page, render in the docs site, everything else
+ * in the app.
  */
 const STYLESHEETS = [
   { files: 'packages/vue/src/', stylesheet: 'packages/docs/.vitepress/theme/tailwind.css' },
+  { files: 'packages/docs/.vitepress/', stylesheet: 'packages/docs/.vitepress/theme/tailwind.css' },
   { files: '', stylesheet: 'src/app.css' }
 ]
 
