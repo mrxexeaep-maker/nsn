@@ -273,5 +273,64 @@ export const it: LandingMessages = {
       copied: 'Copiato',
       install: 'Installa'
     }
+  },
+  download: {
+    title: 'Scarica OpenPencil',
+    lede: 'L’app desktop per macOS, Windows e Linux. Gratuita e open source, senza registrazione.',
+    version: 'Versione {version}, pubblicata il {date}',
+    forPlatform: 'Scarica per {platform}',
+    releaseNotes: 'Note di rilascio',
+    yourSystem: 'Il tuo sistema',
+    arch: {
+      appleSilicon: 'Apple Silicon',
+      intel: 'Intel',
+      x64: 'x64',
+      arm: 'ARM'
+    },
+    formats: {
+      dmg: 'Immagine disco',
+      exe: 'Programma di installazione',
+      msi: 'Per installazioni gestite',
+      appimage: 'Funziona sulla maggior parte delle distribuzioni',
+      deb: 'Debian, Ubuntu',
+      rpm: 'Fedora, openSUSE'
+    },
+    requirements: 'Requisiti di sistema',
+    allTitle: 'Tutti i download',
+    checksums: 'Checksum SHA-256',
+    onGitHub: 'Versione su GitHub',
+    unavailable: 'Non è stato possibile caricare l’elenco dei download. Tutti i file sono nella pagina delle versioni su GitHub.',
+    others: {
+      title: 'Altri modi per averla',
+      homebrew: {
+        title: 'Homebrew',
+        detail: 'L’app macOS firmata, dal cask ufficiale. Homebrew controlla ogni aggiornamento, quindi può arrivare un po’ più tardi che qui.'
+      },
+      web: {
+        title: 'Nel browser',
+        detail: 'Lo stesso editor su app.openpencil.dev, senza installare nulla.',
+        action: 'Apri l’app web'
+      },
+      cli: {
+        title: 'Riga di comando',
+        detail: 'Ispeziona, esporta, controlla e automatizza file .fig senza aprire l’app.'
+      },
+      source: {
+        title: 'Dai sorgenti',
+        detail: 'Compila l’app da te con Bun e Rust.',
+        action: 'Istruzioni di compilazione'
+      }
+    },
+    beta: {
+      badge: 'Beta',
+      title: 'Prova quello che arriva',
+      lede: 'Le beta portano in anticipo le funzioni della prossima versione, prima che arrivino a tutti.',
+      caveats: [
+        'Un’app sulla versione stabile non si aggiorna a una beta; installa la beta per provarla.',
+        'Su Linux, rimuovi una beta installata con .deb o .rpm prima di installare la versione finale.',
+        'Le beta della CLI e dell’SDK sono su npm con il tag next.'
+      ],
+      notes: 'Novità'
+    }
   }
 }

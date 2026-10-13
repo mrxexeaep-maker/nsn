@@ -273,5 +273,64 @@ export const fr: LandingMessages = {
       copied: 'Copié',
       install: 'Installer'
     }
+  },
+  download: {
+    title: 'Télécharger OpenPencil',
+    lede: 'L’app de bureau pour macOS, Windows et Linux. Gratuite et open source, sans inscription.',
+    version: 'Version {version}, publiée le {date}',
+    forPlatform: 'Télécharger pour {platform}',
+    releaseNotes: 'Notes de version',
+    yourSystem: 'Votre système',
+    arch: {
+      appleSilicon: 'Apple Silicon',
+      intel: 'Intel',
+      x64: 'x64',
+      arm: 'ARM'
+    },
+    formats: {
+      dmg: 'Image disque',
+      exe: 'Programme d’installation',
+      msi: 'Pour les installations gérées',
+      appimage: 'Fonctionne sur la plupart des distributions',
+      deb: 'Debian, Ubuntu',
+      rpm: 'Fedora, openSUSE'
+    },
+    requirements: 'Configuration requise',
+    allTitle: 'Tous les téléchargements',
+    checksums: 'Sommes de contrôle SHA-256',
+    onGitHub: 'Version sur GitHub',
+    unavailable: 'La liste des téléchargements n’a pas pu être chargée. Tous les fichiers sont sur la page des versions sur GitHub.',
+    others: {
+      title: 'Autres façons de l’obtenir',
+      homebrew: {
+        title: 'Homebrew',
+        detail: 'L’app macOS signée, depuis le cask officiel. Homebrew vérifie chaque mise à jour, qui peut donc arriver un peu plus tard qu’ici.'
+      },
+      web: {
+        title: 'Dans le navigateur',
+        detail: 'Le même éditeur sur app.openpencil.dev, sans rien installer.',
+        action: 'Ouvrir l’app web'
+      },
+      cli: {
+        title: 'Ligne de commande',
+        detail: 'Inspectez, exportez, vérifiez et scriptez des fichiers .fig sans ouvrir l’app.'
+      },
+      source: {
+        title: 'Depuis les sources',
+        detail: 'Compilez l’app vous-même avec Bun et Rust.',
+        action: 'Instructions de compilation'
+      }
+    },
+    beta: {
+      badge: 'Bêta',
+      title: 'Essayez la suite',
+      lede: 'Les bêtas apportent les fonctions de la prochaine version en avance, avant qu’elles n’arrivent à tous.',
+      caveats: [
+        'Une app en version stable ne passe pas à une bêta ; installez la bêta pour l’essayer.',
+        'Sous Linux, supprimez une bêta installée avec .deb ou .rpm avant d’installer la version finale.',
+        'Les bêtas de la CLI et du SDK sont sur npm sous l’étiquette next.'
+      ],
+      notes: 'Nouveautés'
+    }
   }
 }

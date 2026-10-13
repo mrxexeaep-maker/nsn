@@ -272,5 +272,64 @@ export const pl: LandingMessages = {
       copied: 'Skopiowano',
       install: 'Instalacja'
     }
+  },
+  download: {
+    title: 'Pobierz OpenPencil',
+    lede: 'Aplikacja desktopowa na macOS, Windows i Linux. Darmowa i otwartoźródłowa, bez rejestracji.',
+    version: 'Wersja {version}, wydana {date}',
+    forPlatform: 'Pobierz na {platform}',
+    releaseNotes: 'Informacje o wydaniu',
+    yourSystem: 'Twój system',
+    arch: {
+      appleSilicon: 'Apple Silicon',
+      intel: 'Intel',
+      x64: 'x64',
+      arm: 'ARM'
+    },
+    formats: {
+      dmg: 'Obraz dysku',
+      exe: 'Instalator',
+      msi: 'Do instalacji zarządzanych',
+      appimage: 'Działa na większości dystrybucji',
+      deb: 'Debian, Ubuntu',
+      rpm: 'Fedora, openSUSE'
+    },
+    requirements: 'Wymagania systemowe',
+    allTitle: 'Wszystkie pliki',
+    checksums: 'Sumy kontrolne SHA-256',
+    onGitHub: 'Wydanie na GitHubie',
+    unavailable: 'Nie udało się wczytać listy plików. Wszystkie pliki są na stronie wydań na GitHubie.',
+    others: {
+      title: 'Inne sposoby',
+      homebrew: {
+        title: 'Homebrew',
+        detail: 'Podpisana aplikacja na macOS z oficjalnego casku. Homebrew sprawdza każdą aktualizację, więc może trafić tam nieco później niż tutaj.'
+      },
+      web: {
+        title: 'W przeglądarce',
+        detail: 'Ten sam edytor na app.openpencil.dev, bez instalacji.',
+        action: 'Otwórz aplikację webową'
+      },
+      cli: {
+        title: 'Wiersz poleceń',
+        detail: 'Przeglądaj, eksportuj, sprawdzaj i skryptuj pliki .fig bez otwierania aplikacji.'
+      },
+      source: {
+        title: 'Ze źródeł',
+        detail: 'Zbuduj aplikację samodzielnie z Bun i Rust.',
+        action: 'Instrukcja budowania'
+      }
+    },
+    beta: {
+      badge: 'Beta',
+      title: 'Wypróbuj to, co nadchodzi',
+      lede: 'Bety dają wcześniej funkcje następnej wersji, zanim trafią do wszystkich.',
+      caveats: [
+        'Aplikacja w wersji stabilnej nie aktualizuje się do bety; zainstaluj betę, aby ją wypróbować.',
+        'Na Linuksie usuń betę zainstalowaną z .deb lub .rpm przed instalacją wersji finalnej.',
+        'Bety CLI i SDK są w npm pod tagiem next.'
+      ],
+      notes: 'Co nowego'
+    }
   }
 }

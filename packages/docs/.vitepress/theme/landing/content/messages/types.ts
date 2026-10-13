@@ -1,3 +1,4 @@
+import type { FileFormat } from '../../download/releases'
 import type { FeatureKind } from '../features'
 
 export interface TitledDetail {
@@ -117,6 +118,42 @@ export interface LandingMessages {
       copied: string
       /** Heads the install command under the snippet. */
       install: string
+    }
+  }
+  /** The download page, which shares the landing's look and catalog. */
+  download: {
+    title: string
+    lede: string
+    /** `{version}` and `{date}` are replaced. */
+    version: string
+    /** The main button for the visitor's system; `{platform}` is replaced. */
+    forPlatform: string
+    releaseNotes: string
+    /** Marks the visitor's platform in the list of downloads. */
+    yourSystem: string
+    arch: Record<'appleSilicon' | 'intel' | 'x64' | 'arm', string>
+    /** What each kind of file is for. */
+    formats: Record<FileFormat, string>
+    requirements: string
+    allTitle: string
+    checksums: string
+    onGitHub: string
+    /** Shown when the site was built without the release list. */
+    unavailable: string
+    others: {
+      title: string
+      homebrew: TitledDetail
+      web: TitledDetail & { action: string }
+      cli: TitledDetail
+      source: TitledDetail & { action: string }
+    }
+    beta: {
+      badge: string
+      title: string
+      lede: string
+      /** What to know before installing a beta. */
+      caveats: string[]
+      notes: string
     }
   }
 }

@@ -9,17 +9,26 @@ const {
   href,
   icon,
   primary = false,
+  small = false,
   disabled = false
 } = defineProps<{
   href?: string
   icon: Component
   primary?: boolean
+  /** A quieter size for actions inside a section, beside the page's main ones. */
+  small?: boolean
   disabled?: boolean
 }>()
 </script>
 
 <template>
-  <a v-if="href" class="action" :href="href" :data-primary="primary || undefined">
+  <a
+    v-if="href"
+    class="action"
+    :href="href"
+    :data-primary="primary || undefined"
+    :data-small="small || undefined"
+  >
     <component :is="icon" aria-hidden="true" />
     <slot />
   </a>
@@ -29,6 +38,7 @@ const {
     type="submit"
     :disabled="disabled"
     :data-primary="primary || undefined"
+    :data-small="small || undefined"
   >
     <component :is="icon" aria-hidden="true" />
     <slot />
@@ -72,6 +82,19 @@ const {
   border-color: var(--vp-button-brand-hover-border);
   background-color: var(--vp-button-brand-hover-bg);
   color: var(--vp-button-brand-hover-text);
+}
+
+.action[data-small] {
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px 0 12px;
+  border-radius: 16px;
+  font-size: 13px;
+}
+
+.action[data-small] svg {
+  width: 14px;
+  height: 14px;
 }
 
 .action:disabled {

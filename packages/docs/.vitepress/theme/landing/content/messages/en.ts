@@ -262,5 +262,64 @@ export const en: LandingMessages = {
       copied: 'Copied',
       install: 'Install'
     }
+  },
+  download: {
+    title: 'Download OpenPencil',
+    lede: 'The desktop app for macOS, Windows, and Linux. Free and open source, with nothing to sign up for.',
+    version: 'Version {version}, released {date}',
+    forPlatform: 'Download for {platform}',
+    releaseNotes: 'Release notes',
+    yourSystem: 'Your system',
+    arch: {
+      appleSilicon: 'Apple Silicon',
+      intel: 'Intel',
+      x64: 'x64',
+      arm: 'ARM'
+    },
+    formats: {
+      dmg: 'Disk image',
+      exe: 'Installer',
+      msi: 'For managed installs',
+      appimage: 'Runs on most distributions',
+      deb: 'Debian, Ubuntu',
+      rpm: 'Fedora, openSUSE'
+    },
+    requirements: 'System requirements',
+    allTitle: 'All downloads',
+    checksums: 'SHA-256 checksums',
+    onGitHub: 'Release on GitHub',
+    unavailable: 'The list of downloads could not be loaded. Every file is on the releases page on GitHub.',
+    others: {
+      title: 'Other ways to get it',
+      homebrew: {
+        title: 'Homebrew',
+        detail: 'The signed macOS app from the official cask. Homebrew reviews each update, so it can arrive a little later than here.'
+      },
+      web: {
+        title: 'In the browser',
+        detail: 'The same editor at app.openpencil.dev, with nothing to install.',
+        action: 'Open the web app'
+      },
+      cli: {
+        title: 'Command line',
+        detail: 'Inspect, export, lint, and script .fig files without opening the app.'
+      },
+      source: {
+        title: 'From source',
+        detail: 'Build the app yourself with Bun and Rust.',
+        action: 'Build instructions'
+      }
+    },
+    beta: {
+      badge: 'Beta',
+      title: 'Try what’s next',
+      lede: 'Betas bring the next version’s features early, before they reach everyone.',
+      caveats: [
+        'An app on the stable release does not update to a beta; install the beta to try it.',
+        'On Linux, remove a beta installed with .deb or .rpm before installing the final release.',
+        'The CLI and SDK betas are on npm under the next tag.'
+      ],
+      notes: 'What’s new'
+    }
   }
 }

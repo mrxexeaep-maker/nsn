@@ -15,7 +15,7 @@ const localePath = useLocalePath()
   <section class="landing-section">
     <h2>{{ messages.closing.title }}</h2>
     <div class="landing-actions">
-      <ActionButton :href="LINKS.download" :icon="IconDownload" primary>
+      <ActionButton :href="localePath(LINKS.downloadPage)" :icon="IconDownload" primary>
         {{ messages.closing.download }}
       </ActionButton>
       <ActionButton :href="localePath(LINKS.docs)" :icon="IconBookOpen">

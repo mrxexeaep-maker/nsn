@@ -4,10 +4,11 @@ import IconGithub from '~icons/lucide/github'
 import IconPenTool from '~icons/lucide/pen-tool'
 
 import { LINKS } from '../content/links'
-import { useLandingMessages } from '../content/messages'
+import { useLandingMessages, useLocalePath } from '../content/messages'
 import ActionButton from '../ui/ActionButton.vue'
 
 const messages = useLandingMessages()
+const localePath = useLocalePath()
 </script>
 
 <template>
@@ -18,7 +19,7 @@ const messages = useLandingMessages()
       <ActionButton :href="LINKS.app" :icon="IconPenTool" primary>
         {{ messages.hero.open }}
       </ActionButton>
-      <ActionButton :href="LINKS.download" :icon="IconDownload">
+      <ActionButton :href="localePath(LINKS.downloadPage)" :icon="IconDownload">
         {{ messages.hero.download }}
       </ActionButton>
       <ActionButton :href="LINKS.github" :icon="IconGithub">{{
