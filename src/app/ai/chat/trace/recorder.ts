@@ -1,6 +1,8 @@
 import { APICallError, asSchema } from 'ai'
 import type { StepResult, ToolSet, UIMessage } from 'ai'
 
+import { scrubDiagnosticText } from '@/app/diagnostics/scrub'
+
 import { fingerprint } from './fingerprint'
 import type { RunTrace, StepTrace, TraceAsset, TraceError, TraceStore } from './types'
 
@@ -20,15 +22,22 @@ export interface RunRecording {
   end(outcome: 'completed' | 'stopped'): void
 }
 
+/**
+ * A provider's error text can echo a key or an account, and traces leave the device in bug
+ * reports, so it is scrubbed as diagnostics are.
+ */
 function traceError(error: unknown): TraceError {
   const name = error instanceof Error ? error.name : 'Error'
-  const message = error instanceof Error ? error.message : String(error)
+  const message = scrubDiagnosticText(error instanceof Error ? error.message : String(error))
   if (!APICallError.isInstance(error)) return { name, message }
   return {
     name,
     message,
     statusCode: error.statusCode,
-    responseBody: error.responseBody?.slice(0, MAX_RESPONSE_BODY)
+    responseBody:
+      error.responseBody === undefined
+        ? undefined
+        : scrubDiagnosticText(error.responseBody).slice(0, MAX_RESPONSE_BODY)
   }
 }
 
