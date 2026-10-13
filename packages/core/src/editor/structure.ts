@@ -1,3 +1,5 @@
+import { pick } from 'es-toolkit'
+
 import { createsComponentCycle, type SceneNode } from '@open-pencil/scene-graph'
 
 import { acceptingParent, acceptsChildren, prepareSlotEdits } from '#core/editor/components/slots'
@@ -23,6 +25,9 @@ import {
 import { createStructureReorderActions } from './structure/reorder'
 import { createStructureStateActions } from './structure/state'
 import type { EditorContext } from './types'
+
+/** The fields a move to another parent rewrites to keep a layer where it is drawn. */
+const PLACE_FIELDS = ['x', 'y', 'rotation', 'flipX', 'flipY'] as const
 
 export function createStructureActions(ctx: EditorContext) {
   const reorderActions = createStructureReorderActions(ctx)
@@ -105,11 +110,36 @@ export function createStructureActions(ctx: EditorContext) {
   function moveToPage(pageId: string) {
     const targetPage = ctx.graph.getNode(pageId)
     if (targetPage?.type !== 'CANVAS') return
-    const ids = [...ctx.state.selectedIds]
-    for (const id of ids) {
-      ctx.graph.reparentNode(id, pageId)
+    // Where each layer was, read before any of them moves: put back in this order, each lands at
+    // its own index again.
+    const origins = [...ctx.state.selectedIds]
+      .flatMap((id) => {
+        const node = ctx.graph.getNode(id)
+        const parent = node?.parentId ? ctx.graph.getNode(node.parentId) : undefined
+        if (!node || !parent || parent.id === pageId) return []
+        const index = parent.childIds.indexOf(id)
+        return [{ id, parentId: parent.id, index, place: pick(node, PLACE_FIELDS) }]
+      })
+      .sort((a, b) => a.index - b.index)
+    if (origins.length === 0) return
+    const parentIds = new Set(origins.map((origin) => origin.parentId))
+    const move = () => {
+      for (const { id } of origins) ctx.graph.reparentNode(id, pageId)
+      for (const parentId of parentIds) ctx.runLayoutForNode(parentId)
     }
+    move()
     ctx.setSelectedIds(new Set())
+    ctx.undo.push({
+      label: 'Move to page',
+      forward: move,
+      inverse: () => {
+        for (const { id, parentId, index, place } of origins) {
+          ctx.graph.reorderChild(id, parentId, index)
+          ctx.graph.updateNode(id, place)
+        }
+        for (const parentId of parentIds) ctx.runLayoutForNode(parentId)
+      }
+    })
   }
 
   function selectedNodes(): SceneNode[] {
@@ -143,8 +173,15 @@ export function createStructureActions(ctx: EditorContext) {
   function renameNode(id: string, name: string) {
     const node = ctx.graph.getNode(id)
     if (!node) return
-    const trimmedName = name.trim()
-    ctx.graph.updateNode(id, { name: trimmedName || defaultNodeName(node.type) })
+    const previous = node.name
+    const next = name.trim() || defaultNodeName(node.type)
+    if (next === previous) return
+    ctx.graph.updateNode(id, { name: next })
+    ctx.undo.push({
+      label: 'Rename',
+      forward: () => ctx.graph.updateNode(id, { name: next }),
+      inverse: () => ctx.graph.updateNode(id, { name: previous })
+    })
   }
 
   return {
