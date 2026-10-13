@@ -234,7 +234,7 @@ function handleStop() {
     >
       <template #actions><FollowAgentsToggle /></template>
     </ChatHistory>
-    <p v-if="history.storageError.value" role="alert" class="px-3 py-2 text-xs text-red-400">
+    <p v-if="history.storageError.value" role="alert" class="px-3 py-2 text-xs text-error">
       {{ ai.chatStorageFailed }}
     </p>
     <ProviderSetup v-if="!isConfigured" />

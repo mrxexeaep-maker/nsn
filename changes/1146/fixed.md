@@ -1,0 +1,5 @@
+- Dragging a layer down the layers panel drops it where the line shows, not one slot lower. Moving a layer into a frame or group from the panel keeps it where it's drawn on the canvas, and undo puts it back.
+- Hiding, locking, renaming and moving layers to another page can be undone. Hiding or locking several layers at once is a single undo step.
+- A duplicate is stacked directly above its original, rather than on top of everything.
+- Redoing a pen path brings back its points, fill and stroke instead of an empty vector. Escape keeps the path drawn so far, as the pen tool guide says. The distance for closing a path no longer changes with zoom.
+- Editing a vector's points no longer leaks memory on every redraw.

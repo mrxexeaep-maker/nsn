@@ -15,7 +15,7 @@ import type { Color } from '@open-pencil/scene-graph/primitives'
 import { createSceneGeometry, nodeOrientationMatrix, projectedNode } from '#core/geometry'
 import { shownText } from '#core/text/case'
 import { fontManager } from '#core/text/fonts'
-import { vectorNetworkToCenterlinePath } from '#core/vector'
+import { addStrokeRunToPath, strokeRuns, vectorNetworkToCenterlinePath } from '#core/vector'
 
 import { figmaBlendModeToSkia, needsIsolatedBlendLayer } from './blend'
 import { renderBooleanOperation } from './boolean'
@@ -656,32 +656,13 @@ function vectorStrokePaths(r: SkiaRenderer, node: SceneNode): Path[] | null {
   const cached = r.vectorStrokePathCache.get(node.id)
   if (cached) return cached
 
-  const paths: Path[] = []
-  for (const segment of node.vectorNetwork.segments) {
-    const start = node.vectorNetwork.vertices[segment.start]
-    const end = node.vectorNetwork.vertices[segment.end]
-
+  // A path per run, so the corners inside a run join and only its open ends take caps.
+  const { segments, vertices } = node.vectorNetwork
+  const paths = strokeRuns(segments).map((run) => {
     const path = new r.ck.PathBuilder()
-    path.moveTo(start.x, start.y)
-    const isStraight =
-      Math.abs(segment.tangentStart.x) < 0.001 &&
-      Math.abs(segment.tangentStart.y) < 0.001 &&
-      Math.abs(segment.tangentEnd.x) < 0.001 &&
-      Math.abs(segment.tangentEnd.y) < 0.001
-    if (isStraight) {
-      path.lineTo(end.x, end.y)
-    } else {
-      path.cubicTo(
-        start.x + segment.tangentStart.x,
-        start.y + segment.tangentStart.y,
-        end.x + segment.tangentEnd.x,
-        end.y + segment.tangentEnd.y,
-        end.x,
-        end.y
-      )
-    }
-    paths.push(path.detachAndDelete())
-  }
+    addStrokeRunToPath(path, run, segments, vertices)
+    return path.detachAndDelete()
+  })
 
   if (paths.length === 0) return null
   r.vectorStrokePathCache.set(node.id, paths)
