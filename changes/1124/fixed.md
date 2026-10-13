@@ -1,0 +1,1 @@
+- The bar that shows who you follow labels mid-tone colors, such as the AI agent’s blue, in white instead of black.
