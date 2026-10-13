@@ -41,7 +41,8 @@ function localBytesAreCurrent(row: LocalCanvasMeta, design: LibraryDesign): bool
 }
 
 export type ReadLibraryOptions = {
-  onProgress?: (progress: StorageTransferProgress) => void
+  /** Download progress when the design is read from storage. */
+  onTransfer?: (progress: StorageTransferProgress) => void
   signal?: AbortSignal
 }
 
@@ -65,7 +66,7 @@ export async function readLibraryDesign(
 
   const adapter = createActiveStorageAdapter(providerId)
   if (!adapter.getDocumentVersion) {
-    const bytes = await adapter.getDocument(design.id, options.onProgress, options.signal)
+    const bytes = await adapter.getDocument(design.id, options.onTransfer, options.signal)
     await seedStorageCanvasFromRemote({
       providerId,
       canvasId: design.id,
@@ -77,7 +78,7 @@ export async function readLibraryDesign(
     })
     return bytes
   }
-  const version = await adapter.getDocumentVersion(design.id, options.onProgress, options.signal)
+  const version = await adapter.getDocumentVersion(design.id, options.onTransfer, options.signal)
   await seedStorageCanvasFromRemote({
     providerId,
     canvasId: design.id,

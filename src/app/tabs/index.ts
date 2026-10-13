@@ -331,7 +331,7 @@ export async function openStorageDocumentInNewTab(document: StorageDocument): Pr
     load.update({ phase: 'reading', detail: document.name })
     const bytes = await readLibraryDesign(document, providerId, {
       signal: load.signal,
-      onProgress: (progress) =>
+      onTransfer: (progress) =>
         load.update({
           phase: 'reading',
           detail: document.name,
