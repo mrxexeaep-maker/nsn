@@ -430,6 +430,12 @@
   },
   "overrides": [
     {
+      "files": ["packages/docs/.vitepress/theme/landing/**/*.{ts,vue}"],
+      "rules": {
+        "open-pencil/no-app-imports-in-packages": "off"
+      }
+    },
+    {
       "files": ["tools/ci/policy/src/**/*.ts"],
       "rules": {
         "open-pencil/prefer-es-toolkit": "off"
