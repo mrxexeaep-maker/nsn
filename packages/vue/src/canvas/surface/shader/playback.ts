@@ -38,6 +38,8 @@ interface Player {
   copied: ImageBitmap | null
   /** When it last drew, so its clock advances by the time since then however often it draws. */
   drawnAt: number
+  /** How far its animation has run, in seconds, so a player that replaces it goes on from there. */
+  elapsed: number
 }
 
 interface PageShader {
@@ -86,6 +88,14 @@ export function useShaderPlayback(options: {
   const { editor, getRenderer, getView, getViewport, markDirty } = options
   const frames = shaderFrames(editor)
   const players = new Map<string, Player>()
+  /** Players starting at a new size beside the ones they replace, by image. */
+  const replacing = new Map<string, Player>()
+  /**
+   * Sizes a replacement failed to start at, by image, with the preset it was for. The player it
+   * would have replaced plays on, and no replacement is tried again near that size until the
+   * preset changes or the view moves well away from it.
+   */
+  const failedSizes = new Map<string, { preset: string; size: { width: number; height: number } }>()
   /** Shaders that failed to start, by the preset that failed, which are not tried again. */
   const failed = new Map<string, string>()
   /** Renderers to let go of once the frame being drawn is done with them. */
@@ -105,6 +115,12 @@ export function useShaderPlayback(options: {
   }
 
   function stop(hash: string) {
+    failedSizes.delete(hash)
+    const replacement = replacing.get(hash)
+    if (replacement) {
+      replacement.disposed = true
+      replacing.delete(hash)
+    }
     const player = players.get(hash)
     if (!player) return
     player.disposed = true
@@ -138,10 +154,17 @@ export function useShaderPlayback(options: {
     )
   }
 
+  /**
+   * Starts playing `hash`'s shader at `size`. A player that `replaces` one already playing, at
+   * another size, starts beside it: the old one keeps drawing until the new one is ready, and the
+   * new one takes over at the same point in the animation, so a zoom neither flashes the still
+   * frame nor starts the animation over.
+   */
   async function start(
     hash: string,
     preset: ShaderPreset,
-    size: { width: number; height: number }
+    size: { width: number; height: number },
+    replaces?: Player
   ) {
     const canvas = document.createElement('canvas')
     // The renderer sizes its buffer at the device pixel ratio itself.
@@ -156,9 +179,11 @@ export function useShaderPlayback(options: {
       visible: true,
       disposed: false,
       copied: null,
-      drawnAt: 0
+      drawnAt: 0,
+      elapsed: 0
     }
-    players.set(hash, player)
+    if (replaces) replacing.set(hash, player)
+    else players.set(hash, player)
     // Read through a call: the player may be stopped while the library loads.
     const stopped = () => player.disposed
     let renderer: Player['renderer'] = null
@@ -172,21 +197,60 @@ export function useShaderPlayback(options: {
       // player that replaced this one while it started is left alone.
       console.warn('Could not play a shader', error)
       renderer?.dispose()
-      if (players.get(hash) === player) {
+      // A replacement that fails leaves the player it would have replaced playing.
+      if (replacing.get(hash) === player) {
+        replacing.delete(hash)
+        failedSizes.set(hash, { preset: player.preset, size })
+      } else if (players.get(hash) === player) {
         stop(hash)
         failed.set(hash, player.preset)
       }
       return
     }
-    if (stopped()) renderer.dispose()
-    else player.renderer = renderer
+    if (stopped()) {
+      renderer.dispose()
+      return
+    }
+    player.renderer = renderer
+    if (replacing.get(hash) !== player) return
+    replacing.delete(hash)
+    const previous = players.get(hash)
+    // The one it replaces may have stopped meanwhile, as when preview ended; then so does this.
+    if (!previous || previous !== replaces) {
+      player.disposed = true
+      retired.push(player)
+      if (!stepping) release()
+      return
+    }
+    player.nodeIds = previous.nodeIds
+    player.visible = previous.visible
+    // The old player kept drawing while this one started, so it takes over from there.
+    player.elapsed = previous.elapsed
+    players.set(hash, player)
+    // Its frame replaces the old one's at the next draw, so the canvas never shows the still.
+    previous.disposed = true
+    retired.push(previous)
+    if (!stepping) release()
   }
 
   /** Whether a player drawing at `canvas`'s size should be redrawn at `size` instead. */
-  function resized(canvas: HTMLCanvasElement, size: { width: number; height: number }) {
-    const ratio = window.devicePixelRatio || 1
-    const factor = size.width / Math.max(1, canvas.width * ratio)
+  /** Whether `size` is far enough from `from`, in pixels, to draw at again. */
+  function differs(from: number, size: { width: number; height: number }) {
+    const factor = size.width / Math.max(1, from)
     return factor > RESIZE_FACTOR || factor < 1 / RESIZE_FACTOR
+  }
+
+  function resized(canvas: HTMLCanvasElement, size: { width: number; height: number }) {
+    return differs(canvas.width * (window.devicePixelRatio || 1), size)
+  }
+
+  /** Whether a replacement for `hash` failed at about `size`, for the preset it plays now. */
+  function failedNear(hash: string, preset: string, size: { width: number; height: number }) {
+    const failure = failedSizes.get(hash)
+    if (!failure) return false
+    if (failure.preset === preset && !differs(failure.size.width, size)) return true
+    failedSizes.delete(hash)
+    return false
   }
 
   function sync() {
@@ -202,7 +266,15 @@ export function useShaderPlayback(options: {
       const visible = onScreen(shader.bounds)
       const size = screenSize(shader.bounds)
       const existing = players.get(hash)
-      if (existing && visible && resized(existing.canvas, size)) stop(hash)
+      if (
+        existing &&
+        visible &&
+        !replacing.has(hash) &&
+        resized(existing.canvas, size) &&
+        !failedNear(hash, existing.preset, size)
+      ) {
+        void start(hash, shader.preset, size, existing)
+      }
       if (!players.has(hash) && visible && !failed.has(hash)) void start(hash, shader.preset, size)
       const player = players.get(hash)
       if (!player) continue
@@ -244,7 +316,9 @@ export function useShaderPlayback(options: {
     const started = performance.now()
     for (let index = 0; index < drawing.length; index++) {
       const [hash, player] = drawing[(turn + index) % drawing.length]
-      const delta = player.drawnAt === 0 ? 0 : (now - player.drawnAt) / 1000
+      // A player's first frame jumps to where the one it replaced had got to.
+      const delta = player.drawnAt === 0 ? player.elapsed : (now - player.drawnAt) / 1000
+      if (player.drawnAt !== 0) player.elapsed += delta
       player.drawnAt = now
       await player.renderer?.renderFrame({ deltaSeconds: delta, waitForGpu: false })
       if (player.disposed) continue
