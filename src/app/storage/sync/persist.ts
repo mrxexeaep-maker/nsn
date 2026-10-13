@@ -67,6 +67,7 @@ export async function persistStorageCanvasLocally(
     syncStatus: existing?.syncStatus === 'conflict' ? 'conflict' : 'pending'
   })
   const { stateId } = await computeStateIdentity(bodyId, {
+    documentId: options.canvasId,
     name: metadata.name,
     sourceFormat: metadata.sourceFormat,
     isTrashed: metadata.trashedAt !== null

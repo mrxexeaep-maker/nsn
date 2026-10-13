@@ -28,6 +28,7 @@ export async function markListingConflicts(
     if (remoteDocument.stateId === meta.lastPublishedStateId) continue
     // Identical edits converge: the remote already holds what this device would publish.
     const { stateId: localStateId } = await computeStateIdentity(meta.bodyId ?? '', {
+      documentId: meta.id,
       name: meta.name,
       sourceFormat: meta.sourceFormat,
       isTrashed: meta.trashedAt !== null

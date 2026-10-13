@@ -14,7 +14,7 @@ import {
  * conflict. `bodyId` alone cannot serve here: it excludes `meta.json` by
  * design, so a rename, a trash and a restore all leave it untouched.
  */
-const META_ENVELOPE_VERSION = 1
+const META_ENVELOPE_VERSION = 2
 
 function hashParts(parts: Uint8Array[]): Promise<string> {
   return hashEnvelope(concatParts(parts))
@@ -26,6 +26,11 @@ function pushText(parts: Uint8Array[], value: string): void {
 }
 
 export type StateMetadataInput = {
+  /**
+   * The design the state belongs to. Two designs with the same content and name are still two
+   * states, so they never share a version record; two devices editing one design still converge.
+   */
+  documentId: string
   name: string
   sourceFormat: StorageDocumentFormat
   /** Trash STATE as a boolean — never `trashedAt`, a client timestamp. */
@@ -41,6 +46,7 @@ export type StateMetadataInput = {
 export async function computeMetaId(input: StateMetadataInput): Promise<string> {
   const parts: Uint8Array[] = []
   pushText(parts, `open-pencil/meta/v${META_ENVELOPE_VERSION}`)
+  pushText(parts, input.documentId)
   pushText(parts, input.name)
   pushText(parts, input.sourceFormat)
   pushText(parts, input.isTrashed ? '1' : '0')

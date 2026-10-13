@@ -30,12 +30,18 @@ export function figArchive(canvas: string, thumbnail?: Uint8Array): Uint8Array {
 export async function writtenFor(
   name: string,
   bytes: Uint8Array,
-  options: { sourceFormat?: StorageDocumentFormat; trashedAt?: string | null } = {}
+  options: {
+    sourceFormat?: StorageDocumentFormat
+    trashedAt?: string | null
+    /** The design the state belongs to; most tests use `doc`. */
+    documentId?: string
+  } = {}
 ): Promise<StorageDocumentMetadata> {
   const sourceFormat = options.sourceFormat ?? 'fig'
   const trashedAt = options.trashedAt ?? null
   const bodyId = await computeBodyIdSafe(bytes, sourceFormat)
   const { stateId } = await computeStateIdentity(bodyId, {
+    documentId: options.documentId ?? 'doc',
     name,
     sourceFormat,
     isTrashed: trashedAt !== null

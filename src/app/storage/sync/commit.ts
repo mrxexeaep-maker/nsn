@@ -33,6 +33,7 @@ export async function documentMetadata(
   remoteBodyId: string | null
 ): Promise<StorageDocumentMetadata & { stateId: string }> {
   const { stateId } = await computeStateIdentity(remoteBodyId ?? '', {
+    documentId: meta.id,
     name: meta.name,
     sourceFormat: meta.sourceFormat,
     isTrashed: meta.trashedAt !== null
