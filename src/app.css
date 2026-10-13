@@ -72,9 +72,9 @@
   --color-component: #bb8cff;
   --color-slot: #f45cc4;
   /*
-   * Status colors: each is a text and icon color, with a tint (-bg) and a border (-border) for
-   * panels in that status. Warnings also have -action for buttons on the tint, and errors a solid
-   * -fill that takes white text.
+   * Status colors: each is a text and icon color. Errors and warnings also have a tint (-bg) and a
+   * border (-border) for panels in that status, and warnings -action for buttons on the tint.
+   * Errors and successes have a solid -fill that takes white text.
    */
   --color-warning: #ffb314;
   --color-warning-bg: rgb(245 158 11 / 0.1);
