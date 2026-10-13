@@ -98,6 +98,8 @@
   "scopeFontFamily": "字体",
   "exportDesignTokens": "导出为设计令牌",
   "importDesignTokens": "导入设计令牌",
+  "libraryCollection": "来自库",
+  "libraryCollectionDescription": "编辑会保存在此文件中并显示在 Figma 里，但 Figma 中这些变量仍为只读。在这里添加的变量和模式不会显示在 Figma 中。",
   "importTokensDescription": "选择每个集合和模式导入到哪里。同名变量会被更新，不会删除任何内容。",
   "importNewCollection": "新集合",
   "importNewMode": "新模式",

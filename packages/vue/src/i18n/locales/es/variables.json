@@ -98,6 +98,8 @@
   "scopeFontFamily": "Familia tipográfica",
   "exportDesignTokens": "Exportar como design tokens",
   "importDesignTokens": "Importar design tokens",
+  "libraryCollection": "De una biblioteca",
+  "libraryCollectionDescription": "Los cambios se guardan en este archivo y se ven en Figma, que mantiene estas variables como de solo lectura. Las variables y los modos que añadas aquí no aparecen en Figma.",
   "importTokensDescription": "Elige adónde va cada colección y cada modo. Las variables con el mismo nombre se actualizan; no se elimina nada.",
   "importNewCollection": "Nueva colección",
   "importNewMode": "Nuevo modo",

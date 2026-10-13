@@ -8,8 +8,11 @@ import { provideEditor } from '@open-pencil/vue'
 
 import TokensPanel from '@/components/variables/TokensPanel.vue'
 
-/** The frame width in pixels, capped by the window; the panel lays out by this. */
-const { width = 1040 } = defineProps<{ width?: number }>()
+/**
+ * The frame width in pixels, capped by the window; the panel lays out by this. `library` makes
+ * the theme a collection copied from a library, as Figma files that use one carry it.
+ */
+const { width = 1040, library = false } = defineProps<{ width?: number; library?: boolean }>()
 
 /** Reactive state, as the app session gives it, so edits re-render the panel. */
 const graph = new SceneGraph()
@@ -47,7 +50,8 @@ graph.addCollection({
     { modeId: 'contrast', name: 'Contrast', condition: '@media (prefers-contrast: more)' }
   ],
   defaultModeId: 'light',
-  variableIds: []
+  variableIds: [],
+  ...(library && { key: '44d54909789ec00cd81859bdc9584faf9cf0de97', version: '290407:23953' })
 })
 graph.addCollection({
   id: 'primitives',

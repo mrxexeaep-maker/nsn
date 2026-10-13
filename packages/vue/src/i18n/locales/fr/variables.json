@@ -98,6 +98,8 @@
   "scopeFontFamily": "Famille de police",
   "exportDesignTokens": "Exporter en design tokens",
   "importDesignTokens": "Importer des design tokens",
+  "libraryCollection": "D'une bibliothèque",
+  "libraryCollectionDescription": "Les modifications sont enregistrées dans ce fichier et visibles dans Figma, qui garde ces variables en lecture seule. Les variables et modes ajoutés ici n'apparaissent pas dans Figma.",
   "importTokensDescription": "Choisissez où va chaque collection et chaque mode. Les variables de même nom sont mises à jour ; rien n’est supprimé.",
   "importNewCollection": "Nouvelle collection",
   "importNewMode": "Nouveau mode",

@@ -5,7 +5,11 @@ import { computed, ref, useTemplateRef, watch } from 'vue'
 
 import type { VariableTokenFields } from '@open-pencil/core/editor'
 import type { TokenStylesheetFormat } from '@open-pencil/dom-css/export'
-import type { VariableType, VariableValue } from '@open-pencil/scene-graph'
+import {
+  isLibraryCollection,
+  type VariableType,
+  type VariableValue
+} from '@open-pencil/scene-graph'
 import { useI18n, useSceneComputed, useVariables } from '@open-pencil/vue'
 
 import {
@@ -18,6 +22,7 @@ import {
 } from '@/app/editor/tokens/model'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import IconButton from '@/components/ui/button/IconButton.vue'
+import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 import AppPlaceholder from '@/components/ui/feedback/AppPlaceholder.vue'
 import AppInput from '@/components/ui/input/AppInput.vue'
 import PanelDrillIn from '@/components/ui/panel/PanelDrillIn.vue'
@@ -85,6 +90,9 @@ const collection = computed(
   () =>
     ctx.collections.value.find((candidate) => candidate.id === ctx.activeCollectionId.value) ?? null
 )
+
+/** A collection copied from a library stays editable here; the notice says what Figma makes of it. */
+const fromLibrary = computed(() => !!collection.value && isLibraryCollection(collection.value))
 
 /** Every token in the collection, for the sidebar's counts and for lookups a filter must not hide. */
 const collectionVariables = useSceneComputed(() =>
@@ -428,6 +436,12 @@ const groupOptions = computed(() => groupEntries.value.map((entry) => entry.path
           </IconButton>
         </div>
       </div>
+      <AppAlert
+        v-if="fromLibrary"
+        :heading="messages.libraryCollection"
+        :description="messages.libraryCollectionDescription"
+        class="m-3"
+      />
       <TokenTable
         v-model:selected-ids="selectedIds"
         v-bind="tableActions"
@@ -476,6 +490,12 @@ const groupOptions = computed(() => groupEntries.value.map((entry) => entry.path
         <TokenAddMenu :labelled="wide" @add="addToken" />
         <slot name="actions" />
       </div>
+      <AppAlert
+        v-if="fromLibrary"
+        :heading="messages.libraryCollection"
+        :description="messages.libraryCollectionDescription"
+        class="mx-3 mb-2"
+      />
       <div :class="ui.body()">
         <TokenSidebar
           v-if="wide"

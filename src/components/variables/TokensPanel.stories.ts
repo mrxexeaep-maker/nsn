@@ -14,13 +14,16 @@ const meta = {
       }
     }
   }
-} satisfies Meta<{ width?: number }>
+} satisfies Meta<{ width?: number; library?: boolean }>
 
 export default meta
-type Story = StoryObj<{ width?: number }>
+type Story = StoryObj<{ width?: number; library?: boolean }>
 
 /** From 56rem the CSS name has its own column and the inspector sits beside the list. */
 export const DesignSystemTokens: Story = {}
+
+/** A collection copied from a library stays editable, with a notice of what Figma makes of edits. */
+export const FromLibrary: Story = { args: { library: true } }
 
 /** In a dialog-sized panel the CSS name moves under the token name; every mode still shows. */
 export const Medium: Story = { args: { width: 800 } }

@@ -98,6 +98,8 @@
   "scopeFontFamily": "Schriftfamilie",
   "exportDesignTokens": "Als Design-Tokens exportieren",
   "importDesignTokens": "Design-Tokens importieren",
+  "libraryCollection": "Aus einer Bibliothek",
+  "libraryCollectionDescription": "Änderungen werden in dieser Datei gespeichert und in Figma angezeigt, wo diese Variablen schreibgeschützt bleiben. Hier hinzugefügte Variablen und Modi erscheinen in Figma nicht.",
   "importTokensDescription": "Wähle, wohin jede Sammlung und jeder Modus geht. Variablen mit demselben Namen werden aktualisiert; nichts wird gelöscht.",
   "importNewCollection": "Neue Sammlung",
   "importNewMode": "Neuer Modus",

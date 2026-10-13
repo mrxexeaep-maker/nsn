@@ -98,6 +98,8 @@
   "scopeFontFamily": "Rodzina czcionek",
   "exportDesignTokens": "Eksportuj jako tokeny projektowe",
   "importDesignTokens": "Importuj tokeny projektowe",
+  "libraryCollection": "Z biblioteki",
+  "libraryCollectionDescription": "Zmiany są zapisywane w tym pliku i widoczne w Figmie, która zostawia te zmienne tylko do odczytu. Zmienne i tryby dodane tutaj nie pojawiają się w Figmie.",
   "importTokensDescription": "Wybierz, dokąd trafi każda kolekcja i każdy tryb. Zmienne o tej samej nazwie zostaną zaktualizowane; nic nie zostanie usunięte.",
   "importNewCollection": "Nowa kolekcja",
   "importNewMode": "Nowy tryb",
