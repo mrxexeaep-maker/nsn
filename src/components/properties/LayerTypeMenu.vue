@@ -45,7 +45,7 @@ const itemCls = menuItem({ justify: 'between' })
       <DropdownMenuTrigger as-child>
         <button
           :aria-label="panels.layerType"
-          class="-mx-1 -my-1.5 flex h-6 items-center gap-0.5 rounded-md px-1 text-muted hover:bg-hover hover:text-surface data-[state=open]:bg-active data-[state=open]:text-surface"
+          class="-mx-1 -my-1.5 flex h-6 items-center gap-0.5 rounded-md px-1 text-muted hover:bg-hover hover:text-surface data-[state=open]:bg-hover data-[state=open]:text-surface"
         >
           <component :is="icon" class="size-3.5" />
           <IconChevronDown class="size-3" />
