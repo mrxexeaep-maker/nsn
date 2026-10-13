@@ -1,0 +1,3 @@
+- In the desktop app, Select All, Undo, and Redo typed in a text field such as the chat input act on the field instead of the canvas, and other canvas shortcuts no longer reach the canvas from a text field.
+- AI chat streams in the desktop app, and model steps longer than 30 seconds no longer fail with "Desktop HTTP request failed"; dropped connections are retried.
+- Scrolling the chat back to the bottom resumes following new output.
