@@ -36,7 +36,10 @@ describe('brand generation', () => {
 
   test('keeps the three piece colours in both themes', async () => {
     for (const suffix of ['', '-dark']) {
-      const pixels = await sharp(file(`brand/mark${suffix}.svg`)).ensureAlpha().raw().toBuffer()
+      const pixels = await sharp(file(`brand/mark${suffix}.svg`))
+        .ensureAlpha()
+        .raw()
+        .toBuffer()
       for (const [x, y, hex] of [
         [68, 26, 'f5501e'],
         [68, 145, 'f5501e'],
