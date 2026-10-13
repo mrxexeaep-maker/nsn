@@ -1,0 +1,1 @@
+- Warnings and errors that showed without their color now use the theme's: library update and diagnostics warnings, errors on the home screen and when renaming layers, publishing a library or authoring variants, open menu triggers, and the switch's hover border. Chat errors, copy confirmations, error toasts and the thinking meter follow the light theme too.
