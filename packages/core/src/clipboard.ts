@@ -4,7 +4,12 @@ export { parseFigmaClipboard, figmaNodesBounds } from '@open-pencil/fig/clipboar
 import { placeSlotContent, type FigNodeChangeExportRuntime } from '@open-pencil/fig/node-change'
 import { initCodec } from '@open-pencil/kiwi/fig/codec'
 import type { GUID, NodeChange as KiwiNodeChange } from '@open-pencil/kiwi/fig/codec'
-import { ownsSlotContent, type SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
+import {
+  derivedAssetKey,
+  ownsSlotContent,
+  type SceneGraph,
+  type SceneNode
+} from '@open-pencil/scene-graph'
 import { fractionalPosition } from '@open-pencil/scene-graph/order-keys'
 
 import {
@@ -26,6 +31,7 @@ import {
   makeCanvasNodeChange,
   buildFontDigestMap
 } from './kiwi/fig/node-change/serialize'
+import { cloneSceneGraphForFigExport } from './kiwi/fig/parse/transfer'
 
 export async function prefetchFigmaSchema(): Promise<void> {
   await initCodec()
@@ -51,12 +57,51 @@ export function importClipboardNodes(
   return operation.plan.rootIds
 }
 
+/** The version a key derived for the clipboard is written with; Figma reads it with the key. */
+const DERIVED_ASSET_VERSION = '0:0'
+
+/**
+ * The document as the clipboard writes it. Figma names the variables and collections a paste
+ * uses by key, and keeps a binding to one it knows only by key as a remote variable, as it does
+ * for its own clipboard; variables made in OpenPencil have no key, so they take one derived from
+ * their ID here, for this copy only.
+ */
+function clipboardGraph(graph: SceneGraph): SceneGraph {
+  const unkeyed =
+    [...graph.variables.values()].some((variable) => !variable.key) ||
+    [...graph.variableCollections.values()].some((collection) => !collection.key)
+  if (!unkeyed) return graph
+  const copy = cloneSceneGraphForFigExport(graph)
+  copy.variableCollections = new Map(
+    [...graph.variableCollections].map(([id, collection]) => [
+      id,
+      collection.key
+        ? collection
+        : {
+            ...collection,
+            key: derivedAssetKey(`collection:${id}`),
+            version: DERIVED_ASSET_VERSION
+          }
+    ])
+  )
+  copy.variables = new Map(
+    [...graph.variables].map(([id, variable]) => [
+      id,
+      variable.key
+        ? variable
+        : { ...variable, key: derivedAssetKey(`variable:${id}`), version: DERIVED_ASSET_VERSION }
+    ])
+  )
+  return copy
+}
+
 export function buildFigmaClipboardHTML(
   nodes: SceneNode[],
   graph: SceneGraph
 ): Promise<string | null> {
-  return withFigExportRuntime(graph, undefined, (runtime) =>
-    writeFigmaClipboardHTML(nodes, graph, runtime)
+  const written = clipboardGraph(graph)
+  return withFigExportRuntime(written, undefined, (runtime) =>
+    writeFigmaClipboardHTML(nodes, written, runtime)
   )
 }
 
