@@ -30,7 +30,8 @@ import {
   setSnappingPreference
 } from '@/app/settings/preferences/apply'
 import { appPreferences } from '@/app/settings/preferences/store'
-import { createSharedEditorMenuActions } from '@/app/shell/menu/editor-actions'
+import { createSharedEditorMenuActions } from '@/app/shell/menu/actions/editor'
+import { createSelectionMenuActions } from '@/app/shell/menu/actions/selection'
 import { openStorageWorkspace } from '@/app/shell/menu/navigation'
 import type {
   AppMenuActionItem,
@@ -39,7 +40,6 @@ import type {
   AppMenuIcon
 } from '@/app/shell/menu/schema'
 import { APP_MENU_SCHEMA } from '@/app/shell/menu/schema'
-import { createSelectionMenuActions } from '@/app/shell/menu/selection-actions'
 import { appMenuShortcutLabel } from '@/app/shell/menu/shortcut'
 import { openFileDialog } from '@/app/shell/menu/use'
 import { useAppTheme } from '@/app/shell/theme'

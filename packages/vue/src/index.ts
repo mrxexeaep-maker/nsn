@@ -32,6 +32,7 @@ export type { CanvasIssueMarkerOptions } from '#vue/canvas/issues/use'
 export type { CanvasLabelEdit, CanvasLabelKind } from '#vue/canvas/labels/edit'
 export { useCanvasVirtualReference } from '#vue/canvas/overlays/useCanvasVirtualReference'
 export { useTextEdit } from '#vue/canvas/text-edit/use'
+export { isCanvasTextInput } from '#vue/canvas/text-edit/textarea'
 export {
   useCanvasDrop,
   extractImageFilesFromClipboard,

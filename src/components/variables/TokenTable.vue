@@ -254,7 +254,7 @@ function dropEdge(id: string) {
                   <span
                     role="img"
                     :aria-label="variables.addedToLibraryCollection"
-                    class="flex shrink-0 text-issue-warning"
+                    class="flex shrink-0 text-warning"
                     data-test-id="variable-added-to-library"
                   >
                     <icon-lucide-triangle-alert class="size-3" aria-hidden="true" />
