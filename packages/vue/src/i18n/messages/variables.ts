@@ -105,9 +105,10 @@ export const variablesMessageDefaults = {
   scopeFontFamily: 'Font family',
   exportDesignTokens: 'Export as design tokens',
   importDesignTokens: 'Import design tokens',
-  libraryCollection: 'From a library',
-  libraryCollectionDescription:
-    "Edits are saved in this file and show in Figma, which keeps these variables read-only. Variables and modes added here don't show in Figma.",
+  libraryCollection: 'Library',
+  libraryCollectionHint: 'Copied from a library. Edits are saved in this file and show in Figma.',
+  addedToLibraryCollection:
+    "Added here. Figma doesn't show variables added to a library's collection.",
   importTokensDescription:
     'Choose where each collection and mode goes. Variables with the same name are updated; nothing is deleted.',
   importNewCollection: 'New collection',

@@ -41,6 +41,11 @@ function addVariable(
   })
 }
 
+/** A library variable's key, in the library story; Surface/Ink is one the file added. */
+function libraryKey(key: string): Partial<Variable> {
+  return library ? { key, version: '290407:24243' } : {}
+}
+
 graph.addCollection({
   id: 'theme',
   name: 'Theme',
@@ -91,13 +96,24 @@ addVariable(
     dark: { aliasId: 'blue-300' },
     contrast: { aliasId: 'blue-700' }
   },
-  { scopes: ['ALL_FILLS'], description: 'Buttons, links, and focus rings.' }
+  {
+    scopes: ['ALL_FILLS'],
+    description: 'Buttons, links, and focus rings.',
+    ...libraryKey('309597cc79582813865d705981904aab5709be5e')
+  }
 )
-addVariable('theme', 'surface', 'Surface/Base', 'COLOR', {
-  light: parseColor('#FFFFFF'),
-  dark: parseColor('#111827'),
-  contrast: parseColor('#FFFFFF')
-})
+addVariable(
+  'theme',
+  'surface',
+  'Surface/Base',
+  'COLOR',
+  {
+    light: parseColor('#FFFFFF'),
+    dark: parseColor('#111827'),
+    contrast: parseColor('#FFFFFF')
+  },
+  libraryKey('e42910ebf15692f34d8cf880b1d9ccd2c591b3bd')
+)
 addVariable('theme', 'ink', 'Surface/Ink', 'COLOR', {
   light: { aliasId: 'gray-900' },
   dark: { aliasId: 'gray-50' },

@@ -22,7 +22,10 @@ type Story = StoryObj<{ width?: number; library?: boolean }>
 /** From 56rem the CSS name has its own column and the inspector sits beside the list. */
 export const DesignSystemTokens: Story = {}
 
-/** A collection copied from a library stays editable, with a notice of what Figma makes of edits. */
+/**
+ * A collection copied from a library carries a Library badge and stays editable. Surface/Ink was
+ * added in the file, which Figma does not show in a library's collection, and its row says so.
+ */
 export const FromLibrary: Story = { args: { library: true } }
 
 /** In a dialog-sized panel the CSS name moves under the token name; every mode still shows. */
