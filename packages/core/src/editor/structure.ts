@@ -1,6 +1,6 @@
 import { pick } from 'es-toolkit'
 
-import { createsComponentCycle, type SceneNode } from '@open-pencil/scene-graph'
+import { createsComponentCycle, TRANSFORM_FIELDS, type SceneNode } from '@open-pencil/scene-graph'
 
 import { acceptingParent, acceptsChildren, prepareSlotEdits } from '#core/editor/components/slots'
 import { fitEnclosingGroupsWithUndo } from '#core/editor/structure/group-bounds'
@@ -25,9 +25,6 @@ import {
 import { createStructureReorderActions } from './structure/reorder'
 import { createStructureStateActions } from './structure/state'
 import type { EditorContext } from './types'
-
-/** The fields a move to another parent rewrites to keep a layer where it is drawn. */
-const PLACE_FIELDS = ['x', 'y', 'rotation', 'flipX', 'flipY'] as const
 
 export function createStructureActions(ctx: EditorContext) {
   const reorderActions = createStructureReorderActions(ctx)
@@ -118,7 +115,7 @@ export function createStructureActions(ctx: EditorContext) {
         const parent = node?.parentId ? ctx.graph.getNode(node.parentId) : undefined
         if (!node || !parent || parent.id === pageId) return []
         const index = parent.childIds.indexOf(id)
-        return [{ id, parentId: parent.id, index, place: pick(node, PLACE_FIELDS) }]
+        return [{ id, parentId: parent.id, index, place: pick(node, TRANSFORM_FIELDS) }]
       })
       .sort((a, b) => a.index - b.index)
     if (origins.length === 0) return

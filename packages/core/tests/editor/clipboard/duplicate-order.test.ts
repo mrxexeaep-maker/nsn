@@ -43,4 +43,13 @@ describe('duplicating', () => {
     expect(node(page).childIds).toEqual([a, b, ...copies, c])
     expect(copies.map((id) => node(id).x)).toEqual([0, 100])
   })
+
+  test('stacks the copies like their originals when selected top to bottom', () => {
+    const { page, a, b, c } = setup()
+    editor.select([c, a])
+    editor.duplicateSelected()
+    const copies = node(page).childIds.filter((id) => ![a, b, c].includes(id))
+    expect(node(page).childIds).toEqual([a, b, c, ...copies])
+    expect(copies.map((id) => node(id).x)).toEqual([0, 200])
+  })
 })

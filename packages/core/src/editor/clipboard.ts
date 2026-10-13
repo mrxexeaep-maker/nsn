@@ -55,7 +55,12 @@ export function createClipboardActions(ctx: EditorContext) {
   function duplicateSelected(selectedNodes: SceneNode[]) {
     const prevSelection = new Set(ctx.state.selectedIds)
     const selectedSet = new Set(selectedNodes.map((n) => n.id))
-    const topLevel = selectedNodes.filter((n) => !n.parentId || !selectedSet.has(n.parentId))
+    const stackIndex = (node: SceneNode) =>
+      ctx.graph.getNode(node.parentId ?? ctx.state.currentPageId)?.childIds.indexOf(node.id) ?? -1
+    // Copy in stacking order, not selection order, so the copies stack as their originals do.
+    const topLevel = selectedNodes
+      .filter((n) => !n.parentId || !selectedSet.has(n.parentId))
+      .sort((a, b) => stackIndex(a) - stackIndex(b))
     const parents = topLevel.map((node) => node.parentId ?? ctx.state.currentPageId)
     if (!prepareSlotEdits(ctx, parents)) return
 

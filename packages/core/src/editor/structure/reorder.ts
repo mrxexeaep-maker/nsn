@@ -1,6 +1,6 @@
 import { pick } from 'es-toolkit'
 
-import { createsComponentCycle } from '@open-pencil/scene-graph'
+import { createsComponentCycle, TRANSFORM_FIELDS } from '@open-pencil/scene-graph'
 
 import { assertNodeEditable } from '#core/editor/capabilities'
 import { prepareSlotEdits } from '#core/editor/components/slots'
@@ -72,7 +72,7 @@ export function createStructureReorderActions(ctx: EditorContext) {
     if (reparents && createsComponentCycle(ctx.graph, nodeId, newParentId)) return
     if (!prepareSlotEdits(ctx, [origParentId, newParentId])) return
     const origIndex = ctx.graph.getNode(origParentId)?.childIds.indexOf(nodeId) ?? 0
-    const origPlace = pick(node, ['x', 'y', 'rotation', 'flipX', 'flipY'])
+    const origPlace = pick(node, TRANSFORM_FIELDS)
 
     const place = () => {
       if (reparents) ctx.graph.reparentNode(nodeId, newParentId)
