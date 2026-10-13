@@ -25,44 +25,35 @@ export function contrastRatio(
   )
 }
 
-/** Screen luminance as APCA 0.0.98G measures it, with its soft clamp near black. */
-function apcaLuminance({ r, g, b }: Pick<Color, 'r' | 'g' | 'b'>): number {
-  const y = 0.2126729 * r ** 2.4 + 0.7151522 * g ** 2.4 + 0.072175 * b ** 2.4
-  return y < 0.022 ? y + (0.022 - y) ** 1.414 : y
-}
-
 /**
- * APCA lightness contrast (Lc) of `text` on an opaque `background`, about -108 to 106; negative
- * when the text is lighter. Unlike WCAG 2 it rates light text on mid-tone saturated colors as
- * readable as it looks, where WCAG 2 prefers black.
+ * `background` darkened just enough for light `text` to reach `ratio` on it, by scaling its
+ * channels toward black, which keeps its hue; returned as it is when the text already does.
+ * The default is white text at WCAG AA's 4.5:1 for normal text.
  */
-export function apcaContrast(
-  text: Pick<Color, 'r' | 'g' | 'b'>,
-  background: Pick<Color, 'r' | 'g' | 'b'>
-): number {
-  const textY = apcaLuminance(text)
-  const backgroundY = apcaLuminance(background)
-  if (backgroundY > textY) {
-    const sapc = (backgroundY ** 0.56 - textY ** 0.57) * 1.14
-    return sapc < 0.1 ? 0 : (sapc - 0.027) * 100
-  }
-  const sapc = (backgroundY ** 0.65 - textY ** 0.62) * 1.14
-  return sapc > -0.1 ? 0 : (sapc + 0.027) * 100
-}
-
-/**
- * Black or white, whichever reads better on an opaque `background`. `wcag2` keeps the WCAG 2
- * ratio, which canvas labels follow; `apca` suits UI text on a person's or agent's color, where
- * WCAG 2 puts black on mid-tone blues and reds that read better with white.
- */
-export function readableForeground(
-  background: Pick<Color, 'r' | 'g' | 'b'>,
-  measure: 'wcag2' | 'apca' = 'wcag2'
+export function darkenForContrast(
+  background: Color,
+  text: Pick<Color, 'r' | 'g' | 'b'> = WHITE,
+  ratio = 4.5
 ): Color {
-  if (measure === 'apca') {
-    return Math.abs(apcaContrast(BLACK, background)) >= Math.abs(apcaContrast(WHITE, background))
-      ? BLACK
-      : WHITE
+  if (contrastRatio(background, text) >= ratio) return background
+  const scaled = (factor: number): Color => ({
+    ...background,
+    r: background.r * factor,
+    g: background.g * factor,
+    b: background.b * factor
+  })
+  // Darker always contrasts more with light text, so the smallest darkening is found by halving.
+  let enough = 0
+  let short = 1
+  for (let step = 0; step < 20; step++) {
+    const middle = (enough + short) / 2
+    if (contrastRatio(scaled(middle), text) >= ratio) enough = middle
+    else short = middle
   }
+  return scaled(enough)
+}
+
+/** Black or white, whichever reads better on an opaque `background`. */
+export function readableForeground(background: Pick<Color, 'r' | 'g' | 'b'>): Color {
   return contrastRatio(background, BLACK) >= contrastRatio(background, WHITE) ? BLACK : WHITE
 }

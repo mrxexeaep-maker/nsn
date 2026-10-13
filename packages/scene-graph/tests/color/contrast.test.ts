@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 
 import {
-  apcaContrast,
   compositeOver,
   contrastRatio,
+  darkenForContrast,
   readableForeground
 } from '@open-pencil/scene-graph/color'
 import type { Color } from '@open-pencil/scene-graph/primitives'
@@ -43,24 +43,28 @@ describe('readableForeground', () => {
     expect(readableForeground({ r: 0x25 / 255, g: 0x63 / 255, b: 0xeb / 255 })).toEqual(WHITE)
     expect(readableForeground(GRAY_94)).toEqual(BLACK)
   })
-
-  test('by APCA, keeps white on mid-tone blues and reds and black on pale colors', () => {
-    const blue = { r: 0x4c / 255, g: 0x80 / 255, b: 0xf0 / 255 }
-    const red = { r: 0xeb / 255, g: 0x57 / 255, b: 0x4a / 255 }
-    const yellow = { r: 0xfd / 255, g: 0xe6 / 255, b: 0x8a / 255 }
-
-    expect(readableForeground(blue)).toEqual(BLACK)
-    expect(readableForeground(blue, 'apca')).toEqual(WHITE)
-    expect(readableForeground(red, 'apca')).toEqual(WHITE)
-    expect(readableForeground(yellow, 'apca')).toEqual(BLACK)
-    expect(readableForeground({ r: 0.94, g: 0.94, b: 0.94 }, 'apca')).toEqual(BLACK)
-  })
 })
 
-describe('apcaContrast', () => {
-  test('matches the APCA reference values', () => {
-    // Reference: black on white Lc 106.04, white on black Lc -107.88 (APCA 0.0.98G).
-    expect(apcaContrast(BLACK, WHITE)).toBeCloseTo(106.04, 1)
-    expect(apcaContrast(WHITE, BLACK)).toBeCloseTo(-107.88, 1)
+describe('darkenForContrast', () => {
+  const amber: Color = { r: 1, g: 0.76, b: 0.03, a: 1 }
+
+  test('darkens just enough for white text to reach 4.5:1, keeping the hue', () => {
+    const darkened = darkenForContrast(amber)
+    expect(contrastRatio(darkened, WHITE)).toBeGreaterThanOrEqual(4.5)
+    expect(contrastRatio(darkened, WHITE)).toBeLessThan(4.51)
+    // Every channel scaled by one factor keeps their proportions, and so the hue.
+    expect(darkened.g / darkened.r).toBeCloseTo(amber.g / amber.r, 6)
+    expect(darkened.b / darkened.r).toBeCloseTo(amber.b / amber.r, 6)
+    expect(darkened.a).toBe(1)
+  })
+
+  test('leaves a color that already reaches the ratio as it is', () => {
+    const deep: Color = { r: 0.2, g: 0.1, b: 0.5, a: 1 }
+    expect(darkenForContrast(deep)).toBe(deep)
+  })
+
+  test('takes another text color and ratio', () => {
+    const darkened = darkenForContrast(amber, GRAY_94, 3)
+    expect(contrastRatio(darkened, GRAY_94)).toBeGreaterThanOrEqual(3)
   })
 })
