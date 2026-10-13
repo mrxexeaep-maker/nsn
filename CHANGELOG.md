@@ -18,6 +18,8 @@
 ### Fixed
 
 - `.fig` files whose text content is bound to a number or boolean variable, as Figma's UI binds one, open instead of failing with "Unsupported variable expression STRINGIFY". The text follows the variable as Figma writes it, a whole number as an integer and others with two decimals, and saving keeps the binding (#1110).
+- The thumbnail in a `.fig` file shows its page's own background between layers. Before, it took the colour of the page open in the editor, and files written from the CLI always showed light grey.
+- People in a shared room see the overrides of instances in the shared document: text, slot content, and every other overridden field arrived empty, and editing such an instance could throw. Rooms opened by earlier builds do not meet rooms opened by this one.
 - Showing or hiding a layer of an instance that a boolean component property drives sets the property, as in Figma, so every layer it drives follows and Figma shows the instance as OpenPencil does. Before, only that layer changed, which Figma ignored.
 - Figma shows shader fills and images from older documents in `.fig` files OpenPencil writes: every image is stored under the SHA-1 of its bytes, the only name Figma reads, and a shader keeps its preset through `.fig` files and the Figma clipboard.
 - HTML, Vue, and React exports name a JPEG, GIF, or WebP image fill by its own type in the data URL instead of calling every image PNG.
