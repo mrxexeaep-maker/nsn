@@ -1,0 +1,82 @@
+import { describe, expect, test } from 'bun:test'
+
+import { lintFiles, ruleDiagnostics } from './helpers/lint.ts'
+
+const rule = 'no-undefined-color-classes'
+const rules = { [`open-pencil/${rule}`]: 'error' }
+const SCRIPT = '<script setup lang="ts">\nconst ok = true\n</script>\n'
+
+/** One fixture per case, each in a theme module, so one Oxlint run checks them all. */
+async function themeDiagnostics(classes: readonly string[]) {
+  const sources = Object.fromEntries(
+    classes.map((className, index) => [
+      `src/theme/case-${index}.ts`,
+      `export const theme = '${className}'\n`
+    ])
+  )
+  const diagnostics = ruleDiagnostics(await lintFiles(sources, rules), rule)
+  return classes.map((_, index) =>
+    diagnostics.filter((item) => item.filename?.endsWith(`case-${index}.ts`))
+  )
+}
+
+describe('no-undefined-color-classes', () => {
+  const rejected = [
+    'text-danger',
+    'hover:border-border-strong',
+    'data-[state=open]:text-foreground',
+    'bg-red-600',
+    'text-sky-400/80',
+    'text-[var(--color-warning)]'
+  ]
+  const accepted = [
+    'text-surface',
+    'bg-panel',
+    'border-warning/40',
+    'hover:bg-error-fill',
+    'text-white',
+    'bg-transparent',
+    'text-xs',
+    'text-left',
+    'border-b',
+    'border-t-2',
+    'border-dashed',
+    'ring-1',
+    'ring-inset',
+    'outline-none',
+    'outline-offset-2',
+    'bg-cover',
+    'bg-[image:linear-gradient(red,blue)]',
+    'text-[11px]',
+    'divide-y',
+    'fill-current'
+  ]
+
+  test('rejects color classes that name no theme token', async () => {
+    const results = await themeDiagnostics(rejected)
+    expect(results.map((items) => items.length)).toEqual(rejected.map(() => 1))
+  })
+
+  test('accepts theme tokens, built-in colors, and the same utilities without a color', async () => {
+    const results = await themeDiagnostics(accepted)
+    expect(results.map((items) => items.length)).toEqual(accepted.map(() => 0))
+  })
+
+  test('checks Vue class attributes and bindings, and class helpers outside the theme', async () => {
+    const diagnostics = ruleDiagnostics(
+      await lintFiles(
+        {
+          'src/components/Static.vue': `${SCRIPT}<template><p class="text-danger" /></template>\n`,
+          'src/components/Bound.vue': `${SCRIPT}<template><p :class="[ok && 'text-surface', 'bg-amber-500']" /></template>\n`,
+          'src/components/variants.ts':
+            "import { tv } from 'tailwind-variants'\nexport const ui = tv({ base: 'text-foreground' })\n",
+          'src/components/ids.ts': "export const ID = 'fill-picker-tab-image'\n"
+        },
+        rules
+      ),
+      rule
+    )
+    const files = diagnostics.map((item) => item.filename?.split('/').pop())
+    expect(files.toSorted()).toEqual(['Bound.vue', 'Static.vue', 'variants.ts'])
+  })
+})
