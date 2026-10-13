@@ -88,7 +88,7 @@ body:
     attributes:
       label: Diagnostics
       description: |
-        In the app, **Settings › Diagnostics › Save diagnostics…** saves a report of recent technical events without prompts, design content, or keys. For an AI chat problem, the conversation's **… › Save trace…** saves the whole conversation, including your prompts and tool output, so review it before attaching.
+        In the app, **Settings › Diagnostics › Save diagnostics…** saves recent technical events. It leaves out chat messages and tool payloads and scrubs keys and personal paths from error messages, but an error can still quote a name from your file, so skim it before attaching. For an AI chat problem, the conversation's **… › Save trace…** saves the whole conversation, including your prompts and tool output, so review it before attaching.
       placeholder: Drag the saved .json files here.
 
   - type: textarea
