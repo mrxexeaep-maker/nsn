@@ -37,7 +37,7 @@ function setup() {
     selectedVertexIndices: new Set<number>(),
     selectedHandles: new Set<number>(),
     hoveredHandleInfo: null
-  } as unknown as typeof editor.state.nodeEditState
+  }
 }
 
 function press(cx: number, cy: number, shiftKey = false) {
