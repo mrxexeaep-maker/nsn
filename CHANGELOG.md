@@ -2,6 +2,69 @@
 
 ## Unreleased
 
+## 0.16.0-beta.3 — 2026-10-13
+
+This is a pre-release that lists changes since 0.16.0-beta.2: npm packages are published under the `next` tag, and installed apps on the stable release do not update to it. Linux package managers see `0.16.0-beta.3` as newer than `0.16.0`, so `.deb` and `.rpm` users should remove the beta before installing the final 0.16.0.
+
+### Breaking changes
+
+- `computeImageHash` from `@open-pencil/core` and `@open-pencil/scene-graph` returns the hex SHA-1 of the bytes, the name Figma gives an image, instead of an OpenPencil-only hash of the same length. New images are stored under that name, so `.fig` files and the Figma clipboard carry it as it is; images in documents saved before keep their names.
+
+### Added
+
+- Drop design token files, `.tokens`, `.tokens.json`, or `.resolver.json`, on the editor to import them into the document's variables, as the Variables dialog's Import button does.
+- Apply a variable mode to layers and pages from Appearance, or the Page section with nothing selected, as in Figma: choose Auto or a mode for each collection the layers use. Layers set to a mode show it after their name in Layers.
+- Settings → Cloud storage offers the OpenPencil Cloud waitlist: the web app signs you up there, with a confirmation email, and the desktop app opens the sign-up on openpencil.dev.
+- The conversation menu saves a chat's trace as a JSON file: every message, reasoning step, and tool call, and each run's model, settings, usage, timing, and errors, with enough to rebuild and check every request the model received.
+- Settings → Diagnostics saves the diagnostics report as a JSON file, next to Copy diagnostics.
+- openpencil.dev opens on live editor demos of design, AI, code export, the CLI, the SDK, and collaboration, in every docs language, with a short roadmap and an OpenPencil Cloud waitlist.
+- A download page offers the latest release's installer for the visitor's system, lists every installer for macOS, Windows, and Linux with Homebrew and the web app, and shows a newer beta with its release notes when there is one.
+- `FontManager.setBundledFontLocator()` lets an SDK host say where its bundler put the fonts from the new `@open-pencil/core/assets` export.
+
+### Changed
+
+- Trackpads and mouse wheels pan and zoom the canvas as in Figma. A two-finger pan moves the canvas twice as far, up to 120 px per scroll event. A pinch zooms as far in the desktop app and Safari as in other browsers, where it zooms a little less than before. In the desktop app and Safari, a pinch over Preview's live controls or comment pins now zooms the canvas, where it did nothing. On Windows each mouse wheel notch pans 16 px instead of 100 px, and notches less than 50 ms apart pan up to 120 px each.
+
+### Fixed
+
+- Saving an opened `.fig` file writes only what an edit changed in a layer or variable, and keeps the rest as Figma saved it. That includes data OpenPencil does not model, an instance's library link and saved overrides, and an edited text's letter spacing in percent and font names. Before, saving rewrote each edited layer whole. Importing design tokens or adding a mode also rewrote every layer and variable in the file that uses variable modes.
+- Saving an opened `.fig` file writes a variable's new value into every layer that uses it, through an alias too, so Figma shows the edit. Before, layers bound through an alias, or any layer read from the file, kept the color Figma had saved.
+- Variables that alias library variables still point at the library after a save, and a collection's modes keep their order in Figma.
+- Importing design tokens adds them to the file's own collections, never to a collection copied from a library, where Figma did not show them. A token collection named like a library's, such as Tokens in Preline UI files, becomes a new collection of the file.
+- Figma shows shader fills and images from older documents in `.fig` files OpenPencil writes: every image is stored under the SHA-1 of its bytes, the only name Figma reads, and a shader keeps its preset through `.fig` files and the Figma clipboard.
+- `.fig` files whose text content is bound to a number or boolean variable, as Figma's UI binds one, open instead of failing with "Unsupported variable expression STRINGIFY". The text follows the variable as Figma writes it, a whole number as an integer and others with two decimals, and saving keeps the binding (#1110).
+- Rounded points in a vector imported from a `.fig` file keep their own corner radius and join when the file is saved, and the plugin API reports their radius instead of 0.
+- The thumbnail in a `.fig` file shows its page's own background between layers. Before, it took the color of the page open in the editor, and files written from the CLI always showed light grey.
+- Fill and stroke bindings to variables made in OpenPencil survive a paste into Figma, which keeps them as remote variables as it does for variables copied from another Figma file.
+- Instances pasted into Figma keep their names and no longer carry their component's library identity.
+- Showing or hiding a layer of an instance that a boolean component property drives sets the property, as in Figma, so every layer it drives follows and Figma shows the instance as OpenPencil does. Before, only that layer changed, which Figma ignored.
+- The Variables panel marks collections copied from a library. Edits to them are saved and show in Figma, but Figma doesn't show variables or modes added to them; the panel warns on such a variable.
+- The Variables dialog keeps variable names in view in a collection with more modes than fit, such as Tokens in Preline UI files, and scrolls sideways instead. Before, the name column shrank to nothing and its header ran into the first mode's.
+- Dragging a layer down the layers panel drops it where the line shows, not one slot lower. Moving a layer into a frame or group from the panel keeps it where it's drawn on the canvas, and undo puts it back.
+- Hiding, locking, renaming and moving layers to another page can be undone. Hiding or locking several layers at once is a single undo step.
+- A duplicate is stacked directly above its original, rather than on top of everything.
+- Undoing or redoing back to the last save shows the document as saved again, unless a collaborator or another change outside undo changed it since.
+- Redoing a pen path brings back its points, fill and stroke instead of an empty vector. Escape keeps the path drawn so far, as the pen tool guide says. The distance for closing a path no longer changes with zoom.
+- Editing a vector's points no longer leaks memory on every redraw.
+- The corners of a stroked path take its join, as in Figma. This applies to paths drawn with the pen and to unfilled icons. Thick strokes no longer notch at each corner, and round or square caps appear only at the path's ends.
+- After editing text on a path, each character turns along the stretch of path it covers, as in Figma, so wide characters no longer point off the curve on tight bends.
+- Shaders playing in preview go on from where they were when you zoom, instead of showing their still frame and starting over.
+- People in a shared room see and edit the document's variables, and see the overrides of its instances. Collections, modes, and values reach everyone in the room, layers bound to them follow, and two people editing different modes of one variable both keep their change. Instance text, slot content, and every other overridden field arrived empty before, and editing such an instance could throw. Rooms opened by earlier builds do not meet rooms opened by this one.
+- The bar that shows who you follow has a white label on the person's or agent's color, darkened just enough to read at WCAG AA, instead of black text on mid-tone colors such as the AI agent's blue.
+- Stopping a Pi reply in the desktop app cancels that turn and keeps the session. Pi remembers the conversation and its sandbox for your next message. Before, the stop raised an error, dropped the connection, and started a new Pi process, leaving the old one running.
+- The agent of a Pi or ACP chat in the desktop app leaves the canvas as soon as a reply finishes, is stopped, or fails, instead of staying at work for up to 20 seconds and keeping your view following it. A tool call already in progress still finishes, but no longer puts the agent back to work.
+- AI chat streams in the desktop app, and a reply keeps going past 30 seconds while it is still arriving instead of failing with "Desktop HTTP request failed"; a request that cannot reach the provider is retried before the reply starts.
+- In the desktop app, Select All, Undo, and Redo typed in a text field such as the chat input act on the field instead of the canvas, and other canvas shortcuts no longer reach the canvas from a text field.
+- Scrolling the chat back to the bottom resumes following new output.
+- Warnings and errors that showed without their color now use the theme's: library update and diagnostics warnings, errors on the home screen and when renaming layers, publishing a library or authoring variants, open menu triggers, and the switch's hover border. Chat errors, copy confirmations, error toasts and the thinking meter follow the light theme too.
+- HTML, Vue, and React exports name a JPEG, GIF, or WebP image fill by its own type in the data URL instead of calling every image PNG.
+- CLI `eval` and the CLI tools measure text in the document they edit, so text with line breaks or a fixed width gets its real height.
+
+### Performance
+
+- Joining a shared room is faster: the document a person receives on joining is compressed, about a twelfth of its size before (480 KB instead of 5.7 MB for the demo tour), and edits travel in Yjs's more compact encoding.
+- Shader fills store their still frame as JPEG when no pixel is transparent, about 25 times smaller than PNG, so documents with shaders save and open faster; frames with transparency stay PNG. Figma opens both.
+
 ## 0.16.0-beta.2 — 2026-10-12
 
 This is a pre-release that lists changes since 0.16.0-beta.1: npm packages are published under the `next` tag, and installed apps on the stable release do not update to it. Linux package managers see `0.16.0-beta.2` as newer than `0.16.0`, so `.deb` and `.rpm` users should remove the beta before installing the final 0.16.0.

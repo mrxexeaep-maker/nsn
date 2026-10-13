@@ -45,13 +45,17 @@ import statusTheme from '@/theme/feedback/status'
 
 const CodeEditor = defineAsyncComponent(() => import('@/components/code-editor/CodeEditor.vue'))
 
-const { active = true } = defineProps<{ active?: boolean }>()
+const { active = true, initialSource = 'design-jsx' } = defineProps<{
+  active?: boolean
+  /** The code shown first; a host that showcases components can open on Vue or React. */
+  initialSource?: CodeSource
+}>()
 const store = useEditorStore()
 const editorActive = computed(() => active)
 const { code, common } = useI18n()
 const { copy, copied } = useClipboard({ copiedDuring: 2000 })
 const { copy: copyReference, copied: copiedReference } = useClipboard({ copiedDuring: 2000 })
-const source = ref<CodeSource>('design-jsx')
+const source = ref<CodeSource>(initialSource)
 const draft = ref('')
 /** The person has written in the code since it was generated for the current selection. */
 const edited = ref(false)
@@ -415,7 +419,7 @@ watch(
           data-test-id="code-panel-copy-ref"
           @click="copyReference(JSX_REFERENCE)"
         >
-          <icon-lucide-check v-if="copiedReference" class="size-3 text-[var(--color-success)]" />
+          <icon-lucide-check v-if="copiedReference" class="size-3 text-success" />
           <icon-lucide-book-open v-else class="size-3" />
         </AppButton>
       </Tip>
@@ -461,7 +465,7 @@ watch(
       v-if="error"
       role="alert"
       data-test-id="code-panel-error"
-      class="shrink-0 border-t border-[var(--color-error-border)] bg-[var(--color-error-bg)] px-3 py-2 text-[11px] leading-snug text-[var(--color-error)]"
+      class="shrink-0 border-t border-error-border bg-error-bg px-3 py-2 text-[11px] leading-snug text-error"
     >
       {{ error }}
     </div>
@@ -497,7 +501,7 @@ watch(
           data-test-id="code-panel-copy"
           @click="copy(draft)"
         >
-          <icon-lucide-check v-if="copied" class="size-3 text-[var(--color-success)]" />
+          <icon-lucide-check v-if="copied" class="size-3 text-success" />
           <icon-lucide-copy v-else class="size-3" />
           {{ copied ? common.copied : common.copy }}
         </AppButton>
