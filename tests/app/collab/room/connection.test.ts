@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
+import { deflateSync } from 'fflate'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 
@@ -86,14 +87,18 @@ describe('collab room connection', () => {
     expect(nodes(guest).get('0:6')?.get('name')).toBe('Renamed')
   })
 
-  test('ignores a sync reply that does not inflate', async () => {
+  test('drops what does not inflate or decode instead of throwing from the transport', async () => {
     const rooms = createMemoryRooms()
     const ydoc = connect(rooms.join)
     const intruder = rooms.join(ROOM)
     const [sendReply] = intruder.makeAction('sync-reply')
+    const [sendUpdate] = intruder.makeAction('yjs-update')
     await rooms.settle()
 
+    const garbage = new Uint8Array([255, 255, 255, 255, 255, 1, 2, 3])
     sendReply(Y.encodeStateAsUpdate(new Y.Doc()))
+    sendReply(deflateSync(garbage))
+    sendUpdate(garbage)
     await rooms.settle()
     expect(ydoc.getMap('nodes').size).toBe(0)
   })

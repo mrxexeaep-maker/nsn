@@ -39,15 +39,18 @@ function encodeSyncReply(ydoc: Y.Doc, stateVector: Uint8Array): Uint8Array {
   return deflateSync(Y.encodeStateAsUpdateV2(ydoc, stateVector))
 }
 
-function applySyncReply(ydoc: Y.Doc, data: Uint8Array): void {
-  let update: Uint8Array
+/**
+ * Applies what a peer sent, `inflate`d first for a sync reply. Data that does not inflate or
+ * decode came from a build that does not share this room's format, or from a broken peer, and
+ * is dropped rather than thrown from the transport's handler. Returns whether it applied.
+ */
+function applyRemote(ydoc: Y.Doc, data: Uint8Array, inflate = false): boolean {
   try {
-    update = inflateSync(data)
+    Y.applyUpdateV2(ydoc, inflate ? inflateSync(data) : data, 'remote')
+    return true
   } catch {
-    // A reply that does not inflate came from a build that does not share this room's format.
-    return
+    return false
   }
-  Y.applyUpdateV2(ydoc, update, 'remote')
 }
 
 function awarenessEntries(data: Uint8Array): AwarenessEntry[] {
@@ -85,7 +88,7 @@ export function connectCollabRoom({
   const awarenessClientsByPeer = new Map<string, Set<number>>()
 
   getUpdate((data) => {
-    Y.applyUpdateV2(ydoc, data, 'remote')
+    applyRemote(ydoc, data)
   })
 
   getAwareness((data, peerId) => {
@@ -104,7 +107,7 @@ export function connectCollabRoom({
   })
 
   getSyncReply((data) => {
-    applySyncReply(ydoc, data)
+    applyRemote(ydoc, data, true)
   })
 
   ydoc.on('updateV2', (update: Uint8Array, origin: unknown) => {
