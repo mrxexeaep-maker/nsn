@@ -39,10 +39,11 @@ export function useScrollFollowing(
 
   /**
    * Only a gesture away from the bottom stops following; reaching the bottom resumes it. A
-   * downward gesture changes nothing: at the bottom it scrolls nothing, so a flag it set would
-   * never clear and would read the next follow as the reader leaving.
+   * gesture that cannot move the viewport changes nothing: downward at the bottom, or upward
+   * while the transcript has nothing above it. No scroll event would follow to undo it.
    */
   function leaveBottom() {
+    if (!viewport.value || viewport.value.scrollTop <= 0) return
     userScrolling = true
     following.value = false
   }

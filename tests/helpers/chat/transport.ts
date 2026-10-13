@@ -42,9 +42,10 @@ export async function injectMockChatTransport(page: Page): Promise<void> {
           throw new Error('Mock connection dropped')
         }
 
-        // Streams 40 lines, waits for a `mock-chat-continue` event on window, then streams 40 more,
-        // so a test can scroll while no output arrives.
-        if (normalized.includes('paused stream')) {
+        // Streams 40 lines (2 for a short one), waits for a `mock-chat-continue` event on window,
+        // then streams 40 more, so a test can scroll while no output arrives.
+        if (normalized.includes('paused stream') || normalized.includes('paused short stream')) {
+          const beforePause = normalized.includes('short') ? 2 : 40
           return new ReadableStream({
             start(controller) {
               controller.enqueue({ type: 'start', messageId })
@@ -62,11 +63,11 @@ export async function injectMockChatTransport(page: Page): Promise<void> {
                   done()
                 }, 20)
               }
-              streamLines(40, () => {
+              streamLines(beforePause, () => {
                 window.addEventListener(
                   'mock-chat-continue',
                   () =>
-                    streamLines(80, () => {
+                    streamLines(beforePause + 40, () => {
                       controller.enqueue({ type: 'text-end', id: 'text-1' })
                       controller.enqueue({ type: 'finish', finishReason: 'stop' })
                       controller.close()
