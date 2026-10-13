@@ -61,6 +61,8 @@ export function createClipboardActions(ctx: EditorContext) {
 
     const newRootIds: string[] = []
     const allSnapshots = new Map<string, SceneNode>()
+    // The topmost layer each parent's copies came from.
+    const topSource = new Map<string, number>()
 
     const placed: Rect[] = []
     for (const node of topLevel) {
@@ -69,13 +71,31 @@ export function createClipboardActions(ctx: EditorContext) {
         topLevel.length === 1
           ? placementActions.duplicatePosition(node, placed)
           : { x: node.x, y: node.y }
+      const sourceIndex = ctx.graph.getNode(parentId)?.childIds.indexOf(node.id) ?? -1
       const clone = duplicateNode(ctx, node, parentId, position)
       if (!clone) continue
+      topSource.set(parentId, Math.max(topSource.get(parentId) ?? -1, sourceIndex))
       placed.push(getAxisAlignedBoundsInParent([clone], parentId, ctx.graph))
       newRootIds.push(clone.id)
       const subtree = snapshotSubtree(ctx.graph, clone.id)
       for (const [id, snap] of subtree) allSnapshots.set(id, snap)
     }
+
+    // Figma stacks the copies directly above the topmost layer they copy, in their own order,
+    // not on top of everything in the parent.
+    const stacked = new Map<string, number>()
+    const stacking = newRootIds.flatMap((id) => {
+      const parentId = ctx.graph.getNode(id)?.parentId
+      const top = parentId ? topSource.get(parentId) : undefined
+      if (!parentId || top === undefined || top < 0) return []
+      const offset = stacked.get(parentId) ?? 0
+      stacked.set(parentId, offset + 1)
+      return [{ id, parentId, index: top + 1 + offset }]
+    })
+    const stack = () => {
+      for (const { id, parentId, index } of stacking) ctx.graph.insertChildAt(id, parentId, index)
+    }
+    stack()
 
     if (newRootIds.length > 0) {
       ctx.setSelectedIds(new Set(newRootIds))
@@ -88,6 +108,7 @@ export function createClipboardActions(ctx: EditorContext) {
             const parentId = snapshot.parentId ?? ctx.state.currentPageId
             restoreSubtree(ctx.graph, snapshot, parentId, allSnapshots)
           }
+          stack()
           ctx.setSelectedIds(new Set(newRootIds))
         },
         inverse: () => {
