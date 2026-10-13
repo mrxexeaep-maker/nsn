@@ -1,4 +1,4 @@
-import type { Rect } from '@open-pencil/scene-graph/primitives'
+import type { SelectionFrame } from '@open-pencil/scene-graph/coordinate'
 
 export interface RotationPreview {
   nodeId: string
@@ -6,14 +6,10 @@ export interface RotationPreview {
 }
 
 /**
- * A multi-selection being turned: the axis-aligned canvas bounds it had when the rotation started
- * and the angle, in degrees, it has turned about their center, so the overlay draws the selection's
- * box turning with its layers instead of growing around them.
+ * A multi-selection's frame while it turns: the box it started from, turned with its layers, so
+ * the overlay draws the box turning instead of growing around them.
  */
-export interface SelectionRotationPreview {
-  bounds: Rect
-  angle: number
-}
+export type SelectionRotationPreview = SelectionFrame
 
 export interface ViewportTransform {
   panX: number

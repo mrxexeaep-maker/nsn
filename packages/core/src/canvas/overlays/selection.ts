@@ -2,6 +2,7 @@ import type { Canvas } from 'canvaskit-wasm'
 
 import { slotPropertyId } from '@open-pencil/scene-graph'
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import { selectionFrame, type SelectionFrame } from '@open-pencil/scene-graph/coordinate'
 import { computeBounds, rotatedCorners } from '@open-pencil/scene-graph/geometry'
 import Matrix from '@open-pencil/scene-graph/matrix'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
@@ -21,8 +22,7 @@ import {
   selectionPath,
   rotationHandleLayout,
   type RotationHandleLayout,
-  type RotationPreview,
-  type SelectionRotationPreview
+  type RotationPreview
 } from '#core/geometry'
 import { pathTextSelectionBand, pointAtArc } from '#core/text/path'
 
@@ -161,11 +161,10 @@ export function drawSelection(
     .map((id) => graph.getNode(id))
     .filter((n): n is SceneNode => n !== undefined)
   if (nodes.length === 0) return
-  if (overlays.selectionRotationPreview) {
-    drawTurningGroupBounds(r, canvas, overlays.selectionRotationPreview)
-  } else {
-    r.drawGroupBounds(canvas, nodes, graph, preview)
-  }
+  // A selection whose layers share an angle draws its box turned to it, as in Figma.
+  const frame = overlays.selectionRotationPreview ?? selectionFrame(nodes, graph)
+  if (frame.angle !== 0) drawFrameBounds(r, canvas, frame)
+  else r.drawGroupBounds(canvas, nodes, graph, preview)
 
   r.drawSelectionLabels(canvas, graph, selectedIds, overlays)
 }
@@ -451,29 +450,24 @@ export function drawGroupBounds(
 }
 
 /**
- * A multi-selection's box while it turns, as Figma draws it: the bounds it started from, rotated
- * about their center by the angle turned so far, with its handles and rotation stalk turning too.
+ * A multi-selection's box turned to its frame, as Figma draws a selection whose layers share an
+ * angle, and one that is turning: the box, its handles, and its rotation stalk all turned.
  */
-function drawTurningGroupBounds(
+function drawFrameBounds(
   r: SkiaRenderer,
   canvas: Canvas,
-  { bounds, angle }: SelectionRotationPreview
+  { box: bounds, angle }: SelectionFrame
 ): void {
   const radians = (angle * Math.PI) / 180
   const cos = Math.cos(radians)
   const sin = Math.sin(radians)
-  const cx = bounds.x + bounds.width / 2
-  const cy = bounds.y + bounds.height / 2
   const turned = [
     [bounds.x, bounds.y],
     [bounds.x + bounds.width, bounds.y],
     [bounds.x + bounds.width, bounds.y + bounds.height],
     [bounds.x, bounds.y + bounds.height],
-    [cx, bounds.y]
-  ].flatMap(([x, y]) => [
-    cx + (x - cx) * cos - (y - cy) * sin,
-    cy + (x - cx) * sin + (y - cy) * cos
-  ])
+    [bounds.x + bounds.width / 2, bounds.y]
+  ].flatMap(([x, y]) => [x * cos - y * sin, x * sin + y * cos])
   const screen = Matrix.mapPoints(viewportMatrix(r), turned)
   const corner = (i: number): [number, number] => [screen[i * 2], screen[i * 2 + 1]]
   r.auxStroke.setStrokeWidth(1)

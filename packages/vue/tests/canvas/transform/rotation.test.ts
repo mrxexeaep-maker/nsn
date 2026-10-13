@@ -9,6 +9,7 @@ import {
   handleSelectionRotateMove,
   tryStartRotation
 } from '#vue/canvas/transform/rotation'
+import { selectionBox } from '#vue/shared/input/resize/selection'
 import type { DragRotateSelection, DragState } from '#vue/shared/input/types'
 
 let editor: Editor
@@ -64,14 +65,18 @@ describe('rotating a multi-selection', () => {
     expect(place(editor.graph.getNode(a))).toEqual({ x: 100, y: 0, rotation: 90 })
     expect(place(editor.graph.getNode(b))).toEqual({ x: 0, y: 100, rotation: 90 })
     // The selection's box turns with its layers rather than growing around them.
+    // The selection's box turns with its layers rather than growing around them: the same box in
+    // a frame turned a quarter, its center still at (75, 75).
     expect(editor.state.selectionRotationPreview).toEqual({
-      bounds: { x: 0, y: 0, width: 150, height: 150 },
+      box: { x: 0, y: -150, width: 150, height: 150 },
       angle: 90
     })
 
     commitRotationDrag(editor, drag)
     expect(place(editor.graph.getNode(b))).toEqual({ x: 0, y: 100, rotation: 90 })
     expect(editor.state.selectionRotationPreview).toBeNull()
+    // The layers now share the angle, so the selection keeps its turned box, as in Figma.
+    expect(selectionBox(editor)?.angle).toBeCloseTo(90, 6)
   })
 
   test('one undo puts every layer back', () => {

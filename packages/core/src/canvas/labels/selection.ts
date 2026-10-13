@@ -1,6 +1,7 @@
 import type { Canvas } from 'canvaskit-wasm'
 
 import type { SceneNode, SceneGraph } from '@open-pencil/scene-graph'
+import { selectionFrame, type SelectionFrame } from '@open-pencil/scene-graph/coordinate'
 import { computeBounds } from '@open-pencil/scene-graph/geometry'
 import Matrix from '@open-pencil/scene-graph/matrix'
 
@@ -12,11 +13,7 @@ import {
   SIZE_PILL_RADIUS,
   SIZE_PILL_TEXT_OFFSET_Y
 } from '#core/constants'
-import {
-  createSceneGeometry,
-  hasTransformHandles,
-  type SelectionRotationPreview
-} from '#core/geometry'
+import { createSceneGeometry, hasTransformHandles } from '#core/geometry'
 
 import { measureGlyphWidth } from './paragraph-cache'
 import { frameLabelPlacement, labelScreenMatrix, readableEdgePlacement } from './transform'
@@ -118,20 +115,20 @@ function drawMultiSelectionSize(
 }
 
 /**
- * A turning multi-selection's size: its box's own width and height, which stay put while it turns,
- * on the box's turned bottom edge, as a rotated layer's size sits on its own.
+ * A turned multi-selection's size: its frame box's own width and height, which stay put while it
+ * turns, on the box's turned bottom edge, as a rotated layer's size sits on its own.
  */
 function drawTurningSelectionSize(
   r: SkiaRenderer,
   canvas: Canvas,
   graph: SceneGraph,
   nodes: SceneNode[],
-  { bounds, angle }: SelectionRotationPreview,
+  { box: bounds, angle }: SelectionFrame,
   sizeFont: NonNullable<SkiaRenderer['sizeFont']>
 ): void {
   const world = Matrix.multiply(
-    Matrix.translated(bounds.x, bounds.y),
-    Matrix.rotated((angle * Math.PI) / 180, bounds.width / 2, bounds.height / 2)
+    Matrix.rotated((angle * Math.PI) / 180),
+    Matrix.translated(bounds.x, bounds.y)
   )
   const placement = readableEdgePlacement(world, bounds, { x: 0.5, y: 1 })
   const allComponents = nodes.every((n) => r.isInComponent(n, graph))
@@ -178,15 +175,9 @@ export function drawSelectionLabels(
     return
   }
 
-  if (activeOverlays.selectionRotationPreview) {
-    drawTurningSelectionSize(
-      r,
-      canvas,
-      graph,
-      nodes,
-      activeOverlays.selectionRotationPreview,
-      sizeFont
-    )
+  const frame = activeOverlays.selectionRotationPreview ?? selectionFrame(nodes, graph)
+  if (frame.angle !== 0) {
+    drawTurningSelectionSize(r, canvas, graph, nodes, frame, sizeFont)
     return
   }
   drawMultiSelectionSize(r, canvas, graph, nodes, minX, minY, maxX, maxY, sizeFont)

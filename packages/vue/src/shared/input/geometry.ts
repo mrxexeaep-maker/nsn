@@ -17,7 +17,8 @@ import {
   type TransformZone
 } from '@open-pencil/core/geometry'
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
-import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
+import { turnPoint, type SelectionFrame } from '@open-pencil/scene-graph/coordinate'
+import type { Vector } from '@open-pencil/scene-graph/primitives'
 
 import resizeCursorSVG from '#vue/shared/assets/resize-cursor.svg?raw'
 import rotateCursorSVG from '#vue/shared/assets/rotate-cursor.svg?raw'
@@ -277,30 +278,41 @@ export function buildResizeCursor(angleDeg: number): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 12 12, auto`
 }
 
-/**
- * Whether a canvas point takes the rotation of an axis-aligned box, such as a multi-selection's
- * bounds: its top handle, drawn `ROTATION_HANDLE_DISTANCE` screen pixels above the top edge, or
- * the zone just outside a corner.
- */
-export function hitTestBoundsRotation(cx: number, cy: number, bounds: Rect, zoom: number): boolean {
-  if (!hasTransformHandles(bounds.width * zoom, bounds.height * zoom)) return false
-  const dx = cx - (bounds.x + bounds.width / 2)
-  const dy = cy - (bounds.y - ROTATION_HANDLE_DISTANCE / zoom)
-  const radius = HANDLE_HIT_RADIUS / zoom
-  if (dx * dx + dy * dy <= radius * radius) return true
-  return transformZoneAt({ x: cx, y: cy }, bounds, zoom)?.kind === 'rotate'
+/** A canvas point in a multi-selection's frame. */
+export function pointInFrame(cx: number, cy: number, frame: SelectionFrame): Vector {
+  return turnPoint({ x: cx, y: cy }, -frame.angle)
 }
 
-/** The rotation cursor outside a corner of an axis-aligned box, or null elsewhere. */
-export function boundsRotationCursor(
+/**
+ * Whether a canvas point takes the rotation of a multi-selection's box: its top handle, drawn
+ * `ROTATION_HANDLE_DISTANCE` screen pixels beyond the top edge, or the zone just outside a corner.
+ */
+export function hitTestFrameRotation(
   cx: number,
   cy: number,
-  bounds: Rect,
+  frame: SelectionFrame,
+  zoom: number
+): boolean {
+  const { box } = frame
+  if (!hasTransformHandles(box.width * zoom, box.height * zoom)) return false
+  const point = pointInFrame(cx, cy, frame)
+  const dx = point.x - (box.x + box.width / 2)
+  const dy = point.y - (box.y - ROTATION_HANDLE_DISTANCE / zoom)
+  const radius = HANDLE_HIT_RADIUS / zoom
+  if (dx * dx + dy * dy <= radius * radius) return true
+  return transformZoneAt(point, box, zoom)?.kind === 'rotate'
+}
+
+/** The rotation cursor outside a corner of a multi-selection's box, or null elsewhere. */
+export function frameRotationCursor(
+  cx: number,
+  cy: number,
+  frame: SelectionFrame,
   zoom: number
 ): string | null {
-  const zone = transformZoneAt({ x: cx, y: cy }, bounds, zoom)
+  const zone = transformZoneAt(pointInFrame(cx, cy, frame), frame.box, zoom)
   if (zone?.kind !== 'rotate') return null
   const x = zone.corner === 'nw' || zone.corner === 'sw' ? -1 : 1
   const y = zone.corner === 'nw' || zone.corner === 'ne' ? -1 : 1
-  return buildRotationCursor((Math.atan2(y, x) * 180) / Math.PI + 135)
+  return buildRotationCursor((Math.atan2(y, x) * 180) / Math.PI + 135 + frame.angle)
 }

@@ -4,14 +4,18 @@ import { toRaw } from 'vue'
 import { ROTATION_SNAP_DEGREES } from '@open-pencil/core/constants'
 import type { Editor } from '@open-pencil/core/editor'
 import { createSceneGeometry } from '@open-pencil/core/geometry'
-import { placeRotatedAbout, selectionPlacement } from '@open-pencil/scene-graph/coordinate'
+import {
+  placeRotatedAbout,
+  selectionPlacement,
+  turnPoint
+} from '@open-pencil/scene-graph/coordinate'
 
 import {
-  hitTestBoundsRotation,
+  hitTestFrameRotation,
   hitTestCornerRotationByMatrix,
   hitTestTopRotationHandleByMatrix
 } from '#vue/shared/input/geometry'
-import { selectionBounds } from '#vue/shared/input/resize/selection'
+import { selectionBox } from '#vue/shared/input/resize/selection'
 import type { DragRotate, DragRotateSelection, DragState } from '#vue/shared/input/types'
 
 type SetDrag = (drag: DragState) => void
@@ -79,15 +83,15 @@ export function handleRotateMove(
   editor.setRotationPreview({ nodeId: d.nodeId, angle: normalizeRotation(rotation) })
 }
 
-/** Starts turning a multi-selection from its bounds' rotation handle or corner zones. */
+/** Starts turning a multi-selection from its box's rotation handle or corner zones. */
 function tryStartSelectionRotation(
   editor: Editor,
   setDrag: SetDrag,
   cx: number,
   cy: number
 ): boolean {
-  const bounds = selectionBounds(editor)
-  if (!bounds || !hitTestBoundsRotation(cx, cy, bounds, editor.renderer?.zoom ?? 1)) return false
+  const frame = selectionBox(editor)
+  if (!frame || !hitTestFrameRotation(cx, cy, frame, editor.renderer?.zoom ?? 1)) return false
   const members = compact(
     [...editor.state.selectedIds].map((id) => {
       const node = editor.graph.getNode(id)
@@ -96,11 +100,18 @@ function tryStartSelectionRotation(
     })
   )
   if (members.length === 0) return false
-  const centerX = bounds.x + bounds.width / 2
-  const centerY = bounds.y + bounds.height / 2
-  const startAngle = Math.atan2(cy - centerY, cx - centerX) * (180 / Math.PI)
-  setDrag({ type: 'rotate-selection', centerX, centerY, startAngle, bounds, members })
-  editor.setSelectionRotationPreview({ bounds, angle: 0 })
+  const { box } = frame
+  const center = turnPoint({ x: box.x + box.width / 2, y: box.y + box.height / 2 }, frame.angle)
+  const startAngle = Math.atan2(cy - center.y, cx - center.x) * (180 / Math.PI)
+  setDrag({
+    type: 'rotate-selection',
+    centerX: center.x,
+    centerY: center.y,
+    startAngle,
+    frame,
+    members
+  })
+  editor.setSelectionRotationPreview(frame)
   return true
 }
 
@@ -120,7 +131,14 @@ export function handleSelectionRotateMove(
   for (const { nodeId, placement } of d.members) {
     editor.graph.updateNodePreview(nodeId, placeRotatedAbout(placement, pivot, delta))
   }
-  editor.setSelectionRotationPreview({ bounds: d.bounds, angle: delta })
+  // The box turns with its layers: the same box, its center kept at the pivot in the new frame.
+  const angle = d.frame.angle + delta
+  const { width, height } = d.frame.box
+  const center = turnPoint(pivot, -angle)
+  editor.setSelectionRotationPreview({
+    box: { x: center.x - width / 2, y: center.y - height / 2, width, height },
+    angle
+  })
 }
 
 function startingPlace({ placement }: DragRotateSelection['members'][number]) {
