@@ -1,1 +1,0 @@
-- The agent of a Pi or ACP chat in the desktop app leaves the canvas as soon as a reply finishes, is stopped, or fails, instead of staying at work for up to 20 seconds and keeping your view following it. A tool call already in progress still finishes, but no longer puts the agent back to work.
