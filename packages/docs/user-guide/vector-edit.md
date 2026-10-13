@@ -50,6 +50,12 @@ This activates geometry editing for the selected vector.
 - <kbd>Shift</kbd> + drag adds them to the selection.
 - Press <kbd>Escape</kbd> during the drag to cancel it.
 
+### Select a Region
+
+- Move the pointer inside a filled area: the region under it is hatched with diagonal lines.
+- Click inside it to select the region and all of its points; drag to move it.
+- <kbd>Shift</kbd> + click adds the region to the selection.
+
 ## Handle Drag Modifiers
 
 | Action                           | Mac                      | Windows / Linux         |

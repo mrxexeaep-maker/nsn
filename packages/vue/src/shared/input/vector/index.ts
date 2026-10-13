@@ -9,6 +9,7 @@ import {
   editVerticesInRect,
   getNodeEditState,
   hitTestEditHandle,
+  hitTestEditRegion,
   hitTestEditSegment,
   hitTestEditVertex,
   isEndpoint,
@@ -19,12 +20,13 @@ import { applyNodeEditSnap } from '#vue/shared/input/vector/snap'
 export {
   getNodeEditState,
   hitTestEditHandle,
+  hitTestEditRegion,
   hitTestEditSegment,
   isEndpoint,
   NODE_HIT_THRESHOLD
 } from '#vue/shared/input/vector/hit-test'
 import type { Editor } from '@open-pencil/core/editor'
-import { vectorHandleId } from '@open-pencil/core/vector'
+import { regionVertexIndices, vectorHandleId } from '@open-pencil/core/vector'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
 
 type NodeEditEditor = Partial<{
@@ -57,6 +59,9 @@ export function handleNodeEditDown(
   if (!es) return
   const nodeEditEditor = editor as Editor & NodeEditEditor
 
+  // Anything but a shift-press on a region picks something else, so the picked regions go.
+  if (!e.shiftKey) es.selectedRegions = new Set()
+
   const handleHit = hitTestEditHandle(editor, cx, cy)
   if (handleHit) {
     const key = vectorHandleId(handleHit.segmentIndex, handleHit.tangentField)
@@ -85,6 +90,16 @@ export function handleNodeEditDown(
         return { x: tangent.x, y: tangent.y }
       })()
     })
+    return
+  }
+
+  // As in Figma, a press inside a region away from its points and segments picks the region:
+  // its points are selected with it and drag with it.
+  const ri = hitTestEditRegion(editor, cx, cy)
+  if (ri !== null) {
+    const points = pickRegion(es, ri, e.shiftKey)
+    editor.requestRepaint()
+    startPointsDrag(es, points, cx, cy, nodeEditEditor, setDrag)
     return
   }
 
@@ -119,13 +134,9 @@ export function handleNodeEditDown(
   // As in Figma, a press on a segment selects its two points and drags them with it.
   const si = hitTestEditSegment(editor, cx, cy)
   if (si !== null) {
-    const { start, end } = es.segments[si]
-    es.selectedHandles = new Set()
-    if (e.shiftKey) es.selectedVertexIndices = new Set([...es.selectedVertexIndices, start, end])
-    else if (!es.selectedVertexIndices.has(start) || !es.selectedVertexIndices.has(end))
-      es.selectedVertexIndices = new Set([start, end])
+    const points = pickSegment(es, si, e.shiftKey)
     editor.requestRepaint()
-    startPointsDrag(es, [start, end], cx, cy, nodeEditEditor, setDrag)
+    startPointsDrag(es, points, cx, cy, nodeEditEditor, setDrag)
     return
   }
 
@@ -136,6 +147,34 @@ export function handleNodeEditDown(
     startY: cy,
     baseSelection: e.shiftKey ? new Set(es.selectedVertexIndices) : new Set()
   })
+}
+
+/**
+ * Selects a segment's two points, adding them with Shift; a press on a segment whose points are
+ * both selected keeps the selection, so the whole selection drags. Returns the two points.
+ */
+function pickSegment(es: NodeEditState, segmentIndex: number, add: boolean): number[] {
+  const { start, end } = es.segments[segmentIndex]
+  es.selectedHandles = new Set()
+  if (add) es.selectedVertexIndices = new Set([...es.selectedVertexIndices, start, end])
+  else if (!es.selectedVertexIndices.has(start) || !es.selectedVertexIndices.has(end))
+    es.selectedVertexIndices = new Set([start, end])
+  return [start, end]
+}
+
+/** Selects a region and its points, adding to the selection with Shift; returns its points. */
+function pickRegion(es: NodeEditState, regionIndex: number, add: boolean): number[] {
+  const network = { vertices: es.vertices, segments: es.segments, regions: es.regions }
+  const points = regionVertexIndices(network, regionIndex)
+  es.selectedHandles = new Set()
+  if (add) {
+    es.selectedRegions = new Set([...(es.selectedRegions ?? new Set<number>()), regionIndex])
+    es.selectedVertexIndices = new Set([...es.selectedVertexIndices, ...points])
+  } else {
+    es.selectedRegions = new Set([regionIndex])
+    es.selectedVertexIndices = new Set(points)
+  }
+  return points
 }
 
 /** Drags the selected points, and `pressed` with them, from where the pointer went down. */

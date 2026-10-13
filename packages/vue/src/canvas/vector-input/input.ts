@@ -11,7 +11,9 @@ import {
 import type { DragState } from '#vue/shared/input/types'
 import {
   finishNodeEditMarquee,
+  getNodeEditState,
   hitTestEditHandle,
+  hitTestEditRegion,
   isEndpoint,
   NODE_HIT_THRESHOLD
 } from '#vue/shared/input/vector'
@@ -32,6 +34,13 @@ export function updateNodeEditHover(editor: Editor, cx: number, cy: number): boo
     }
   } else if (previous) {
     state.hoveredHandleInfo = null
+    editor.requestRepaint()
+  }
+  // The region under the pointer is hatched, as in Figma, unless a handle is under it.
+  const es = getNodeEditState(editor)
+  const region = hit ? null : hitTestEditRegion(editor, cx, cy)
+  if (es && (es.hoveredRegion ?? null) !== region) {
+    es.hoveredRegion = region
     editor.requestRepaint()
   }
   return true
