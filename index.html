@@ -94,6 +94,11 @@
         0% { transform: translateX(-100%); }
         100% { transform: translateX(350%); }
       }
+      /* With reduced motion the bar still waits for a slow load, then appears without moving. */
+      @media (prefers-reduced-motion: reduce) {
+        #boot-splash .bar { animation-duration: 0s; }
+        #boot-splash .bar::after { animation: none; }
+      }
       /* Pre-boot support notice; the app CSS never loads when it shows. */
       #boot-notice {
         box-sizing: border-box;

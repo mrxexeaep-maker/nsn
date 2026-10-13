@@ -176,6 +176,9 @@ fr:panels.behaviourMin
 fr:panels.behaviourMax
 fr:panels.behaviourStateFocus
 fr:panels.shader
+fr:panels.variableModeAuto
+fr:panels.variableModeAutoMixed
+fr:panels.variableModeHeading
 fr:settings.animations
 fr:settings.diagnostics
 fr:settings.mcp
@@ -223,6 +226,8 @@ it:panels.behaviourMax
 it:panels.behaviourStateHover
 it:panels.behaviourStateFocus
 it:panels.shader
+it:panels.variableModeAuto
+it:panels.variableModeAutoMixed
 it:rendering.settingsTitle
 it:settings.mcp
 it:settings.media
