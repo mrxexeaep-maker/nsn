@@ -87,3 +87,17 @@ describe('no-unknown-tailwind-classes', () => {
     expect(files.toSorted()).toEqual(['Bound.vue', 'Static.vue', 'variants.ts'])
   })
 })
+
+test('checks SDK examples against the docs stylesheet that builds them', async () => {
+  const diagnostics = ruleDiagnostics(
+    await lintFiles(
+      {
+        'packages/vue/src/primitives/Demo/examples/AppToken.vue': `${SCRIPT}<template><p class="bg-panel" /></template>\n`,
+        'packages/vue/src/primitives/Demo/examples/Palette.vue': `${SCRIPT}<template><p class="bg-violet-600 text-[var(--vp-c-text-1)]" /></template>\n`
+      },
+      rules
+    ),
+    rule
+  )
+  expect(diagnostics.map((item) => item.filename?.split('/').pop())).toEqual(['AppToken.vue'])
+})

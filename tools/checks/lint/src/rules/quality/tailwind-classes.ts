@@ -14,36 +14,68 @@ import type { ESTree } from '@oxlint/plugins'
 import { __unstable__loadDesignSystem } from '@tailwindcss/node'
 import { compact } from 'es-toolkit/array'
 
-/**
- * Tailwind's own model of the app's theme, utilities, and variants. `bun run lint` and the rule's
- * tests run Oxlint from the repository root; a run elsewhere has no app theme to check against,
- * and the rule stays quiet rather than keep the plugin's other rules from loading.
- */
 type DesignSystem = Awaited<ReturnType<typeof __unstable__loadDesignSystem>>
 
-const stylesheet = resolve('src/app.css')
-const designSystem = existsSync(stylesheet)
-  ? await __unstable__loadDesignSystem(readFileSync(stylesheet, 'utf8'), {
-      base: dirname(stylesheet)
-    })
-  : null
+interface Theme {
+  stylesheet: string
+  /** Tailwind's own model of the stylesheet's theme, utilities, and variants. */
+  system: DesignSystem
+}
 
-const verdicts = new Map<string, string | null>()
+/**
+ * The stylesheet that builds each part of the repository, first match first: the SDK's
+ * primitives and their examples render in the docs site, everything else in the app.
+ */
+const STYLESHEETS = [
+  { files: 'packages/vue/src/', stylesheet: 'packages/docs/.vitepress/theme/tailwind.css' },
+  { files: '', stylesheet: 'src/app.css' }
+]
+
+/**
+ * `bun run lint` and the rule's tests run Oxlint from the repository root; a run elsewhere has
+ * no stylesheet to check against, and the rule stays quiet rather than keep the plugin's other
+ * rules from loading.
+ */
+async function loadTheme(stylesheet: string): Promise<Theme | null> {
+  const path = resolve(stylesheet)
+  if (!existsSync(path)) return null
+  const system = await __unstable__loadDesignSystem(readFileSync(path, 'utf8'), {
+    base: dirname(path)
+  })
+  return { stylesheet, system }
+}
+
+const themes = await Promise.all(
+  STYLESHEETS.map(async ({ files, stylesheet }) => ({ files, theme: await loadTheme(stylesheet) }))
+)
+
+function themeFor(file: string): Theme | null {
+  const match = themes.find(({ files }) => file.startsWith(files) || file.includes(`/${files}`))
+  return match?.theme ?? null
+}
+
+const verdicts = new WeakMap<Theme, Map<string, string | null>>()
 
 /**
  * Why Tailwind cannot use a class, or null when it can or the class is not Tailwind's. A class
  * Tailwind parses as a utility but compiles to nothing names a value the theme lacks, such as a
  * color with no token. A color written as `[var(--color-*)]` has a utility of its own.
  */
-function classProblem(system: DesignSystem, className: string): string | null {
-  const cached = verdicts.get(className)
+function classProblem(theme: Theme, className: string): string | null {
+  const { system, stylesheet } = theme
+  let cache = verdicts.get(theme)
+  if (!cache) {
+    cache = new Map()
+    verdicts.set(theme, cache)
+  }
+  const cached = cache.get(className)
   if (cached !== undefined) return cached
   const candidates = system.parseCandidate(className)
   const [css] = system.candidatesToCss([className])
   let problem: string | null = null
   if (!css) {
     if (candidates.length > 0)
-      problem = `Tailwind has no \`${className}\`; src/app.css defines no such value`
+      problem = `Tailwind has no \`${className}\`; ${stylesheet} defines no such value`
   } else {
     for (const candidate of candidates) {
       if (candidate.kind !== 'functional' || candidate.value?.kind !== 'arbitrary') continue
@@ -51,11 +83,11 @@ function classProblem(system: DesignSystem, className: string): string | null {
       if (!color) continue
       problem =
         system.resolveThemeValue(`--color-${color[1]}`) === undefined
-          ? `\`${className}\` names \`--color-${color[1]}\`, which src/app.css does not define`
+          ? `\`${className}\` names \`--color-${color[1]}\`, which ${stylesheet} does not define`
           : `use \`${candidate.root}-${color[1]}\` instead of \`${className}\``
     }
   }
-  verdicts.set(className, problem)
+  cache.set(className, problem)
   return problem
 }
 
@@ -133,14 +165,14 @@ export const noUnknownTailwindClassesRule = defineRule({
     }
   },
   create(context) {
-    const system = designSystem
-    if (!system) return {}
     const file = normalizedFilename(context)
+    const theme = themeFor(file)
+    if (!theme) return {}
     const themeModule = file.startsWith('src/theme/') || file.includes('/src/theme/')
 
     const check = (node: ESTree.Node, text: string) => {
       for (const className of classNames(text)) {
-        const problem = classProblem(system, className)
+        const problem = classProblem(theme, className)
         if (problem) context.report({ node, message: `Tailwind class: ${problem}.` })
       }
     }
