@@ -2,7 +2,7 @@
 import { useLocalStorage } from '@vueuse/core'
 import { computed, ref, shallowRef } from 'vue'
 
-import { useDocumentWorkspace, useI18n, useViewportKind } from '@open-pencil/vue'
+import { useDocumentWorkspace, useI18n, useViewportKind, vTestId } from '@open-pencil/vue'
 
 import {
   activeStorageProviderID,
@@ -313,7 +313,7 @@ function trashedDate(design: TrashedDesign): string {
       <div
         v-else-if="filteredCount"
         :class="designsLayout"
-        :data-test-id="showingTrash ? 'home-trash-list' : 'home-library'"
+        v-test-id="showingTrash ? 'home-trash-list' : 'home-library'"
       >
         <template v-if="showingTrash">
           <DesignCardMenu
