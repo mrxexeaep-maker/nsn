@@ -200,6 +200,13 @@ ja:settings.modelIDHint
 ja:settings.temporaryDisableSnappingHint
 ja:storage.accessKeyID
 ja:storage.copyCors
+ja:storage.corsSetupNotice
+ja:storage.corsSetupTitle
+ja:storage.corsSetupB2Key
+ja:storage.corsSetupB2Install
+ja:storage.corsSetupR2Open
+ja:storage.corsSetupAWSOpen
+ja:storage.corsSetupPaste
 ja:storage.providerS3
 ja:updates.available
 ja:updates.installed
@@ -405,6 +412,13 @@ zh-cn:settings.invalidURL
 zh-cn:settings.temporaryDisableSnappingHint
 zh-cn:storage.accessKeyID
 zh-cn:storage.copyCors
+zh-cn:storage.corsSetupNotice
+zh-cn:storage.corsSetupTitle
+zh-cn:storage.corsSetupB2Key
+zh-cn:storage.corsSetupB2Install
+zh-cn:storage.corsSetupR2Open
+zh-cn:storage.corsSetupAWSOpen
+zh-cn:storage.corsSetupPaste
 zh-cn:storage.providerS3
 zh-cn:updates.available
 zh-cn:updates.installed

@@ -62,6 +62,15 @@ ${originTags}
 `
 }
 
+// Content-Range lets a 200 reply to a range read be checked against the request.
+const CORS_EXPOSE_HEADERS = [
+  'ETag',
+  'Content-Range',
+  'x-amz-request-id',
+  'x-amz-id-2',
+  'x-amz-version-id'
+]
+
 /** AWS console / CLI JSON CORS document (copy-paste friendly). */
 export function buildCORSConfigurationJSON(origins: string[]): string {
   return JSON.stringify(
@@ -70,20 +79,37 @@ export function buildCORSConfigurationJSON(origins: string[]): string {
         AllowedHeaders: ['*'],
         AllowedMethods: ['GET', 'PUT', 'POST', 'DELETE', 'HEAD'],
         AllowedOrigins: origins,
-        // Content-Range lets a 200 reply to a range read be checked against the request.
-        ExposeHeaders: [
-          'ETag',
-          'Content-Range',
-          'x-amz-request-id',
-          'x-amz-id-2',
-          'x-amz-version-id'
-        ],
+        ExposeHeaders: CORS_EXPOSE_HEADERS,
         MaxAgeSeconds: 3600
       }
     ],
     null,
     2
   )
+}
+
+/**
+ * B2 CLI command that replaces the bucket's CORS rules. The B2 web console only
+ * offers sharing presets, so custom rules allowing uploads need the CLI. The bucket
+ * type is left out so the command never changes whether the bucket is public.
+ */
+export function buildB2CORSCommand(origin: string, bucket: string): string {
+  const rules = JSON.stringify([
+    {
+      corsRuleName: 'openpencil',
+      allowedOrigins: [origin],
+      allowedOperations: ['s3_head', 's3_get', 's3_put', 's3_post', 's3_delete'],
+      allowedHeaders: ['*'],
+      exposeHeaders: CORS_EXPOSE_HEADERS,
+      maxAgeSeconds: 3600
+    }
+  ])
+  return `b2 bucket update --cors-rules '${rules}' ${shellWord(bucket)}`
+}
+
+/** B2 bucket names are plain words; quote anything else rather than let the shell split it. */
+function shellWord(value: string): string {
+  return /^[\w.-]+$/.test(value) ? value : `'${value.replace(/'/g, `'\\''`)}'`
 }
 
 export class CloudCORSError extends Error {

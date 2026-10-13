@@ -1,3 +1,5 @@
+import { params } from '@nanostores/i18n'
+
 import { i18n } from '#vue/i18n/create'
 
 export const storageMessageDefaults = {
@@ -13,6 +15,30 @@ export const storageMessageDefaults = {
   providerBackblaze: 'Backblaze B2',
   loadingWorkspace: 'Loading storage workspace…',
   copyCors: 'Copy CORS JSON',
+  providerOther: 'Other',
+  corsSetupNotice: 'The web app needs a one-time bucket setup before it can connect.',
+  corsSetupOpen: 'Setup steps',
+  corsSetupTitle: 'Set up your bucket for the web app',
+  corsSetupDescription: params(
+    'Your bucket must allow requests from {origin}. You only do this once. The desktop app doesn’t need it.'
+  ),
+  corsSetupProviders: 'Storage provider',
+  corsSetupB2Key:
+    'In the Backblaze web console, open Application Keys. Use your master application key, or add a key that can change bucket settings.',
+  corsSetupB2Install: 'Install the B2 command-line tool:',
+  corsSetupB2SignIn: 'Sign in with that key:',
+  corsSetupB2Run: 'Run this command. Your site and bucket are already filled in:',
+  corsSetupR2Open:
+    'In the Cloudflare dashboard, open R2, select your bucket, then open Settings and find CORS policy.',
+  corsSetupAWSOpen:
+    'In the AWS console, open your bucket, then Permissions, and choose Edit under Cross-origin resource sharing (CORS).',
+  corsSetupOtherOpen: 'Open your provider’s bucket settings or command-line tool.',
+  corsSetupPaste: 'Paste these CORS rules and save:',
+  corsSetupWait: 'Wait about a minute, then test the connection again.',
+  corsSetupHelp: 'Provider instructions',
+  unreachable: 'Your browser couldn’t reach this bucket',
+  unreachableDetail:
+    'Usually the bucket doesn’t allow this site yet, or the bucket name doesn’t match exactly. Bucket names are case-sensitive.',
   endpoint: 'Endpoint',
   bucket: 'Bucket',
   region: 'Region',

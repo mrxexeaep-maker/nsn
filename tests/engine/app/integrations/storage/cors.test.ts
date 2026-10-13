@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import * as v from 'valibot'
 
 import {
+  buildB2CORSCommand,
   buildCORSConfigurationJSON,
   buildCORSConfigurationXML,
   collectCloudCORSOrigins,
@@ -61,6 +62,38 @@ describe('cloud S3 CORS helpers', () => {
     expect(origins).toContain('https://*.openpencil-app.pages.dev')
     expect(origins).toContain('http://localhost:*')
     expect(origins).toContain('http://127.0.0.1:*')
+  })
+
+  test('builds a B2 command that allows uploads from one origin', () => {
+    const command = buildB2CORSCommand('https://app.example.com', 'My-Bucket')
+    expect(command.startsWith("b2 bucket update --cors-rules '")).toBe(true)
+    // No bucket type: running it must not change whether the bucket is public.
+    expect(command.endsWith("' My-Bucket")).toBe(true)
+    const rules = v.parse(
+      v.pipe(
+        v.string(),
+        v.parseJson(),
+        v.array(
+          v.object({
+            allowedOrigins: v.array(v.string()),
+            allowedOperations: v.array(v.string()),
+            exposeHeaders: v.array(v.string())
+          })
+        )
+      ),
+      command.slice(command.indexOf("'") + 1, command.lastIndexOf("'"))
+    )
+    expect(rules[0]?.allowedOrigins).toEqual(['https://app.example.com'])
+    expect(rules[0]?.allowedOperations).toEqual(
+      expect.arrayContaining(['s3_get', 's3_head', 's3_put', 's3_delete'])
+    )
+    expect(rules[0]?.exposeHeaders).toContain('Content-Range')
+  })
+
+  test('quotes a bucket name the shell would split', () => {
+    expect(
+      buildB2CORSCommand('https://a.example', "my bucket's").endsWith(` 'my bucket'\\''s'`)
+    ).toBe(true)
   })
 
   test('detects typical browser CORS/network failures', () => {

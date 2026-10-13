@@ -7,6 +7,7 @@ import { useDocumentWorkspace, useI18n, useViewportKind } from '@open-pencil/vue
 import {
   activeStorageProviderID,
   readStoragePreferences,
+  s3HostFromEndpoint,
   storagePreferencesComplete,
   storageProviderRegistry,
   type StorageDocument
@@ -83,18 +84,14 @@ const storageDescription = computed(() => {
   const preferences = readStoragePreferences(activeStorageProviderID.value)
   const bucket = preferences.bucket?.trim()
   const endpoint = preferences.endpoint?.trim()
-  let label = provider.label
-  if (endpoint) {
-    try {
-      const hostname = new URL(endpoint).hostname
-      if (hostname.endsWith('.r2.cloudflarestorage.com')) label = storage.value.providerR2
-      else if (hostname.includes('amazonaws.com')) label = storage.value.providerAmazonS3
-      else if (hostname.includes('backblazeb2.com')) label = storage.value.providerBackblaze
-      else if (hostname) label = storage.value.providerS3
-    } catch {
-      label = provider.label
-    }
+  const host = endpoint ? s3HostFromEndpoint(endpoint) : null
+  const hostLabels = {
+    r2: storage.value.providerR2,
+    aws: storage.value.providerAmazonS3,
+    b2: storage.value.providerBackblaze,
+    other: storage.value.providerS3
   }
+  const label = host ? hostLabels[host] : provider.label
   return bucket ? `${label} · ${bucket}` : label
 })
 const storagePreviewURL = storageWorkspace.previewURL
