@@ -42,7 +42,7 @@ function handleSelect(value: string) {
           <SelectTrigger
             data-slot="limit-trigger"
             :aria-label="item.label"
-            class="flex shrink-0 cursor-pointer items-center self-stretch border-none bg-transparent px-1 text-muted outline-none data-[state=open]:text-foreground"
+            class="flex shrink-0 cursor-pointer items-center self-stretch border-none bg-transparent px-1 text-muted outline-none data-[state=open]:text-surface"
             @pointerdown.stop
           >
             <icon-lucide-chevron-down class="size-3" />

@@ -1,6 +1,6 @@
 {
   "name": "@open-pencil/core",
-  "version": "0.16.0-beta.2",
+  "version": "0.16.0-beta.3",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -22,6 +22,7 @@
   },
   "exports": {
     "./package.json": "./package.json",
+    "./assets/*": "./assets/*",
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
