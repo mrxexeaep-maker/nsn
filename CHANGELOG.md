@@ -23,6 +23,10 @@
 - Saving an opened `.fig` file writes only what an edit changed in a layer or variable, and keeps the rest as Figma saved it. That includes data OpenPencil does not model, an instance's library link and saved overrides, and an edited text's letter spacing in percent and font names. Before, saving rewrote each edited layer whole. Importing design tokens or adding a mode also rewrote every layer and variable in the file that uses variable modes.
 - Variables that alias library variables still point at the library after a save, and a collection's modes keep their order in Figma.
 - Importing design tokens adds them to the file's own collections, never to a collection copied from a library, where Figma did not show them. A token collection named like a library's, such as Tokens in Preline UI files, becomes a new collection of the file.
+- Fill and stroke bindings to variables made in OpenPencil survive a paste into Figma, which keeps them as remote variables as it does for variables copied from another Figma file.
+- Instances pasted into Figma keep their names and no longer carry their component's library identity.
+- The Variables panel shows a collection copied from a library read-only, as Figma does, since edits there never reach the library.
+- CLI `eval` and the CLI tools measure text in the document they edit, so text with line breaks or a fixed width gets its real height.
 
 ### Performance
 
