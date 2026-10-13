@@ -2,12 +2,13 @@ import type { Editor } from '@open-pencil/core/editor'
 
 import {
   axisAlignedCursorAngle,
+  boundsRotationCursor,
   buildResizeCursor,
   cornerRotationCursor,
   getHitHandleByMatrix,
   hitTestCornerRotationByMatrix
 } from '#vue/shared/input/geometry'
-import { selectionResizeHandleAt } from '#vue/shared/input/resize/selection'
+import { selectionBounds, selectionResizeHandleAt } from '#vue/shared/input/resize/selection'
 import type { HitTestFns } from '#vue/shared/input/select'
 import { hitTestLabel } from '#vue/shared/input/select/hit'
 import { getNodeEditState } from '#vue/shared/input/vector'
@@ -35,6 +36,10 @@ function getResizeCursorForSelection(cx: number, cy: number, editor: Editor): st
 }
 
 function getRotationCursorForSelection(cx: number, cy: number, editor: Editor): string | null {
+  if (editor.state.selectedIds.size > 1) {
+    const bounds = selectionBounds(editor)
+    return bounds ? boundsRotationCursor(cx, cy, bounds, editor.renderer?.zoom ?? 1) : null
+  }
   if (editor.state.selectedIds.size !== 1) return null
 
   const id = [...editor.state.selectedIds][0]

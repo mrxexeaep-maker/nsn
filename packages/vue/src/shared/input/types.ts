@@ -137,6 +137,20 @@ export interface DragRotate {
   rotationDirection: 1 | -1
 }
 
+/**
+ * A rotation of a multi-selection about its bounds' center, as Figma turns a selection: every
+ * selected layer swings around the center and turns by the same angle.
+ */
+export interface DragRotateSelection {
+  type: 'rotate-selection'
+  centerX: number
+  centerY: number
+  startAngle: number
+  /** The selection's axis-aligned canvas bounds when the rotation started. */
+  bounds: Rect
+  members: Array<{ nodeId: string; placement: SelectionPlacement }>
+}
+
 export interface DragPen {
   type: 'pen-drag'
   startX: number
@@ -228,6 +242,7 @@ export type DragState =
   | DragResizeSelection
   | DragMarquee
   | DragRotate
+  | DragRotateSelection
   | DragPen
   | DragTextSelect
   | DragEditNode

@@ -292,6 +292,8 @@ export interface SelectionPlacement {
   /** The layer's own x and y axes on the canvas, as unit vectors (rotation and flips applied). */
   axisX: Vector
   axisY: Vector
+  /** -1 when the layer is drawn mirrored, so its rotation turns the other way on the canvas. */
+  direction: 1 | -1
   /** Maps canvas points into the layer's parent's space, or null when it cannot be inverted. */
   parentInverse: Mat3 | null
 }
@@ -321,8 +323,22 @@ export function selectionPlacement(
     center: { x: cx, y: cy },
     axisX: unit(xx - ox, xy - oy),
     axisY: unit(yx - ox, yy - oy),
+    direction: world[0] * world[4] - world[1] * world[3] < 0 ? -1 : 1,
     parentInverse: Matrix.invert(getParentWorldMatrix(parent, graph))
   }
+}
+
+/** The position, in its parent's space, that puts `node`'s center at a canvas point. */
+function positionCenteredAt(node: SceneNode, parentInverse: Mat3 | null, center: Vector): Vector {
+  const [px, py] = parentInverse
+    ? Matrix.mapPoints(parentInverse, [center.x, center.y])
+    : [center.x, center.y]
+  // The local matrix translates last, so the layer's center at the origin gives the offset.
+  const [qx, qy] = Matrix.mapPoints(getNodeLocalMatrix(node, { x: 0, y: 0 }), [
+    node.width / 2,
+    node.height / 2
+  ])
+  return { x: px - qx, y: py - qy }
 }
 
 /**
@@ -341,14 +357,27 @@ export function placeInResizedBounds(placement: SelectionPlacement, from: Rect, 
     x: to.x + (center.x - from.x) * scaleX,
     y: to.y + (center.y - from.y) * scaleY
   }
-  const [px, py] = parentInverse
-    ? Matrix.mapPoints(parentInverse, [target.x, target.y])
-    : [target.x, target.y]
-  // The local matrix translates last, so the sized layer's center at the origin gives the offset.
-  const sized = { ...node, width, height }
-  const [qx, qy] = Matrix.mapPoints(getNodeLocalMatrix(sized, { x: 0, y: 0 }), [
-    width / 2,
-    height / 2
-  ])
-  return { x: px - qx, y: py - qy, width, height }
+  return { ...positionCenteredAt({ ...node, width, height }, parentInverse, target), width, height }
+}
+
+/**
+ * Where a layer lands, in its parent's space, when a multi-selection turns `degrees` about a
+ * canvas pivot, as Figma rotates a selection about its bounds' center: the layer's center swings
+ * around the pivot and the layer itself turns by the same angle on the canvas.
+ */
+export function placeRotatedAbout(
+  placement: SelectionPlacement,
+  pivot: Vector,
+  degrees: number
+): { x: number; y: number; rotation: number } {
+  const { node, center, direction, parentInverse } = placement
+  const radians = (degrees * Math.PI) / 180
+  const cos = Math.cos(radians)
+  const sin = Math.sin(radians)
+  const dx = center.x - pivot.x
+  const dy = center.y - pivot.y
+  const target = { x: pivot.x + dx * cos - dy * sin, y: pivot.y + dx * sin + dy * cos }
+  const turned = node.rotation + degrees * direction
+  const rotation = ((((turned + 180) % 360) + 360) % 360) - 180
+  return { ...positionCenteredAt({ ...node, rotation }, parentInverse, target), rotation }
 }

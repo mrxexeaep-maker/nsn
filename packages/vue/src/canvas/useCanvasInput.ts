@@ -14,6 +14,11 @@ import { handleToolMouseDown } from '#vue/canvas/tools/input'
 import { createCanvasTransformInput } from '#vue/canvas/transform/input'
 import { finishMarquee } from '#vue/canvas/transform/marquee'
 import {
+  cancelRotationDrag,
+  commitRotationDrag,
+  handleSelectionRotateMove
+} from '#vue/canvas/transform/rotation'
+import {
   handleBendHandleMove,
   handleNodeEditPointerUp,
   updateNodeEditHover
@@ -59,7 +64,11 @@ export function useCanvasInput(
     () => drag.value?.type,
     (type) =>
       editor.setTransforming(
-        type === 'move' || type === 'resize' || type === 'resize-selection' || type === 'rotate'
+        type === 'move' ||
+          type === 'resize' ||
+          type === 'resize-selection' ||
+          type === 'rotate' ||
+          type === 'rotate-selection'
       )
   )
   const canvasLabelEdit = createCanvasLabelEdit(editor)
@@ -294,6 +303,10 @@ export function useCanvasInput(
       return
     }
 
+    if (d.type === 'rotate-selection') {
+      handleSelectionRotateMove(editor, d, cx, cy, e.shiftKey)
+      return
+    }
     if (d.type === 'rotate') {
       handleRotateMove(d, cx, cy, e.shiftKey)
       return
@@ -363,14 +376,8 @@ export function useCanvasInput(
       }
       drag.value = null
       return
-    } else if (d.type === 'rotate') {
-      const preview = editor.state.rotationPreview
-      if (preview?.nodeId === d.nodeId && preview.angle !== d.origRotation) {
-        editor.updateNode(d.nodeId, { rotation: preview.angle })
-        editor.commitRotation(d.nodeId, d.origRotation)
-      }
-      if (editor.state.rotationPreview === preview) editor.setRotationPreview(null)
-    } else if (d.type === 'draw' || d.type === 'gradient' || d.type === 'shape-handle') d.commit()
+    } else if (d.type === 'rotate' || d.type === 'rotate-selection') commitRotationDrag(editor, d)
+    else if (d.type === 'draw' || d.type === 'gradient' || d.type === 'shape-handle') d.commit()
     else if (d.type === 'marquee') finishMarquee(editor, d)
 
     drag.value = null
@@ -388,11 +395,7 @@ export function useCanvasInput(
 
   function cancelPointerInteraction() {
     cancelResizeDrag(drag.value, editor)
-    if (drag.value?.type === 'rotate') {
-      const rotation = drag.value
-      drag.value = null
-      if (editor.state.rotationPreview?.nodeId === rotation.nodeId) editor.setRotationPreview(null)
-    }
+    cancelRotationDrag(editor, drag.value)
     if (
       drag.value?.type === 'draw' ||
       drag.value?.type === 'gradient' ||
@@ -455,7 +458,13 @@ export function useCanvasInput(
     (event) => {
       if (event.code !== 'Escape' || event.isComposing || !isEnabled()) return
       const type = drag.value?.type
-      if (type !== 'draw' && type !== 'gradient' && type !== 'rotate') return
+      if (
+        type !== 'draw' &&
+        type !== 'gradient' &&
+        type !== 'rotate' &&
+        type !== 'rotate-selection'
+      )
+        return
       event.preventDefault()
       event.stopImmediatePropagation()
       cancelPointerInteraction()
@@ -512,7 +521,12 @@ export function useCanvasInput(
     (event) =>
       editor.onEditorEvent(event, () => {
         const type = drag.value?.type
-        if (type === 'draw' || type === 'rotate' || type === 'shape-handle')
+        if (
+          type === 'draw' ||
+          type === 'rotate' ||
+          type === 'rotate-selection' ||
+          type === 'shape-handle'
+        )
           cancelPointerInteraction()
       })
   )

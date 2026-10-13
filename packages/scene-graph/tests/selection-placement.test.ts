@@ -3,14 +3,15 @@ import { describe, expect, test } from 'bun:test'
 import { SceneGraph } from '@open-pencil/scene-graph'
 import {
   getAxisAlignedWorldBounds,
+  getWorldMatrix,
   placeInResizedBounds,
+  placeRotatedAbout,
   selectionPlacement
 } from '@open-pencil/scene-graph/coordinate'
+import Matrix from '@open-pencil/scene-graph/matrix'
+import type { Rect } from '@open-pencil/scene-graph/primitives'
 
-function expectRect(
-  actual: { x: number; y: number; width: number; height: number },
-  expected: { x: number; y: number; width: number; height: number }
-) {
+function expectRect(actual: Rect, expected: Rect) {
   expect(actual.x).toBeCloseTo(expected.x, 6)
   expect(actual.y).toBeCloseTo(expected.y, 6)
   expect(actual.width).toBeCloseTo(expected.width, 6)
@@ -68,5 +69,37 @@ describe('placing a layer in resized selection bounds', () => {
     expect(rect.height).toBeCloseTo(40, 6)
     const moved = graph.createNode('RECTANGLE', page.id, { ...rect, rotation: 90 })
     expectRect(getAxisAlignedWorldBounds(moved, graph), to)
+  })
+})
+
+describe('placing a layer in a rotated selection', () => {
+  test('swings the layer’s center about the pivot and turns it by the same angle', () => {
+    const graph = new SceneGraph()
+    const page = graph.getPages()[0]
+    const node = graph.createNode('RECTANGLE', page.id, { x: 100, y: 0, width: 40, height: 20 })
+    const placed = placeRotatedAbout(selectionPlacement(node, graph), { x: 0, y: 0 }, 90)
+
+    expect(placed.rotation).toBeCloseTo(90, 6)
+    // The center (120, 10) turns a quarter about the origin to (−10, 120).
+    const moved = graph.createNode('RECTANGLE', page.id, { ...placed, width: 40, height: 20 })
+    const [cx, cy] = Matrix.mapPoints(getWorldMatrix(moved, graph), [20, 10])
+    expect(cx).toBeCloseTo(-10, 6)
+    expect(cy).toBeCloseTo(120, 6)
+  })
+
+  test('a mirrored layer’s rotation runs the other way to turn the same way on the canvas', () => {
+    const graph = new SceneGraph()
+    const page = graph.getPages()[0]
+    const node = graph.createNode('RECTANGLE', page.id, {
+      x: 0,
+      y: 0,
+      width: 40,
+      height: 20,
+      flipX: true
+    })
+    const placed = placeRotatedAbout(selectionPlacement(node, graph), { x: 20, y: 10 }, 30)
+    expect(placed.rotation).toBeCloseTo(-30, 6)
+    expect(placed.x).toBeCloseTo(0, 6)
+    expect(placed.y).toBeCloseTo(0, 6)
   })
 })

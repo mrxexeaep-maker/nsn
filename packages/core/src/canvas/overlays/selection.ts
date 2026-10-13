@@ -21,7 +21,8 @@ import {
   selectionPath,
   rotationHandleLayout,
   type RotationHandleLayout,
-  type RotationPreview
+  type RotationPreview,
+  type SelectionRotationPreview
 } from '#core/geometry'
 import { pathTextSelectionBand, pointAtArc } from '#core/text/path'
 
@@ -160,7 +161,11 @@ export function drawSelection(
     .map((id) => graph.getNode(id))
     .filter((n): n is SceneNode => n !== undefined)
   if (nodes.length === 0) return
-  r.drawGroupBounds(canvas, nodes, graph, preview)
+  if (overlays.selectionRotationPreview) {
+    drawTurningGroupBounds(r, canvas, overlays.selectionRotationPreview)
+  } else {
+    r.drawGroupBounds(canvas, nodes, graph, preview)
+  }
 
   r.drawSelectionLabels(canvas, graph, selectedIds, overlays)
 }
@@ -443,6 +448,50 @@ export function drawGroupBounds(
   r.auxStroke.setPathEffect(null)
   canvas.drawRect(r.ck.LTRBRect(minX, minY, maxX, maxY), r.auxStroke)
   drawBoundsHandlesScreenSpace(r, canvas, minX, minY, maxX, maxY)
+}
+
+/**
+ * A multi-selection's box while it turns, as Figma draws it: the bounds it started from, rotated
+ * about their center by the angle turned so far, with its handles and rotation stalk turning too.
+ */
+function drawTurningGroupBounds(
+  r: SkiaRenderer,
+  canvas: Canvas,
+  { bounds, angle }: SelectionRotationPreview
+): void {
+  const radians = (angle * Math.PI) / 180
+  const cos = Math.cos(radians)
+  const sin = Math.sin(radians)
+  const cx = bounds.x + bounds.width / 2
+  const cy = bounds.y + bounds.height / 2
+  const turned = [
+    [bounds.x, bounds.y],
+    [bounds.x + bounds.width, bounds.y],
+    [bounds.x + bounds.width, bounds.y + bounds.height],
+    [bounds.x, bounds.y + bounds.height],
+    [cx, bounds.y]
+  ].flatMap(([x, y]) => [
+    cx + (x - cx) * cos - (y - cy) * sin,
+    cy + (x - cx) * sin + (y - cy) * cos
+  ])
+  const screen = Matrix.mapPoints(viewportMatrix(r), turned)
+  const corner = (i: number): [number, number] => [screen[i * 2], screen[i * 2 + 1]]
+  r.auxStroke.setStrokeWidth(1)
+  r.auxStroke.setColor(r.selColor(SELECTION_DASH_ALPHA))
+  r.auxStroke.setPathEffect(null)
+  for (let i = 0; i < 4; i++) {
+    const [ax, ay] = corner(i)
+    const [bx, by] = corner((i + 1) % 4)
+    canvas.drawLine(ax, ay, bx, by, r.auxStroke)
+  }
+  if (!hasTransformHandles(bounds.width * r.zoom, bounds.height * r.zoom)) return
+  for (let i = 0; i < 4; i++) drawHandleScreenSpace(r, canvas, ...corner(i))
+  // The stalk leaves the top edge's middle along the box's turned "up".
+  const [mx, my] = corner(4)
+  const handleX = mx + sin * ROTATION_HANDLE_DISTANCE
+  const handleY = my - cos * ROTATION_HANDLE_DISTANCE
+  canvas.drawLine(mx, my, handleX, handleY, r.selectionPaint)
+  drawHandleScreenSpace(r, canvas, handleX, handleY)
 }
 
 export function getRotatedCorners(r: SkiaRenderer, n: SceneNode, abs: Vector): Vector[] {

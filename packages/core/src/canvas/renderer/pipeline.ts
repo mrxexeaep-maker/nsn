@@ -97,6 +97,7 @@ export function renderFromEditorState(
       snapGuides: state.snapGuides,
       guides: state.guides,
       rotationPreview: state.rotationPreview,
+      selectionRotationPreview: state.selectionRotationPreview,
       dropTargetId: state.dropTargetId,
       layoutInsertIndicator: state.layoutInsertIndicator,
       penState: state.penState

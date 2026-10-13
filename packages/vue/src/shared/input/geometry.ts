@@ -1,4 +1,8 @@
-import { HANDLE_HIT_RADIUS, LAYER_HIT_PAD } from '@open-pencil/core/constants'
+import {
+  HANDLE_HIT_RADIUS,
+  LAYER_HIT_PAD,
+  ROTATION_HANDLE_DISTANCE
+} from '@open-pencil/core/constants'
 import type { Editor } from '@open-pencil/core/editor'
 import {
   createSceneGeometry,
@@ -13,7 +17,7 @@ import {
   type TransformZone
 } from '@open-pencil/core/geometry'
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
-import type { Vector } from '@open-pencil/scene-graph/primitives'
+import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
 
 import resizeCursorSVG from '#vue/shared/assets/resize-cursor.svg?raw'
 import rotateCursorSVG from '#vue/shared/assets/rotate-cursor.svg?raw'
@@ -271,4 +275,32 @@ export function buildResizeCursor(angleDeg: number): string {
     )
     .replace('</svg>', '</g></svg>')
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 12 12, auto`
+}
+
+/**
+ * Whether a canvas point takes the rotation of an axis-aligned box, such as a multi-selection's
+ * bounds: its top handle, drawn `ROTATION_HANDLE_DISTANCE` screen pixels above the top edge, or
+ * the zone just outside a corner.
+ */
+export function hitTestBoundsRotation(cx: number, cy: number, bounds: Rect, zoom: number): boolean {
+  if (!hasTransformHandles(bounds.width * zoom, bounds.height * zoom)) return false
+  const dx = cx - (bounds.x + bounds.width / 2)
+  const dy = cy - (bounds.y - ROTATION_HANDLE_DISTANCE / zoom)
+  const radius = HANDLE_HIT_RADIUS / zoom
+  if (dx * dx + dy * dy <= radius * radius) return true
+  return transformZoneAt({ x: cx, y: cy }, bounds, zoom)?.kind === 'rotate'
+}
+
+/** The rotation cursor outside a corner of an axis-aligned box, or null elsewhere. */
+export function boundsRotationCursor(
+  cx: number,
+  cy: number,
+  bounds: Rect,
+  zoom: number
+): string | null {
+  const zone = transformZoneAt({ x: cx, y: cy }, bounds, zoom)
+  if (zone?.kind !== 'rotate') return null
+  const x = zone.corner === 'nw' || zone.corner === 'sw' ? -1 : 1
+  const y = zone.corner === 'nw' || zone.corner === 'ne' ? -1 : 1
+  return buildRotationCursor((Math.atan2(y, x) * 180) / Math.PI + 135)
 }
