@@ -24,6 +24,8 @@ The app icon is the colour mark on the ink (`#111111`) rounded tile, holding the
 
 `icons/mark-modular.svg` is the kit's modular outline: the P and the lines between its three pieces, drawn with `currentColor` on a 24px grid with a 1.5px line, so it takes the text color wherever it is shown. Vite serves `icons/` as the `brand` icon collection (`<icon-brand-mark-modular />`). `icons/lockup.svg` is the horizontal lockup with its wordmark in `currentColor`.
 
+The loading screen in `index.html` inlines the assembling mark: each piece's outline draws in, the pieces slide together, and their colour wipes in, about 1.6s in all. `src/app/shell/boot-splash.ts` keeps it up until that animation has finished and the app has mounted, whichever is later; reduced motion, `?test`, and automated browsers skip the wait.
+
 Minimum sizes: the colour mark 24px tall; the one-colour mark 16px. Keep half a cell, a quarter of the mark's width, clear on every side.
 
 Edit these SVGs, not generated files. The tile colour, the one-colour ink and paper, and platform padding live in `tools/generate/brand/src/config.ts`.
