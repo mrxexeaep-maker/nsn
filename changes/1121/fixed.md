@@ -1,0 +1,1 @@
+- People in a shared room see the overrides of instances in the shared document: text, slot content, and every other overridden field arrived empty, and editing such an instance could throw. Rooms opened by earlier builds do not meet rooms opened by this one.
