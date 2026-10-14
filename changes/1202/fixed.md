@@ -1,1 +1,2 @@
 - Menus taller than the window scroll instead of running off its edge.
+- The mobile file menu lines its labels up beside their icons instead of at the far edge.

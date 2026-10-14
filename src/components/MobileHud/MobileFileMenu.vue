@@ -11,14 +11,15 @@ import { useMenuMessages } from '@open-pencil/vue'
 
 import HudButton from '@/components/mobile-hud/HudButton.vue'
 import { useMobileHudContext } from '@/components/MobileHud/context'
-import { menu, useMenuUI } from '@/components/ui/menu/menu'
+import { menuItem, useMenuUI } from '@/components/ui/menu/menu'
 import MenuScrollArea from '@/components/ui/menu/MenuScrollArea.vue'
 
 const menuMessages = useMenuMessages()
 const hud = useMobileHudContext()
-const menuCls = useMenuUI({
-  content: 'w-48 p-1.5',
-  item: 'w-full gap-2.5 rounded-lg border-none bg-transparent px-2.5 py-2 active:bg-hover'
+const menuCls = useMenuUI({ content: 'w-48 p-1.5' })
+const itemCls = menuItem({
+  justify: 'start',
+  class: 'w-full gap-2.5 rounded-lg border-none bg-transparent px-2.5 py-2 active:bg-hover'
 })
 </script>
 
@@ -35,7 +36,7 @@ const menuCls = useMenuUI({
           <DropdownMenuItem
             v-for="item in hud.menuItems"
             :key="item.label"
-            :class="menu({ justify: 'start' }).item({ class: menuCls.item })"
+            :class="itemCls"
             @click="item.action()"
           >
             <component :is="item.icon" class="size-4 text-muted" />
