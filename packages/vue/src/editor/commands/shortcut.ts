@@ -22,16 +22,6 @@ const MODIFIER_DISPLAY: Record<ShortcutPlatform, Record<string, string>> = {
   }
 }
 
-/**
- * Keys whose token reads poorly as written; the rest show as they are. A Mac keyboard has no
- * Page Up or Page Down, so Figma names them by the Fn (globe) and arrow keys that type them.
- */
-const KEY_DISPLAY: Record<ShortcutPlatform, Partial<Record<string, string>>> = {
-  mac: { PAGEUP: '🌐↑', PAGEDOWN: '🌐↓' },
-  windows: { PAGEUP: 'PgUp', PAGEDOWN: 'PgDn' },
-  linux: { PAGEUP: 'PgUp', PAGEDOWN: 'PgDn' }
-}
-
 const MAC_MODIFIER_ORDER = ['CTRL', 'ALT', 'SHIFT', 'MOD']
 const STANDARD_MODIFIER_ORDER = ['MOD', 'CTRL', 'ALT', 'SHIFT']
 
@@ -57,9 +47,7 @@ export function formatShortcut(
     .map((combo) => {
       const parts = compact(combo.split('+'))
       const modifiers = parts.filter((part) => part in MODIFIER_DISPLAY[platform])
-      const keys = parts
-        .filter((part) => !(part in MODIFIER_DISPLAY[platform]))
-        .map((part) => KEY_DISPLAY[platform][part] ?? part)
+      const keys = parts.filter((part) => !(part in MODIFIER_DISPLAY[platform]))
       const formattedModifiers = sortModifiers(modifiers, platform).map(
         (part) => MODIFIER_DISPLAY[platform][part]
       )

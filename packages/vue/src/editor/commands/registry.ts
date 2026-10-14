@@ -125,8 +125,8 @@ export const EDITOR_COMMAND_METADATA = {
   'view.zoomSelection': { shortcut: 'SHIFT+2', keybinding: ['$mod+Digit2', 'Shift+Digit2'] },
   'view.zoomNextFrame': { shortcut: 'N', keybinding: 'KeyN' },
   'view.zoomPreviousFrame': { shortcut: 'SHIFT+N', keybinding: 'Shift+KeyN' },
-  'view.nextPage': { shortcut: 'PAGEDOWN', keybinding: 'PageDown' },
-  'view.previousPage': { shortcut: 'PAGEUP', keybinding: 'PageUp' }
+  'view.nextPage': { shortcut: '⇟', keybinding: 'PageDown' },
+  'view.previousPage': { shortcut: '⇞', keybinding: 'PageUp' }
 } satisfies Record<EditorCommandId, EditorCommandMetadata>
 
 export function editorCommandMetadata(id: EditorCommandId): EditorCommandMetadata {
