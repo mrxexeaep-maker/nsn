@@ -1,6 +1,0 @@
-- Fill and stroke bindings to variables made in OpenPencil survive a paste into Figma, which keeps them as remote variables as it does for variables copied from another Figma file.
-- Instances pasted into Figma keep their names and no longer carry their component's library identity.
-- Saving an opened `.fig` file writes a variable's new value into every layer that uses it, through an alias too, so Figma shows the edit. Before, layers bound through an alias, or any layer read from the file, kept the color Figma had saved.
-- The Variables panel marks collections copied from a library. Edits to them are saved and show in Figma, but Figma doesn't show variables or modes added to them; the panel warns on such a variable.
-- CLI `eval` and the CLI tools measure text in the document they edit, so text with line breaks or a fixed width gets its real height.
-- The Variables dialog keeps variable names in view in a collection with more modes than fit, such as Tokens in Preline UI files, and scrolls sideways instead. Before, the name column shrank to nothing and its header ran into the first mode's.

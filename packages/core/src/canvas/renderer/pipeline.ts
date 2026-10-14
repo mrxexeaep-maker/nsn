@@ -106,6 +106,7 @@ export function renderFromEditorState(
             cursorY: state.penCursorY ?? undefined
           } as RenderOverlays['penState'])
         : null,
+      pencilState: state.pencilState,
       nodeEditState: state.nodeEditState ?? null,
       presenceCursors: state.presenceCursors,
       designIssues: state.designIssues,

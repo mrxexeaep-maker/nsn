@@ -14,6 +14,7 @@ import { resolvedAppTheme } from '@/app/shell/theme'
 import BrandMark from '@/components/brand/BrandMark.vue'
 import MainMenuEntries from '@/components/shell/MainMenuEntries.vue'
 import { useMenuUI } from '@/components/ui/menu/menu'
+import MenuScrollArea from '@/components/ui/menu/MenuScrollArea.vue'
 import { IS_TAURI } from '@/constants'
 import navigationRailTheme from '@/theme/shell/navigation-rail'
 
@@ -46,7 +47,9 @@ const open = defineModel<boolean>('open', { default: false })
         :class="mainMenuCls.content"
         @close-auto-focus.prevent
       >
-        <MainMenuEntries :entries="mainMenu" />
+        <MenuScrollArea>
+          <MainMenuEntries :entries="mainMenu" />
+        </MenuScrollArea>
       </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
