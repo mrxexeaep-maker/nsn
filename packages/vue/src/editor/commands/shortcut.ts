@@ -22,6 +22,9 @@ const MODIFIER_DISPLAY: Record<ShortcutPlatform, Record<string, string>> = {
   }
 }
 
+/** Keys whose token reads poorly as written; the rest show as they are. */
+const KEY_DISPLAY: Partial<Record<string, string>> = { PAGEUP: 'PgUp', PAGEDOWN: 'PgDn' }
+
 const MAC_MODIFIER_ORDER = ['CTRL', 'ALT', 'SHIFT', 'MOD']
 const STANDARD_MODIFIER_ORDER = ['MOD', 'CTRL', 'ALT', 'SHIFT']
 
@@ -47,7 +50,9 @@ export function formatShortcut(
     .map((combo) => {
       const parts = compact(combo.split('+'))
       const modifiers = parts.filter((part) => part in MODIFIER_DISPLAY[platform])
-      const keys = parts.filter((part) => !(part in MODIFIER_DISPLAY[platform]))
+      const keys = parts
+        .filter((part) => !(part in MODIFIER_DISPLAY[platform]))
+        .map((part) => KEY_DISPLAY[part] ?? part)
       const formattedModifiers = sortModifiers(modifiers, platform).map(
         (part) => MODIFIER_DISPLAY[platform][part]
       )

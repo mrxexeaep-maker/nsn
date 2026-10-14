@@ -17,6 +17,11 @@ describe('formatShortcut', () => {
     expect(formatShortcut('SHIFT+A', 'linux')).toBe('Shift+A')
   })
 
+  test('abbreviates Page Up and Page Down', () => {
+    expect(formatShortcut('PAGEUP', 'mac')).toBe('PgUp')
+    expect(formatShortcut('PAGEDOWN', 'windows')).toBe('PgDn')
+  })
+
   test('detects platform from user agent', () => {
     expect(shortcutPlatform('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')).toBe('mac')
     expect(shortcutPlatform('Mozilla/5.0 (Windows NT 10.0; Win64; x64)')).toBe('windows')
