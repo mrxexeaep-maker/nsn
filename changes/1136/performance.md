@@ -1,1 +1,0 @@
-- Joining a shared room is faster: the document a person receives on joining is compressed, about a twelfth of its size before (480 KB instead of 5.7 MB for the demo tour), and edits travel in Yjs's more compact encoding.

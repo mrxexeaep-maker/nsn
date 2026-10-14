@@ -60,7 +60,9 @@ export function createKeyboardActions({
         store.textEditor?.selectAll()
         store.requestRender()
       })
+      return
     }
+    runCommand('selection.selectChildren')
   }
 
   function escapeOrDeselect() {
@@ -74,6 +76,10 @@ export function createKeyboardActions({
     }
     if (store.state.nodeEditState) {
       store.exitNodeEditMode(true)
+      return
+    }
+    if (store.state.pencilState) {
+      store.pencilCancel()
       return
     }
     // Figma keeps the path drawn so far; a lone point has nothing to keep.

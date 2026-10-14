@@ -20,6 +20,7 @@ import BrandMark from '@/components/brand/BrandMark.vue'
 import MainMenuEntries from '@/components/shell/MainMenuEntries.vue'
 import IconButton from '@/components/ui/button/IconButton.vue'
 import { useMenuUI } from '@/components/ui/menu/menu'
+import MenuScrollArea from '@/components/ui/menu/MenuScrollArea.vue'
 import { IS_TAURI } from '@/constants'
 
 const store = useEditorStore()
@@ -68,7 +69,9 @@ const mainMenuCls = useMenuUI({ content: 'min-w-52' })
             :class="mainMenuCls.content"
             @close-auto-focus.prevent
           >
-            <MainMenuEntries :entries="mainMenu" />
+            <MenuScrollArea>
+              <MainMenuEntries :entries="mainMenu" />
+            </MenuScrollArea>
           </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>
