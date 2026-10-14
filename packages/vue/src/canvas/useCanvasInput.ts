@@ -14,6 +14,11 @@ import { handleToolMouseDown } from '#vue/canvas/tools/input'
 import { createCanvasTransformInput } from '#vue/canvas/transform/input'
 import { finishMarquee } from '#vue/canvas/transform/marquee'
 import {
+  cancelRotationDrag,
+  commitRotationDrag,
+  handleSelectionRotateMove
+} from '#vue/canvas/transform/rotation'
+import {
   handleBendHandleMove,
   handleNodeEditPointerUp,
   updateNodeEditHover
@@ -23,7 +28,12 @@ import { createClickCounter } from '#vue/shared/input/click-count'
 import { handleDrawMove } from '#vue/shared/input/draw'
 import { handleMoveMove, handleMoveUp } from '#vue/shared/input/move'
 import { setupPanZoom } from '#vue/shared/input/pan-zoom'
-import { applyResize, cancelResizePreview, commitResizePreview } from '#vue/shared/input/resize'
+import { applyResize, commitResizePreview } from '#vue/shared/input/resize'
+import {
+  applySelectionResize,
+  cancelResizeDrag,
+  commitSelectionResize
+} from '#vue/shared/input/resize/selection'
 import { updateHoverCursor } from '#vue/shared/input/select'
 import { resolveShapeHandleHover } from '#vue/shared/input/shape-handles'
 import { useSpaceHeld } from '#vue/shared/input/space-key'
@@ -52,7 +62,14 @@ export function useCanvasInput(
   // layers move, resize, or rotate.
   watch(
     () => drag.value?.type,
-    (type) => editor.setTransforming(type === 'move' || type === 'resize' || type === 'rotate')
+    (type) =>
+      editor.setTransforming(
+        type === 'move' ||
+          type === 'resize' ||
+          type === 'resize-selection' ||
+          type === 'rotate' ||
+          type === 'rotate-selection'
+      )
   )
   const canvasLabelEdit = createCanvasLabelEdit(editor)
   const cursorOverride = ref<string | null>(null)
@@ -286,6 +303,10 @@ export function useCanvasInput(
       return
     }
 
+    if (d.type === 'rotate-selection') {
+      handleSelectionRotateMove(editor, d, cx, cy, e.shiftKey)
+      return
+    }
     if (d.type === 'rotate') {
       handleRotateMove(d, cx, cy, e.shiftKey)
       return
@@ -300,6 +321,10 @@ export function useCanvasInput(
     }
     if (d.type === 'resize') {
       applyResize(d, cx, cy, e.shiftKey, editor, e.ctrlKey)
+      return
+    }
+    if (d.type === 'resize-selection') {
+      applySelectionResize(d, cx, cy, e.shiftKey, editor)
       return
     }
 
@@ -339,6 +364,7 @@ export function useCanvasInput(
       drag.value = null
       return
     } else if (d.type === 'resize') commitResizePreview(d, editor)
+    else if (d.type === 'resize-selection') commitSelectionResize(d, editor)
     else if (d.type === 'pen-drag') {
       const penState = editor.state.penState as
         | (typeof editor.state.penState & {
@@ -350,14 +376,8 @@ export function useCanvasInput(
       }
       drag.value = null
       return
-    } else if (d.type === 'rotate') {
-      const preview = editor.state.rotationPreview
-      if (preview?.nodeId === d.nodeId && preview.angle !== d.origRotation) {
-        editor.updateNode(d.nodeId, { rotation: preview.angle })
-        editor.commitRotation(d.nodeId, d.origRotation)
-      }
-      if (editor.state.rotationPreview === preview) editor.setRotationPreview(null)
-    } else if (d.type === 'draw' || d.type === 'gradient' || d.type === 'shape-handle') d.commit()
+    } else if (d.type === 'rotate' || d.type === 'rotate-selection') commitRotationDrag(editor, d)
+    else if (d.type === 'draw' || d.type === 'gradient' || d.type === 'shape-handle') d.commit()
     else if (d.type === 'marquee') finishMarquee(editor, d)
 
     drag.value = null
@@ -374,12 +394,8 @@ export function useCanvasInput(
   }
 
   function cancelPointerInteraction() {
-    if (drag.value?.type === 'resize') cancelResizePreview(drag.value, editor)
-    if (drag.value?.type === 'rotate') {
-      const rotation = drag.value
-      drag.value = null
-      if (editor.state.rotationPreview?.nodeId === rotation.nodeId) editor.setRotationPreview(null)
-    }
+    cancelResizeDrag(drag.value, editor)
+    cancelRotationDrag(editor, drag.value)
     if (
       drag.value?.type === 'draw' ||
       drag.value?.type === 'gradient' ||
@@ -442,7 +458,13 @@ export function useCanvasInput(
     (event) => {
       if (event.code !== 'Escape' || event.isComposing || !isEnabled()) return
       const type = drag.value?.type
-      if (type !== 'draw' && type !== 'gradient' && type !== 'rotate') return
+      if (
+        type !== 'draw' &&
+        type !== 'gradient' &&
+        type !== 'rotate' &&
+        type !== 'rotate-selection'
+      )
+        return
       event.preventDefault()
       event.stopImmediatePropagation()
       cancelPointerInteraction()
@@ -499,7 +521,12 @@ export function useCanvasInput(
     (event) =>
       editor.onEditorEvent(event, () => {
         const type = drag.value?.type
-        if (type === 'draw' || type === 'rotate' || type === 'shape-handle')
+        if (
+          type === 'draw' ||
+          type === 'rotate' ||
+          type === 'rotate-selection' ||
+          type === 'shape-handle'
+        )
           cancelPointerInteraction()
       })
   )

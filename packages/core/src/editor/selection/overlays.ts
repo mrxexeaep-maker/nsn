@@ -47,6 +47,17 @@ export function createSelectionOverlayActions(ctx: EditorContext) {
     ctx.requestRepaint()
   }
 
+  function setSelectionRotationPreview(preview: typeof ctx.state.selectionRotationPreview) {
+    if (preview === null && ctx.state.selectionRotationPreview === null) return
+    ctx.state.selectionRotationPreview = preview
+    ctx.requestRepaint()
+  }
+
+  function setSelectionAngle(angle: typeof ctx.state.selectionAngle) {
+    ctx.state.selectionAngle = angle
+    ctx.requestRepaint()
+  }
+
   function setHoveredNode(id: string | null) {
     if (ctx.state.hoveredNodeId === id) return
     ctx.state.hoveredNodeId = id
@@ -112,6 +123,8 @@ export function createSelectionOverlayActions(ctx: EditorContext) {
     setGuideRedline,
     setSelectedGuide,
     setRotationPreview,
+    setSelectionRotationPreview,
+    setSelectionAngle,
     setHoveredNode,
     setTransforming,
     setCodeFocusNode,

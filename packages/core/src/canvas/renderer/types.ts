@@ -5,7 +5,7 @@ import type { SnapGuide } from '@open-pencil/scene-graph/snap'
 import type { GuideOverlayState } from '#core/canvas/guides/types'
 import type { DesignIssueOverlay } from '#core/canvas/issues/types'
 import type { ShapeHandleHover, GradientEdit } from '#core/editor/types'
-import type { RotationPreview } from '#core/geometry'
+import type { RotationPreview, SelectionAngle, SelectionRotationPreview } from '#core/geometry'
 import type { TextEditor } from '#core/text/editor'
 
 /** Selection chrome on the canvas and the text drawn on it, such as size pills and ruler badges. */
@@ -57,6 +57,8 @@ export interface RenderOverlays {
   snapGuides?: SnapGuide[]
   guides?: GuideOverlayState
   rotationPreview?: RotationPreview | null
+  selectionRotationPreview?: SelectionRotationPreview | null
+  selectionAngle?: SelectionAngle | null
   dropTargetId?: string | null
   layoutInsertIndicator?: {
     x: number

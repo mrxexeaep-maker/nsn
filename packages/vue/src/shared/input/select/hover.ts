@@ -1,16 +1,23 @@
 import type { Editor } from '@open-pencil/core/editor'
 
 import {
+  axisAlignedCursorAngle,
   buildResizeCursor,
   cornerRotationCursor,
+  frameRotationCursor,
   getHitHandleByMatrix,
   hitTestCornerRotationByMatrix
 } from '#vue/shared/input/geometry'
+import { selectionBox, selectionResizeHandleAt } from '#vue/shared/input/resize/selection'
 import type { HitTestFns } from '#vue/shared/input/select'
 import { hitTestLabel } from '#vue/shared/input/select/hit'
 import { getNodeEditState } from '#vue/shared/input/vector'
 
 function getResizeCursorForSelection(cx: number, cy: number, editor: Editor): string | null {
+  if (editor.state.selectedIds.size > 1) {
+    const hit = selectionResizeHandleAt(cx, cy, editor)
+    return hit ? buildResizeCursor(axisAlignedCursorAngle(hit.handle) + hit.angle) : null
+  }
   for (const id of editor.state.selectedIds) {
     const node = editor.graph.getNode(id)
     if (!node) continue
@@ -29,6 +36,10 @@ function getResizeCursorForSelection(cx: number, cy: number, editor: Editor): st
 }
 
 function getRotationCursorForSelection(cx: number, cy: number, editor: Editor): string | null {
+  if (editor.state.selectedIds.size > 1) {
+    const frame = selectionBox(editor)
+    return frame ? frameRotationCursor(cx, cy, frame, editor.renderer?.zoom ?? 1) : null
+  }
   if (editor.state.selectedIds.size !== 1) return null
 
   const id = [...editor.state.selectedIds][0]
