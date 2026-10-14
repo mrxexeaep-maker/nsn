@@ -12,6 +12,7 @@ import { useMenuMessages } from '@open-pencil/vue'
 import HudButton from '@/components/mobile-hud/HudButton.vue'
 import { useMobileHudContext } from '@/components/MobileHud/context'
 import { menu, useMenuUI } from '@/components/ui/menu/menu'
+import MenuScrollArea from '@/components/ui/menu/MenuScrollArea.vue'
 
 const menuMessages = useMenuMessages()
 const hud = useMobileHudContext()
@@ -29,17 +30,19 @@ const menuCls = useMenuUI({
       </HudButton>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
-      <DropdownMenuContent :side-offset="8" side="bottom" align="end" :class="menuCls.content">
-        <DropdownMenuItem
-          v-for="item in hud.menuItems"
-          :key="item.label"
-          :class="menu({ justify: 'start' }).item({ class: menuCls.item })"
-          @click="item.action()"
-        >
-          <component :is="item.icon" class="size-4 text-muted" />
-          <span>{{ item.label }}</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
+      <DropdownMenuContent :side-offset="8" side="bottom" align="end" :class="menuCls.content"
+        ><MenuScrollArea>
+          <DropdownMenuItem
+            v-for="item in hud.menuItems"
+            :key="item.label"
+            :class="menu({ justify: 'start' }).item({ class: menuCls.item })"
+            @click="item.action()"
+          >
+            <component :is="item.icon" class="size-4 text-muted" />
+            <span>{{ item.label }}</span>
+          </DropdownMenuItem>
+        </MenuScrollArea></DropdownMenuContent
+      >
     </DropdownMenuPortal>
   </DropdownMenuRoot>
 </template>

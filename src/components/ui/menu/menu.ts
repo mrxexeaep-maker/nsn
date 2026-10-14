@@ -6,9 +6,9 @@ import { floatingSurface } from '@/theme/overlay'
 export const menu = tv({
   slots: {
     // Reka sets only the open menu's own variable, so one chain caps every kind of menu just short
-    // of the window edge; a taller menu scrolls instead of running off it.
+    // of the window edge; a `MenuScrollArea` inside scrolls a taller one.
     content: [
-      'z-50 max-h-[calc(var(--reka-menubar-content-available-height,var(--reka-dropdown-menu-content-available-height,var(--reka-context-menu-content-available-height)))-0.5rem)] scrollbar-thin overflow-y-auto p-1',
+      'z-50 flex max-h-[calc(var(--reka-menubar-content-available-height,var(--reka-dropdown-menu-content-available-height,var(--reka-context-menu-content-available-height)))-0.5rem)] flex-col p-1',
       floatingSurface,
       motionStyles.floating
     ],
@@ -18,7 +18,12 @@ export const menu = tv({
     shortcut: 'text-[11px] text-muted',
     icon: 'size-3 text-muted',
     subTrigger:
-      'flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-[11px] outline-none select-none'
+      'flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-[11px] outline-none select-none',
+    // As in Figma and macOS menus: no scrollbar, a chevron strip over each end that has more.
+    scrollRoot: 'relative flex min-h-0 flex-col',
+    scrollViewport: 'scrollbar-none min-h-0 flex-1 scroll-py-5 overflow-y-auto',
+    scrollButton:
+      'absolute inset-x-0 z-10 flex h-5 cursor-default items-center justify-center bg-panel text-muted data-[edge=bottom]:bottom-0 data-[edge=top]:top-0'
   },
   variants: {
     tone: {
@@ -66,7 +71,10 @@ export function useMenuUI(ui?: MenuUI) {
     label: cls.label({ class: ui?.label }),
     shortcut: cls.shortcut({ class: ui?.shortcut }),
     icon: cls.icon({ class: ui?.icon }),
-    subTrigger: cls.subTrigger({ class: ui?.subTrigger })
+    subTrigger: cls.subTrigger({ class: ui?.subTrigger }),
+    scrollRoot: cls.scrollRoot(),
+    scrollViewport: cls.scrollViewport(),
+    scrollButton: cls.scrollButton()
   }
 }
 
