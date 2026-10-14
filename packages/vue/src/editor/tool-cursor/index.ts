@@ -1,9 +1,9 @@
 import type { Tool } from '@open-pencil/core/editor'
 
-import commentCursorSVG from '#vue/shared/assets/comment-cursor.svg?raw'
-import handCursorSVG from '#vue/shared/assets/hand-cursor.svg?raw'
-import handGrabCursorSVG from '#vue/shared/assets/hand-grab-cursor.svg?raw'
-import penCursorSVG from '#vue/shared/assets/pen-cursor.svg?raw'
+import commentCursorSVG from '#vue/shared/assets/cursors/comment.svg?raw'
+import handGrabCursorSVG from '#vue/shared/assets/cursors/hand-grab.svg?raw'
+import handCursorSVG from '#vue/shared/assets/cursors/hand.svg?raw'
+import penCursorSVG from '#vue/shared/assets/cursors/pen.svg?raw'
 
 function svgCursor(svg: string, x: number, y: number, fallback: string): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${x} ${y}, ${fallback}`
