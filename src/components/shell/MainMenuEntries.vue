@@ -27,6 +27,7 @@ import {
 } from '@/app/shell/menu/entry'
 import AppShortcutText from '@/components/ui/menu/AppShortcutText.vue'
 import { useMenuUI } from '@/components/ui/menu/menu'
+import MenuScrollArea from '@/components/ui/menu/MenuScrollArea.vue'
 
 /** One level of the main menu; each submenu renders its entries with this component again. */
 const { entries } = defineProps<{ entries: MenuEntry[] }>()
@@ -45,7 +46,9 @@ const subMenuCls = useMenuUI({ content: 'min-w-52' })
       </DropdownMenuSubTrigger>
       <DropdownMenuPortal>
         <DropdownMenuSubContent :side-offset="4" :class="subMenuCls.content">
-          <MainMenuEntries :entries="menuSubItems(entry)" />
+          <MenuScrollArea>
+            <MainMenuEntries :entries="menuSubItems(entry)" />
+          </MenuScrollArea>
         </DropdownMenuSubContent>
       </DropdownMenuPortal>
     </DropdownMenuSub>

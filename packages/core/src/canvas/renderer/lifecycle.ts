@@ -77,6 +77,7 @@ export function destroyRenderer(r: SkiaRenderer): void {
   r.rulerLabelPaint.delete()
   r.penPathPaint.delete()
   r.penLiveStrokePaint.delete()
+  r.pencilStrokePaint.delete()
   r.penHandlePaint.delete()
   r.penVertexFill.delete()
   r.penVertexStroke.delete()

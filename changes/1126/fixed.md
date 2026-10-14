@@ -1,1 +1,0 @@
-- Stopping a Pi reply in the desktop app cancels that turn and keeps the session. Pi remembers the conversation and its sandbox for your next message. Before, the stop raised an error, dropped the connection, and started a new Pi process, leaving the old one running.

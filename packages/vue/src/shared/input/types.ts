@@ -130,6 +130,10 @@ export interface DragPen {
   knotStartY: number
 }
 
+export interface DragPencil {
+  type: 'pencil-drag'
+}
+
 export interface DragTextSelect {
   type: 'text-select'
   startX: number
@@ -208,6 +212,7 @@ export type DragState =
   | DragMarquee
   | DragRotate
   | DragPen
+  | DragPencil
   | DragTextSelect
   | DragEditNode
   | DragEditHandle
