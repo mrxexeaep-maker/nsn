@@ -25,7 +25,8 @@ export const EDITOR_TOOLS: EditorToolDef[] = [
 export const TOOL_SHORTCUTS: Partial<Record<string, Tool>> = {
   KeyV: 'SELECT',
   KeyF: 'FRAME',
-  KeyS: 'SECTION',
+  KeyA: 'FRAME',
+  'Shift+KeyS': 'SECTION',
   KeyR: 'RECTANGLE',
   KeyO: 'ELLIPSE',
   KeyL: 'LINE',

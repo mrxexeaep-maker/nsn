@@ -18,8 +18,8 @@ Full Figma-compatible shortcut map. ✅ = implemented.
 | <kbd>V</kbd> | Move/Select | ✅ |
 | <kbd>K</kbd> | Scale | 🔲 |
 | <kbd>H</kbd> | Hand | ✅ |
-| <kbd>F</kbd> | Frame | ✅ |
-| <kbd>S</kbd> | Section | ✅ |
+| <kbd>F</kbd> or <kbd>A</kbd> | Frame | ✅ |
+| <kbd>⇧</kbd><kbd>S</kbd> | Section | ✅ |
 | <kbd>R</kbd> | Rectangle | ✅ |
 | <kbd>O</kbd> | Ellipse | ✅ |
 | <kbd>L</kbd> | Line | ✅ |
