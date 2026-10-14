@@ -1,1 +1,0 @@
-- The corners of a stroked path take its join, as in Figma. This applies to paths drawn with the pen and to unfilled icons. Thick strokes no longer notch at each corner, and round or square caps appear only at the path's ends.

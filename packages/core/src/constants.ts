@@ -569,6 +569,13 @@ export const ZOOM_SCALE_MIN = 0.75
 export const ZOOM_SCALE_MAX = 1.25
 
 export const PEN_CLOSE_THRESHOLD = 8
+/**
+ * Screen pixels a pencil sample may stray from the line through its neighbours before the curve
+ * keeps it, so a stroke drawn zoomed in keeps more detail.
+ */
+export const PENCIL_TOLERANCE = 2.5
+/** A new pencil layer's stroke weight (Figma desktop 126). */
+export const PENCIL_STROKE_WEIGHT = 2
 export const ROTATION_SNAP_DEGREES = 15
 export const HANDLE_HIT_RADIUS = 6
 /** How far outside a shape, in screen pixels, a click still selects it (Figma desktop 126). */

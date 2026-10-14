@@ -199,6 +199,8 @@ export class SkiaRenderer {
   declare rulerLabelPaint: Paint
   declare penPathPaint: Paint
   declare penLiveStrokePaint: Paint
+  /** The pencil stroke being drawn; its colour and width are set per frame. */
+  declare pencilStrokePaint: Paint
   declare penHandlePaint: Paint
   declare penVertexFill: Paint
   declare penVertexStroke: Paint
@@ -311,6 +313,7 @@ export class SkiaRenderer {
     editState?: RenderOverlays['nodeEditState']
   ) => void
   declare drawPenOverlay: (canvas: Canvas, penState: RenderOverlays['penState']) => void
+  declare drawPencilOverlay: (canvas: Canvas, pencilState: RenderOverlays['pencilState']) => void
   declare drawPresenceCursors: (
     canvas: Canvas,
     graph: SceneGraph,

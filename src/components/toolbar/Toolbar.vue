@@ -12,7 +12,7 @@ import {
 import { useEditorStore } from '@/app/editor/active-store'
 import { toolIcons } from '@/app/editor/icons'
 import { toolbarItems } from '@/app/editor/toolbar/layout'
-import { TOOL_SHORTCUT_LABELS } from '@/app/editor/toolbar/shortcuts'
+import { toolShortcutLabels } from '@/app/editor/toolbar/shortcuts'
 import { appPreferences } from '@/app/settings/preferences/store'
 import { useActionToast } from '@/app/shell/toast/action'
 import InsertIconButton from '@/components/icon-picker/InsertIconButton.vue'
@@ -32,8 +32,9 @@ const { menu } = useI18n()
 
 const toolLabels = useToolLabels()
 
+const toolShortcuts = toolShortcutLabels()
 const items = computed(() =>
-  toolbarItems(appPreferences.value.toolbar, toolLabels.value, TOOL_SHORTCUT_LABELS)
+  toolbarItems(appPreferences.value.toolbar, toolLabels.value, toolShortcuts)
 )
 const tools = computed(() =>
   items.value.flatMap((item) => (item.kind === 'tool' ? [item.tool] : []))
@@ -64,7 +65,7 @@ function onActionTap(item: ToolbarActionItem) {
         :flyout-selections="flyoutSelections"
         :tool-icons="toolIcons"
         :tool-labels="toolLabels"
-        :tool-shortcuts="TOOL_SHORTCUT_LABELS"
+        :tool-shortcuts="toolShortcuts"
         :ui="toolbarUI"
         @set-tool="actions.setTool"
       >
@@ -80,7 +81,7 @@ function onActionTap(item: ToolbarActionItem) {
         :flyout-selections="flyoutSelections"
         :tool-icons="toolIcons"
         :tool-labels="toolLabels"
-        :tool-shortcuts="TOOL_SHORTCUT_LABELS"
+        :tool-shortcuts="toolShortcuts"
         :ui="toolbarUI"
         :mobile-category="mobileCategory"
         :slide-direction="slideDirection"

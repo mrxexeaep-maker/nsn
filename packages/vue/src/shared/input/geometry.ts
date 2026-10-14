@@ -15,8 +15,8 @@ import {
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
 
-import resizeCursorSVG from '#vue/shared/assets/resize-cursor.svg?raw'
-import rotateCursorSVG from '#vue/shared/assets/rotate-cursor.svg?raw'
+import resizeCursorSVG from '#vue/shared/assets/cursors/resize.svg?raw'
+import rotateCursorSVG from '#vue/shared/assets/cursors/rotate.svg?raw'
 
 export function getPointerCoords(e: MouseEvent, canvas: HTMLCanvasElement | null, editor: Editor) {
   if (!canvas) return { sx: 0, sy: 0, cx: 0, cy: 0 }

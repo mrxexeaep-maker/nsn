@@ -1,1 +1,0 @@
-- After editing text on a path, each character turns along the stretch of path it covers, as in Figma, so wide characters no longer point off the curve on tight bends.

@@ -12,6 +12,7 @@ import IconMessageCircle from '~icons/lucide/message-circle'
 import IconMinus from '~icons/lucide/minus'
 import IconMousePointer from '~icons/lucide/mouse-pointer'
 import IconPenTool from '~icons/lucide/pen-tool'
+import IconPencil from '~icons/lucide/pencil'
 import IconRows from '~icons/lucide/rows-3'
 import IconSmile from '~icons/lucide/smile'
 import IconSquare from '~icons/lucide/square'
@@ -34,6 +35,7 @@ export const toolIcons: Record<Tool, Component> = {
   POLYGON: IconTriangle,
   STAR: IconStar,
   PEN: IconPenTool,
+  PENCIL: IconPencil,
   TEXT: IconType,
   HAND: IconHand,
   COMMENT: IconMessageCircle
