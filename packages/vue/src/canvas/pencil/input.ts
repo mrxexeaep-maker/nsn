@@ -1,16 +1,7 @@
 import type { Editor } from '@open-pencil/core/editor'
-import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
 
 import { findEnclosingDrawParent } from '#vue/shared/input/drop-target'
 import type { DragState } from '#vue/shared/input/types'
-
-function boundsOf(points: readonly Vector[]): Rect {
-  const xs = points.map((point) => point.x)
-  const ys = points.map((point) => point.y)
-  const x = Math.min(...xs)
-  const y = Math.min(...ys)
-  return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y }
-}
 
 export function startPencilInput(
   cx: number,
@@ -34,5 +25,5 @@ export function finishPencilDrag(editor: Editor) {
     editor.pencilCancel()
     return
   }
-  editor.pencilCommit(findEnclosingDrawParent(points[0], boundsOf(points), 'VECTOR', editor))
+  editor.pencilCommit(findEnclosingDrawParent(points, 'VECTOR', editor))
 }
