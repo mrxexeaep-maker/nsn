@@ -1,1 +1,0 @@
-- People who join a shared room see and edit the document's variables: collections, modes, and values reach everyone in the room, layers bound to them follow, and two people editing different modes of one variable both keep their change. Rooms opened by earlier builds do not meet rooms opened by this one.

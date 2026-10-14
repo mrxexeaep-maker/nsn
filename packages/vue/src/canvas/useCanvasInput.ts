@@ -8,6 +8,7 @@ import { createAutoLayoutValueEdit } from '#vue/canvas/auto-layout/value-edit'
 import { createGuideInput, selectedTopLevelGuideFrameId } from '#vue/canvas/guides/input'
 import { createCanvasLabelEdit } from '#vue/canvas/labels/edit'
 import { handlePenDragMove, updatePenHover } from '#vue/canvas/pen/input'
+import { finishPencilDrag, handlePencilDragMove } from '#vue/canvas/pencil/input'
 import { createCanvasPointer } from '#vue/canvas/pointer/use'
 import { createTextEditInput } from '#vue/canvas/text-edit/input'
 import { handleToolMouseDown } from '#vue/canvas/tools/input'
@@ -308,6 +309,11 @@ export function useCanvasInput(
       return
     }
 
+    if (d.type === 'pencil-drag') {
+      handlePencilDragMove(cx, cy, e.shiftKey, editor)
+      return
+    }
+
     if (d.type === 'edit-node' || d.type === 'edit-handle') {
       handleNodeEditMove(d, cx, cy, editor, e.altKey, e.metaKey || e.ctrlKey, e.shiftKey, e.ctrlKey)
       return
@@ -350,7 +356,8 @@ export function useCanvasInput(
       }
       drag.value = null
       return
-    } else if (d.type === 'rotate') {
+    } else if (d.type === 'pencil-drag') finishPencilDrag(editor)
+    else if (d.type === 'rotate') {
       const preview = editor.state.rotationPreview
       if (preview?.nodeId === d.nodeId && preview.angle !== d.origRotation) {
         editor.updateNode(d.nodeId, { rotation: preview.angle })
@@ -373,8 +380,14 @@ export function useCanvasInput(
     guideInput.clearHoverAndPreview()
   }
 
+  /** Drops what a resize or pencil stroke showed without changing the document. */
+  function discardDrawnPreview(d: DragState) {
+    if (d.type === 'resize') cancelResizePreview(d, editor)
+    else if (d.type === 'pencil-drag') editor.pencilCancel()
+  }
+
   function cancelPointerInteraction() {
-    if (drag.value?.type === 'resize') cancelResizePreview(drag.value, editor)
+    if (drag.value) discardDrawnPreview(drag.value)
     if (drag.value?.type === 'rotate') {
       const rotation = drag.value
       drag.value = null

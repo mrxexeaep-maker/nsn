@@ -5,6 +5,7 @@ import type { Editor } from '@open-pencil/core/editor'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
 
 import { createPenDrag, handlePenDragMove } from '#vue/canvas/pen/drag'
+import { PEN_CURSOR } from '#vue/editor/tool-cursor'
 import type { DragState } from '#vue/shared/input/types'
 import { handlePenNodeEditDown } from '#vue/shared/input/vector'
 
@@ -40,7 +41,7 @@ export function startPenInput(
       editor.penSetPendingClose(true)
       editor.penSetClosingToFirst(true)
       setDrag(createPenDrag(first.x, first.y))
-      cursorOverride.value = 'crosshair'
+      cursorOverride.value = PEN_CURSOR
       return true
     }
   }
@@ -48,7 +49,7 @@ export function startPenInput(
   editor.penSetPendingClose(false)
   editor.penAddVertex(cx, cy)
   setDrag(createPenDrag(cx, cy))
-  cursorOverride.value = 'crosshair'
+  cursorOverride.value = PEN_CURSOR
   return true
 }
 

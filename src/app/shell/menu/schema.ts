@@ -185,6 +185,15 @@ export const APP_MENU_SCHEMA = [
       { id: 'zoom-in', label: 'Zoom In', shortcut: 'MOD+=' },
       { id: 'zoom-out', label: 'Zoom Out', shortcut: 'MOD+-' },
       { type: 'separator' },
+      {
+        id: 'view.zoomPreviousFrame',
+        label: 'Zoom to Previous Frame',
+        command: 'view.zoomPreviousFrame'
+      },
+      { id: 'view.zoomNextFrame', label: 'Zoom to Next Frame', command: 'view.zoomNextFrame' },
+      { id: 'view.previousPage', label: 'Previous Page', command: 'view.previousPage' },
+      { id: 'view.nextPage', label: 'Next Page', command: 'view.nextPage' },
+      { type: 'separator' },
       { id: 'view-split-right', label: 'Split Right' },
       { id: 'view-split-down', label: 'Split Down' },
       { type: 'separator' },

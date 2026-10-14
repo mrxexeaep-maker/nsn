@@ -29,6 +29,7 @@ import ToolButton from '@/components/toolbar/ToolButton.vue'
 import type { ToolbarUI, ToolIconMap, ToolLabels } from '@/components/toolbar/types'
 import AppShortcutText from '@/components/ui/menu/AppShortcutText.vue'
 import { menu } from '@/components/ui/menu/menu'
+import MenuScrollArea from '@/components/ui/menu/MenuScrollArea.vue'
 import toolbarTheme from '@/theme/toolbar'
 
 const {
@@ -104,37 +105,39 @@ function flyoutItemClass() {
           align="start"
           :class="styles.flyoutContent({ class: ui?.flyoutContent })"
         >
-          <DropdownMenuRadioGroup :model-value="selectedTool">
-            <DropdownMenuRadioItem
-              v-for="sub in tool.flyout"
-              :key="sub"
-              v-test-id="toolbarFlyoutItemTestId(sub, mobile)"
-              :value="sub"
-              :data-active="sub === selectedTool || undefined"
-              :class="flyoutItemClass()"
-              @select="emit('select', sub)"
-            >
-              <span
-                data-slot="flyout-item-indicator"
-                :class="styles.flyoutItemIndicator({ class: ui?.flyoutItemIndicator })"
-                aria-hidden="true"
+          <MenuScrollArea>
+            <DropdownMenuRadioGroup :model-value="selectedTool">
+              <DropdownMenuRadioItem
+                v-for="sub in tool.flyout"
+                :key="sub"
+                v-test-id="toolbarFlyoutItemTestId(sub, mobile)"
+                :value="sub"
+                :data-active="sub === selectedTool || undefined"
+                :class="flyoutItemClass()"
+                @select="emit('select', sub)"
               >
-                <DropdownMenuItemIndicator>
-                  <icon-lucide-check class="size-3.5" />
-                </DropdownMenuItemIndicator>
-              </span>
-              <component
-                :is="toolIcons[sub]"
-                :class="styles.flyoutItemIcon({ class: ui?.flyoutItemIcon })"
-              />
-              <span :class="styles.flyoutItemLabel({ class: ui?.flyoutItemLabel })">
-                {{ toolLabels[sub] }}
-              </span>
-              <AppShortcutText v-if="!mobile && toolShortcuts[sub]">
-                {{ toolShortcuts[sub] }}
-              </AppShortcutText>
-            </DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
+                <span
+                  data-slot="flyout-item-indicator"
+                  :class="styles.flyoutItemIndicator({ class: ui?.flyoutItemIndicator })"
+                  aria-hidden="true"
+                >
+                  <DropdownMenuItemIndicator>
+                    <icon-lucide-check class="size-3.5" />
+                  </DropdownMenuItemIndicator>
+                </span>
+                <component
+                  :is="toolIcons[sub]"
+                  :class="styles.flyoutItemIcon({ class: ui?.flyoutItemIcon })"
+                />
+                <span :class="styles.flyoutItemLabel({ class: ui?.flyoutItemLabel })">
+                  {{ toolLabels[sub] }}
+                </span>
+                <AppShortcutText v-if="!mobile && toolShortcuts[sub]">
+                  {{ toolShortcuts[sub] }}
+                </AppShortcutText>
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </MenuScrollArea>
         </DropdownMenuContent>
       </DropdownMenuPortal>
     </DropdownMenuRoot>
