@@ -3,6 +3,7 @@ import type { Ref } from 'vue'
 import type { Editor } from '@open-pencil/core/editor'
 
 import { startPenInput } from '#vue/canvas/pen/input'
+import { HAND_GRAB_CURSOR } from '#vue/editor/tool-cursor'
 import { startShapeDraw, startTextDraw } from '#vue/shared/input/draw'
 import { startPanDrag } from '#vue/shared/input/pan'
 import { handleSelectDown } from '#vue/shared/input/select'
@@ -42,6 +43,7 @@ export function handleToolMouseDown({
 
   if (event.button === 1 || tool === 'HAND') {
     startPanDrag(event, setDrag, editor)
+    cursorOverride.value = HAND_GRAB_CURSOR
     return
   }
 

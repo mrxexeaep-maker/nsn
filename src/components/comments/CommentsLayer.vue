@@ -12,7 +12,7 @@ import { computed, ref, useTemplateRef, watch } from 'vue'
 
 import type { ViewportTransform } from '@open-pencil/core/geometry'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
-import { useCommentMessages } from '@open-pencil/vue'
+import { toolCursor, useCommentMessages } from '@open-pencil/vue'
 
 import { useComments } from '@/app/comments/use'
 import { useEditorStore } from '@/app/editor/active-store'
@@ -175,6 +175,7 @@ function closeCard() {
     <div
       v-if="commenting"
       :class="ui.capture()"
+      :style="{ cursor: toolCursor('COMMENT') }"
       data-slot="comments-capture"
       @pointerdown.prevent="placeDraft"
       @contextmenu.prevent
