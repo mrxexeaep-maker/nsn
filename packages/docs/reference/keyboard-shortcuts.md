@@ -66,20 +66,37 @@ Full Figma-compatible shortcut map. ✅ = implemented.
 
 | Shortcut | Action | Status |
 |----------|--------|--------|
-| <kbd>⌘</kbd><kbd>'</kbd> | Pixel Grid | 🔲 |
+| <kbd>⇧</kbd><kbd>'</kbd> | Pixel Grid | ✅ |
+| <kbd>⇧</kbd><kbd>⌘</kbd><kbd>'</kbd> | Snap to Pixel Grid | ✅ |
 | <kbd>⌃</kbd><kbd>G</kbd> | Layout Guides | 🔲 |
-| <kbd>⇧</kbd><kbd>R</kbd> | Rulers | 🔲 |
+| <kbd>⇧</kbd><kbd>R</kbd> | Rulers | ✅ |
 | <kbd>⇧</kbd><kbd>C</kbd> | Show/Hide Comments | ✅ |
 | <kbd>⌘</kbd><kbd>\\</kbd> | Show/Hide UI | ✅ |
 | <kbd>⌥</kbd><kbd>⌘</kbd><kbd>↩</kbd> | Preview controls | ✅ |
 | <kbd>⌘</kbd><kbd>=</kbd> | Zoom In | ✅ |
 | <kbd>⌘</kbd><kbd>-</kbd> | Zoom Out | ✅ |
+| <kbd>+</kbd> / <kbd>-</kbd> | Zoom In / Out | ✅ |
 | <kbd>⌘</kbd><kbd>0</kbd> | Zoom to 100% | ✅ |
+| <kbd>⇧</kbd><kbd>0</kbd> | Zoom to 100% (alt) | ✅ |
 | <kbd>⌘</kbd><kbd>1</kbd> | Zoom to Fit | ✅ |
 | <kbd>⌘</kbd><kbd>2</kbd> | Zoom to Selection | ✅ |
 | <kbd>⇧</kbd><kbd>1</kbd> | Zoom to Fit (alt) | ✅ |
 | <kbd>⇧</kbd><kbd>2</kbd> | Zoom to Selection (alt) | ✅ |
+| <kbd>N</kbd> | Zoom to Next Frame | ✅ |
+| <kbd>⇧</kbd><kbd>N</kbd> | Zoom to Previous Frame | ✅ |
+| <kbd>Page Down</kbd> | Next Page | ✅ |
+| <kbd>Page Up</kbd> | Previous Page | ✅ |
+| <kbd>Z</kbd> | Zoom Tool | 🔲 |
 | <kbd>⌘</kbd><kbd>J</kbd> | Toggle AI Chat | ✅ |
+
+## Selection
+
+| Shortcut | Action | Status |
+|----------|--------|--------|
+| <kbd>↩</kbd> | Select Children | ✅ |
+| <kbd>⇧</kbd><kbd>↩</kbd> or <kbd>\\</kbd> | Select Parent | ✅ |
+| <kbd>⇥</kbd> | Select Next Sibling | ✅ |
+| <kbd>⇧</kbd><kbd>⇥</kbd> | Select Previous Sibling | ✅ |
 
 ## Object
 

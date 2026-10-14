@@ -22,7 +22,7 @@ Feature-by-feature comparison of Figma Design capabilities with Open Pencil's cu
 | Canvas guides | 🔲 | Figma supports draggable guides from rulers |
 | Actions menu / command palette | 🔲 | Figma's quick actions search |
 | Context menu | ✅ | Right-click with clipboard, z-order, grouping, component, visibility, lock, move-to-page actions |
-| Keyboard shortcuts | 🟡 | Core shortcuts + components + z-order + visibility/lock implemented; Scale, Arrow, Pencil, flip, text formatting not yet wired |
+| Keyboard shortcuts | 🟡 | Tools, editing, components, z-order, visibility/lock, flip, text formatting, and canvas and layer navigation implemented; Scale, Arrow, Eyedropper, and the zoom tool not yet wired |
 | Find and replace | 🔲 | Text search/replace across document |
 | Layer outlines view | 🔲 | Wireframe view of all layers |
 | Custom file thumbnails | 🔲 | Thumbnail generated on export, but no custom thumbnail picker |
