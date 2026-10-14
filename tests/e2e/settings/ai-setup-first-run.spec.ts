@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { CanvasHelper } from '#tests/helpers/canvas'
+import { waitForDemo } from '#tests/helpers/demo'
 import { openAppMenu } from '#tests/helpers/menu'
 
 // `?test` suppresses the first-run offer, so these load the app as a person would, with none
@@ -34,6 +35,16 @@ test('the welcome returns on each launch until the person opts out', async ({ pa
   await menu.getByRole('menuitem', { name: /Show welcome/i }).click()
   await expect(welcome).toBeVisible()
   await expect(setup.getByRole('checkbox', { name: "Don't show this again" })).toBeChecked()
+})
+
+test('a first visit to the demo offers the welcome without pointing to the tour', async ({
+  page
+}) => {
+  await page.goto('/demo')
+  await waitForDemo(page)
+  const setup = page.getByTestId('ai-setup-dialog')
+  await expect(setup.getByRole('heading', { name: 'Welcome to OpenPencil' })).toBeVisible()
+  await expect(setup.getByTestId('ai-setup-tour')).toHaveCount(0)
 })
 
 const CONFIGURED_MODEL_SETTINGS = {
