@@ -90,13 +90,14 @@ function openFirstTab(): Tab {
   }
 }
 
+// The demo link offers the welcome too; there it skips the tour offer.
 const offerWelcome =
-  createdInitialTab && route.path === '/' && !appRuntimeConfig.test && !route.meta.demo
+  createdInitialTab && (route.path === '/' || route.meta.demo) && !appRuntimeConfig.test
 const sharingStarted = startSharing()
 // One dialog at a time: unsaved work comes first, then the welcome, then, on a first run, the
 // usage stats question once the welcome closes.
 void recoveryPromptSettled().then(() => {
-  if (offerWelcome && offerAIWelcomeOnLaunch()) {
+  if (offerWelcome && offerAIWelcomeOnLaunch({ inTour: route.meta.demo === true })) {
     whenever(
       () => !aiSetupDialogOpen.value,
       async () => {

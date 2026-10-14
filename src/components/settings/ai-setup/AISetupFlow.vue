@@ -23,8 +23,13 @@ import AISetupConnection from './AISetupConnection.vue'
 import AISetupReview from './AISetupReview.vue'
 import AISetupRoles from './AISetupRoles.vue'
 
-const { entry, agentsAvailable = IS_TAURI } = defineProps<{
+const {
+  entry,
+  offersTour = true,
+  agentsAvailable = IS_TAURI
+} = defineProps<{
   entry: AISetupEntry
+  offersTour?: boolean
   agentsAvailable?: boolean
 }>()
 const emit = defineEmits<{
@@ -120,7 +125,7 @@ async function finish(): Promise<void> {
         <section :class="styles.services()" data-test-id="ai-setup-services">
           <ServiceSetupSummary @open="emit('services', $event)" />
         </section>
-        <section :class="styles.tour()" data-test-id="ai-setup-tour">
+        <section v-if="offersTour" :class="styles.tour()" data-test-id="ai-setup-tour">
           <div>
             <h3 :class="styles.introHeading()">{{ ai.aiSetupWelcomeTourTitle }}</h3>
             <p :class="styles.introText()">{{ ai.aiSetupWelcomeTourDescription }}</p>

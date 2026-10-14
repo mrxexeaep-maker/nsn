@@ -1,10 +1,10 @@
 name: Deploy docs
 
 on:
-  push:
-    tags:
-      - "v*"
-      - "!v*-*"
+  # The download page reads GitHub's releases when the site is built, so the docs deploy when a
+  # release is published, not when its tag is pushed and the release is still a draft.
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       dry-run:
@@ -42,7 +42,7 @@ jobs:
           name: landing-posters
           path: packages/docs/.vitepress/dist/landing-posters
 
-      # A tag push has no inputs, so it always deploys.
+      # A published release has no inputs, so it always deploys.
       - uses: cloudflare/wrangler-action@v4
         if: ${{ !inputs.dry-run }}
         with:
