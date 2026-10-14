@@ -5,7 +5,13 @@ import { floatingSurface } from '@/theme/overlay'
 
 export const menu = tv({
   slots: {
-    content: ['z-50 p-1', floatingSurface, motionStyles.floating],
+    // Reka sets only the open menu's own variable, so one chain caps every kind of menu just short
+    // of the window edge; a taller menu scrolls instead of running off it.
+    content: [
+      'z-50 max-h-[calc(var(--reka-menubar-content-available-height,var(--reka-dropdown-menu-content-available-height,var(--reka-context-menu-content-available-height)))-0.5rem)] scrollbar-thin overflow-y-auto p-1',
+      floatingSurface,
+      motionStyles.floating
+    ],
     item: 'flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-[11px] outline-none select-none data-[disabled]:cursor-default data-[disabled]:text-muted/50 data-[highlighted]:bg-hover',
     separator: 'mx-1 my-1 h-px bg-border',
     label: 'px-2 pt-1.5 pb-1 text-[11px] text-muted select-none',
