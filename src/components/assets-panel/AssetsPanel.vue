@@ -468,8 +468,8 @@ async function insertSelectedAsset() {
               </div>
             </ContextMenuTrigger>
             <ContextMenuPortal>
-              <ContextMenuContent :class="contextMenu.content"
-                ><MenuScrollArea>
+              <ContextMenuContent :class="contextMenu.content">
+                <MenuScrollArea>
                   <ContextMenuItem
                     v-if="!asset.libraryId"
                     data-test-id="asset-context-go-to-main"
@@ -485,8 +485,8 @@ async function insertSelectedAsset() {
                   >
                     {{ panels.viewDetails }}
                   </ContextMenuItem>
-                </MenuScrollArea></ContextMenuContent
-              >
+                </MenuScrollArea>
+              </ContextMenuContent>
             </ContextMenuPortal>
           </ContextMenuRoot>
         </div>

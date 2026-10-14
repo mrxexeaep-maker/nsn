@@ -175,8 +175,8 @@ function setupPageRowRef(
               </div>
             </ContextMenuTrigger>
             <ContextMenuPortal>
-              <ContextMenuContent :class="menuCls.content" :side-offset="2" align="start"
-                ><MenuScrollArea>
+              <ContextMenuContent :class="menuCls.content" :side-offset="2" align="start">
+                <MenuScrollArea>
                   <ContextMenuItem
                     data-test-id="pages-context-rename"
                     :class="menuCls.item"
@@ -194,8 +194,8 @@ function setupPageRowRef(
                     <icon-lucide-trash-2 :class="menuCls.icon" />
                     <span>{{ pageMessages.delete }}</span>
                   </ContextMenuItem>
-                </MenuScrollArea></ContextMenuContent
-              >
+                </MenuScrollArea>
+              </ContextMenuContent>
             </ContextMenuPortal>
           </ContextMenuRoot>
         </div>

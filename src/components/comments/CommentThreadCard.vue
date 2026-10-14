@@ -65,10 +65,11 @@ defineExpose({ focus: () => composer.value?.focus() })
             </IconButton>
           </DropdownMenuTrigger>
           <DropdownMenuPortal>
-            <DropdownMenuContent :class="menuCls.content" align="end" :side-offset="4"
-              ><MenuScrollArea>
-                <slot name="menu" /> </MenuScrollArea
-            ></DropdownMenuContent>
+            <DropdownMenuContent :class="menuCls.content" align="end" :side-offset="4">
+              <MenuScrollArea>
+                <slot name="menu" />
+              </MenuScrollArea>
+            </DropdownMenuContent>
           </DropdownMenuPortal>
         </DropdownMenuRoot>
         <IconButton

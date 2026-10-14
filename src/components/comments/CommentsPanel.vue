@@ -82,8 +82,8 @@ function setSort(value: unknown) {
             </IconButton>
           </DropdownMenuTrigger>
           <DropdownMenuPortal>
-            <DropdownMenuContent :class="menuCls.content" align="end" :side-offset="4"
-              ><MenuScrollArea>
+            <DropdownMenuContent :class="menuCls.content" align="end" :side-offset="4">
+              <MenuScrollArea>
                 <DropdownMenuRadioGroup :model-value="listSort" @update:model-value="setSort">
                   <DropdownMenuRadioItem value="newest" :class="itemCls">
                     <DropdownMenuItemIndicator :class="ui.menuIndicator()">
@@ -117,8 +117,8 @@ function setSort(value: unknown) {
                   </DropdownMenuItemIndicator>
                   {{ messages.onlyPage }}
                 </DropdownMenuCheckboxItem>
-              </MenuScrollArea></DropdownMenuContent
-            >
+              </MenuScrollArea>
+            </DropdownMenuContent>
           </DropdownMenuPortal>
         </DropdownMenuRoot>
       </template>
@@ -159,14 +159,11 @@ function setSort(value: unknown) {
                   </IconButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuPortal>
-                  <DropdownMenuContent :class="menuCls.content" align="end" :side-offset="4"
-                    ><MenuScrollArea>
-                      <CommentActionsMenu
-                        :thread="thread"
-                        kind="dropdown"
-                        show-go-to
-                      /> </MenuScrollArea
-                  ></DropdownMenuContent>
+                  <DropdownMenuContent :class="menuCls.content" align="end" :side-offset="4">
+                    <MenuScrollArea>
+                      <CommentActionsMenu :thread="thread" kind="dropdown" show-go-to />
+                    </MenuScrollArea>
+                  </DropdownMenuContent>
                 </DropdownMenuPortal>
               </DropdownMenuRoot>
               <IconButton
@@ -182,10 +179,11 @@ function setSort(value: unknown) {
           </CommentListItem>
         </ContextMenuTrigger>
         <ContextMenuPortal>
-          <ContextMenuContent :class="menuCls.content"
-            ><MenuScrollArea>
-              <CommentActionsMenu :thread="thread" kind="context" show-go-to /> </MenuScrollArea
-          ></ContextMenuContent>
+          <ContextMenuContent :class="menuCls.content">
+            <MenuScrollArea>
+              <CommentActionsMenu :thread="thread" kind="context" show-go-to />
+            </MenuScrollArea>
+          </ContextMenuContent>
         </ContextMenuPortal>
       </ContextMenuRoot>
     </ul>

@@ -38,8 +38,8 @@ const item = menuItem({ justify: 'start' })
       </IconButton>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
-      <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menu.content"
-        ><MenuScrollArea>
+      <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menu.content">
+        <MenuScrollArea>
           <DropdownMenuItem :class="item" @select="binding.create()">
             <icon-lucide-plus :class="menu.icon" />
             {{ panels.createComponentProperty }}
@@ -57,8 +57,8 @@ const item = menuItem({ justify: 'start' })
               {{ definition.name }}
             </DropdownMenuItem>
           </template>
-        </MenuScrollArea></DropdownMenuContent
-      >
+        </MenuScrollArea>
+      </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
 </template>

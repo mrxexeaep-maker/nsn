@@ -132,7 +132,8 @@ function valueLabel(type: ComponentPropertyType, value: string) {
                 :side-offset="4"
                 :class="menu.content"
                 @close-auto-focus="openNestedAfterMenu"
-                ><MenuScrollArea>
+              >
+                <MenuScrollArea>
                   <DropdownMenuItem
                     v-for="option in NEW_PROPERTIES"
                     :key="option.type"
@@ -163,8 +164,8 @@ function valueLabel(type: ComponentPropertyType, value: string) {
                       {{ panels.nestedInstances }}…
                     </DropdownMenuItem>
                   </template>
-                </MenuScrollArea></DropdownMenuContent
-              >
+                </MenuScrollArea>
+              </DropdownMenuContent>
             </DropdownMenuPortal>
           </DropdownMenuRoot>
         </template>

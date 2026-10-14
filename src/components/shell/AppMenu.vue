@@ -123,8 +123,8 @@ const { overflowStart, overflowEnd, scrollTowardHidden } = useScrollOverflow(men
             </MenubarTrigger>
 
             <MenubarPortal>
-              <MenubarContent :side-offset="4" align="start" :class="mainMenuCls.content"
-                ><MenuScrollArea>
+              <MenubarContent :side-offset="4" align="start" :class="mainMenuCls.content">
+                <MenuScrollArea>
                   <template v-for="(item, i) in menu.items" :key="i">
                     <MenubarSeparator v-if="isMenuSeparator(item)" :class="menuCls.separator" />
                     <MenubarSub v-else-if="hasMenuSubItems(item)">
@@ -133,8 +133,8 @@ const { overflowStart, overflowEnd, scrollTowardHidden } = useScrollOverflow(men
                         <IconChevronRight class="size-3 text-muted" />
                       </MenubarSubTrigger>
                       <MenubarPortal>
-                        <MenubarSubContent :side-offset="4" :class="subMenuCls.content"
-                          ><MenuScrollArea>
+                        <MenubarSubContent :side-offset="4" :class="subMenuCls.content">
+                          <MenuScrollArea>
                             <template v-for="(sub, j) in menuSubItems(item)" :key="j">
                               <MenubarSeparator
                                 v-if="isMenuSeparator(sub)"
@@ -163,8 +163,8 @@ const { overflowStart, overflowEnd, scrollTowardHidden } = useScrollOverflow(men
                                 }}</AppShortcutText>
                               </MenubarItem>
                             </template>
-                          </MenuScrollArea></MenubarSubContent
-                        >
+                          </MenuScrollArea>
+                        </MenubarSubContent>
                       </MenubarPortal>
                     </MenubarSub>
                     <MenubarCheckboxItem
@@ -190,8 +190,8 @@ const { overflowStart, overflowEnd, scrollTowardHidden } = useScrollOverflow(men
                       }}</AppShortcutText>
                     </MenubarItem>
                   </template>
-                </MenuScrollArea></MenubarContent
-              >
+                </MenuScrollArea>
+              </MenubarContent>
             </MenubarPortal>
           </MenubarMenu>
         </MenubarRoot>

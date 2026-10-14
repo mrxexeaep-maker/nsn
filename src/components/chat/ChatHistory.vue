@@ -182,7 +182,8 @@ function closeMenu(event: Event) {
             :side-offset="6"
             :class="menu.content"
             @close-auto-focus="closeMenu"
-            ><MenuScrollArea>
+          >
+            <MenuScrollArea>
               <DropdownMenuItem :class="item" @select="rename">{{
                 ai.renameChat
               }}</DropdownMenuItem>
@@ -194,8 +195,8 @@ function closeMenu(event: Event) {
               <DropdownMenuItem :class="item" @select="confirmDelete">{{
                 ai.deleteChat
               }}</DropdownMenuItem>
-            </MenuScrollArea></DropdownMenuContent
-          >
+            </MenuScrollArea>
+          </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>
     </div>

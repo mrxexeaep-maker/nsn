@@ -73,8 +73,8 @@ function contextCommandTestId(id: EditorCommandId | undefined): string | undefin
 <template>
   <!-- Closing hands focus back to the canvas; when that lands just after a quick reopen, it
        must not close the new menu. Clicks outside and Escape still close it. -->
-  <ContextMenuContent :class="cls.menu" :side-offset="2" align="start" @close-auto-focus.prevent
-    ><MenuScrollArea>
+  <ContextMenuContent :class="cls.menu" :side-offset="2" align="start" @close-auto-focus.prevent>
+    <MenuScrollArea>
       <template v-if="selectedGuide">
         <ContextMenuItem data-property="guide" :class="cls.item" @select="removeSelectedGuide">
           <span>{{ t.removeGuide }}</span>
@@ -146,8 +146,8 @@ function contextCommandTestId(id: EditorCommandId | undefined): string | undefin
               <IconChevronRight class="size-3.5 text-muted" />
             </ContextMenuSubTrigger>
             <ContextMenuPortal>
-              <ContextMenuSubContent :class="cls.submenu"
-                ><MenuScrollArea>
+              <ContextMenuSubContent :class="cls.submenu">
+                <MenuScrollArea>
                   <ContextMenuItem
                     v-for="(sub, j) in item.sub"
                     :key="j"
@@ -161,8 +161,8 @@ function contextCommandTestId(id: EditorCommandId | undefined): string | undefin
                       <AppShortcutText v-if="sub.shortcut">{{ sub.shortcut }}</AppShortcutText>
                     </template>
                   </ContextMenuItem>
-                </MenuScrollArea></ContextMenuSubContent
-              >
+                </MenuScrollArea>
+              </ContextMenuSubContent>
             </ContextMenuPortal>
           </ContextMenuSub>
           <ContextMenuItem
@@ -182,6 +182,6 @@ function contextCommandTestId(id: EditorCommandId | undefined): string | undefin
           </ContextMenuItem>
         </template>
       </template>
-    </MenuScrollArea></ContextMenuContent
-  >
+    </MenuScrollArea>
+  </ContextMenuContent>
 </template>

@@ -53,8 +53,8 @@ const { available, updating, updateSelectedInstance } = useInstanceUpdate(
       </DropdownMenuTrigger>
     </Tip>
     <DropdownMenuPortal v-if="portalActive">
-      <DropdownMenuContent align="end" side="bottom" :side-offset="4" :class="menu.content"
-        ><MenuScrollArea>
+      <DropdownMenuContent align="end" side="bottom" :side-offset="4" :class="menu.content">
+        <MenuScrollArea>
           <DropdownMenuItem
             data-test-id="instance-update-selected"
             :class="menu.item"
@@ -70,8 +70,8 @@ const { available, updating, updateSelectedInstance } = useInstanceUpdate(
           >
             {{ panels.reviewLibraryUpdate }}
           </DropdownMenuItem>
-        </MenuScrollArea></DropdownMenuContent
-      >
+        </MenuScrollArea>
+      </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
 </template>

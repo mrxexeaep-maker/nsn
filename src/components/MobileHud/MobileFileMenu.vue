@@ -30,8 +30,8 @@ const menuCls = useMenuUI({
       </HudButton>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
-      <DropdownMenuContent :side-offset="8" side="bottom" align="end" :class="menuCls.content"
-        ><MenuScrollArea>
+      <DropdownMenuContent :side-offset="8" side="bottom" align="end" :class="menuCls.content">
+        <MenuScrollArea>
           <DropdownMenuItem
             v-for="item in hud.menuItems"
             :key="item.label"
@@ -41,8 +41,8 @@ const menuCls = useMenuUI({
             <component :is="item.icon" class="size-4 text-muted" />
             <span>{{ item.label }}</span>
           </DropdownMenuItem>
-        </MenuScrollArea></DropdownMenuContent
-      >
+        </MenuScrollArea>
+      </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
 </template>

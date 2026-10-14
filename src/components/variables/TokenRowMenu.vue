@@ -45,8 +45,8 @@ const dangerItem = useMenuUI({ item: 'justify-start gap-2 text-error' }).item
       <slot />
     </ContextMenuTrigger>
     <ContextMenuPortal>
-      <ContextMenuContent :class="menu.content" data-test-id="variables-row-menu"
-        ><MenuScrollArea>
+      <ContextMenuContent :class="menu.content" data-test-id="variables-row-menu">
+        <MenuScrollArea>
           <ContextMenuItem v-if="single" :class="menu.item" @select="emit('rename')">
             <icon-lucide-pencil :class="menu.icon" />
             {{ pages.rename }}
@@ -66,8 +66,8 @@ const dangerItem = useMenuUI({ item: 'justify-start gap-2 text-error' }).item
               <icon-lucide-chevron-right :class="menu.icon" />
             </ContextMenuSubTrigger>
             <ContextMenuPortal>
-              <ContextMenuSubContent :class="menu.content"
-                ><MenuScrollArea>
+              <ContextMenuSubContent :class="menu.content">
+                <MenuScrollArea>
                   <ContextMenuItem :class="menu.item" @select="emit('moveToGroup', '')">
                     {{ variables.noGroup }}
                   </ContextMenuItem>
@@ -88,8 +88,8 @@ const dangerItem = useMenuUI({ item: 'justify-start gap-2 text-error' }).item
                     <icon-lucide-folder-plus :class="menu.icon" />
                     {{ variables.newGroup }}
                   </ContextMenuItem>
-                </MenuScrollArea></ContextMenuSubContent
-              >
+                </MenuScrollArea>
+              </ContextMenuSubContent>
             </ContextMenuPortal>
           </ContextMenuSub>
           <ContextMenuSeparator :class="menu.separator" />
@@ -101,8 +101,8 @@ const dangerItem = useMenuUI({ item: 'justify-start gap-2 text-error' }).item
             <icon-lucide-trash-2 :class="menu.icon" />
             {{ variables.deleteVariables }}
           </ContextMenuItem>
-        </MenuScrollArea></ContextMenuContent
-      >
+        </MenuScrollArea>
+      </ContextMenuContent>
     </ContextMenuPortal>
   </ContextMenuRoot>
 </template>

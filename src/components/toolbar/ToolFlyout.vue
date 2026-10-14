@@ -104,7 +104,8 @@ function flyoutItemClass() {
           :side-offset="8"
           align="start"
           :class="styles.flyoutContent({ class: ui?.flyoutContent })"
-          ><MenuScrollArea>
+        >
+          <MenuScrollArea>
             <DropdownMenuRadioGroup :model-value="selectedTool">
               <DropdownMenuRadioItem
                 v-for="sub in tool.flyout"
@@ -136,8 +137,8 @@ function flyoutItemClass() {
                 </AppShortcutText>
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
-          </MenuScrollArea></DropdownMenuContent
-        >
+          </MenuScrollArea>
+        </DropdownMenuContent>
       </DropdownMenuPortal>
     </DropdownMenuRoot>
   </div>

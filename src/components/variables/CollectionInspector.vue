@@ -216,8 +216,8 @@ function attributeDone(event: KeyboardEvent) {
             </IconButton>
           </DropdownMenuTrigger>
           <DropdownMenuPortal>
-            <DropdownMenuContent side="bottom" :side-offset="4" align="end" :class="menu.content"
-              ><MenuScrollArea>
+            <DropdownMenuContent side="bottom" :side-offset="4" align="end" :class="menu.content">
+              <MenuScrollArea>
                 <DropdownMenuItem
                   :class="dangerItem"
                   data-test-id="variables-delete-collection"
@@ -226,8 +226,8 @@ function attributeDone(event: KeyboardEvent) {
                   <icon-lucide-trash-2 :class="menu.icon" />
                   {{ variables.deleteCollection }}
                 </DropdownMenuItem>
-              </MenuScrollArea></DropdownMenuContent
-            >
+              </MenuScrollArea>
+            </DropdownMenuContent>
           </DropdownMenuPortal>
         </DropdownMenuRoot>
       </div>
@@ -290,8 +290,8 @@ function attributeDone(event: KeyboardEvent) {
               </IconButton>
             </DropdownMenuTrigger>
             <DropdownMenuPortal>
-              <DropdownMenuContent side="bottom" :side-offset="4" align="end" :class="menu.content"
-                ><MenuScrollArea>
+              <DropdownMenuContent side="bottom" :side-offset="4" align="end" :class="menu.content">
+                <MenuScrollArea>
                   <DropdownMenuItem :class="menu.item" @select="emit('duplicateMode', item.modeId)">
                     <icon-lucide-copy :class="menu.icon" />
                     {{ variables.duplicateMode }}
@@ -313,8 +313,8 @@ function attributeDone(event: KeyboardEvent) {
                     <icon-lucide-trash-2 :class="menu.icon" />
                     {{ variables.deleteMode }}
                   </DropdownMenuItem>
-                </MenuScrollArea></DropdownMenuContent
-              >
+                </MenuScrollArea>
+              </DropdownMenuContent>
             </DropdownMenuPortal>
           </DropdownMenuRoot>
         </div>

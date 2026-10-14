@@ -56,8 +56,8 @@ const itemCls = menuItem({ justify: 'between' })
       </DropdownMenuTrigger>
     </Tip>
     <DropdownMenuPortal v-if="portalActive">
-      <DropdownMenuContent align="end" side="bottom" :side-offset="4" :class="menuCls.content"
-        ><MenuScrollArea>
+      <DropdownMenuContent align="end" side="bottom" :side-offset="4" :class="menuCls.content">
+        <MenuScrollArea>
           <DropdownMenuItem
             v-for="operation in operations"
             :key="operation.id"
@@ -74,8 +74,8 @@ const itemCls = menuItem({ justify: 'between' })
               formatShortcut(editorCommandMetadata(operation.id).shortcut)
             }}</span>
           </DropdownMenuItem>
-        </MenuScrollArea></DropdownMenuContent
-      >
+        </MenuScrollArea>
+      </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
 </template>

@@ -64,8 +64,8 @@ const stylesheet = computedAsync(async () => {
           </IconButton>
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
-          <DropdownMenuContent side="bottom" :side-offset="4" align="end" :class="menu.content"
-            ><MenuScrollArea>
+          <DropdownMenuContent side="bottom" :side-offset="4" align="end" :class="menu.content">
+            <MenuScrollArea>
               <DropdownMenuItem
                 :class="menu.item"
                 data-test-id="variables-copy-css"
@@ -91,8 +91,8 @@ const stylesheet = computedAsync(async () => {
                 <icon-lucide-file-archive :class="menu.icon" />
                 {{ variables.exportDesignTokens }}
               </DropdownMenuItem>
-            </MenuScrollArea></DropdownMenuContent
-          >
+            </MenuScrollArea>
+          </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>
     </div>

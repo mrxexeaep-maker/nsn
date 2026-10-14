@@ -79,8 +79,8 @@ const item = menuItem({ justify: 'start' })
           </IconButton>
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
-          <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menu.content"
-            ><MenuScrollArea>
+          <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menu.content">
+            <MenuScrollArea>
               <DropdownMenuItem :class="item" :disabled="!modified" @select="emit('reset')">
                 <icon-lucide-rotate-ccw :class="menu.icon" />
                 {{ panels.resetSlot }}
@@ -93,8 +93,8 @@ const item = menuItem({ justify: 'start' })
                 <icon-lucide-trash-2 :class="menu.icon" />
                 {{ panels.deleteSlotContents }}
               </DropdownMenuItem>
-            </MenuScrollArea></DropdownMenuContent
-          >
+            </MenuScrollArea>
+          </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>
     </div>

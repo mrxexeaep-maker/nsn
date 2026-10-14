@@ -119,7 +119,8 @@ watch(open, (v) => {
         align="end"
         :class="menuCls.content"
         @escape-key-down="cancelInput"
-        ><MenuScrollArea>
+      >
+        <MenuScrollArea>
           <div class="px-1 py-1">
             <input
               v-if="editing"
@@ -228,8 +229,8 @@ watch(open, (v) => {
             <span class="flex-1">{{ menuText.comments }}</span>
             <AppShortcutText>{{ appMenuShortcutLabel('view-comments') }}</AppShortcutText>
           </DropdownMenuItem>
-        </MenuScrollArea></DropdownMenuContent
-      >
+        </MenuScrollArea>
+      </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
 </template>

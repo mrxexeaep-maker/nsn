@@ -53,8 +53,8 @@ const items = computed(() => {
       </IconButton>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
-      <DropdownMenuContent side="bottom" :side-offset="4" align="end" :class="menu.content"
-        ><MenuScrollArea>
+      <DropdownMenuContent side="bottom" :side-offset="4" align="end" :class="menu.content">
+        <MenuScrollArea>
           <DropdownMenuItem
             v-for="item in items"
             :key="item.type"
@@ -68,8 +68,8 @@ const items = computed(() => {
               <span class="truncate text-[10px] text-muted">{{ item.hint }}</span>
             </span>
           </DropdownMenuItem>
-        </MenuScrollArea></DropdownMenuContent
-      >
+        </MenuScrollArea>
+      </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
 </template>

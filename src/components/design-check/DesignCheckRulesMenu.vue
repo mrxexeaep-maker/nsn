@@ -51,8 +51,8 @@ const presetModel = computed({
       </IconButton>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
-      <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menuCls.content"
-        ><MenuScrollArea>
+      <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menuCls.content">
+        <MenuScrollArea>
           <DropdownMenuLabel :class="menuCls.label">{{ messages.rules }}</DropdownMenuLabel>
           <DropdownMenuRadioGroup v-model="presetModel">
             <DropdownMenuRadioItem
@@ -84,8 +84,8 @@ const presetModel = computed({
             </DropdownMenuItemIndicator>
             {{ messages.showOnCanvas }}
           </DropdownMenuCheckboxItem>
-        </MenuScrollArea></DropdownMenuContent
-      >
+        </MenuScrollArea>
+      </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
 </template>

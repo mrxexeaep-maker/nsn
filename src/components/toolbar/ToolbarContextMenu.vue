@@ -24,14 +24,14 @@ const menu = useMenuUI({ content: 'w-48', item: 'justify-start gap-2' })
       <slot />
     </ContextMenuTrigger>
     <ContextMenuPortal>
-      <ContextMenuContent :class="menu.content"
-        ><MenuScrollArea>
+      <ContextMenuContent :class="menu.content">
+        <MenuScrollArea>
           <ContextMenuItem :class="menu.item" @select="openSettingsDialog('toolbar')">
             <icon-lucide-sliders-horizontal :class="menu.icon" />
             {{ settings.customizeToolbar }}
           </ContextMenuItem>
-        </MenuScrollArea></ContextMenuContent
-      >
+        </MenuScrollArea>
+      </ContextMenuContent>
     </ContextMenuPortal>
   </ContextMenuRoot>
 </template>

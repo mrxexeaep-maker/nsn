@@ -49,8 +49,8 @@ const chip =
       </button>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
-      <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menu.content"
-        ><MenuScrollArea>
+      <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menu.content">
+        <MenuScrollArea>
           <DropdownMenuItem :class="item" @select="binding.goToProperty()">
             <icon-lucide-crosshair :class="menu.icon" />
             {{ panels.goToComponentProperty }}
@@ -63,8 +63,8 @@ const chip =
             <icon-lucide-unlink :class="menu.icon" />
             {{ panels.detachComponentProperty }}
           </DropdownMenuItem>
-        </MenuScrollArea></DropdownMenuContent
-      >
+        </MenuScrollArea>
+      </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
   <PanelFieldGroup

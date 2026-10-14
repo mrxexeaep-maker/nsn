@@ -65,8 +65,8 @@ function split(direction: SplitDirection) {
           </IconButton>
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
-          <DropdownMenuContent side="bottom" align="end" :side-offset="3" :class="menuCls.content"
-            ><MenuScrollArea>
+          <DropdownMenuContent side="bottom" align="end" :side-offset="3" :class="menuCls.content">
+            <MenuScrollArea>
               <DropdownMenuItem
                 :disabled="!canSplit"
                 :class="itemCls"
@@ -79,8 +79,8 @@ function split(direction: SplitDirection) {
                 <icon-lucide-rows-2 :class="menuCls.icon" />
                 <span>{{ menuText.splitDown }}</span>
               </DropdownMenuItem>
-            </MenuScrollArea></DropdownMenuContent
-          >
+            </MenuScrollArea>
+          </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>
 

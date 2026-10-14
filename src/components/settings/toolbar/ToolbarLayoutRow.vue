@@ -120,7 +120,8 @@ function onGripKey(event: KeyboardEvent) {
           align="end"
           :side-offset="4"
           @close-auto-focus.prevent
-          ><MenuScrollArea>
+        >
+          <MenuScrollArea>
             <DropdownMenuItem
               :class="menu.item"
               :disabled="!canMoveUp"
@@ -148,8 +149,8 @@ function onGripKey(event: KeyboardEvent) {
                 {{ settings.toolbarUngroup }}
               </DropdownMenuItem>
             </template>
-          </MenuScrollArea></DropdownMenuContent
-        >
+          </MenuScrollArea>
+        </DropdownMenuContent>
       </DropdownMenuPortal>
     </DropdownMenuRoot>
     <AppSwitch

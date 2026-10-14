@@ -206,10 +206,11 @@ function closeCard() {
           />
         </ContextMenuTrigger>
         <ContextMenuPortal>
-          <ContextMenuContent :class="menuCls.content"
-            ><MenuScrollArea>
-              <CommentActionsMenu :thread="pin.thread" kind="context" show-hide /> </MenuScrollArea
-          ></ContextMenuContent>
+          <ContextMenuContent :class="menuCls.content">
+            <MenuScrollArea>
+              <CommentActionsMenu :thread="pin.thread" kind="context" show-hide />
+            </MenuScrollArea>
+          </ContextMenuContent>
         </ContextMenuPortal>
       </ContextMenuRoot>
 

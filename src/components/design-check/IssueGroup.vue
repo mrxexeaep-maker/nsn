@@ -82,14 +82,14 @@ const hiddenCount = computed(() => group.rows.length - visibleRows.value.length)
           </IconButton>
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
-          <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menuCls.content"
-            ><MenuScrollArea>
+          <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menuCls.content">
+            <MenuScrollArea>
               <DropdownMenuItem :class="itemCls" @select="emit('turnOff')">
                 <icon-lucide-eye-off class="size-3.5 text-muted" aria-hidden="true" />
                 {{ messages.turnOffRule }}
               </DropdownMenuItem>
-            </MenuScrollArea></DropdownMenuContent
-          >
+            </MenuScrollArea>
+          </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>
     </template>

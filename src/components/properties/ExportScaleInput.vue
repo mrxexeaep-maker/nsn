@@ -94,8 +94,8 @@ function isActive(scale: number) {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuPortal v-if="portalActive">
-          <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menuCls.content"
-            ><MenuScrollArea>
+          <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menuCls.content">
+            <MenuScrollArea>
               <DropdownMenuItem
                 v-for="scale in presets"
                 :key="scale"
@@ -104,8 +104,9 @@ function isActive(scale: number) {
               >
                 <span>{{ scale }}x</span>
                 <icon-lucide-check v-if="isActive(scale)" class="size-3 text-primary" />
-              </DropdownMenuItem> </MenuScrollArea
-          ></DropdownMenuContent>
+              </DropdownMenuItem>
+            </MenuScrollArea>
+          </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>
     </div>

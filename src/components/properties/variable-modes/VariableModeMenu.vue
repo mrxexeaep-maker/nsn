@@ -56,8 +56,8 @@ function select(choice: VariableModeChoice, value: string) {
       </IconButton>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
-      <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menu.content"
-        ><MenuScrollArea>
+      <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menu.content">
+        <MenuScrollArea>
           <template v-for="(group, index) in groups" :key="group.label">
             <DropdownMenuSeparator v-if="index > 0" :class="menu.separator" />
             <DropdownMenuLabel :class="menu.label">{{ group.label }}</DropdownMenuLabel>
@@ -69,8 +69,8 @@ function select(choice: VariableModeChoice, value: string) {
                 <icon-lucide-chevron-right :class="menu.icon" />
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
-                <DropdownMenuSubContent :side-offset="4" :class="menu.content"
-                  ><MenuScrollArea>
+                <DropdownMenuSubContent :side-offset="4" :class="menu.content">
+                  <MenuScrollArea>
                     <DropdownMenuRadioGroup
                       :model-value="current(choice)"
                       @update:model-value="
@@ -99,13 +99,13 @@ function select(choice: VariableModeChoice, value: string) {
                         {{ mode.name }}
                       </DropdownMenuRadioItem>
                     </DropdownMenuRadioGroup>
-                  </MenuScrollArea></DropdownMenuSubContent
-                >
+                  </MenuScrollArea>
+                </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
           </template>
-        </MenuScrollArea></DropdownMenuContent
-      >
+        </MenuScrollArea>
+      </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
 </template>

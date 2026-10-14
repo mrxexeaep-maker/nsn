@@ -48,8 +48,8 @@ function toggle(type: VariableType, on: boolean) {
       </IconButton>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
-      <DropdownMenuContent side="bottom" :side-offset="4" align="end" :class="menu.content"
-        ><MenuScrollArea>
+      <DropdownMenuContent side="bottom" :side-offset="4" align="end" :class="menu.content">
+        <MenuScrollArea>
           <DropdownMenuCheckboxItem
             v-for="type in VARIABLE_TYPES"
             :key="type"
@@ -63,8 +63,9 @@ function toggle(type: VariableType, on: boolean) {
             <DropdownMenuItemIndicator>
               <icon-lucide-check :class="menu.icon" />
             </DropdownMenuItemIndicator>
-          </DropdownMenuCheckboxItem> </MenuScrollArea
-      ></DropdownMenuContent>
+          </DropdownMenuCheckboxItem>
+        </MenuScrollArea>
+      </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
 </template>

@@ -54,8 +54,8 @@ const itemCls = menuItem({ justify: 'between' })
       </DropdownMenuTrigger>
     </Tip>
     <DropdownMenuPortal v-if="portalActive">
-      <DropdownMenuContent align="start" side="bottom" :side-offset="4" :class="menuCls.content"
-        ><MenuScrollArea>
+      <DropdownMenuContent align="start" side="bottom" :side-offset="4" :class="menuCls.content">
+        <MenuScrollArea>
           <DropdownMenuItem
             v-for="item in types"
             :key="item.type"
@@ -68,8 +68,9 @@ const itemCls = menuItem({ justify: 'between' })
               <span>{{ item.label() }}</span>
             </div>
             <IconCheck v-if="item.type === node.type" class="ml-4 size-3.5" />
-          </DropdownMenuItem> </MenuScrollArea
-      ></DropdownMenuContent>
+          </DropdownMenuItem>
+        </MenuScrollArea>
+      </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
 </template>
