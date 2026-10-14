@@ -16,11 +16,18 @@ import {
 
 import type { ShaderStillPage } from './page'
 
-/** Headless Chromium has WebGPU only with SwiftShader, and only on a secure origin. */
+/**
+ * Headless Chromium has WebGPU only with SwiftShader, and only on a secure origin. On Linux,
+ * where the deploy and preview workflows build the demo, WebGPU also needs Vulkan, served by
+ * SwiftShader since the runners have no GPU.
+ */
 const BROWSER_ARGS = [
   '--enable-unsafe-webgpu',
   '--use-angle=swiftshader',
-  '--enable-unsafe-swiftshader'
+  '--enable-unsafe-swiftshader',
+  ...(process.platform === 'linux'
+    ? ['--enable-features=Vulkan', '--use-vulkan=swiftshader', '--use-webgpu-adapter=swiftshader']
+    : [])
 ]
 
 interface Job {
