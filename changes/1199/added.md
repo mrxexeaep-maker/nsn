@@ -1,1 +1,0 @@
-- A pencil tool (<kbd>⇧</kbd><kbd>P</kbd>) draws freehand strokes as smoothed, editable vector paths, with <kbd>Shift</kbd> for straight lines, as Figma's pencil does.

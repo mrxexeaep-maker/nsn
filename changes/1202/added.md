@@ -1,1 +1,0 @@
-- Figma's navigation keys move through layers and the document: Enter selects children, Shift+Enter or \ selects the parent, Tab and Shift+Tab select siblings, N and Shift+N zoom to the next or previous frame, Page Down and Page Up switch pages, and Shift+0 zooms to 100%.

@@ -1,6 +1,6 @@
 {
   "name": "@open-pencil/feedback",
-  "version": "0.16.0-beta.3",
+  "version": "0.16.0",
   "private": true,
   "license": "MIT",
   "description": "The OpenPencil feedback service on Cloudflare Workers: usage pings, opt-in usage stats, and the Cloud waitlist.",
