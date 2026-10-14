@@ -162,7 +162,7 @@
       {
         "id": "view.zoom100",
         "label": "Zoom to 100%",
-        "accelerator": "Shift+0"
+        "accelerator": "CmdOrCtrl+0"
       },
       {
         "id": "view.zoomFit",
@@ -200,12 +200,12 @@
       {
         "id": "view.previousPage",
         "label": "Previous Page",
-        "accelerator": "PAGEUP"
+        "accelerator": "PageUp"
       },
       {
         "id": "view.nextPage",
         "label": "Next Page",
-        "accelerator": "PAGEDOWN"
+        "accelerator": "PageDown"
       },
       {
         "type": "separator"
