@@ -1,1 +1,0 @@
-- The bar that shows who you follow has a white label on the person's or agent's color, darkened just enough to read at WCAG AA, instead of black text on mid-tone colors such as the AI agent's blue.

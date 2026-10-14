@@ -308,6 +308,15 @@ export function createPageActions(ctx: EditorContext, drawing?: PageDrawing) {
     if (prepared) commitPageSwitch(prepared)
   }
 
+  /** Opens the page before or after the current one in the pages panel, stopping at the ends. */
+  async function switchToAdjacentPage(step: 1 | -1): Promise<void> {
+    const pages = ctx.graph.getPages()
+    const index = pages.findIndex((page) => page.id === ctx.state.currentPageId)
+    const next = index + step
+    if (index === -1 || next < 0 || next >= pages.length) return
+    await switchPage(pages[next].id)
+  }
+
   function clearPageViewports() {
     populationWorkerGeneration++
     pageSwitchGeneration++
@@ -375,6 +384,8 @@ export function createPageActions(ctx: EditorContext, drawing?: PageDrawing) {
     preparePage,
     commitPageSwitch,
     switchPage,
+    switchToNextPage: () => switchToAdjacentPage(1),
+    switchToPreviousPage: () => switchToAdjacentPage(-1),
     addPage,
     deletePage,
     movePage,
