@@ -17,9 +17,11 @@ describe('formatShortcut', () => {
     expect(formatShortcut('SHIFT+A', 'linux')).toBe('Shift+A')
   })
 
-  test('abbreviates Page Up and Page Down', () => {
-    expect(formatShortcut('PAGEUP', 'mac')).toBe('PgUp')
-    expect(formatShortcut('PAGEDOWN', 'windows')).toBe('PgDn')
+  test('names Page Up and Page Down as Figma does', () => {
+    expect(formatShortcut('PAGEUP', 'mac')).toBe('🌐↑')
+    expect(formatShortcut('PAGEDOWN', 'mac')).toBe('🌐↓')
+    expect(formatShortcut('PAGEUP', 'windows')).toBe('PgUp')
+    expect(formatShortcut('PAGEDOWN', 'linux')).toBe('PgDn')
   })
 
   test('detects platform from user agent', () => {
