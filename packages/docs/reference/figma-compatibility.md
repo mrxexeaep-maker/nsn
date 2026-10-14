@@ -66,6 +66,7 @@ Feature-by-feature comparison of Figma Design capabilities with Open Pencil's cu
 |---------|--------|-------|
 | Vector networks | ✅ | Figma-compatible model, not simple paths |
 | Pen tool | ✅ | Corner points, bezier curves, open/closed paths |
+| Pencil tool | ✅ | Freehand strokes smoothed into curves, <kbd>⇧</kbd> for straight lines |
 | Edit vector layers | 🟡 | Creation works; advanced vertex editing (bend, delete points, join) limited |
 | Boolean operations (Union, Subtract, Intersect, Exclude) | 🔲 | Combine shapes with boolean ops |
 | Flatten layers | 🔲 | Merge vector paths into single path |

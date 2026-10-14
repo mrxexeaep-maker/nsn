@@ -37,6 +37,19 @@ test('the pen keeps its nib cursor while placing points', async () => {
   await editor.page.keyboard.press('Escape')
 })
 
+test('the pencil points with its tip while drawing', async () => {
+  await editor.page.keyboard.press('Shift+KeyP')
+  expect(await canvasCursor()).toBe('4 20, crosshair')
+
+  const box = expectDefined(await editor.canvas.canvas.boundingBox(), 'canvas bounds')
+  await editor.page.mouse.move(box.x + 200, box.y + 200)
+  await editor.page.mouse.down()
+  await editor.page.mouse.move(box.x + 280, box.y + 240, { steps: 4 })
+  expect(await canvasCursor()).toBe('4 20, crosshair')
+  await editor.page.mouse.up()
+  await editor.page.keyboard.press('v')
+})
+
 test('the comment tool shows a speech bubble pointing with its tail', async () => {
   await editor.page.keyboard.press('c')
   const cursor = commentsCapture().evaluate((el) => (el as HTMLElement).style.cursor)

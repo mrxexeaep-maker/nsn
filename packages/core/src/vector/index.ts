@@ -1,5 +1,6 @@
 export * from './vectorize'
 export * from './handle-selection'
+export { freehandNetwork, simplifyFreehand } from './freehand'
 
 export {
   breakAtVertex,

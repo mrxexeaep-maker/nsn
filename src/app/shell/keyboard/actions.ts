@@ -78,6 +78,10 @@ export function createKeyboardActions({
       store.exitNodeEditMode(true)
       return
     }
+    if (store.state.pencilState) {
+      store.pencilCancel()
+      return
+    }
     // Figma keeps the path drawn so far; a lone point has nothing to keep.
     if (store.state.penState) {
       if (store.state.penState.vertices.length >= 2) store.penCommit(false)

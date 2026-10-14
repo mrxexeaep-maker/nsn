@@ -14,6 +14,7 @@ const TOOL_SHORTCUT_KEYS: Readonly<Record<Tool, string>> = {
   POLYGON: '',
   STAR: '',
   PEN: 'P',
+  PENCIL: 'SHIFT+P',
   TEXT: 'T',
   HAND: 'H',
   COMMENT: 'C'

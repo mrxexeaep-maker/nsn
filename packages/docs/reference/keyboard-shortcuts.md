@@ -27,7 +27,7 @@ Full Figma-compatible shortcut map. ✅ = implemented.
 | — | Star | ✅ (flyout only) |
 | <kbd>⇧</kbd><kbd>L</kbd> | Arrow | 🔲 |
 | <kbd>P</kbd> | Pen | ✅ |
-| <kbd>⇧</kbd><kbd>P</kbd> | Pencil | 🔲 |
+| <kbd>⇧</kbd><kbd>P</kbd> | Pencil | ✅ |
 | <kbd>T</kbd> | Text | ✅ |
 | <kbd>C</kbd> | Comment | ✅ |
 | <kbd>I</kbd> | Eyedropper | 🔲 |
