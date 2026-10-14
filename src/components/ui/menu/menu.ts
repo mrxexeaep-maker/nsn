@@ -20,8 +20,9 @@ export const menu = tv({
     subTrigger:
       'flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-[11px] outline-none select-none',
     // As in Figma and macOS menus: no scrollbar, a chevron strip over each end that has more.
+    // No overscroll: WebKit's bounce takes the top past zero, which kept the top strip showing.
     scrollRoot: 'relative flex min-h-0 flex-col',
-    scrollViewport: 'scrollbar-none min-h-0 flex-1 scroll-py-5 overflow-y-auto',
+    scrollViewport: 'scrollbar-none min-h-0 flex-1 scroll-py-5 overflow-y-auto overscroll-none',
     scrollButton:
       'absolute inset-x-0 z-10 flex h-5 cursor-default items-center justify-center bg-panel text-muted data-[edge=bottom]:bottom-0 data-[edge=top]:top-0'
   },
