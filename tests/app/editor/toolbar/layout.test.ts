@@ -15,10 +15,11 @@ import {
   type ToolbarEntry,
   type ToolbarLayout
 } from '@/app/editor/toolbar/layout'
-import { TOOL_SHORTCUT_LABELS } from '@/app/editor/toolbar/shortcuts'
+import { toolShortcutLabels } from '@/app/editor/toolbar/shortcuts'
 
 const SHAPES: ToolbarEntry[] = ['RECTANGLE', 'LINE', 'ELLIPSE', 'POLYGON', 'STAR']
-const LABELS = { ...TOOL_SHORTCUT_LABELS }
+const SHORTCUTS = toolShortcutLabels('mac')
+const LABELS = { ...SHORTCUTS }
 
 function layout(groups: ToolbarEntry[][], hidden: ToolbarEntry[] = []): ToolbarLayout {
   return normalizeToolbarLayout(groups, hidden)
@@ -71,7 +72,7 @@ describe('toolbarItems', () => {
     const items = toolbarItems(
       layout(DEFAULT_TOOLBAR_LAYOUT.groups, ['SECTION', 'RECTANGLE']),
       LABELS,
-      TOOL_SHORTCUT_LABELS
+      SHORTCUTS
     )
     expect(items[1]).toEqual({
       kind: 'tool',
@@ -93,7 +94,7 @@ describe('toolbarItems', () => {
     const items = toolbarItems(
       layout(DEFAULT_TOOLBAR_LAYOUT.groups, ['FRAME', 'SECTION']),
       LABELS,
-      TOOL_SHORTCUT_LABELS
+      SHORTCUTS
     )
     expect(items.map((item) => (item.kind === 'tool' ? item.tool.key : item.action))).not.toContain(
       'FRAME'
