@@ -1,0 +1,2 @@
+- Pen, comment, and hand tools show their own cursors on the canvas, and the hand closes while panning.
+- Section moves to Shift+S and Frame also answers to A, as in Figma.
