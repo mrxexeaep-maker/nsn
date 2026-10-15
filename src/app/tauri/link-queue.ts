@@ -22,7 +22,14 @@ export async function bindDesktopLinkQueue<T>(options: {
   const queue = v.array(options.schema)
   async function drain() {
     const items = v.parse(queue, await invoke<unknown>(options.command))
-    for (const item of items) await options.open(item)
+    // The native side already emptied its queue, so one link that fails must not drop the rest.
+    for (const item of items) {
+      try {
+        await options.open(item)
+      } catch (error) {
+        console.error(`[${options.label}]`, error)
+      }
+    }
   }
   const stop = await listen(options.event, () => {
     void drain().catch((error: unknown) => console.error(`[${options.label}]`, error))
