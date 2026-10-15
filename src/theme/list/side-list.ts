@@ -7,6 +7,7 @@ export const sideList = tv({
     group: 'flex flex-col',
     header: 'flex h-8 shrink-0 items-center justify-between pr-1.5 pl-3',
     title: 'text-[11px] font-semibold text-surface',
+    actions: 'flex items-center gap-0.5',
     items: 'flex flex-col px-1 pb-1',
     item: 'group flex h-6 w-full cursor-pointer items-center gap-1.5 rounded border-none bg-transparent px-2 text-left text-[11px] text-muted outline-none hover:bg-hover hover:text-surface focus-visible:ring-1 focus-visible:ring-panel-focus data-[active=true]:bg-hover data-[active=true]:text-surface',
     icon: 'size-3 shrink-0 opacity-70',

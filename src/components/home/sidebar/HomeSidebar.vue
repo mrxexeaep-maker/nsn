@@ -78,50 +78,52 @@ const workspaceLocations = computed(() =>
     <div :class="ui.group()">
       <div :class="ui.header()">
         <span :class="ui.title()">{{ t.productName }}</span>
-        <IconButton v-if="account" :label="t.homeNewWorkspace" @click="emit('newWorkspace')">
-          <icon-lucide-plus class="size-3.5" />
-        </IconButton>
-        <DropdownMenuRoot v-if="account" :modal="false">
-          <DropdownMenuTrigger as-child>
-            <IconButton :label="t.homeAccount({ email: account.email })">
-              <icon-lucide-ellipsis class="size-3.5" />
-            </IconButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuPortal>
-            <DropdownMenuContent
-              side="bottom"
-              align="end"
-              :side-offset="4"
-              :class="[menuUI.content(), 'w-56']"
-            >
-              <DropdownMenuLabel :class="menuUI.label()">
-                {{ account.email }} · {{ account.host }}
-              </DropdownMenuLabel>
-              <DropdownMenuItem
-                :class="menuUI.item({ justify: 'start' })"
-                @select="emit('accountSettings')"
+        <div v-if="account" :class="ui.actions()">
+          <IconButton :label="t.homeNewWorkspace" @click="emit('newWorkspace')">
+            <icon-lucide-plus class="size-3.5" />
+          </IconButton>
+          <DropdownMenuRoot :modal="false">
+            <DropdownMenuTrigger as-child>
+              <IconButton :label="t.homeAccount({ email: account.email })">
+                <icon-lucide-ellipsis class="size-3.5" />
+              </IconButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuContent
+                side="bottom"
+                align="end"
+                :side-offset="4"
+                :class="[menuUI.content(), 'w-56']"
               >
-                <icon-lucide-settings-2 :class="menuUI.icon()" />
-                {{ t.homeAccountSettings }}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                :class="menuUI.item({ justify: 'start' })"
-                @select="emit('switchServer')"
-              >
-                <icon-lucide-server :class="menuUI.icon()" />
-                {{ t.homeConnectAnotherServer }}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator :class="menuUI.separator()" />
-              <DropdownMenuItem
-                :class="menuUI.item({ justify: 'start' })"
-                @select="emit('signOut')"
-              >
-                <icon-lucide-log-out :class="menuUI.icon()" />
-                {{ t.signOut }}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenuPortal>
-        </DropdownMenuRoot>
+                <DropdownMenuLabel :class="menuUI.label()">
+                  {{ account.email }} · {{ account.host }}
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  :class="menuUI.item({ justify: 'start' })"
+                  @select="emit('accountSettings')"
+                >
+                  <icon-lucide-settings-2 :class="menuUI.icon()" />
+                  {{ t.homeAccountSettings }}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  :class="menuUI.item({ justify: 'start' })"
+                  @select="emit('switchServer')"
+                >
+                  <icon-lucide-server :class="menuUI.icon()" />
+                  {{ t.homeConnectAnotherServer }}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator :class="menuUI.separator()" />
+                <DropdownMenuItem
+                  :class="menuUI.item({ justify: 'start' })"
+                  @select="emit('signOut')"
+                >
+                  <icon-lucide-log-out :class="menuUI.icon()" />
+                  {{ t.signOut }}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenuPortal>
+          </DropdownMenuRoot>
+        </div>
       </div>
       <div :class="ui.items()">
         <template v-if="account">
