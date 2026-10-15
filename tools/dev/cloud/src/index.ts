@@ -76,9 +76,10 @@ async function authSecret(): Promise<string> {
 }
 
 async function start(project: string): Promise<void> {
-  const [cloudURL, mailURL, editorURL] = await Promise.all([
+  const [cloudURL, mailURL, objectStorageURL, editorURL] = await Promise.all([
     portlessURL('cloud.open-pencil'),
     portlessURL('mail.open-pencil'),
+    portlessURL('s3.open-pencil'),
     portlessURL('open-pencil')
   ])
 
@@ -108,12 +109,21 @@ async function start(project: string): Promise<void> {
     localCloudDeploymentTOML({
       cloudURL,
       editorURL,
-      objectStorageURL: `http://127.0.0.1:${s3Port}`,
+      // Browsers upload straight to object storage, and Safari blocks plain HTTP from HTTPS pages.
+      objectStorageURL,
       smtpPort
     }),
     { mode: 0o600 }
   )
   await execute(['bunx', 'portless', 'alias', aliasName(mailURL), String(mailpitUIPort), '--force'])
+  await execute([
+    'bunx',
+    'portless',
+    'alias',
+    aliasName(objectStorageURL),
+    String(s3Port),
+    '--force'
+  ])
 
   const betterAuthSecret = await authSecret()
   // The server serves the portal's pages from this build, rebuilt on every change.
@@ -161,10 +171,12 @@ async function start(project: string): Promise<void> {
 
 async function stop(project: string): Promise<void> {
   await execute(compose(project, 'down'), { allowFailure: true })
-  const mailURL = await portlessURL('mail.open-pencil')
-  await execute(['bunx', 'portless', 'alias', '--remove', aliasName(mailURL)], {
-    allowFailure: true
-  })
+  for (const name of ['mail.open-pencil', 's3.open-pencil']) {
+    const url = await portlessURL(name)
+    await execute(['bunx', 'portless', 'alias', '--remove', aliasName(url)], {
+      allowFailure: true
+    })
+  }
   await rm(generatedConfig, { force: true })
 }
 

@@ -14,12 +14,15 @@ bun run cloud:dev
 ```
 
 The command starts PostgreSQL, SeaweedFS, and Mailpit from [`compose.yml`](./compose.yml) as a
-Compose project named after the branch, publishes them on free loopback ports, writes an ignored
-TOML file with the branch's Portless URLs under `generated/`, and runs the Cloud server on the host
-with `bun --watch` behind Portless. Email and password sign-up is enabled, and every message lands
-in Mailpit.
+Compose project named after the branch, publishes them on free loopback ports, gives SeaweedFS and
+Mailpit HTTPS addresses through Portless, writes an ignored TOML file with the branch's Portless
+URLs under `generated/`, and runs the Cloud server on the host with `bun --watch` behind Portless.
+Browsers upload straight to object storage, and Safari blocks plain HTTP requests from an HTTPS
+page, so storage needs its HTTPS address too. Email and password sign-up is enabled, and every
+message lands in Mailpit.
 
-`bun run cloud:dev:down` stops the services and removes the Mailpit route; their volumes are kept.
+`bun run cloud:dev:down` stops the services and removes the Mailpit and storage routes; their volumes
+are kept.
 
 ## Self-hosting
 
