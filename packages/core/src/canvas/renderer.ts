@@ -168,6 +168,11 @@ export class SkiaRenderer {
   navigationPhase: EditorState['navigation']['phase'] = 'idle'
   navigationGeneration = 0
   tiledSceneEnabled = false
+  /**
+   * What an empty sticky note shows while it is edited on this canvas, in the interface language;
+   * null for a canvas that draws only the document, such as an export.
+   */
+  stickyPlaceholder: string | null = null
   tracksSceneSettlement = true
   /** Colour space this renderer's surface presents; colours convert into it when painting. */
   presentationColorSpace: RenderColorSpace = 'srgb'

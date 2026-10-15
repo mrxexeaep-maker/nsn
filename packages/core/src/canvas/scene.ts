@@ -340,7 +340,7 @@ export function renderNode(
 ): void {
   const found = graph.getNode(nodeId)
   if (!found || !drawsNode(found, overlays)) return
-  const node = stickyPlaceholderNode(graph, found) ?? found
+  const node = stickyPlaceholderNode(graph, found, r.stickyPlaceholder) ?? found
 
   r._nodeCount++
 

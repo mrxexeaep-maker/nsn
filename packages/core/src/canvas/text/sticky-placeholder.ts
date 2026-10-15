@@ -2,20 +2,22 @@ import { generatedFrameOwner, stickySublayers } from '@open-pencil/scene-graph'
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 import { BLACK } from '@open-pencil/scene-graph/constants'
 
-/** What an empty sticky note shows in its body, as FigJam and Figma draw it. */
-export const STICKY_PLACEHOLDER = 'Type anything, @mention anyone'
-
 /**
- * The body of an empty sticky note as the canvas draws it: the placeholder in the body's style,
- * black at 30%, as measured in FigJam. The note's text stays empty.
+ * The body of an empty sticky note as an editing canvas draws it: `placeholder`, in the
+ * interface language, in the body's style, black at 30%, as measured in FigJam. The note's text
+ * stays empty, and a canvas without a placeholder, such as an export, draws nothing there.
  */
-export function stickyPlaceholderNode(graph: SceneGraph, node: SceneNode): SceneNode | null {
-  if (node.type !== 'TEXT' || node.text !== '') return null
+export function stickyPlaceholderNode(
+  graph: SceneGraph,
+  node: SceneNode,
+  placeholder: string | null
+): SceneNode | null {
+  if (!placeholder || node.type !== 'TEXT' || node.text !== '') return null
   const sticky = generatedFrameOwner(graph, node)
   if (sticky?.type !== 'STICKY' || stickySublayers(graph, sticky)?.body.id !== node.id) return null
   return {
     ...node,
-    text: STICKY_PLACEHOLDER,
+    text: placeholder,
     styleRuns: [],
     textParagraphs: [],
     derivedTextGlyphs: null,
