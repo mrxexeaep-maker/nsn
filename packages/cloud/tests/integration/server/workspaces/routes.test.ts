@@ -51,6 +51,36 @@ async function testApp(actor: CloudActor | null) {
 }
 
 describe('Cloud workspace routes', () => {
+  test('gives an active account one workspace of its own, however often it asks', async () => {
+    const runtime = await createCloudTestDatabase()
+    try {
+      const app = createCloudApp({
+        config,
+        database: runtime.database,
+        auth: createBetterAuthAdapter(config, runtime.database),
+        objects: createMemoryObjectStore().store,
+        resolveIdentity: async () => alice,
+        resolveSession: async () => alice
+      })
+      const statuses = await Promise.all([
+        app.request('/api/account/status'),
+        app.request('/api/account/status')
+      ])
+      expect(statuses.map((response) => response.status)).toEqual([200, 200])
+      await app.request('/api/account/status')
+
+      const listed = await responseJSON(
+        await app.request('/api/workspaces'),
+        v.object({ workspaces: v.array(v.object({ name: v.string(), role: v.string() })) })
+      )
+      expect(listed.workspaces).toEqual([
+        expect.objectContaining({ name: 'Alice’s workspace', role: 'admin' })
+      ])
+    } finally {
+      await runtime.close()
+    }
+  })
+
   test('requires authentication for Cloud APIs', async () => {
     const { app, runtime } = await testApp(null)
     try {

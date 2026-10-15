@@ -16,6 +16,7 @@ import {
 } from '#cloud/server/auth'
 import type { CloudServerConfig } from '#cloud/server/config'
 import { validatedJSON } from '#cloud/server/validation'
+import type { WorkspaceService } from '#cloud/server/workspaces'
 import { Hono, type MiddlewareHandler } from 'hono'
 
 import { createAccountActions } from './actions'
@@ -24,6 +25,7 @@ export type AccountRouteDependencies = {
   auth: CloudAuthAdapter
   config: CloudServerConfig
   enrollment: EnrollmentService
+  workspaces: WorkspaceService
   resolveIdentity: CloudIdentityResolver
   resolveSession: CloudSessionResolver
   requireActiveSession: MiddlewareHandler<CloudAPIEnvironment>
@@ -33,6 +35,7 @@ export type AccountRouteDependencies = {
 export function createAccountRoutes(services: AccountRouteDependencies) {
   const {
     enrollment,
+    workspaces,
     resolveIdentity,
     resolveSession,
     requireActiveSession,
@@ -54,6 +57,7 @@ export function createAccountRoutes(services: AccountRouteDependencies) {
         services.config.enrollmentMode !== 'approval' || enrollmentStatus === 'approved'
           ? ('active' as const)
           : (enrollmentStatus ?? 'pending')
+      if (state === 'active') await workspaces.ensurePersonal(identity)
       return context.json({ user: identity, state })
     })
     .get('/api/account/mfa', async (context) => {

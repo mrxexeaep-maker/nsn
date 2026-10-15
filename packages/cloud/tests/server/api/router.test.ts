@@ -91,7 +91,8 @@ function services() {
       get: async () => undefined,
       create: async () => {
         throw new Error('not used')
-      }
+      },
+      ensurePersonal: async () => undefined
     }
   }
 }

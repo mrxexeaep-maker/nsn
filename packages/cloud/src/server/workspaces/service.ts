@@ -30,6 +30,11 @@ function generatedSlug(name: string): string {
   return `${fallbackSlug(name)}-${crypto.randomUUID().slice(0, 8)}`
 }
 
+function personalWorkspaceName(name: string): string {
+  const first = name.trim().split(/\s+/)[0]
+  return first ? `${first}’s workspace` : 'Personal workspace'
+}
+
 export function createWorkspaceService(database: Kysely<CloudDatabase>) {
   return {
     list(userId: string): Promise<WorkspaceSummary[]> {
@@ -55,6 +60,23 @@ export function createWorkspaceService(database: Kysely<CloudDatabase>) {
       const workspace = await findWorkspace(database, userId, workspaceId)
       if (!workspace) throw new Error('Created workspace could not be read')
       return workspace
+    },
+
+    /**
+     * Gives an active account with no workspace one of its own, so it has somewhere to save. The
+     * slug is fixed per person, so concurrent calls make one workspace and later calls none.
+     */
+    async ensurePersonal(user: { userId: string; name: string }): Promise<void> {
+      if ((await listWorkspaces(database, user.userId)).length > 0) return
+      const workspaceId = crypto.randomUUID()
+      await database.transaction().execute(async (transaction) => {
+        const inserted = await insertWorkspace(transaction, user.userId, {
+          id: workspaceId,
+          name: personalWorkspaceName(user.name),
+          slug: `personal-${user.userId}`
+        })
+        if (inserted) await insertWorkspaceMember(transaction, workspaceId, user.userId, 'admin')
+      })
     }
   }
 }

@@ -254,6 +254,7 @@ export function createCloudApp(services: CloudServices) {
     auth: services.auth,
     config: services.config,
     enrollment,
+    workspaces,
     resolveIdentity,
     resolveSession,
     requireActiveSession,
