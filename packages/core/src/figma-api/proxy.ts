@@ -29,6 +29,7 @@ import type { FigmaEffect } from '#core/figma-api/effects'
 import { prepareFollowedFieldEdit, fitGroupsAround } from './accessor-utils'
 import { installBasicNodeProxyAccessors } from './accessors/basic'
 import { installLayoutNodeProxyAccessors } from './accessors/layout'
+import { installStickyNodeProxyAccessors, pluginChildren } from './accessors/sticky'
 import { installStrokeNodeProxyAccessors } from './accessors/strokes'
 import { installTextNodeProxyAccessors } from './accessors/text'
 import { installTextRangeMethods, type TextRangeMethods } from './accessors/text/ranges'
@@ -162,6 +163,11 @@ export class FigmaNodeProxy {
   declare readonly explicitVariableModes: Readonly<Record<string, string>>
   declare readonly resolvedVariableModes: Readonly<Record<string, string>>
   declare readonly overrides: FigmaInstanceOverride[] | undefined
+  /** A sticky note's body, its author line, and whether it is wide; undefined on other layers. */
+  declare readonly text: FigmaNodeProxy | undefined
+  declare readonly authorName: string | undefined
+  declare authorVisible: boolean | undefined
+  declare isWideWidth: boolean | undefined
   declare resetOverrides: () => void
 
   declare strokeWeight: number
@@ -373,9 +379,9 @@ export class FigmaNodeProxy {
   }
 
   get children(): FigmaNodeProxy[] {
-    return this[INTERNAL_GRAPH]
-      .getChildren(this[INTERNAL_ID])
-      .map((c) => this[INTERNAL_API].wrapNode(c.id))
+    return pluginChildren(this[INTERNAL_GRAPH], this[INTERNAL_ID]).map((c) =>
+      this[INTERNAL_API].wrapNode(c.id)
+    )
   }
 
   appendChild(child: FigmaNodeProxy): void {
@@ -570,6 +576,7 @@ const proxyInternals = {
 }
 
 installStrokeNodeProxyAccessors(FigmaNodeProxy.prototype, proxyInternals)
+installStickyNodeProxyAccessors(FigmaNodeProxy.prototype, proxyInternals)
 installTextNodeProxyAccessors(FigmaNodeProxy.prototype, proxyInternals, MIXED)
 installTextRangeMethods(FigmaNodeProxy.prototype, proxyInternals, MIXED)
 installLayoutNodeProxyAccessors(FigmaNodeProxy.prototype, proxyInternals)
