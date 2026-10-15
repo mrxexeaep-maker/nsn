@@ -89,4 +89,18 @@ describe('design JSX enums', () => {
     expect(warnings).toHaveLength(1)
     expect(warnings[0]).toStartWith('Unknown blendMode "sparkle" on <frame> is ignored; expected ')
   })
+  test('an unknown mask type warns and leaves the layer unmasked', async () => {
+    const { node, warnings } = await render('<Rectangle mask="sparkle" />')
+    expect(node.isMask).toBe(false)
+    expect(warnings[0]).toStartWith('Unknown mask "sparkle" on <rectangle> is ignored')
+    expect((await render('<Rectangle mask />')).node.maskType).toBe('ALPHA')
+  })
+
+  test('a text decoration style reads in any case', async () => {
+    const { node, warnings } = await render(
+      '<Text textDecoration="underline" textDecorationStyle="WAVY">a</Text>'
+    )
+    expect(node.textDecorationStyle).toBe('WAVY')
+    expect(warnings).toEqual([])
+  })
 })

@@ -46,8 +46,10 @@ export function applyStateOverrides(props: Record<string, unknown>, o: Partial<S
   if (minHeight !== undefined) o.minHeight = minHeight
   if (maxHeight !== undefined) o.maxHeight = maxHeight
 
-  if (props.mask) {
+  // `mask` alone masks by alpha; an unknown mask type leaves the layer as it was.
+  const maskType = props.mask === true ? 'ALPHA' : MASK_TYPE.parse(props.mask)
+  if (maskType) {
     o.isMask = true
-    o.maskType = MASK_TYPE.parse(props.mask) ?? 'ALPHA'
+    o.maskType = maskType
   }
 }

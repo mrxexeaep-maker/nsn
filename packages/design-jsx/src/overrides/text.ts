@@ -16,7 +16,8 @@ const Length = v.pipe(v.number(), v.finite())
 const AutoLength = v.union([Length, v.literal(AUTO)])
 
 const TextProps = v.object({
-  textDecorationStyle: v.optional(v.picklist(TEXT_DECORATION_STYLE.names)),
+  // Read by TEXT_DECORATION_STYLE, so an unknown style warns rather than failing the render.
+  textDecorationStyle: v.optional(v.string()),
   textDecorationColor: v.optional(
     v.custom<string | Color | Fill>(isFillValue, 'Expected a colour or a paint')
   ),
