@@ -1,0 +1,1 @@
+- Screen readers say whether each item in an AI reply's task list is done, instead of announcing an unlabelled checkbox.

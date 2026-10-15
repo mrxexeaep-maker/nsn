@@ -34,6 +34,8 @@ export const commonMessageDefaults = {
   noResults: 'No results',
   save: 'Save',
   done: 'Done',
+  taskDone: 'Done',
+  taskNotDone: 'Not done',
   back: 'Back',
   supported: 'Supported',
   unsupported: 'Not supported',
