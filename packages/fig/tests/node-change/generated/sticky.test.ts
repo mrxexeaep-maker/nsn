@@ -138,4 +138,14 @@ describe('sticky notes', () => {
     expect(author).toMatchObject({ text: 'Grace', fontSize: 12, lineHeight: 16, visible: true })
     expect(sticky).toMatchObject({ paddingLeft: 20, itemSpacing: 16, minHeight: 240 })
   })
+
+  test('a note that lost its sublayers is saved as a frame with its children', () => {
+    const { graph, sticky } = importNote(scaledNote)
+    const author = expectDefined(stickySublayers(graph, sticky)).author
+    graph.deleteNode(author.id)
+    const records = sceneNodeToKiwi(sticky, guid(1), 0, { value: 10 }, graph, [])
+    expect(records.map((record) => record.type)).toEqual(['FRAME', 'TEXT'])
+    expect(records[1].textData?.characters).toBe('Scaled')
+    expect(records[0].nodeGenerationData).toBeUndefined()
+  })
 })

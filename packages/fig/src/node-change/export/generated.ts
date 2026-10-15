@@ -66,6 +66,14 @@ function shaped(node: SceneNode, derived: GeneratedEntry): boolean {
 }
 
 /**
+ * Whether a layer is written as a generated frame: a note whose sublayers are the template's.
+ * One that lost them is written as a plain frame with its children, so nothing it shows is lost.
+ */
+export function writesGeneratedFrame(context: SceneNodeToKiwiContext, node: SceneNode): boolean {
+  return node.type === 'STICKY' && stickySublayers(context.graph, node) !== null
+}
+
+/**
  * A generated frame's record, with its sublayers written on it as Figma stores a sticky note: what
  * each sublayer shows under `nodeGenerationData`, and the layout derived from it under
  * `derivedImmutableFrameData`. Figma draws a note from its derived data as saved and lays it out
@@ -76,9 +84,9 @@ export function generatedFrameRecord(
   node: SceneNode,
   nc: KiwiNodeChange
 ): KiwiNodeChange | null {
-  if (node.type !== 'STICKY') return null
+  const sublayers = node.type === 'STICKY' ? stickySublayers(context.graph, node) : null
+  if (!sublayers) return null
   const record: KiwiNodeChange = pick(nc, STICKY_RECORD_FIELDS)
-  const sublayers = stickySublayers(context.graph, node)
   const fillPaints = createFillPaints(context, node)
   const background: GeneratedEntry = {
     guidPath: generatedSlotPath(STICKY_SLOTS.background),
@@ -89,17 +97,15 @@ export function generatedFrameRecord(
   const derived: GeneratedEntry[] = [
     { guidPath: generatedSlotPath(STICKY_SLOTS.background), ...placement({ ...node, x: 0, y: 0 }) }
   ]
-  let complete = sublayers !== null
-  if (sublayers) {
-    for (const [slot, layer] of [
-      [STICKY_SLOTS.body, sublayers.body],
-      [STICKY_SLOTS.author, sublayers.author]
-    ] as const) {
-      const text = textSublayer(context, slot, layer)
-      overrides.push(text.entry)
-      derived.push(text.derived)
-      complete &&= shaped(layer, text.derived)
-    }
+  let complete = true
+  for (const [slot, layer] of [
+    [STICKY_SLOTS.body, sublayers.body],
+    [STICKY_SLOTS.author, sublayers.author]
+  ] as const) {
+    const text = textSublayer(context, slot, layer)
+    overrides.push(text.entry)
+    derived.push(text.derived)
+    complete &&= shaped(layer, text.derived)
   }
   record.nodeGenerationData = { overrides, useFineGrainedSyncing: false, diffOnlyRemovals: [] }
   if (complete) record.derivedImmutableFrameData = { overrides: derived, version: 1 }

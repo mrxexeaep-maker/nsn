@@ -46,7 +46,7 @@ import {
   type KiwiSymbolOverridePayload,
   type SceneNodeToKiwiContext
 } from './context'
-import { generatedFrameRecord } from './generated'
+import { generatedFrameRecord, writesGeneratedFrame } from './generated'
 import { mergeOverrides, serializeRuntimePropertyOverrides } from './override-claims'
 import { exportedNode } from './resolved-bindings'
 import { slotContentAssignment, slotDefinitionFields } from './slots'
@@ -911,7 +911,10 @@ function applyNodeVisualProps(
 function exportKiwiNodeType(node: SceneNode, context: SceneNodeToKiwiContext): string {
   const isPathText =
     node.textPathData !== null && node.type === 'TEXT' && (node.derivedTextGlyphs?.length ?? 0) > 0
-  return isPathText ? 'TEXT_PATH' : context.mapToFigmaType(node.type)
+  if (isPathText) return 'TEXT_PATH'
+  // A generated frame that lost its template's layers is kept as a frame; see `writesGeneratedFrame`.
+  if (isGeneratedFrame(node) && !writesGeneratedFrame(context, node)) return 'FRAME'
+  return context.mapToFigmaType(node.type)
 }
 
 /**
@@ -932,7 +935,11 @@ function nodeToSerialize(context: SceneNodeToKiwiContext, source: SceneNode): Sc
  * a caller may write a record alone.
  */
 function exportedChildren(node: SceneNode, context: SceneNodeToKiwiContext): SceneNode[] {
-  if (node.type === 'INSTANCE' || isGeneratedFrame(node) || context.writeChildren === false) {
+  if (
+    node.type === 'INSTANCE' ||
+    writesGeneratedFrame(context, node) ||
+    context.writeChildren === false
+  ) {
     return []
   }
   return context.graph
