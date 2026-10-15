@@ -1,11 +1,13 @@
 import { beforeAll, describe, expect, it } from 'bun:test'
 
+import { expectDefined } from '#fig-tests/helpers/assert'
 import {
   FIG_PACKAGE_STATUS,
   figArchiveMetaJSON,
   parseFigBuffer,
   readFigArchiveMeta,
   readFigContainer,
+  renameFigArchive,
   writeFigArchive,
   writeFigContainer
 } from '#fig/index'
@@ -99,6 +101,32 @@ describe('@open-pencil/fig package API', () => {
     ).toBe(figmaMetaJSON)
     expect(readFigArchiveMeta(figmaMetaJSON).success).toBe(true)
     expect(readFigArchiveMeta('{"version":1,"app":"OpenPencil"}').success).toBe(false)
+  })
+
+  it('renames an archive in its meta.json and keeps keys it does not know', () => {
+    const archive = (metaJSON: string) =>
+      writeFigArchive({
+        schemaDeflated: deflateSync(getSchemaBytes()),
+        kiwiData: encodeMessage(
+          createNodeChangesMessage(0, 0, [
+            { guid: { sessionID: 0, localID: 0 }, type: 'DOCUMENT', phase: 'CREATED' }
+          ])
+        ),
+        thumbnailPNG: PNG_SIGNATURE,
+        metaJSON,
+        images: [{ name: 'images/hash', data: new Uint8Array([9, 8, 7]) }]
+      })
+    const bytes = archive('{"client_meta":{"later_field":1},"file_name":"Old","extra":true}')
+    const renamed = parseFigBuffer(
+      expectDefined(renameFigArchive(bytes, 'New'), 'renamed archive').slice().buffer
+    )
+
+    expect(renamed.metaJSON).toBe(
+      '{"client_meta":{"later_field":1},"file_name":"New","extra":true}'
+    )
+    expect(renamed.images).toEqual([['hash', new Uint8Array([9, 8, 7])]])
+    expect(renameFigArchive(bytes, 'Old')).toBe(bytes)
+    expect(renameFigArchive(archive('{"version":1,"app":"OpenPencil"}'), 'New')).toBeNull()
   })
 
   it('parses legacy raw fig-kiwi files and preserves their thumbnail chunk', () => {

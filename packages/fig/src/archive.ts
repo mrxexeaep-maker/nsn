@@ -231,17 +231,20 @@ export function readFigArchiveMeta(text: string) {
   return v.safeParse(v.pipe(v.string(), v.parseJson(), FigArchiveMetaSchema), text)
 }
 
+/** Any `meta.json` object, its keys in the order they were written. */
+const StoredMetaSchema = v.pipe(v.string(), v.parseJson(), v.record(v.string(), v.unknown()))
+
 /**
- * The archive with its `meta.json` recording `fileName`, every other entry's bytes as they were;
- * the archive itself when it already records that name. Null when it has no `meta.json` in the
- * shape Figma writes, which only a full write can give it.
+ * The archive with its `meta.json` recording `fileName`, every other entry's bytes and every
+ * other key of `meta.json` as they were; the archive itself when it already records that name.
+ * Null when its `meta.json` records no `file_name`, which only a full write can give it.
  */
 export function renameFigArchive(bytes: Uint8Array, fileName: string): Uint8Array | null {
   if (parseFigKiwiChunks(bytes)) return null
   const stored = unzipSync(bytes, { filter: ({ name }) => name === 'meta.json' })
   if (!Object.hasOwn(stored, 'meta.json')) return null
-  const meta = readFigArchiveMeta(new TextDecoder().decode(stored['meta.json']))
-  if (!meta.success) return null
+  const meta = v.safeParse(StoredMetaSchema, new TextDecoder().decode(stored['meta.json']))
+  if (!meta.success || typeof meta.output.file_name !== 'string') return null
   if (meta.output.file_name === fileName) return bytes
   const renamed: Zippable = {}
   for (const [name, data] of Object.entries(unzipSync(bytes))) {
