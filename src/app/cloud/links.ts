@@ -37,7 +37,12 @@ export function readCloudLink(url: URL): CloudLink | null {
   const server = url.searchParams.get('server')
   const secret = url.hash.slice(1)
   if ((kind !== 'invitations' && kind !== 'share') || !id || !server || !secret) return null
-  return { kind, id: decodeURIComponent(id), server, secret }
+  try {
+    return { kind, id: decodeURIComponent(id), server, secret }
+  } catch {
+    // A broken escape such as `%E0` is no link; it must not stop the app from starting.
+    return null
+  }
 }
 
 /** Hands a Cloud link to the desktop app; the browser asks before it opens the app. */

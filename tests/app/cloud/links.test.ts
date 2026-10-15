@@ -23,7 +23,8 @@ describe('Cloud links', () => {
       `https://app.example.com/cloud/documents/abc?server=${SERVER}#secret`,
       `https://app.example.com/cloud/share/abc/more?server=${SERVER}#secret`,
       'https://app.example.com/cloud/share/abc#secret',
-      `https://app.example.com/cloud/share/abc?server=${SERVER}`
+      `https://app.example.com/cloud/share/abc?server=${SERVER}`,
+      `https://app.example.com/cloud/share/%E0%A4?server=${SERVER}#secret`
     ]) {
       expect(readCloudLink(new URL(address))).toBeNull()
     }
