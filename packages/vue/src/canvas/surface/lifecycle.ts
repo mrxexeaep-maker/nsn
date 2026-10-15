@@ -60,7 +60,7 @@ export function createCanvasSurfaceManager({
   // The scene of an editing canvas shows an empty sticky note's placeholder in the interface
   // language, and draws it again when the language changes.
   const showsStickyPlaceholder = options?.layer !== 'overlays'
-  let stickyPlaceholder = editorMessages.get().stickyPlaceholder
+  let stickyPlaceholder: string = editorMessages.get().stickyPlaceholder
   const stopStickyPlaceholder = editorMessages.subscribe((messages) => {
     if (messages.stickyPlaceholder === stickyPlaceholder) return
     stickyPlaceholder = messages.stickyPlaceholder

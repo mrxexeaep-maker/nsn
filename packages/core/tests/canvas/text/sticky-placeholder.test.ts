@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 
+import { expectDefined } from '#core-tests/helpers/assert'
+
 import { createSticky, SceneGraph, stickySublayers } from '@open-pencil/scene-graph'
 
 import { stickyPlaceholderNode } from '#core/canvas/text/sticky-placeholder'
-
-import { expectDefined } from '../../helpers/assert'
 
 function emptyNote() {
   const graph = new SceneGraph()
