@@ -1,14 +1,12 @@
-import { CloudPortalAPIError } from '@open-pencil/cloud/client'
+import { CloudPortalAPIError, type CloudAuthFailure } from '@open-pencil/cloud/client'
 import { useCloudPortalMessages } from '@open-pencil/vue'
-
-import type { PortalAuthFailure } from './auth'
 
 /** Words for a failed sign-in step, and for errors the provider sends back in the URL. */
 export function usePortalFailureMessages() {
   const messages = useCloudPortalMessages()
-  function failure(kind: PortalAuthFailure): string {
+  function failure(kind: CloudAuthFailure): string {
     const value = messages.value
-    const words: Record<PortalAuthFailure, string> = {
+    const words: Record<CloudAuthFailure, string> = {
       'invalid-credentials': value.failureInvalidCredentials,
       'email-not-verified': value.failureEmailNotVerified,
       'password-too-short': value.failurePasswordTooShort,
