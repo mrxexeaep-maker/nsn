@@ -436,8 +436,12 @@ ja:storage.cloudDescription
 ja:storage.waitlistJoinedDetail
 ja:storage.waitlistOpenWebsite
 ja:storage.waitlistUnavailable
+ja:statuses.figmaShows
+ja:statuses.presetHandoff
 zh-cn:panels.gridSummaryGrid
 zh-cn:storage.cloudDescription
 zh-cn:storage.waitlistJoinedDetail
 zh-cn:storage.waitlistOpenWebsite
 zh-cn:storage.waitlistUnavailable
+zh-cn:statuses.figmaShows
+zh-cn:statuses.presetHandoff

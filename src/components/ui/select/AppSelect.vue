@@ -97,7 +97,7 @@ const itemUI = computed(() => ({ item: ui?.item, indicator: ui?.indicator }))
             :disabled="option.disabled"
             :ui="itemUI"
           >
-            {{ option.label }}
+            <slot name="option" :option="option">{{ option.label }}</slot>
             <template #end><slot name="option-end" :option="option" /></template>
           </AppSelectItem>
         </SelectGroup>

@@ -208,6 +208,7 @@ function drawAboveScene(
   canvas.save()
   canvas.scale(r.dpr, r.dpr)
   r.labelCache.update(graph, r.pageId, sceneVersion, graph.positionPreviewVersion)
+  r.statusLabels = []
   if (!overlays.playing) drawLabelPass(r, canvas, graph, selectedIds, overlays)
   canvas.restore()
 

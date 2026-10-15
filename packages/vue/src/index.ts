@@ -28,6 +28,7 @@ export {
   type AutoLayoutValueField
 } from '#vue/shared/input/auto-layout-hover'
 export { useCanvasIssueMarkers } from '#vue/canvas/issues/use'
+export { useCanvasStatusLabels } from '#vue/canvas/statuses/use'
 export type { CanvasIssueMarkerOptions } from '#vue/canvas/issues/use'
 export type { CanvasLabelEdit, CanvasLabelKind } from '#vue/canvas/labels/edit'
 export { useCanvasVirtualReference } from '#vue/canvas/overlays/useCanvasVirtualReference'

@@ -40,6 +40,8 @@ import PositionSection from './properties/PositionSection.vue'
 import SelectionColorsSection from './properties/selection/SelectionColorsSection.vue'
 import SelectionLayoutSection from './properties/selection/SelectionLayoutSection.vue'
 import SelectionActionsControl from './properties/SelectionActionsControl.vue'
+import StatusesSection from './properties/status/StatusesSection.vue'
+import StatusSection from './properties/status/StatusSection.vue'
 import StickySection from './properties/sticky/StickySection.vue'
 import StrokeSection from './properties/stroke/StrokeSection.vue'
 import TypographySection from './properties/TypographySection.vue'
@@ -112,6 +114,7 @@ const { panels } = useI18n()
         <SelectionActionsControl :show-boolean-operations="showBooleanOperations" />
       </template>
     </PanelHeader>
+    <StatusSection />
     <ComponentPropertiesSection />
     <PositionSection />
     <ConstraintsSection />
@@ -189,6 +192,7 @@ const { panels } = useI18n()
         </template>
       </PanelHeader>
 
+      <StatusSection />
       <ComponentPropertiesSection v-if="node.type === 'INSTANCE'" />
       <VariantAuthoringSection
         v-if="
@@ -232,6 +236,7 @@ const { panels } = useI18n()
   >
     <PageSection />
     <VariablesSection @open-dialog="openVariablesDialog(store)" />
+    <StatusesSection />
     <ExportSection />
   </div>
 </template>

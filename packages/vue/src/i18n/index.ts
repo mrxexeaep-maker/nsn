@@ -22,6 +22,7 @@ export {
   useRenderingMessages,
   useRenameMessages,
   useSettingsMessages,
+  useStatusMessages,
   useStorageMessages,
   useToolMessages,
   useUpdateMessages,
