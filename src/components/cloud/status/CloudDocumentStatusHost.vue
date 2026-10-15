@@ -34,6 +34,18 @@ const { state, location, meta } = useCloudDocumentStatus(() => store.getStorageB
 const ago = (iso: string | null | undefined) =>
   iso ? formatCommentTime(iso, now.value.getTime(), locale.value) : ''
 const savedAgo = computed(() => ago(meta.value?.lastSyncedAt) || null)
+const viewOnly = computed(() => cloudRoomPermissions.value.get(store) === 'view')
+/**
+ * Saving and saved need nothing from the person, and the tab's dot already shows unsaved edits,
+ * so the status shows only for what does: being offline, a failed save, a conflict, view only.
+ */
+const needsAttention = computed(
+  () =>
+    viewOnly.value ||
+    state.value === 'offline' ||
+    state.value === 'error' ||
+    state.value === 'conflict'
+)
 
 const resolving = ref(false)
 const choice = ref<CloudConflictChoice>('keep-both')
@@ -88,11 +100,12 @@ function retry() {
 <template>
   <template v-if="state && location">
     <CloudDocumentStatus
+      v-if="needsAttention"
       :state="state"
       :workspace="location.workspace ?? location.host"
       :host="location.host"
       :saved-ago="savedAgo"
-      :view-only="cloudRoomPermissions.get(store) === 'view'"
+      :view-only="viewOnly"
       @resolve="openConflict"
       @share="cloudShareOpen = true"
       @retry="retry"

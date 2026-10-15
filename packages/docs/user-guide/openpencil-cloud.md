@@ -52,16 +52,14 @@ Saving can fail when the file is over the size the workspace allows, when the wo
 
 ## Where a Document Stands
 
-A Cloud document shows its state beside its name. Select it to see the workspace and server, and what you can do next.
+A Cloud document saves as you work, and the tab's dot shows edits that haven't reached the server yet, as it does for any file. When something needs you, a status appears beside the name; select it to see the workspace and server, and what you can do next.
 
-| State                      | What it means                                                                                                                 |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| **Saved to** _workspace_   | The server has your latest changes.                                                                                           |
-| **Saving…**                | Your changes are uploading.                                                                                                   |
-| **Saved on this device**   | Your changes are kept here and upload in a moment, or once you are back online.                                               |
-| **Changed in two places**  | Someone saved a newer version while you had changes the server didn't have.                                                   |
-| **Couldn't save to Cloud** | The server refused the upload. Your changes are safe on this device; **Try again**, or sign in again if your sign-in expired. |
-| **View only**              | You can look and follow others, but your changes never reach the document.                                                    |
+| State                     | What it means                                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Saved on this device**  | You are offline. Your changes are kept here and upload once you are back online.                                             |
+| **Changed in two places** | Someone saved a newer version while you had changes the server didn't have.                                                   |
+| **Couldn't save**         | The server refused the upload. Your changes are safe on this device; **Try again**, or sign in again if your sign-in expired. |
+| **View only**             | You can look and follow others, but your changes never reach the document.                                                    |
 
 ## When a Document Changed in Two Places
 
