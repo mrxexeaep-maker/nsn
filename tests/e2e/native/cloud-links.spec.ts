@@ -37,7 +37,8 @@ describe('native Cloud links', () => {
     await invokeNative('native_test_open_deep_link', { url: invitationLink(SECRET) })
     const dialog = await $('[role="dialog"]')
     await dialog.waitForDisplayed({ timeout: 15_000 })
-    await browser.waitUntil(async () => /can’t be used/.test(await dialog.getText()), {
+    // The server in the link doesn't answer, so the invitation can't be used.
+    await $('[data-test-id="cloud-invitation-unavailable"]').waitForDisplayed({
       timeout: 15_000,
       timeoutMsg: 'The invitation dialog did not report the unreachable server'
     })

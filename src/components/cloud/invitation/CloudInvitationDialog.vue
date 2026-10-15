@@ -87,7 +87,7 @@ const target = computed(() => {
       </p>
     </AppDialogBody>
 
-    <AppDialogBody v-else-if="state === 'unavailable'">
+    <AppDialogBody v-else-if="state === 'unavailable'" data-test-id="cloud-invitation-unavailable">
       <div :class="ui.unavailable()">
         <span :class="ui.unavailableIcon()"><icon-lucide-mail-x class="size-4" /></span>
         <p :class="ui.unavailableDescription()">
