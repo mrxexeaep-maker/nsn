@@ -152,4 +152,49 @@ describe('rich text import', () => {
     })
     expect(back.hangingList).toBe(true)
   })
+
+  test('reads links in text as linked ranges, and a link of text alone as linked text', async () => {
+    const [text] = await texts(
+      '<p>Read <a href="https://openpencil.dev/docs">the <b>docs</b></a> now</p>'
+    )
+    const link = { type: 'URL' as const, value: 'https://openpencil.dev/docs' }
+    expect(text?.styleRuns).toEqual([
+      { start: 5, length: 4, style: { hyperlink: link } },
+      { start: 9, length: 4, style: { hyperlink: link, fontWeight: 700 } }
+    ])
+    const [alone] = await texts('<a href="https://openpencil.dev">Home</a>')
+    expect(alone?.styleRuns).toEqual([
+      {
+        start: 0,
+        length: 4,
+        style: { hyperlink: { type: 'URL', value: 'https://openpencil.dev' } }
+      }
+    ])
+    const [rich] = await texts('<a href="https://openpencil.dev">Go <b>home</b></a>')
+    expect(
+      rich?.styleRuns.every((run) => run.style.hyperlink?.value === 'https://openpencil.dev')
+    ).toBe(true)
+    expect(rich?.styleRuns.reduce((sum, run) => sum + run.length, 0)).toBe(rich?.text.length)
+  })
+
+  test('reads text-transform on a span as the case of its characters', async () => {
+    const [text] = await texts(
+      '<p style="text-transform: uppercase">loud <span style="text-transform: none">quiet</span></p>'
+    )
+    expect(text?.textCase).toBe('UPPER')
+    expect(text?.styleRuns).toEqual([{ start: 5, length: 5, style: { textCase: 'ORIGINAL' } }])
+  })
+
+  test('reads back the links and cases it writes', async () => {
+    const styleRuns = [
+      {
+        start: 0,
+        length: 4,
+        style: { hyperlink: { type: 'URL' as const, value: 'https://openpencil.dev/' } }
+      },
+      { start: 5, length: 4, style: { textCase: 'UPPER' as const } }
+    ]
+    const { back } = await roundTrip({ text: 'Home loud', styleRuns })
+    expect(back?.styleRuns).toEqual(styleRuns)
+  })
 })

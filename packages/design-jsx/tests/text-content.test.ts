@@ -25,6 +25,27 @@ async function renderText(source: string): Promise<{ node: SceneNode; warnings: 
 }
 
 describe('Span', () => {
+  test('cases and links its characters', async () => {
+    const { node, warnings } = await renderText(
+      '<Text textCase="upper">Read <Span textCase="original" href="https://openpencil.dev">the docs</Span></Text>'
+    )
+    expect(warnings).toEqual([])
+    expect(node.textCase).toBe('UPPER')
+    expect(node.styleRuns).toEqual([
+      {
+        start: 5,
+        length: 8,
+        style: { textCase: 'ORIGINAL', hyperlink: { type: 'URL', value: 'https://openpencil.dev' } }
+      }
+    ])
+  })
+
+  test('rejects an empty link', async () => {
+    await expect(renderText('<Text><Span href="">a</Span></Text>')).rejects.toThrow(
+      'Invalid <Span> props'
+    )
+  })
+
   test('styles its characters with what differs from the text', async () => {
     const { node } = await renderText(
       '<Text size={24} weight="bold">Hello <Span weight="bold" size={24} color="#EE2222">world</Span>!</Text>'
@@ -50,6 +71,36 @@ describe('Span', () => {
       textDecoration: 'UNDERLINE'
     })
     expect(warnings).toEqual([])
+  })
+
+  test('takes decoration details, auto lengths, and no fills', async () => {
+    const { node, warnings } = await renderText(
+      '<Text lineHeight={20} textDecoration="underline" textDecorationColor="#EE2222" textDecorationThickness={2}>a<Span lineHeight="auto" fills={[]} textDecorationStyle="wavy" textDecorationColor="currentColor" textDecorationThickness="auto" textUnderlineOffset={4} textDecorationSkipInk={false}>b</Span></Text>'
+    )
+    expect(node.textDecorationFills).toEqual([colorToFill('#EE2222')])
+    expect(node.textDecorationThickness).toBe(2)
+    expect(node.styleRuns).toEqual([
+      {
+        start: 1,
+        length: 1,
+        style: {
+          lineHeight: null,
+          fills: [],
+          textDecorationStyle: 'WAVY',
+          textDecorationFills: [],
+          textDecorationThickness: null,
+          textUnderlineOffset: 4,
+          textDecorationSkipInk: false
+        }
+      }
+    ])
+    expect(warnings).toEqual([])
+  })
+
+  test('rejects decoration details it cannot draw', async () => {
+    await expect(renderText('<Text textDecorationStyle="dashed">a</Text>')).rejects.toThrow(
+      'Invalid <Text> props'
+    )
   })
 
   test('nests, the inner span winning', async () => {
@@ -157,6 +208,23 @@ describe('Paragraph', () => {
   test('props are not layer props', async () => {
     const { warnings } = await renderText('<Text spacing={4}>a</Text>')
     expect(warnings).toEqual(['Unsupported prop "spacing" on <text> is ignored.'])
+  })
+
+  test('follows the spacing its text sets for every paragraph', async () => {
+    const { node, warnings } = await renderText(
+      '<Text paragraphSpacing={8} listSpacing={2} paragraphIndent={4} hangingList><Paragraph spacing={12}>a</Paragraph><Paragraph list="ordered">b</Paragraph></Text>'
+    )
+    expect(node).toMatchObject({
+      paragraphSpacing: 8,
+      listSpacing: 2,
+      paragraphIndent: 4,
+      hangingList: true
+    })
+    expect(node.textParagraphs).toEqual([
+      { listType: 'NONE', indentation: 0, paragraphSpacing: 12 },
+      { listType: 'ORDERED', indentation: 1 }
+    ])
+    expect(warnings).toEqual([])
   })
 })
 

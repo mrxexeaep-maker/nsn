@@ -1,4 +1,5 @@
 import type { MovePlace, Tool } from '@open-pencil/core/editor'
+import type { HandlePosition } from '@open-pencil/core/geometry'
 import type {
   DerivedTextGlyph,
   GeometryPath,
@@ -13,10 +14,6 @@ import type { ResizeSnapshot } from '@open-pencil/scene-graph/resize'
 
 import type { FlowDrag } from '#vue/shared/input/flow-reorder'
 import type { LayerSizing } from '#vue/shared/input/resize/sizing'
-
-export type HandlePosition = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
-
-export type CornerPosition = 'nw' | 'ne' | 'se' | 'sw'
 
 export interface DragDraw {
   type: 'draw'
@@ -133,6 +130,10 @@ export interface DragPen {
   knotStartY: number
 }
 
+export interface DragPencil {
+  type: 'pencil-drag'
+}
+
 export interface DragTextSelect {
   type: 'text-select'
   startX: number
@@ -211,6 +212,7 @@ export type DragState =
   | DragMarquee
   | DragRotate
   | DragPen
+  | DragPencil
   | DragTextSelect
   | DragEditNode
   | DragEditHandle

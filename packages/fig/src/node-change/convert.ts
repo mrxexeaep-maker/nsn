@@ -28,9 +28,15 @@ import {
   extractPluginRelaunchData,
   readNodeChangePluginData
 } from './plugin-data'
+import { styleRefId } from './style/refs'
 import { importStyleRuns } from './style/runs'
 import { importParagraphStyles } from './text/lines'
-import { convertLetterSpacing, convertLineHeight, mapTextDecoration } from './text/values'
+import {
+  convertLetterSpacing,
+  convertLineHeight,
+  isFigmaAutoLineHeight,
+  mapTextDecoration
+} from './text/values'
 import {
   alignGeometryWindingRules,
   resolveGeometryPaths,
@@ -311,14 +317,20 @@ function convertPolygonProps(
 }
 
 /**
- * Figma always writes a line height and lays text out at the one its styles resolve to, which
- * the saved lines record. OpenPencil writes none for auto, whose lines differ in height when
- * the text mixes font sizes, so the first of them would fix every line at its height.
+ * A text's line height. Figma writes auto as 100 percent, and OpenPencil once wrote none for
+ * it; a text in auto lines up each line at its own font's height. Figma saves each line at the
+ * larger of its line height and its tallest font's height, so a first line shorter than the
+ * text's height in pixels was laid out at another one, which a style the text uses set.
  */
 function importedTextLineHeight(nc: NodeChange): number | null {
-  if (!nc.lineHeight) return null
+  if (!nc.lineHeight || isFigmaAutoLineHeight(nc.lineHeight)) return null
   const derivedLineHeight = nc.derivedTextData?.baselines?.[0]?.lineHeight
-  if (derivedLineHeight !== undefined && Number.isFinite(derivedLineHeight))
+  if (
+    nc.lineHeight.units === 'PIXELS' &&
+    derivedLineHeight !== undefined &&
+    Number.isFinite(derivedLineHeight) &&
+    derivedLineHeight < nc.lineHeight.value
+  )
     return derivedLineHeight
   return convertLineHeight(nc.lineHeight, nc.fontSize)
 }
@@ -557,15 +569,6 @@ function getVectorStrokeJoin(nc: NodeChange, vectorNetwork: VectorNetwork | null
   return (nc.strokeJoin ??
     vectorNetwork?.vertices.find((v) => v.strokeJoin)?.strokeJoin ??
     'MITER') as StrokeJoin
-}
-
-function styleRefId(value: unknown): string | null {
-  if (!value || typeof value !== 'object' || !('guid' in value)) return null
-  const guid = value.guid
-  if (!guid || typeof guid !== 'object') return null
-  // The unset GUID denotes an explicitly cleared style reference.
-  if (isUnsetGuid(guid as GUID)) return null
-  return guidToString(guid as GUID)
 }
 
 function sharedStyleType(value: string | undefined): SharedStyleType | null {

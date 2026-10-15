@@ -21,7 +21,7 @@ import {
 } from '#core/canvas/text/paint'
 import type { TextRenderer } from '#core/canvas/text/renderer'
 import { DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE } from '#core/constants'
-import { transformTextCase } from '#core/text/case'
+import { shownTextSlice } from '#core/text/case'
 import { fontManager, weightToStyle } from '#core/text/fonts'
 
 import type { ParagraphNode } from './inputs'
@@ -174,12 +174,14 @@ function pushStyleRun(
   pushParagraphStyle(builder, textStyle, paintStyle)
 }
 
+/** `text[start, end)` in the case each of its characters has. */
 function addParagraphText(
   builder: ParagraphBuilder,
-  node: Pick<ParagraphNode, 'textCase'>,
-  text: string
+  node: ParagraphNode,
+  start: number,
+  end: number
 ): void {
-  builder.addText(transformTextCase(text, node.textCase))
+  builder.addText(shownTextSlice(node, start, end))
 }
 
 function addStyledRuns(
@@ -196,7 +198,7 @@ function addStyledRuns(
   let pos = 0
 
   for (const run of node.styleRuns) {
-    if (pos < run.start) addParagraphText(builder, node, text.slice(pos, run.start))
+    if (pos < run.start) addParagraphText(builder, node, pos, run.start)
     pushStyleRun(
       r,
       builder,
@@ -208,12 +210,12 @@ function addStyledRuns(
       halfLeading,
       paintStyle
     )
-    addParagraphText(builder, node, text.slice(run.start, run.start + run.length))
+    addParagraphText(builder, node, run.start, run.start + run.length)
     builder.pop()
     pos = run.start + run.length
   }
 
-  if (pos < text.length) addParagraphText(builder, node, text.slice(pos))
+  if (pos < text.length) addParagraphText(builder, node, pos, text.length)
 }
 
 /** What a paragraph that is one block of a longer text needs beyond its node's own style. */
@@ -305,7 +307,7 @@ export function buildSkParagraph(
     }
     if (block.firstLineIndent) addFirstLineIndent(ck, builder, block.firstLineIndent)
     if (node.styleRuns.length === 0) {
-      addParagraphText(builder, node, node.text)
+      addParagraphText(builder, node, 0, node.text.length)
     } else {
       addStyledRuns(
         r,

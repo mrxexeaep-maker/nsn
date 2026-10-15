@@ -196,12 +196,14 @@ export type MaskType = 'ALPHA' | 'VECTOR' | 'LUMINANCE'
 export interface LayoutGrid {
   visible?: boolean
   color?: Color
-  pattern?: 'COLUMNS' | 'ROWS' | 'GRID'
+  /** `STRIPES` is the archive's name for columns or rows, along `axis`. */
+  pattern?: 'COLUMNS' | 'ROWS' | 'GRID' | 'STRIPES'
   axis?: 'X' | 'Y'
   type?: 'MIN' | 'CENTER' | 'MAX' | 'STRETCH'
   alignment?: 'MIN' | 'CENTER' | 'MAX' | 'STRETCH'
   numSections?: number
-  count?: number
+  /** Figma's plugin API reports an Auto count as `null` and accepts `Infinity` for it. */
+  count?: number | null
   offset?: number
   sectionSize?: number
   gutterSize?: number
@@ -270,6 +272,29 @@ export interface FontFeature {
   enabled: boolean
 }
 
+/** Where a stretch of text links to, as Figma's `HyperlinkTarget`: a URL, or a node by its ID. */
+export interface HyperlinkTarget {
+  type: 'URL' | 'NODE'
+  value: string
+}
+
+/** The text fields a range of characters can bind to a variable, as Figma lists them. */
+export const TEXT_BINDABLE_FIELDS = [
+  'fontFamily',
+  'fontSize',
+  'fontStyle',
+  'fontWeight',
+  'letterSpacing',
+  'lineHeight',
+  'paragraphSpacing',
+  'paragraphIndent'
+] as const
+
+export type TextBindableField = (typeof TEXT_BINDABLE_FIELDS)[number]
+
+/** Variable IDs bound to text fields, by field. */
+export type TextBoundVariables = Partial<Record<TextBindableField, string>>
+
 export interface CharacterStyleOverride {
   fontWeight?: number
   italic?: boolean
@@ -287,6 +312,15 @@ export interface CharacterStyleOverride {
   fontVariations?: FontVariation[]
   fontFeatures?: FontFeature[]
   textLanguage?: string | null
+  textCase?: TextCase
+  /** A link over the characters; `null`, like leaving it out, links nowhere. */
+  hyperlink?: HyperlinkTarget | null
+  /** The text style the characters use in place of the text's own; `null` uses none. */
+  textStyleId?: string | null
+  /** The fill style the characters use in place of the text's own; `null` uses none. */
+  fillStyleId?: string | null
+  /** The characters' text field bindings, in place of the text's own. */
+  boundVariables?: TextBoundVariables
 }
 
 export interface StyleRun {
@@ -820,6 +854,8 @@ export interface VariableCollectionMode {
    * at-rule prelude (`@media (max-width: 640px)`). Absent means the default for its axis.
    */
   condition?: string
+  /** Where Figma lists the mode, as the file saved it; Figma orders a collection's modes by it. */
+  sortPosition?: string
 }
 
 export interface VariableCollection {
@@ -835,6 +871,18 @@ export interface VariableCollection {
    */
   modeAttribute?: string
   pluginData?: PluginDataEntry[]
+  /**
+   * Published library key, for a collection the file copies from a library. Such a collection
+   * belongs to the library: Figma lists it with the library's, not the file's own.
+   */
+  key?: string
+  /** Published library version, which references by key carry with it. */
+  version?: string
+}
+
+/** Whether a collection is a library's copy, which takes no variables or modes of the file's. */
+export function isLibraryCollection(collection: Pick<VariableCollection, 'key'>): boolean {
+  return !!collection.key
 }
 
 /** An HTML attribute name a stylesheet can select on unescaped: `data-theme`, `theme`. */

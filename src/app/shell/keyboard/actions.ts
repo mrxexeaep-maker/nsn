@@ -39,7 +39,7 @@ export function createKeyboardActions({
     runCommand('selection.delete')
   }
 
-  function confirmOrEnterText() {
+  function confirmOrEditSelection() {
     if (store.state.nodeEditState) {
       store.exitNodeEditMode(true)
       return
@@ -49,13 +49,20 @@ export function createKeyboardActions({
       return
     }
     const node = store.selectedNode.value
+    // Figma opens a selected vector's path, as a double-click does.
+    if (node?.type === 'VECTOR') {
+      store.enterNodeEditMode(node.id)
+      return
+    }
     if (node?.type === 'TEXT') {
       requestAnimationFrame(() => {
         store.startTextEditing(node.id)
         store.textEditor?.selectAll()
         store.requestRender()
       })
+      return
     }
+    runCommand('selection.selectChildren')
   }
 
   function escapeOrDeselect() {
@@ -71,8 +78,14 @@ export function createKeyboardActions({
       store.exitNodeEditMode(true)
       return
     }
+    if (store.state.pencilState) {
+      store.pencilCancel()
+      return
+    }
+    // Figma keeps the path drawn so far; a lone point has nothing to keep.
     if (store.state.penState) {
-      store.penCancel()
+      if (store.state.penState.vertices.length >= 2) store.penCommit(false)
+      else store.penCancel()
       return
     }
     if (store.state.enteredContainerId) {
@@ -146,7 +159,7 @@ export function createKeyboardActions({
 
   return {
     smartDelete,
-    confirmOrEnterText,
+    confirmOrEditSelection,
     escapeOrDeselect,
     toggleAutoLayout,
     toggleUI,

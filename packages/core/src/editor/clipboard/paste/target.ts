@@ -22,6 +22,39 @@ function pasteTargetCandidate(ctx: Pick<EditorContext, 'graph' | 'state'>): stri
   return node.parentId ?? ctx.state.currentPageId
 }
 
+/**
+ * Where a paste with nothing selected goes, as Figma pastes it: back into the frame or section
+ * the layers were copied out of, while it still exists on this page and takes layers. Null for
+ * top-level layers, layers from several places, or a parent that is gone.
+ */
+export function sourcePasteTarget(
+  ctx: Pick<EditorContext, 'graph' | 'state'>,
+  sourceIds: readonly (string | null)[]
+): string | null {
+  const [id, ...rest] = sourceIds
+  if (!id || rest.some((other) => other !== id)) return null
+  if (ctx.state.selectedIds.size > 0 || ctx.state.enteredContainerId) return null
+  if (!ctx.graph.getNode(id) || ctx.graph.pageOf(id) !== ctx.state.currentPageId) return null
+  return acceptingParent(ctx, id) === id ? id : null
+}
+
+/**
+ * Where a paste goes before cycles are checked: a replaced layer's parent, the frame a paste with
+ * nothing selected came from (`returningTo`), or the selection's paste target.
+ */
+export function requestedPasteTarget(
+  ctx: Pick<EditorContext, 'graph' | 'state'>,
+  sourceIds: readonly (string | null)[],
+  replacedParentId: string | null,
+  atCursor: boolean
+): { requestedTarget: string; returningTo: string | null } {
+  const returningTo = replacedParentId || atCursor ? null : sourcePasteTarget(ctx, sourceIds)
+  return {
+    requestedTarget: replacedParentId ?? returningTo ?? resolvePasteTarget(ctx),
+    returningTo
+  }
+}
+
 type PastedTree = SceneNode & { children?: PastedTree[] }
 
 /** The document's components that pasted instances point at; copied components are new ones. */

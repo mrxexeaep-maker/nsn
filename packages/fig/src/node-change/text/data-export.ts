@@ -6,6 +6,7 @@ import { applyFontFeaturesToKiwi } from '../font/features'
 import { weightToFigmaStyle } from '../font/style'
 import { stringToFigmaAxisTag } from '../font/variations'
 import { exportTextLines } from './lines'
+import { FIGMA_AUTO_LINE_HEIGHT } from './values'
 
 export function fontVariationToKiwi(variation: SceneNode['fontVariations'][number]) {
   const axisTag = stringToFigmaAxisTag(variation.axis)
@@ -58,10 +59,14 @@ function textStyleOverrideToKiwi(
   if (style.letterSpacing !== undefined) {
     override.letterSpacing = { value: style.letterSpacing, units: 'PIXELS' }
   }
-  if (style.lineHeight !== undefined && style.lineHeight !== null) {
-    override.lineHeight = { value: style.lineHeight, units: 'PIXELS' }
+  if (style.lineHeight !== undefined) {
+    override.lineHeight =
+      style.lineHeight === null
+        ? { ...FIGMA_AUTO_LINE_HEIGHT }
+        : { value: style.lineHeight, units: 'PIXELS' }
   }
   applyTextDecorationOverrideFields(override, style, fillToKiwiPaint)
+  if (style.textCase) override.textCase = style.textCase
   if (style.fills && style.fills.length > 0) {
     override.fillPaints = style.fills.map(fillToKiwiPaint)
   }
@@ -89,6 +94,13 @@ function collectTextStyleOverrides(node: SceneNode): {
   }
 
   return { charIds, styleMap }
+}
+
+/** The character styles written to the override table, each with its index there. */
+export function textStyleOverrides(
+  node: SceneNode
+): { id: number; style: CharacterStyleOverride }[] {
+  return [...collectTextStyleOverrides(node).styleMap.values()]
 }
 
 /** The style each character is written with, as an index into its override table. */

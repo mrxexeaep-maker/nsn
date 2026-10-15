@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { BlendMode } from '@open-pencil/scene-graph'
 import { POINT_COUNT_RANGE } from '@open-pencil/scene-graph/polygon'
-import { AppearanceControlsRoot, MIXED, useI18n } from '@open-pencil/vue'
+import { AppearanceControlsRoot, MIXED, useI18n, useVariableModes } from '@open-pencil/vue'
 
 import NumberField from '@/components/inputs/NumberField.vue'
 import { useBlendModeGroups } from '@/components/properties/blend-mode/use'
@@ -14,8 +14,11 @@ import AppSelect from '@/components/ui/select/AppSelect.vue'
 
 import PropertyBindButton from './component-properties/PropertyBindButton.vue'
 import PropertyBoundField from './component-properties/PropertyBoundField.vue'
+import VariableModeMenu from './variable-modes/VariableModeMenu.vue'
+import VariableModeRows from './variable-modes/VariableModeRows.vue'
 
 const { panels } = useI18n()
+const variableModes = useVariableModes()
 type BlendModeSelectValue = BlendMode | 'MIXED'
 
 const baseBlendModeGroups = useBlendModeGroups(true)
@@ -55,6 +58,7 @@ function blendModeGroups(value: BlendMode | typeof MIXED) {
   >
     <PanelSection v-if="active" :label="panels.appearance">
       <template #actions>
+        <VariableModeMenu :choices="variableModes.choices.value" @set="variableModes.setMode" />
         <PropertyBindButton field="VISIBLE" />
         <IconButton
           :label="panels.toggleVisibility"
@@ -273,6 +277,8 @@ function blendModeGroups(value: BlendMode | typeof MIXED) {
           </NumberField>
         </PanelFieldGroup>
       </PanelGrid>
+
+      <VariableModeRows :choices="variableModes.applied.value" @set="variableModes.setMode" />
     </PanelSection>
   </AppearanceControlsRoot>
 </template>

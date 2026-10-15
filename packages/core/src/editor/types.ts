@@ -42,6 +42,7 @@ export type Tool =
   | 'STAR'
   | 'TEXT'
   | 'PEN'
+  | 'PENCIL'
   | 'HAND'
   | 'COMMENT'
 
@@ -94,6 +95,14 @@ export interface EditorSharedState {
   canvasVersion: number
 }
 
+export interface PencilState {
+  points: Vector[]
+  /** The point Shift was pressed at; the stroke runs straight from it while Shift is held. */
+  straightFrom: number | null
+  /** How the stroke shows while it is drawn. */
+  preview: { color: Color; weight: number }
+}
+
 export interface EditorViewState {
   currentPageId: string
   selectedIds: Set<string>
@@ -128,6 +137,8 @@ export interface EditorViewState {
   } | null
   penCursorX: number | null
   penCursorY: number | null
+  /** The freehand stroke being drawn with the pencil, in canvas coordinates. */
+  pencilState: PencilState | null
   autoLayoutHover: {
     nodeId: string
     kind: 'frame' | 'children' | 'spacing' | 'spacing-value' | 'padding' | 'padding-value'

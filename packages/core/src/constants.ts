@@ -54,6 +54,7 @@ export const DEFAULT_STROKE_MITER_LIMIT = 4
 /** Figma's stroke weight for a node that has not been given one. */
 export const LABEL_FONT_SIZE = 11
 export const SIZE_FONT_SIZE = 10
+export const VALUE_FONT_SIZE = 11
 
 export const HANDLE_HALF_SIZE = 3
 
@@ -80,9 +81,10 @@ export const AUTO_LAYOUT_HOVER_STROKE_WIDTH = 1.5
 export const LAYOUT_OUTLINE_DASH = 1.75
 export const LAYOUT_OUTLINE_GAP = 1.25
 export const AUTO_LAYOUT_HOVER_VALUE_OFFSET = 18
-export const AUTO_LAYOUT_HOVER_VALUE_PILL_HEIGHT = 22
-export const AUTO_LAYOUT_HOVER_VALUE_PILL_RADIUS = 5
-export const AUTO_LAYOUT_HOVER_VALUE_PILL_PADDING_X = 5
+// Measured on Figma desktop 126's padding and gap value pills.
+export const AUTO_LAYOUT_HOVER_VALUE_PILL_HEIGHT = 16.5
+export const AUTO_LAYOUT_HOVER_VALUE_PILL_RADIUS = 2.5
+export const AUTO_LAYOUT_HOVER_VALUE_PILL_PADDING_X = 4.5
 export const AUTO_LAYOUT_HOVER_GAP_REGION_TOLERANCE = 12
 export const AUTO_LAYOUT_HOVER_TICK_HIT_TOLERANCE = 8
 export const AUTO_LAYOUT_HOVER_PADDING_REGION_TOLERANCE = 20
@@ -92,6 +94,9 @@ export const AUTO_LAYOUT_HOVER_BLUE = { r: 0.28, g: 0.64, b: 1, a: 0.82 } satisf
 export const AUTO_LAYOUT_HOVER_BLUE_FILL = { r: 0.28, g: 0.64, b: 1, a: 0.1 } satisfies Color
 export const AUTO_LAYOUT_HOVER_MAGENTA = { r: 1, g: 0.32, b: 0.68, a: 0.78 } satisfies Color
 export const AUTO_LAYOUT_HOVER_MAGENTA_FILL = { r: 1, g: 0.32, b: 0.68, a: 0.1 } satisfies Color
+// The value pills over a gap and a padding, sampled from Figma desktop 126.
+export const AUTO_LAYOUT_HOVER_GAP_PILL = { r: 0.886, g: 0.271, b: 0.686, a: 1 } satisfies Color
+export const AUTO_LAYOUT_HOVER_PADDING_PILL = { r: 0.271, g: 0.592, b: 0.973, a: 1 } satisfies Color
 
 export const SECTION_TITLE_HEIGHT = 24
 export const SECTION_TITLE_PADDING_X = 6
@@ -564,9 +569,17 @@ export const ZOOM_SCALE_MIN = 0.75
 export const ZOOM_SCALE_MAX = 1.25
 
 export const PEN_CLOSE_THRESHOLD = 8
+/**
+ * Screen pixels a pencil sample may stray from the line through its neighbours before the curve
+ * keeps it, so a stroke drawn zoomed in keeps more detail.
+ */
+export const PENCIL_TOLERANCE = 2.5
+/** A new pencil layer's stroke weight (Figma desktop 126). */
+export const PENCIL_STROKE_WEIGHT = 2
 export const ROTATION_SNAP_DEGREES = 15
-export const CORNER_ROTATE_ZONE = 16
 export const HANDLE_HIT_RADIUS = 6
+/** How far outside a shape, in screen pixels, a click still selects it (Figma desktop 126). */
+export const LAYER_HIT_PAD = 3.5
 export const ROTATION_HANDLE_DISTANCE = 24
 export const DEFAULT_TEXT_WIDTH = 200
 export const DEFAULT_TEXT_HEIGHT = 24

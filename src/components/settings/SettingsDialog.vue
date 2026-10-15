@@ -19,6 +19,7 @@ import SettingsPage from '@/components/settings/layout/SettingsPage.vue'
 import MCPWorkspacePanel from '@/components/settings/mcp/MCPWorkspacePanel.vue'
 import MediaSettingsPanel from '@/components/settings/media/MediaSettingsPanel.vue'
 import ModelsPanel from '@/components/settings/models/ModelsPanel.vue'
+import PrivacySettingsPanel from '@/components/settings/privacy/PrivacySettingsPanel.vue'
 import StorageSettingsPanel from '@/components/settings/storage/StorageSettingsPanel.vue'
 import ToolAccessSettingsPanel from '@/components/settings/tool-access/ToolAccessSettingsPanel.vue'
 import ToolbarSettingsPanel from '@/components/settings/toolbar/ToolbarSettingsPanel.vue'
@@ -49,6 +50,7 @@ const sections = computed(
       { value: 'ai', label: settings.value.aiAndAgents },
       { value: 'usage', label: settings.value.usage },
       { value: 'diagnostics', label: settings.value.diagnostics },
+      { value: 'privacy', label: settings.value.privacy },
       { value: 'mcp', label: settings.value.mcp },
       { value: 'tools', label: settings.value.toolAccess },
       { value: 'media', label: settings.value.media },
@@ -121,6 +123,10 @@ function onOpenChange(open: boolean): void {
           <template #leading><icon-lucide-activity class="size-3.5" /></template>
           {{ settings.diagnostics }}
         </AppTabsTrigger>
+        <AppTabsTrigger value="privacy" data-test-id="settings-section-privacy">
+          <template #leading><icon-lucide-shield class="size-3.5" /></template>
+          {{ settings.privacy }}
+        </AppTabsTrigger>
         <AppTabsTrigger value="mcp" data-test-id="settings-section-mcp">
           <template #leading><icon-lucide-plug class="size-3.5" /></template>
           {{ settings.mcp }}
@@ -157,6 +163,9 @@ function onOpenChange(open: boolean): void {
       </AppTabsContent>
       <AppTabsContent value="diagnostics" as-child>
         <SettingsPage><DiagnosticsSettingsPanel /></SettingsPage>
+      </AppTabsContent>
+      <AppTabsContent value="privacy" as-child>
+        <SettingsPage><PrivacySettingsPanel /></SettingsPage>
       </AppTabsContent>
       <AppTabsContent value="mcp" as-child>
         <MCPWorkspacePanel />

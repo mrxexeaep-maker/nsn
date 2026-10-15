@@ -3,6 +3,7 @@ import { isEqual } from 'es-toolkit/predicate'
 
 import type {
   CharacterStyleOverride,
+  HyperlinkTarget,
   SceneNode,
   StyleRun,
   TextParagraphStyle
@@ -28,7 +29,11 @@ export type CSSCharacterStyle = Pick<
   | 'textDecorationFills'
   | 'textDecorationSkipInk'
   | 'textUnderlineOffset'
+  | 'textCase'
 >
+
+/** A character's style and the link it is part of. */
+type CharacterOfText = CSSCharacterStyle & { hyperlink?: HyperlinkTarget }
 
 /**
  * What characters take from the elements around them: the properties CSS inherits, and the
@@ -43,6 +48,7 @@ const CHARACTER_PROPERTIES = [
   'letter-spacing',
   'line-height',
   'white-space',
+  'text-transform',
   'text-decoration-line',
   'text-decoration-style',
   'text-decoration-color',
@@ -86,6 +92,13 @@ function decorationStyle(value: string | undefined): SceneNode['textDecorationSt
   return 'SOLID'
 }
 
+function textCaseFromCSS(value: string | undefined): SceneNode['textCase'] {
+  if (value === 'uppercase') return 'UPPER'
+  if (value === 'lowercase') return 'LOWER'
+  if (value === 'capitalize') return 'TITLE'
+  return 'ORIGINAL'
+}
+
 /** The character style of CSS declarations, over `base` for what they leave out. */
 export function characterStyleFromCSS(
   style: DesignStyleDeclaration,
@@ -98,6 +111,7 @@ export function characterStyleFromCSS(
   const line = pickStyle(style, 'text-decoration-line')
   const fontStyle = pickStyle(style, 'font-style')
   const lineHeight = pickStyle(style, 'line-height')
+  const textTransform = pickStyle(style, 'text-transform')
   return {
     fontFamily: family || base.fontFamily,
     fontSize: parseCSSNumber(pickStyle(style, 'font-size')) ?? base.fontSize,
@@ -123,7 +137,8 @@ export function characterStyleFromCSS(
     textDecorationSkipInk:
       pickStyle(style, 'text-decoration-skip-ink') === undefined
         ? base.textDecorationSkipInk
-        : pickStyle(style, 'text-decoration-skip-ink') !== 'none'
+        : pickStyle(style, 'text-decoration-skip-ink') !== 'none',
+    textCase: textTransform === undefined ? base.textCase : textCaseFromCSS(textTransform)
   }
 }
 
@@ -221,7 +236,9 @@ export interface RichText {
 interface Collector {
   base: CSSCharacterStyle
   text: string
-  styles: CSSCharacterStyle[]
+  styles: CharacterOfText[]
+  /** The link the characters added now are part of. */
+  link: HyperlinkTarget | null
   paragraphs: TextParagraphStyle[]
   spaceAfter: number[]
   indents: number[]
@@ -235,9 +252,17 @@ function preservesWhitespace(style: DesignStyleDeclaration): boolean {
   return whiteSpace === 'pre' || whiteSpace === 'pre-wrap' || whiteSpace === 'pre-line'
 }
 
-function appendCharacters(collector: Collector, text: string, style: CSSCharacterStyle): void {
+function appendCharacters(collector: Collector, text: string, style: CharacterOfText): void {
+  const styled = collector.link ? { ...style, hyperlink: collector.link } : style
   collector.text += text
-  collector.styles.push(...Array.from({ length: text.length }, () => style))
+  collector.styles.push(...Array.from({ length: text.length }, () => styled))
+}
+
+/** Where a link element goes, for an `<a>` with an `href`. */
+export function elementLink(element: DesignElement): HyperlinkTarget | null {
+  if (element.tagName.toLowerCase() !== 'a' || !Object.hasOwn(element.attrs, 'href')) return null
+  const href = element.attrs.href.trim()
+  return href ? { type: 'URL', value: href } : null
 }
 
 /**
@@ -270,7 +295,10 @@ function addInline(
     if (node.type === 'text') addCharacters(collector, node.text, style)
     else if (isBreak(node)) addCharacters(collector, '\n', { ...style, 'white-space': 'pre' })
     else if (!LIST_TAGS.has(node.tagName.toLowerCase())) {
+      const around = collector.link
+      collector.link = elementLink(node) ?? around
       addInline(collector, node.children, characterDeclarations(node, style))
+      collector.link = around
     }
   }
 }
@@ -361,12 +389,13 @@ function addList(
 }
 
 /** Runs of characters whose style differs from the text's own. */
-function styleRunsFrom(styles: readonly CSSCharacterStyle[], base: CSSCharacterStyle): StyleRun[] {
+function styleRunsFrom(styles: readonly CharacterOfText[], base: CSSCharacterStyle): StyleRun[] {
   const runs: StyleRun[] = []
   for (const [index, style] of styles.entries()) {
     const override: CharacterStyleOverride = {}
-    for (const key of Object.keys(style) as (keyof CSSCharacterStyle)[]) {
-      if (!isEqual(style[key], base[key])) Object.assign(override, { [key]: style[key] })
+    for (const key of Object.keys(style) as (keyof CharacterOfText)[]) {
+      const own = key === 'hyperlink' ? undefined : base[key]
+      if (!isEqual(style[key], own)) Object.assign(override, { [key]: style[key] })
     }
     const previous = runs.at(-1)
     if (
@@ -393,11 +422,12 @@ function richTextFrom(collector: Collector): RichText {
   }
 }
 
-function collector(base: CSSCharacterStyle): Collector {
+function collector(base: CSSCharacterStyle, link: HyperlinkTarget | null): Collector {
   return {
     base,
     text: '',
     styles: [],
+    link,
     paragraphs: [],
     spaceAfter: [],
     indents: [],
@@ -412,7 +442,8 @@ export function inlineRichText(
   style: DesignStyleDeclaration,
   base: CSSCharacterStyle
 ): RichText {
-  const text = collector(base)
+  // A link the element is itself, as an `<a>` holding spans, links all its characters.
+  const text = collector(base, elementLink(element))
   addTrimmed(text, element.children, characterDeclarations(element, style))
   return richTextFrom(text)
 }
@@ -423,7 +454,7 @@ export function blockRichText(
   style: DesignStyleDeclaration,
   base: CSSCharacterStyle
 ): RichText {
-  const text = collector(base)
+  const text = collector(base, elementLink(element))
   const around = characterDeclarations(element, style)
   const blocks = LIST_TAGS.has(element.tagName.toLowerCase()) ? [element] : element.children
   for (const block of blocks) {

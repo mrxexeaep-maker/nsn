@@ -20,6 +20,7 @@ import type { BuiltinIOFormatId } from '@open-pencil/core/io'
 import type { CommandPaletteGroup, CommandPaletteItem, MenuEntry } from '@open-pencil/vue'
 import { shortcutPlatform, useEditorCommands, useI18n } from '@open-pencil/vue'
 
+import { openTour } from '@/app/demo/document'
 import { useEditorStore } from '@/app/editor/active-store'
 import { openVariablesDialog } from '@/app/editor/tokens/dialog'
 import { openSettingsDialog } from '@/app/settings/dialog'
@@ -29,7 +30,8 @@ import {
   setSnappingPreference
 } from '@/app/settings/preferences/apply'
 import { appPreferences } from '@/app/settings/preferences/store'
-import { createSharedEditorMenuActions } from '@/app/shell/menu/editor-actions'
+import { createSharedEditorMenuActions } from '@/app/shell/menu/actions/editor'
+import { createSelectionMenuActions } from '@/app/shell/menu/actions/selection'
 import { openStorageWorkspace } from '@/app/shell/menu/navigation'
 import type {
   AppMenuActionItem,
@@ -38,7 +40,6 @@ import type {
   AppMenuIcon
 } from '@/app/shell/menu/schema'
 import { APP_MENU_SCHEMA } from '@/app/shell/menu/schema'
-import { createSelectionMenuActions } from '@/app/shell/menu/selection-actions'
 import { appMenuShortcutLabel } from '@/app/shell/menu/shortcut'
 import { openFileDialog } from '@/app/shell/menu/use'
 import { useAppTheme } from '@/app/shell/theme'
@@ -103,6 +104,7 @@ export function useAppMenu() {
     new: 'new',
     open: 'open',
     'open-storage-workspace': 'openStorageWorkspace',
+    'open-tour': 'openTour',
     save: 'save',
     'save-as': 'saveAs',
     'save-to-storage': 'saveToStorage',
@@ -170,6 +172,9 @@ export function useAppMenu() {
     },
     open: () => void openFileDialog(),
     'open-storage-workspace': () => openStorageWorkspace(router),
+    'open-tour': () => {
+      openTour().catch((error: unknown) => console.error('[Tour] Could not open the tour:', error))
+    },
     save: () => void store.saveFigFile(),
     'save-as': () => void store.saveFigFileAs(),
     'save-to-storage': () => void saveDocumentToStorage(store),

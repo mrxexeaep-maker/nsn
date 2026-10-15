@@ -114,7 +114,7 @@ function picked<T>(value: MixedValue<T>): T | '' {
               ': ' +
               ctx.missingFonts.value.join(', ')
             "
-            class="size-3.5 shrink-0 text-[var(--color-warning-action)]"
+            class="size-3.5 shrink-0 text-warning-action"
           />
         </Tip>
       </div>
@@ -124,7 +124,7 @@ function picked<T>(value: MixedValue<T>): T | '' {
           <AppSelect
             :label="panels.fontWeight"
             :model-value="picked(ctx.merged('fontWeight'))"
-            :options="ctx.weights"
+            :options="ctx.weights.value"
             :placeholder="panels.mixed"
             @update:model-value="ctx.actions.setWeight(+$event)"
           />

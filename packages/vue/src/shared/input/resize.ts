@@ -6,8 +6,14 @@ import { toRaw } from 'vue'
 import type { Editor } from '@open-pencil/core/editor'
 import { computeAllLayouts } from '@open-pencil/core/layout'
 import { calibratePathTextLayout, reflowPathTextGlyphs } from '@open-pencil/core/text'
-import { cloneVectorNetwork, recapturedAspectRatio } from '@open-pencil/scene-graph'
-import type { SceneNode } from '@open-pencil/scene-graph'
+import {
+  cloneInstanceOverrideState,
+  cloneVectorNetwork,
+  findInstanceAncestor,
+  recapturedAspectRatio,
+  recordInstanceOverride
+} from '@open-pencil/scene-graph'
+import type { InstanceOverrideState, SceneNode } from '@open-pencil/scene-graph'
 import { copyDerivedGlyphs, copyGeometryPaths, copyStrokes } from '@open-pencil/scene-graph/copy'
 import type { Rect } from '@open-pencil/scene-graph/primitives'
 import {
@@ -250,6 +256,8 @@ function clearResizedRawGeometry(editor: Editor, nodeId: string): void {
   if (node.type !== 'TEXT') delete raw.vectorData
 }
 
+const RECT_FIELDS = ['x', 'y', 'width', 'height'] as const
+
 function sameRect(a: Rect, b: Rect): boolean {
   return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
 }
@@ -342,6 +350,29 @@ export function commitResizePreview(dragState: DragResize, editor: Editor) {
   })
 }
 
+/**
+ * Runs a resize that moves layers by their constraints while recording only the box fields the
+ * resize changed on the resized layer as an instance override: in Figma a layer inside an instance that its constraints
+ * place keeps following the component, so a later component edit still reaches it.
+ */
+function keepingOnlyOwnOverrides(
+  editor: Editor,
+  nodeId: string,
+  ownFields: readonly string[],
+  placedIds: readonly string[],
+  commit: () => void
+) {
+  const owners = new Map<string, InstanceOverrideState>()
+  for (const id of [nodeId, ...placedIds]) {
+    const owner = findInstanceAncestor(editor.graph, id)
+    if (owner && !owners.has(owner.id))
+      owners.set(owner.id, cloneInstanceOverrideState(owner.instanceOverrides))
+  }
+  commit()
+  for (const [id, state] of owners) editor.graph.updateNode(id, { instanceOverrides: state })
+  if (owners.size > 0) recordInstanceOverride(editor.graph, nodeId, ownFields)
+}
+
 function commitResizeGeometry(d: DragResize, editor: Editor) {
   optionalEditorState(editor)?.snapGuides.splice(0)
   const node = editor.graph.getNode(d.nodeId)
@@ -360,12 +391,20 @@ function commitResizeGeometry(d: DragResize, editor: Editor) {
     // Resize is geometric — the raw Figma import payload (vectorData,
     // textPathStart, effects, ...) must survive or path-text reflow works
     // exactly once and export fidelity degrades.
-    editor.graph.preserveSourceMetadataDuring(() => {
-      editor.updateNode(d.nodeId, finalChanges)
-      for (const [childId, final] of finalChildren) {
-        editor.updateNode(childId, final)
+    keepingOnlyOwnOverrides(
+      editor,
+      d.nodeId,
+      RECT_FIELDS.filter((key) => finalChanges[key] !== d.origRect[key]),
+      [...finalChildren.keys()],
+      () => {
+        editor.graph.preserveSourceMetadataDuring(() => {
+          editor.updateNode(d.nodeId, finalChanges)
+          for (const [childId, final] of finalChildren) {
+            editor.updateNode(childId, final)
+          }
+        })
       }
-    })
+    )
     clearResizedRawGeometry(editor, d.nodeId)
     for (const [childId] of finalChildren) clearResizedRawGeometry(editor, childId)
     editor.commitGroupResize(d.nodeId, d.origRect, d.origChildren)

@@ -15,20 +15,16 @@ import { textDecorationRects, type DecoratedGlyph } from '#core/canvas/text/deco
 import { outlineInk, savedGlyphInk } from '#core/canvas/text/ink'
 import { laidOutGlyphs } from '#core/canvas/text/placed'
 import { getCanvasKit } from '#core/canvaskit'
-import { transformTextCase } from '#core/text/case'
+import { shownText } from '#core/text/case'
 import { fontManager } from '#core/text/fonts'
 
 /**
- * Whether saved glyphs could stand for this text: truncation and case changes that alter its
- * length move glyphs off the characters they came from, and path text is placed along its path.
+ * Whether saved glyphs could stand for this text: case changes that alter its length move
+ * glyphs off the characters they came from, and path text is placed along its path. Truncated
+ * text saves the characters it shows and the ellipsis after them.
  */
 function canShape(node: SceneNode, text: string): boolean {
-  return (
-    node.text.length > 0 &&
-    node.textTruncation !== 'ENDING' &&
-    text.length === node.text.length &&
-    !node.textPathData
-  )
+  return node.text.length > 0 && text.length === node.text.length && !node.textPathData
 }
 
 /** Characters inside a glyph cluster or without a glyph take the offset of the one before. */
@@ -52,7 +48,7 @@ export function shapeText(
   fontProvider: TypefaceFontProvider,
   node: SceneNode
 ): ShapedText | null {
-  const text = transformTextCase(node.text, node.textCase)
+  const text = shownText(node)
   if (!canShape(node, text)) return null
 
   const paragraph = buildParagraph({ ck, fontProvider, fontsLoaded: true }, node, undefined, {

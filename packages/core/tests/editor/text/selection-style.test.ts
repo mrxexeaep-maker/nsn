@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 
+import { expectDefined } from '#core-tests/helpers/assert'
+
 import { SkiaRenderer } from '@open-pencil/core/canvas'
 import { createEditor } from '@open-pencil/core/editor'
 import { initCanvasKit } from '@open-pencil/core/io'
 import type { Fill } from '@open-pencil/scene-graph'
-
-import { expectDefined } from '#core-tests/helpers/assert'
 
 const cleanups: (() => void)[] = []
 
@@ -33,7 +33,11 @@ async function editingWorld() {
     renderer.destroy()
   })
   const page = editor.state.currentPageId
-  const text = editor.graph.createNode('TEXT', page, { text: 'Hello world', width: 200, height: 20 })
+  const text = editor.graph.createNode('TEXT', page, {
+    text: 'Hello world',
+    width: 200,
+    height: 20
+  })
   editor.startTextEditing(text.id)
   const state = expectDefined(editor.textEditor?.state, 'text editor state')
   state.selectionAnchor = 6
@@ -82,5 +86,26 @@ describe('panel edits while text is edited', () => {
     expect(node().fills).toEqual([RED])
     expect(node().styleRuns).toEqual([])
     expect(editor.getTextSelectionStyle(node())).toBeNull()
+  })
+})
+
+describe('text case while text is edited', () => {
+  test('case the selected characters and show their case', async () => {
+    const { editor, id, node } = await editingWorld()
+
+    editor.updateNodeWithUndo(id, { textCase: 'UPPER' }, 'Change text case')
+
+    expect(node().textCase).toBe('ORIGINAL')
+    expect(node().styleRuns).toEqual([{ start: 6, length: 5, style: { textCase: 'UPPER' } }])
+    expect(editor.getTextSelectionStyle(node())?.textCase).toBe('UPPER')
+    editor.undoAction()
+    expect(node().styleRuns).toEqual([])
+  })
+
+  test('show only the layer properties of the selected characters', async () => {
+    const { editor, node } = await editingWorld()
+    const style = expectDefined(editor.getTextSelectionStyle(node()), 'selection style')
+    expect(Object.keys(style)).not.toContain('boundVariables')
+    expect(Object.keys(style)).not.toContain('hyperlink')
   })
 })

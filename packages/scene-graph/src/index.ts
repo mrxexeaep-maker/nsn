@@ -12,6 +12,7 @@ export { TRANSFORM_FIELDS, SIZE_FIELDS } from './fields/geometry'
 export { TEXT_METRIC_FIELDS, TEXT_SHAPING_FIELDS, TEXT_LAYOUT_FIELDS } from './fields/text'
 export * from './transfer'
 export * from './instance-overrides'
+export * from './asset-keys'
 export * from './images'
 export * from './components/properties'
 export * from './components/variants'
@@ -33,6 +34,7 @@ export * from './icons/model'
 export * from './icons/glyph'
 export * from './shaders/schema'
 export * from './shaders/model'
+export * from './shaders/still'
 export * from './behaviours/layers'
 export * from './behaviours/model'
 export * from './behaviours/spec'
@@ -853,17 +855,19 @@ export class SceneGraph {
     return HitTest.hitTest(this, px, py, scopeId)
   }
 
-  hitTestDeep(px: number, py: number, scopeId?: string): SceneNode | null {
-    return HitTest.hitTestDeep(this, px, py, scopeId)
+  /** `pad`, in canvas units, grows each shape's box, as Figma takes clicks just outside one. */
+  hitTestDeep(px: number, py: number, scopeId?: string, pad = 0): SceneNode | null {
+    return HitTest.hitTestDeep(this, px, py, scopeId, pad)
   }
 
   hitTestSelectable(
     px: number,
     py: number,
     scopeId: string,
-    selectedIds: ReadonlySet<string>
+    selectedIds: ReadonlySet<string>,
+    pad = 0
   ): SceneNode | null {
-    return HitTest.hitTestSelectable(this, px, py, scopeId, selectedIds)
+    return HitTest.hitTestSelectable(this, px, py, scopeId, selectedIds, pad)
   }
 
   hitTestOpenContainer(px: number, py: number, scopeId: string): SceneNode | null {

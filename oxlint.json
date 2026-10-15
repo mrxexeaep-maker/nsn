@@ -170,6 +170,7 @@
     "open-pencil/no-direct-selection-tool-state-mutation": "error",
     "open-pencil/no-math-random": "error",
     "open-pencil/no-hardcoded-color-constants": "error",
+    "open-pencil/no-unknown-tailwind-classes": "error",
     "open-pencil/no-hand-rolled-color": "error",
     "open-pencil/no-raw-console-format": "off",
     "open-pencil/no-silent-catch": "error",
@@ -429,6 +430,12 @@
   },
   "overrides": [
     {
+      "files": ["packages/docs/.vitepress/theme/landing/**/*.{ts,vue}"],
+      "rules": {
+        "open-pencil/no-app-imports-in-packages": "off"
+      }
+    },
+    {
       "files": ["tools/ci/policy/src/**/*.ts"],
       "rules": {
         "open-pencil/prefer-es-toolkit": "off"
@@ -549,7 +556,7 @@
     },
     {
       "files": [
-        "packages/core/src/io/formats/fig/export.ts",
+        "packages/core/src/io/formats/fig/export/index.ts",
         "packages/core/src/kiwi/fig/parse/worker.ts"
       ],
       "rules": {

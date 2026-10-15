@@ -10,8 +10,14 @@ export {
 } from './document/materialize'
 export {
   compressFigDataSync,
+  figArchiveMetaJSON,
+  FigArchiveMetaSchema,
   parseFigBuffer,
+  readFigArchiveMeta,
+  renameFigArchive,
   writeFigArchive,
+  type FigArchiveMeta,
+  type FigArchiveMetaJSON,
   type FigImageEntry,
   type FigParseResult,
   type WriteFigArchiveInput
@@ -24,10 +30,15 @@ export {
   patchFigRecords,
   type FigArchiveRecordInfo,
   type FigPatchedArchiveInput,
+  entryPathKey,
+  type FigEntryListPatch,
+  type FigEntryPatch,
+  type FigRecordFieldPatch,
   type FigRecordPatch
 } from './record-patch'
 export {
   extractFigThumbnailFromReader,
+  pngSize,
   type FigRangeReader,
   type FigThumbnailLimits
 } from './thumbnail'

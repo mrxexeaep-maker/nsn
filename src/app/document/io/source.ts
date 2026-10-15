@@ -15,6 +15,7 @@ import { createDocumentRecovery } from '@/app/document/recovery'
 import { recoveryEnabled } from '@/app/document/recovery/preferences'
 import type { StorageDocumentBinding, StorageProviderID } from '@/app/integrations/storage/types'
 import { createCanvasId } from '@/app/storage/id'
+import { trackDocumentFormat } from '@/app/telemetry'
 
 type DocumentSourceState = EditorState & {
   documentName: string
@@ -61,11 +62,19 @@ export function createDocumentSourceActions({
 
   function buildFigFile() {
     const renderer = getRenderer()
-    return exportFigFile(editor.graph, renderer?.ck, renderer ?? undefined, state.currentPageId)
+    return exportFigFile(editor.graph, {
+      ck: renderer?.ck,
+      renderer: renderer ?? undefined,
+      pageId: state.currentPageId,
+      documentName: state.documentName
+    })
   }
 
   function buildRecoveryFigFile() {
-    return exportFigFile(editor.graph, undefined, undefined, state.currentPageId)
+    return exportFigFile(editor.graph, {
+      pageId: state.currentPageId,
+      documentName: state.documentName
+    })
   }
 
   const recovery = createDocumentRecovery({
@@ -130,6 +139,7 @@ export function createDocumentSourceActions({
     setSourceIdentity({ handle: handle ?? null, path: path ?? null })
     markDocumentSaved()
     void recovery.markProtectedVersion(changes.capture())
+    trackDocumentFormat('document_opened', sourceFormat)
     if (isFig && (handle || path)) {
       void startWatchingFile()
     }

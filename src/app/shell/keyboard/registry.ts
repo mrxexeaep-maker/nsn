@@ -64,6 +64,27 @@ function opacityBindings(): ShortcutDefinition[] {
   }))
 }
 
+/**
+ * Tab steps through sibling layers only while nothing on the page holds focus, so it still
+ * moves focus through the panels' controls.
+ */
+function isCanvasFocus(event: KeyboardEvent) {
+  return event.target === document.body || event.target instanceof HTMLCanvasElement
+}
+
+function siblingShortcut(
+  command: 'selection.selectNextSibling' | 'selection.selectPreviousSibling'
+): ShortcutDefinition {
+  return {
+    id: command,
+    keys: editorCommandMetadata(command).keybinding ?? [],
+    run: ({ keyEvent, runCommand }) => {
+      if (isCanvasFocus(keyEvent)) runCommand(command)
+    },
+    shouldPreventDefault: isCanvasFocus
+  }
+}
+
 const EDITOR_SHORTCUT_OVERLAY_SELECTOR =
   '[data-picker-content], [role="dialog"], [role="listbox"], [role="menu"]'
 const PICKER_SELECTOR = '[data-picker-content]'
@@ -248,6 +269,11 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
       'view.zoom100',
       'view.zoomFit',
       'view.zoomSelection',
+      'view.zoomNextFrame',
+      'view.zoomPreviousFrame',
+      'view.nextPage',
+      'view.previousPage',
+      'selection.selectParent',
       'selection.duplicate',
       'selection.selectAll',
       'selection.selectInverse'
@@ -277,13 +303,15 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
     { id: 'delete-backspace', keys: 'Backspace', run: ({ actions }) => actions.smartDelete(false) },
     { id: 'delete', keys: 'Delete', run: ({ actions }) => actions.smartDelete(false) },
     { id: 'delete-alt', keys: 'Alt+Delete', run: ({ actions }) => actions.smartDelete(true) },
-    { id: 'enter', keys: 'Enter', run: ({ actions }) => actions.confirmOrEnterText() },
+    { id: 'enter', keys: 'Enter', run: ({ actions }) => actions.confirmOrEditSelection() },
     {
       id: 'escape',
       keys: 'Escape',
       run: ({ actions }) => actions.escapeOrDeselect(),
       preview: true
     },
+    siblingShortcut('selection.selectNextSibling'),
+    siblingShortcut('selection.selectPreviousSibling'),
     ...opacityBindings()
   ]
 

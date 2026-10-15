@@ -15,7 +15,7 @@ Tool definitions own native Valibot input schemas, execution/mutation metadata, 
 
 Use **Settings → Tool access** (select **Local MCP**) to search and toggle the local server's tools, individually or by read-only/side-effect group. Group switches affect all group members, even during search. **Restore defaults** enables the configurable MCP tools again. Existing MCP preferences are preserved separately from the **Built-in AI** settings.
 
-Restart the MCP server, then reconnect stdio clients, to apply changes. For an externally managed server, restart its owning process. The list reflects the tools discovered from the server; disabling a dedicated tool does not prevent an enabled script tool from performing the same operation. These switches are not a sandbox and do not configure remote MCP servers or WebMCP.
+Restart the MCP server, then reconnect stdio clients, to apply changes. For an externally managed server, restart its owning process. The list shows the tools the server offers, also while it is stopped; disabling a dedicated tool does not prevent an enabled script tool from performing the same operation. These switches are not a sandbox and do not configure remote MCP servers or WebMCP.
 
 ## Share only the selection {#selection-scope}
 

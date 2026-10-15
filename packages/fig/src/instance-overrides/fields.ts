@@ -1,6 +1,10 @@
 import { groupBy } from 'es-toolkit'
 
+import { UNSET_GUID } from '@open-pencil/kiwi/fig/guid'
 import type { SceneNode } from '@open-pencil/scene-graph'
+
+/** The style reference Figma writes for a style an instance has cleared. */
+export const CLEARED_STYLE = { guid: { ...UNSET_GUID } }
 
 /**
  * How a claim on a raw Kiwi field maps onto SceneGraph. Materialization records the
@@ -93,9 +97,10 @@ export const OVERRIDE_FIELDS = {
   effects: { scene: ['effects'], kind: 'node', absent: [] },
   locked: { scene: ['locked'], kind: 'node', absent: false },
   layoutGrids: { scene: ['layoutGrids'], kind: 'node', absent: [] },
-  styleIdForFill: { scene: ['fillStyleId'], kind: 'node' },
-  styleIdForStrokeFill: { scene: ['strokeStyleId'], kind: 'node' },
-  styleIdForEffect: { scene: ['effectStyleId'], kind: 'node' },
+  // An instance that clears a style the component applies claims the unset GUID (desktop 126).
+  styleIdForFill: { scene: ['fillStyleId'], kind: 'node', absent: CLEARED_STYLE },
+  styleIdForStrokeFill: { scene: ['strokeStyleId'], kind: 'node', absent: CLEARED_STYLE },
+  styleIdForEffect: { scene: ['effectStyleId'], kind: 'node', absent: CLEARED_STYLE },
   stackPrimaryAlignItems: { scene: ['primaryAxisAlign'], kind: 'node' },
   stackCounterAlignItems: { scene: ['counterAxisAlign'], kind: 'node' },
   stackPositioning: { scene: ['layoutPositioning'], kind: 'node' },
@@ -148,3 +153,21 @@ export const LAYOUT_DISTANCE_FIELDS: Readonly<Record<string, RawFieldOfKind<'lay
   Object.fromEntries(
     rawFieldsOfKind('layout-distance').map((raw) => [OVERRIDE_FIELDS[raw].scene[0], raw])
   )
+
+/**
+ * A component's own identity, which an instance does not take from it: Figma writes these on
+ * component records only, and on an instance only its own override key and symbol version.
+ * Measured over `gold-preview`, `material3`, `slots`, and `variable-override-precedence`:
+ * 26,211 instance records, none carrying the rest.
+ */
+export const COMPONENT_IDENTITY_FIELDS = [
+  'componentKey',
+  'sourceLibraryKey',
+  'publishID',
+  'publishedVersion',
+  'sharedSymbolVersion',
+  'isSymbolPublishable',
+  'variantPropSpecs',
+  'componentPropDefs',
+  'overrideKey'
+] as const

@@ -26,6 +26,7 @@ import { createRunPreview } from '@/app/ai/preview/run'
 import { createAITools, currentRun, endRun, recordStep, startRun } from '@/app/ai/tools'
 import { enabledAIToolDefinitions } from '@/app/ai/tools/catalog'
 import { aiToolOverrides } from '@/app/ai/tools/preferences'
+import { restAgents } from '@/app/automation/agents'
 import { diagnosticErrorDetails } from '@/app/diagnostics'
 import {
   recordChatCompleted,
@@ -35,11 +36,15 @@ import {
 } from '@/app/diagnostics/events'
 import type { AIDiagnosticContext } from '@/app/diagnostics/events/ai'
 import type { getActiveEditorStore } from '@/app/editor/active-store'
+import { trackUsage } from '@/app/telemetry'
 
 import { resumableTransport } from './history/continuation'
+import { createTraceStore } from './history/idb'
 import { updateMessage } from './metadata'
 import { maxAgentSteps } from './preferences'
 import { settleMessage } from './settle'
+import { createRunRecorder } from './trace/recorder'
+import type { RunRecorder, RunRecording } from './trace/recorder'
 
 type EditorStore = ReturnType<typeof getActiveEditorStore>
 
@@ -62,6 +67,8 @@ export type ToolLoopTransportOptions = {
   thinkingLevel: () => ThinkingLevel
   onError?: (error: unknown) => void
   diagnosticContext?: AIDiagnosticContext
+  /** Records each run so a saved trace can rebuild its requests. */
+  recorder?: RunRecorder
 }
 
 const ANTHROPIC_CACHE_CONTROL = {
@@ -111,7 +118,8 @@ export function createToolLoopTransport({
   maxOutputTokens,
   thinkingLevel,
   onError,
-  diagnosticContext = {}
+  diagnosticContext = {},
+  recorder
 }: ToolLoopTransportOptions) {
   const tools = createAITools(store, diagnosticContext)
   // The reply in progress; a transport sends one message at a time.
@@ -128,21 +136,28 @@ export function createToolLoopTransport({
   const cacheProviderOptions = supportsAnthropicCaching(providerID, effectiveModelID)
     ? ANTHROPIC_CACHE_CONTROL
     : undefined
+  let recording: RunRecording | undefined
   const agent = new ToolLoopAgent({
     model,
     instructions: SYSTEM_PROMPT,
     tools,
     maxOutputTokens,
+    // Kept only to fingerprint each step's request for its trace.
+    include: { requestMessages: recorder !== undefined },
     prepareCall: (options) => {
       const enabledNames = new Set(
         enabledAIToolDefinitions(aiToolOverrides.value).map((tool) => tool.name)
       )
       preview.clear()
+      // Keep the full catalog for validating history; offer only enabled tools to this request.
+      const offered = Object.fromEntries(
+        Object.entries(tools).filter(([name]) => enabledNames.has(name))
+      )
+      recording?.offer(offered)
       return {
         ...options,
         stopWhen: stepCountIs(currentRun(store).maxSteps),
-        // Keep the full catalog for validating history; offer only enabled tools to this request.
-        tools: Object.fromEntries(Object.entries(tools).filter(([name]) => enabledNames.has(name))),
+        tools: offered,
         maxOutputTokens,
         ...callSettings(providerID, cacheProviderOptions, thinkingLevel())
       }
@@ -150,10 +165,13 @@ export function createToolLoopTransport({
     onFinish: () => {
       preview.clear()
       endRun(store, run)
+      recording?.end('completed')
     },
-    onStepFinish: ({ usage }) => {
+    onStepFinish: (step) => {
+      const { usage } = step
       preview.clear()
       recordStep(store)
+      recording?.step(step)
       recordModelStepCompleted(
         {
           provider: providerID,
@@ -171,6 +189,7 @@ export function createToolLoopTransport({
   function handleError(error: unknown): string {
     preview.clear()
     endRun(store, run)
+    recording?.fail(error)
     onError?.(error)
     return 'The provider rejected the request.'
   }
@@ -184,10 +203,32 @@ export function createToolLoopTransport({
       // The run starts as the message is sent, so a Stop before the model is reached ends it.
       const started = startRun(store, maxAgentSteps.value, effectiveModelID)
       run = started
+      const { sessionId, runId } = diagnosticContext
+      const startedRecording =
+        sessionId && runId
+          ? recorder?.start({
+              conversationId: sessionId,
+              runId,
+              model: { provider: providerID, id: effectiveModelID },
+              settings: {
+                maxOutputTokens,
+                maxSteps: started.maxSteps,
+                thinking: thinkingLevel(),
+                cache: cacheProviderOptions !== undefined
+              },
+              instructions: SYSTEM_PROMPT,
+              messages: options.messages
+            })
+          : undefined
+      recording = startedRecording
       // Stopping a reply ends the run without onFinish.
+      const stop = () => {
+        endRun(store, started)
+        startedRecording?.end('stopped')
+      }
       const { abortSignal } = options
-      if (abortSignal?.aborted) endRun(store, started)
-      else if (abortSignal) useEventListener(abortSignal, 'abort', () => endRun(store, started))
+      if (abortSignal?.aborted) stop()
+      else if (abortSignal) useEventListener(abortSignal, 'abort', stop)
       // DirectChatTransport handles error chunks, but not a rejected underlying stream.
       return createUIMessageStream<UIMessage>({
         execute: async ({ writer }) => {
@@ -233,6 +274,7 @@ export function createChatSessionManager({
   let harnessTransportInstance: { stop(): Promise<void> } | null = null
   let overrideTransport: (() => ChatTransport<UIMessage>) | null = null
   let activeProviderError: unknown = null
+  const runRecorder = createRunRecorder(createTraceStore())
 
   function captureProviderError(error: unknown): void {
     activeProviderError ??= error
@@ -255,6 +297,7 @@ export function createChatSessionManager({
     if (isAbort) recordChatStopped(context)
     else if (!isDisconnect && !isError) {
       recordChatCompleted({ finishReason: finishReason ?? null }, context)
+      trackUsage({ name: 'ai_reply_finished', provider: providerID.value })
     }
   }
 
@@ -351,7 +394,8 @@ export function createChatSessionManager({
       maxOutputTokens: runtime.role.profile.maxOutputTokens,
       thinkingLevel: () => chatThinkingLevel.value,
       onError: captureProviderError,
-      diagnosticContext
+      diagnosticContext,
+      recorder: runRecorder
     })
   }
 
@@ -371,9 +415,17 @@ export function createChatSessionManager({
       const messages = initialMessages ?? currentChatMessages.get(store)
       const diagnosticContext: AIDiagnosticContext = { sessionId, runId: crypto.randomUUID() }
       let transport: ChatTransport<UIMessage>
-      if (isACPProvider.value) transport = await createActiveACPTransport()
-      else if (isHarnessProvider.value) transport = await createActiveHarnessTransport(sessionId)
-      else transport = await createTransport(store, diagnosticContext)
+      // An ACP or Pi chat's tool calls show as an agent of that kind (`src/app/automation/agents.ts`).
+      let agentKind: 'acp' | 'harness' | null = null
+      if (isACPProvider.value) {
+        agentKind = 'acp'
+        transport = await createActiveACPTransport()
+      } else if (isHarnessProvider.value) {
+        agentKind = 'harness'
+        transport = await createActiveHarnessTransport(sessionId)
+      } else {
+        transport = await createTransport(store, diagnosticContext)
+      }
       const created: Chat<UIMessage> = new Chat<UIMessage>({
         transport: {
           sendMessages: (options) => {
@@ -392,6 +444,8 @@ export function createChatSessionManager({
         },
         onFinish: (event) => {
           handleChatFinish(diagnosticContext, event)
+          // The reply is over, however it ended; its agent rests instead of waiting it out.
+          if (agentKind) restAgents(agentKind)
           if (event.isAbort || event.isDisconnect || event.isError) {
             void settleEndedReply(created, store, event.message.id, event.isAbort)
           }

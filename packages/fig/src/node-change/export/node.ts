@@ -6,6 +6,7 @@ import { stringToGuid } from '@open-pencil/kiwi/fig/guid'
 import type {
   ComponentPropertyDefinition,
   ComponentPropertyReferenceField,
+  LayoutGrid,
   SceneGraph,
   SceneNode
 } from '@open-pencil/scene-graph'
@@ -15,6 +16,7 @@ import {
   OPEN_PENCIL_PLUGIN_DATA,
   withPluginData
 } from '@open-pencil/scene-graph'
+import { layoutGridCount } from '@open-pencil/scene-graph/layout'
 import { siblingOrderKeys } from '@open-pencil/scene-graph/order-keys'
 import type { GUID, Matrix, Vector } from '@open-pencil/scene-graph/primitives'
 
@@ -29,11 +31,13 @@ import {
   mergePluginData,
   serializePluginRelaunchData
 } from '../plugin-data'
+import { applyTextRunReferences } from '../text/run-references'
 import {
   applyColorVariableBinding,
   createFillPaints,
   createStrokePaints,
   getOrCreateNodeGuid,
+  exportedStyleReference,
   instanceGuidResolver,
   getOrCreatePropertyGuid,
   parseGuidOrNull,
@@ -409,17 +413,20 @@ function applyRawFigmaNodeFields(
     // For paint arrays on imported nodes, the raw NC data preserves the
     // original opacity/color.a split (e.g. opacity=0 for invisible strokes).
     // The scene model may lose this distinction for instance children whose
-    // strokes are resolved from component overrides. Prefer the raw data.
+    // strokes are resolved from component overrides. Prefer the raw data,
+    // except for a bound color: Figma draws the color a paint saves, so it
+    // takes what its variable resolves to now.
     if ((key === 'fillPaints' || key === 'strokePaints') && node.source.id) {
       const paints = materialized[key]
-      nc[key] = paints?.map((paint, index) =>
-        applyColorVariableBinding(
-          context,
-          node,
-          paint,
-          `${key === 'fillPaints' ? 'fills' : 'strokes'}/${index}/color`
-        )
-      )
+      const current = key === 'fillPaints' ? node.fills : node.strokes
+      nc[key] = paints?.map((paint, index) => {
+        const field = `${key === 'fillPaints' ? 'fills' : 'strokes'}/${index}/color`
+        const bound = applyColorVariableBinding(context, node, paint, field)
+        const resolved = node.boundVariables[field] ? current[index] : undefined
+        return resolved
+          ? { ...bound, color: context.safeColor(resolved.color), opacity: resolved.opacity }
+          : bound
+      })
       continue
     }
     if (
@@ -801,19 +808,52 @@ function nodeForGeometryExport(node: SceneNode): SceneNode {
   }
 }
 
+/**
+ * A layout guide as the archive stores it: stripes along an axis or a grid, whichever shape it was
+ * given in, Figma's plugin names (`COLUMNS`, `count`, `alignment`) or the archive's own.
+ */
+function kiwiLayoutGrid(grid: LayoutGrid): LayoutGrid {
+  const rows = grid.pattern === 'ROWS' || (grid.pattern !== 'COLUMNS' && grid.axis === 'Y')
+  return {
+    type: grid.type ?? grid.alignment ?? 'STRETCH',
+    axis: rows ? 'Y' : 'X',
+    visible: grid.visible ?? true,
+    numSections: layoutGridCount(grid),
+    offset: grid.offset ?? 0,
+    // Figma's new grid is 10 px, the size the plugin API reports for one without a size.
+    sectionSize: grid.sectionSize ?? (grid.pattern === 'GRID' ? 10 : 0),
+    gutterSize: grid.gutterSize ?? 0,
+    color: grid.color ?? { r: 1, g: 0, b: 0, a: 0.1 },
+    pattern: grid.pattern === 'GRID' ? 'GRID' : 'STRIPES'
+  }
+}
+
 function applySharedStyleProps(
   context: SceneNodeToKiwiContext,
   node: SceneNode,
   nc: KiwiNodeChange
 ): void {
-  const reference = (id: string) => ({ guid: context.nodeIdToGuid?.get(id) ?? stringToGuid(id) })
+  const reference = (id: string) => exportedStyleReference(context, id)
   if (node.fillStyleId) nc.styleIdForFill = reference(node.fillStyleId)
   if (node.strokeStyleId) nc.styleIdForStrokeFill = reference(node.strokeStyleId)
   if (node.textStyleId) nc.styleIdForText = reference(node.textStyleId)
   if (node.effectStyleId) nc.styleIdForEffect = reference(node.effectStyleId)
   if (node.gridStyleId) nc.styleIdForGrid = reference(node.gridStyleId)
-  if (node.layoutGrids.length > 0) nc.layoutGrids = structuredClone(node.layoutGrids)
+  if (node.layoutGrids.length > 0) nc.layoutGrids = node.layoutGrids.map(kiwiLayoutGrid)
   if (node.guides.length > 0) nc.guides = exportCanvasGuides(node.guides)
+}
+
+/** A text's props, and what its ranges refer to, which needs the document's identities. */
+function serializeText(context: SceneNodeToKiwiContext, node: SceneNode, nc: KiwiNodeChange): void {
+  context.serializeTextProps(
+    node,
+    nc,
+    context.graph,
+    context.fontDigestMap,
+    context.blobs,
+    context.glyphBlobMap
+  )
+  if (nc.textData) applyTextRunReferences(context, node, nc.textData)
 }
 
 function applyNodeVisualProps(
@@ -849,16 +889,7 @@ function applyNodeVisualProps(
     }))
   }
 
-  if (node.type === 'TEXT') {
-    context.serializeTextProps(
-      node,
-      nc,
-      context.graph,
-      context.fontDigestMap,
-      context.blobs,
-      context.glyphBlobMap
-    )
-  }
+  if (node.type === 'TEXT') serializeText(context, node, nc)
 
   if (node.type !== 'VECTOR') nc.frameMaskDisabled = !node.clipsContent
   applySharedStyleProps(context, node, nc)

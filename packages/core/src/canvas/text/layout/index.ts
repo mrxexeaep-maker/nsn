@@ -10,6 +10,13 @@ import type {
   ShapedLine
 } from 'canvaskit-wasm'
 
+import {
+  placeLines,
+  shapedLinesByLine,
+  type BlockPlacement,
+  type TextLayoutBlockLines
+} from '#core/canvas/text/layout/lines'
+
 /** A list item's number or bullet, laid out on its own. */
 export interface TextLayoutMarker {
   paragraph: Paragraph
@@ -46,6 +53,8 @@ export interface TextLayoutBlock {
   /** Space above the block, from the paragraph before it. */
   spaceBefore: number
   marker: TextLayoutMarker | null
+  /** What placing its lines as Figma does needs; without it they stack as the paragraph's. */
+  lines?: TextLayoutBlockLines
   x: number
   y: number
   /** Whether the block is shown, as truncation hides blocks past its last line. */
@@ -68,9 +77,17 @@ export class TextLayout {
   private lines: LineMetrics[] = []
   private lineOffsets: number[] = []
   private truncated = false
+  private readonly placements = new Map<TextLayoutBlock, BlockPlacement>()
+  /** The text's height when layout placed its lines itself. */
+  private placedHeight: number | null = null
 
   /** Text laid out as one native paragraph of `length` characters, not yet laid out. */
-  static ofParagraph(ck: CanvasKit, paragraph: Paragraph, length: number): TextLayout {
+  static ofParagraph(
+    ck: CanvasKit,
+    paragraph: Paragraph,
+    length: number,
+    lines?: TextLayoutBlockLines
+  ): TextLayout {
     return new TextLayout(ck, [
       {
         paragraph,
@@ -85,6 +102,7 @@ export class TextLayout {
         rtl: false,
         spaceBefore: 0,
         marker: null,
+        lines,
         x: 0,
         y: 0,
         visible: true
@@ -110,6 +128,7 @@ export class TextLayout {
     let y = 0
     let lines = 0
     this.truncated = false
+    this.clearPlacements()
     for (const [index, block] of this.blocks.entries()) {
       const remaining = this.maxLines === undefined ? Infinity : this.maxLines - lines
       block.visible = remaining > 0
@@ -134,9 +153,50 @@ export class TextLayout {
       block.y = y
       y += block.paragraph.getHeight()
       lines += block.paragraph.getLineMetrics().length
-      this.placeMarker(block)
     }
+    this.placeLines(width)
+    for (const block of this.visibleBlocks()) this.placeMarker(block)
     this.collectLines()
+  }
+
+  private clearPlacements(): void {
+    for (const placement of this.placements.values()) {
+      for (const piece of placement.pieces ?? []) piece.paragraph.delete()
+    }
+    this.placements.clear()
+    this.placedHeight = null
+  }
+
+  /**
+   * Places lines as Figma does when they differ in height, keeping the paragraph's placement
+   * otherwise (`placeLines`).
+   */
+  private placeLines(width: number): void {
+    const placed = placeLines(this.ck, this.visibleBlocks(), width)
+    if (!placed) return
+    for (const [block, { y, ...placement }] of placed.blocks) {
+      block.y = y
+      this.placements.set(block, placement)
+    }
+    this.placedHeight = placed.height
+  }
+
+  /** The block's line `index` stands this far below where its paragraph has it. */
+  private lineOffset(block: TextLayoutBlock, index: number): number {
+    return this.placements.get(block)?.offsets[index] ?? 0
+  }
+
+  /** How far a point `y` of the block's paragraph moves, by the line it falls on. */
+  private offsetAt(block: TextLayoutBlock, y: number): number {
+    const placement = this.placements.get(block)
+    if (!placement) return 0
+    const lines = block.paragraph.getLineMetrics()
+    const index = lines.findIndex((line) => y < line.baseline + line.descent)
+    return placement.offsets[index === -1 ? lines.length - 1 : index] ?? 0
+  }
+
+  private blockHeight(block: TextLayoutBlock): number {
+    return this.placements.get(block)?.height ?? block.paragraph.getHeight()
   }
 
   private placeMarker(block: TextLayoutBlock): void {
@@ -173,14 +233,21 @@ export class TextLayout {
       this.lineOffsets.push(this.lines.length)
       if (block.marker) block.marker.lineNumber = this.lines.length
       const metrics = block.paragraph.getLineMetrics()
+      const boxes = this.placements.get(block)?.boxes
       const blockEnd = block.start + block.length
       for (const [lineIndex, line] of metrics.entries()) {
         const lastOfBlock = lineIndex === metrics.length - 1
         const endsAtNewline = lastOfBlock && blockIndex < visible.length - 1
         // A first-line indent is room before the text, not part of the line.
         const indent = lineIndex === 0 ? block.leadWidth : 0
+        const box = boxes?.[lineIndex]
         this.lines.push({
           ...line,
+          ...(box && {
+            ascent: box.ascent,
+            descent: box.height - box.ascent,
+            height: box.height
+          }),
           startIndex: this.toTextIndex(block, line.startIndex),
           endIndex: this.toTextIndex(block, line.endIndex),
           endExcludingWhitespaces: this.toTextIndex(block, line.endExcludingWhitespaces),
@@ -190,7 +257,7 @@ export class TextLayout {
           isHardBreak: endsAtNewline || line.isHardBreak,
           width: block.empty ? 0 : line.width - indent,
           left: line.left + block.x + (block.rtl ? 0 : indent),
-          baseline: line.baseline + block.y,
+          baseline: line.baseline + block.y + this.lineOffset(block, lineIndex),
           lineNumber: this.lines.length
         })
       }
@@ -199,6 +266,7 @@ export class TextLayout {
 
   getHeight(): number {
     const last = this.visibleBlocks().at(-1)
+    if (this.placedHeight !== null) return this.placedHeight
     return last ? last.y + last.paragraph.getHeight() : 0
   }
 
@@ -253,14 +321,17 @@ export class TextLayout {
     let block = visible.at(-1)
     for (const [index, candidate] of visible.entries()) {
       const next = visible.at(index + 1)
-      const bottom = candidate.y + candidate.paragraph.getHeight()
+      const bottom = candidate.y + this.blockHeight(candidate)
       if (!next || y < bottom + next.spaceBefore / 2) {
         block = candidate
         break
       }
     }
     if (!block) return { pos: 0, affinity: this.ck.Affinity.Downstream }
-    const local = block.paragraph.getGlyphPositionAtCoordinate(x - block.x, y - block.y)
+    const local = block.paragraph.getGlyphPositionAtCoordinate(
+      x - block.x,
+      this.paragraphY(block, y - block.y)
+    )
     return {
       pos: block.empty ? block.start : this.toTextIndex(block, local.pos),
       affinity: local.affinity
@@ -286,13 +357,9 @@ export class TextLayout {
         widthStyle
       )
       for (const { rect, dir } of local) {
+        const y = block.y + this.offsetAt(block, (rect[1] + rect[3]) / 2)
         rects.push({
-          rect: Float32Array.of(
-            rect[0] + block.x,
-            rect[1] + block.y,
-            rect[2] + block.x,
-            rect[3] + block.y
-          ),
+          rect: Float32Array.of(rect[0] + block.x, rect[1] + y, rect[2] + block.x, rect[3] + y),
           dir
         })
       }
@@ -340,35 +407,52 @@ export class TextLayout {
     )
     const rect = rects.at(0)?.rect
     if (!rect) return null
+    const y = block.y + this.offsetAt(block, (rect[1] + rect[3]) / 2)
     return {
       x: block.x + (useRight ? rect[2] : rect[0]),
-      top: block.y + rect[1],
-      bottom: block.y + rect[3]
+      top: y + rect[1],
+      bottom: y + rect[3]
     }
   }
 
   /**
-   * Shaped lines of the text in whole-text coordinates; run offsets are UTF-8 byte offsets into
-   * the whole text, as CanvasKit gives them. An empty paragraph's line has no runs.
+   * Shaped lines of the text in whole-text coordinates, one per line; run offsets are UTF-8
+   * byte offsets into the whole text, as CanvasKit gives them. An empty line, which shaping
+   * leaves out, has no runs and starts where the line before it ends.
    */
   getShapedLines(): ShapedLine[] {
     const shaped: ShapedLine[] = []
     for (const block of this.visibleBlocks()) {
-      for (const line of block.paragraph.getShapedLines()) {
+      const metrics = block.paragraph.getLineMetrics()
+      for (const [lineIndex, line] of shapedLinesByLine(block.paragraph).entries()) {
+        const y = block.y + this.lineOffset(block, lineIndex)
+        if (!line) {
+          const { baseline, ascent, descent } = metrics[lineIndex]
+          const previous = lineIndex > 0 ? shaped.at(-1) : undefined
+          const start = previous?.textRange.last ?? block.utf8Start
+          shaped.push({
+            textRange: { first: start, last: start },
+            top: baseline - ascent + y,
+            bottom: baseline + descent + y,
+            baseline: baseline + y,
+            runs: []
+          })
+          continue
+        }
         shaped.push({
           textRange: {
             first: this.toUtf8(block, line.textRange.first),
             last: this.toUtf8(block, line.textRange.last)
           },
-          top: line.top + block.y,
-          bottom: line.bottom + block.y,
-          baseline: line.baseline + block.y,
+          top: line.top + y,
+          bottom: line.bottom + y,
+          baseline: line.baseline + y,
           runs: block.empty
             ? []
             : line.runs.map((run) => ({
                 ...run,
                 positions: run.positions.map(
-                  (value, index) => value + (index % 2 === 0 ? block.x : block.y)
+                  (value, index) => value + (index % 2 === 0 ? block.x : y)
                 ),
                 offsets: run.offsets.map((offset) => this.toUtf8(block, offset))
               }))
@@ -391,10 +475,29 @@ export class TextLayout {
 
   draw(canvas: Canvas, x: number, y: number): void {
     for (const block of this.visibleBlocks()) {
-      canvas.drawParagraph(block.paragraph, x + block.x, y + block.y)
+      const pieces = this.placements.get(block)?.pieces
+      if (!pieces) canvas.drawParagraph(block.paragraph, x + block.x, y + block.y)
+      for (const piece of pieces ?? []) {
+        canvas.drawParagraph(piece.paragraph, x + block.x + piece.x, y + block.y + piece.y)
+      }
       const marker = block.marker
       if (marker) canvas.drawParagraph(marker.paragraph, x + marker.x, y + marker.y)
     }
+  }
+
+  /** Where in the block's paragraph a point `y` below the block's top falls, by its line. */
+  private paragraphY(block: TextLayoutBlock, y: number): number {
+    const placement = this.placements.get(block)
+    if (!placement) return y
+    const lines = block.paragraph.getLineMetrics()
+    // A point belongs to the line whose box it is in, or the nearest after the one above it.
+    const index = lines.findIndex((line, lineIndex) => {
+      const box = placement.boxes[lineIndex]
+      const baseline = line.baseline + placement.offsets[lineIndex]
+      return y < baseline - box.ascent + box.height
+    })
+    const line = lines[index === -1 ? lines.length - 1 : index]
+    return line.baseline
   }
 
   isDeleted(): boolean {
@@ -402,6 +505,7 @@ export class TextLayout {
   }
 
   delete(): void {
+    this.clearPlacements()
     for (const block of this.blocks) {
       block.paragraph.delete()
       block.marker?.paragraph.delete()
