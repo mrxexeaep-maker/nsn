@@ -4,7 +4,6 @@ const UNSUPPORTED_FRAGMENT_TYPES: ReadonlySet<string> = new Set([
   'INTERNAL_ONLY_NODE',
   'WIDGET',
   'STAMP',
-  'STICKY',
   'SHAPE_WITH_TEXT',
   'CONNECTOR',
   'CODE_BLOCK',

@@ -8,6 +8,7 @@ import { stringToGuid } from '@open-pencil/kiwi/fig/guid'
 import {
   computeImageHash,
   layersUsingVariables,
+  isGeneratedFrame,
   ownsSlotContent,
   type SceneGraph,
   type SceneNode
@@ -41,8 +42,8 @@ class UnpatchableChangeError extends Error {
 }
 
 /**
- * The layer whose record holds a layer: itself, or the outermost instance it sits in, since an
- * instance writes its contents as overrides and derived data on its own record.
+ * The layer whose record holds a layer: itself, or the outermost instance or generated frame it
+ * sits in, since both write their contents as overrides and derived data on their own record.
  */
 function recordOwner(graph: SceneGraph, id: string): string | null {
   const start = graph.getNode(id)
@@ -50,7 +51,7 @@ function recordOwner(graph: SceneGraph, id: string): string | null {
   let owner: SceneNode = start
   for (let node: SceneNode | undefined = start; node;) {
     if (ownsSlotContent(graph, node)) throw new UnpatchableChangeError()
-    if (node.type === 'INSTANCE') owner = node
+    if (node.type === 'INSTANCE' || isGeneratedFrame(node)) owner = node
     if (node.type === 'CANVAS') return owner.id
     node = node.parentId ? graph.getNode(node.parentId) : undefined
   }

@@ -121,6 +121,7 @@ export type NodeType =
   | 'INSTANCE'
   | 'CONNECTOR'
   | 'SHAPE_WITH_TEXT'
+  | 'STICKY'
 
 export type FillType =
   | 'SOLID'
