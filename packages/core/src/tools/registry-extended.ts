@@ -59,6 +59,7 @@ import {
   switchPage
 } from './read'
 import type { ToolDef } from './schema'
+import { getStatuses, setStatus } from './statuses'
 import {
   arrangeNodes,
   cloneNode,
@@ -126,6 +127,8 @@ export const EXTENDED_TOOLS: ToolDef[] = [
   addComment,
   replyToComment,
   resolveComment,
+  getStatuses,
+  setStatus,
   getFontStatus,
   listFonts,
   listAvailableFonts,
