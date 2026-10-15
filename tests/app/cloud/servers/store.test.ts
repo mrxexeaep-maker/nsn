@@ -24,8 +24,16 @@ describe('Cloud server addresses', () => {
   })
 
   test('refuse what cannot be a server', () => {
-    for (const input of ['', 'ftp://cloud.example.com', 'https://user:pass@cloud.example.com'])
+    for (const input of [
+      '',
+      'ftp://cloud.example.com',
+      'https://user:pass@cloud.example.com',
+      // Its session token would cross the network in the clear.
+      'http://cloud.example.com',
+      'http://192.168.1.20:8787'
+    ])
       expect(normalizeCloudServerURL(input)).toBeNull()
+    expect(normalizeCloudServerURL('http://127.0.0.1:8787')).toBe('http://127.0.0.1:8787')
   })
 })
 

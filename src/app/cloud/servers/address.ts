@@ -12,7 +12,12 @@ export function normalizeCloudServerURL(input: string): string | null {
   } catch {
     return null
   }
-  if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname) return null
+  if (!url.hostname) return null
+  // The app sends its session token to the server, so plain HTTP is only for this computer, as
+  // with MCP servers.
+  const loopback =
+    url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]'
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) return null
   if (url.username || url.password) return null
   url.search = ''
   url.hash = ''
