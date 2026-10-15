@@ -10,7 +10,7 @@ import {
 
 import { loadNodeCloudServerConfig } from './config'
 import { createNodeCloudDatabase } from './database'
-import { createNodeTransactionalEmailRuntime } from './email-runtime'
+import { createNodeTransactionalEmailRuntime } from './email/runtime'
 
 export type NodeCloudApplicationOptions = {
   environment?: CloudEnvironment

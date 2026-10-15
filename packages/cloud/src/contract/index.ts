@@ -6,6 +6,7 @@ export {
   type CollaborationPrincipal,
   type CollaborationTicket
 } from './collaboration'
+export * from './relay'
 export { workspaceEntitlementsSchema, type WorkspaceEntitlements } from './entitlements'
 export {
   CLOUD_DISCOVERY_PATH,
@@ -123,3 +124,4 @@ export {
   type WorkspaceRole,
   type WorkspaceSummary
 } from './workspaces'
+export { CLOUD_PORTAL_PAGE_ROOTS, isCloudPortalPage } from './portal'

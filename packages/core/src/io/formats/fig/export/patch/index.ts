@@ -26,8 +26,8 @@ import {
 } from '#core/io/formats/fig/export/setup'
 import { appendVariableNodeChanges } from '#core/io/formats/fig/export/variables'
 import { sceneNodeToKiwi } from '#core/kiwi/fig/node-change/serialize'
-import { figArchive, type FigArchiveAccess } from '#core/kiwi/fig/session/archive'
-import { archiveChanges, type ArchiveChangeSummary } from '#core/kiwi/fig/session/archive-changes'
+import { figArchive, type FigArchiveAccess } from '#core/kiwi/fig/session/archive/access'
+import { archiveChanges, type ArchiveChangeSummary } from '#core/kiwi/fig/session/archive/changes'
 import {
   isReaderPagePending,
   populateFigPage,

@@ -1,7 +1,17 @@
+import { createServer } from 'node:http'
+
 import { createS3ObjectStore } from '#cloud/runtime/s3/objects'
 import {
+  CLOUD_FEATURE_KEYS,
   createCloudApp,
   createCloudAuthenticationRuntime,
+  createCollaborationRelay,
+  createCollaborationStateStore,
+  createDefaultCloudPolicy,
+  DatabaseEntitlementSource,
+  EntitlementOpenFeatureProvider,
+  StaticEntitlementSource,
+  staticEntitlementValues,
   createDocumentCleanupService,
   createRateLimitCleanupService,
   createUploadCleanupService,
@@ -9,10 +19,12 @@ import {
   startTransactionalEmailWorker,
   withIndexingPolicy
 } from '#cloud/server'
-import { serve, type ServerType } from '@hono/node-server'
+import { getRequestListener } from '@hono/node-server'
 
 import { createMigratedNodeCloudDatabase } from './bootstrap'
-import { createNodeTransactionalEmailRuntime } from './email-runtime'
+import { createNodeTransactionalEmailRuntime } from './email/runtime'
+import { createNodeCloudPortal } from './portal'
+import { attachCollaborationRelay, defaultRelayURL } from './relay'
 
 export type NodeCloudServerOptions = {
   environment?: Readonly<Record<string, string | undefined>>
@@ -52,7 +64,36 @@ export async function startNodeCloudServer(options: NodeCloudServerOptions = {})
     objects,
     invitationOutbox,
     transactionalEmail: email,
-    enrollment
+    enrollment,
+    relayURL: config.relayURL ?? defaultRelayURL(config.publicURL)
+  })
+  const policy = createDefaultCloudPolicy(
+    new EntitlementOpenFeatureProvider(
+      config.staticEntitlements
+        ? new StaticEntitlementSource(staticEntitlementValues(config.staticEntitlements))
+        : new DatabaseEntitlementSource(database)
+    )
+  )
+  const relay = createCollaborationRelay({
+    authSecret: config.authSecret,
+    store: createCollaborationStateStore(database),
+    maximumMessageBytes: config.technicalLimits.maximumCollaborationMessageBytes,
+    maximumConnectionsPerRoom: config.technicalLimits.maximumConnectionsPerRoom,
+    async maximumParticipants(documentId) {
+      const document = await database
+        .selectFrom('document')
+        .select('workspaceId')
+        .where('id', '=', documentId)
+        .executeTakeFirst()
+      if (!document) return 0
+      const limit = await policy.number(CLOUD_FEATURE_KEYS.maximumParticipants, -1, {
+        targetingKey: document.workspaceId,
+        workspaceId: document.workspaceId,
+        documentId,
+        deploymentMode: config.deployment
+      })
+      return limit < 0 ? null : limit
+    }
   })
   const emailWorker = emailTransport
     ? startTransactionalEmailWorker(email, {
@@ -63,19 +104,31 @@ export async function startNodeCloudServer(options: NodeCloudServerOptions = {})
         onError: (error) => console.error('[Cloud] Email worker failed:', error)
       })
     : undefined
+  const portalDirectory = environment.OPENPENCIL_CLOUD_PORTAL_DIR
+  const portal = portalDirectory ? createNodeCloudPortal(portalDirectory) : undefined
   const server = await listen(
     async (request) => {
       const path = new URL(request.url).pathname
-      return withIndexingPolicy(await app.fetch(request), path, config.indexingPolicy)
+      const page = await portal?.page(request)
+      if (page) return withIndexingPolicy(page, path, config.indexingPolicy)
+      const response = await app.fetch(request)
+      const file = response.status === 404 ? await portal?.file(request) : null
+      return withIndexingPolicy(file ?? response, path, config.indexingPolicy)
     },
     options.port ?? Number(environment.PORT ?? 8787),
     environment.HOST ?? '0.0.0.0'
+  )
+  const relayListener = attachCollaborationRelay(
+    server.http,
+    relay,
+    config.technicalLimits.maximumCollaborationMessageBytes
   )
   return {
     app,
     database,
     url: server.url,
     async stop() {
+      await relayListener.close()
       await server.close()
       await cleanup?.stop()
       await emailWorker?.stop()
@@ -89,20 +142,24 @@ async function listen(
   port: number,
   hostname: string
 ) {
-  let server: ServerType | undefined
-  const url = await new Promise<URL>((resolve) => {
-    server = serve({ fetch, hostname, port }, (info) => {
-      resolve(new URL(`http://localhost:${info.port}`))
+  const listener = getRequestListener(fetch)
+  const server = createServer((request, response) => {
+    void listener(request, response)
+  })
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(port, hostname, () => {
+      server.off('error', reject)
+      resolve()
     })
   })
+  const address = server.address()
+  const boundPort = typeof address === 'object' && address ? address.port : port
   return {
-    url,
+    url: new URL(`http://localhost:${boundPort}`),
+    http: server,
     close: () =>
       new Promise<void>((done, fail) => {
-        if (!server) {
-          done()
-          return
-        }
         server.close((error) => {
           if (error) fail(error)
           else done()

@@ -8,7 +8,7 @@ import {
 } from '@open-pencil/scene-graph'
 
 import { acceptingParent, acceptsChildren, prepareSlotEdits } from '#core/editor/components/slots'
-import { fitEnclosingGroupsWithUndo } from '#core/editor/structure/group-bounds'
+import { fitEnclosingGroupsWithUndo } from '#core/editor/structure/group/bounds'
 
 import { wrapInAutoLayout as wrapInAutoLayoutImpl } from './structure/auto-layout-wrap'
 import {
@@ -20,7 +20,7 @@ import {
   flattenSelected as flattenSelectedImpl,
   outlineStrokeSelected as outlineStrokeSelectedImpl
 } from './structure/flatten'
-import { ungroupSelected as ungroupImpl } from './structure/group'
+import { ungroupSelected as ungroupImpl } from './structure/group/ungroup'
 import { createLayerTypeActions } from './structure/layer-type'
 import {
   defaultNodeName,

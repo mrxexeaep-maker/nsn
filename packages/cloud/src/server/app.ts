@@ -62,6 +62,11 @@ export type CloudServices = {
   enrollment?: EnrollmentService
   entitlementSource?: EntitlementSource
   policy?: CloudPolicy
+  /**
+   * Where clients reach this runtime's collaboration relay. Without one, Cloud rooms fall back to
+   * peer-to-peer and writes are not enforced by the server.
+   */
+  relayURL?: string
 }
 
 type CloudEnvironment = CloudAPIEnvironment
@@ -156,16 +161,16 @@ export function createCloudApp(services: CloudServices) {
     services.enrollment ??
     createEnrollmentService(services.database, {
       appURL: services.config.appURL ?? services.config.publicURL,
+      portalURL: services.config.publicURL,
       adminRecipients: services.config.enrollmentAdminNotificationEmails,
       email: services.transactionalEmail
     })
   const admin = createCloudAdminRoutes(
     {
-      email: createAdminEmailService(
-        services.database,
-        services.transactionalEmail,
-        services.config.appURL ?? services.config.publicURL
-      ),
+      email: createAdminEmailService(services.database, services.transactionalEmail, {
+        appURL: services.config.appURL ?? services.config.publicURL,
+        portalURL: services.config.publicURL
+      }),
       enrollment,
       users: createAdminUserService(services.database, services.auth, {
         requireMFA: services.config.deploymentAdminMFARequired
@@ -213,7 +218,7 @@ export function createCloudApp(services: CloudServices) {
     database: services.database,
     sharing,
     authSecret: services.config.authSecret,
-    collaborationURL: services.config.collaborationURL,
+    relayURL: services.relayURL,
     policy,
     deploymentMode: services.config.deployment
   })

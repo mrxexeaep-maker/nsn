@@ -4,7 +4,7 @@ export { loadNodeCloudServerConfig } from './config'
 export {
   createNodeTransactionalEmailRuntime,
   type NodeTransactionalEmailRuntime
-} from './email-runtime'
+} from './email/runtime'
 export { createNodeCloudDatabase, type NodeCloudDatabaseOptions } from './database'
 export {
   createNodemailerInvitationDelivery,
@@ -15,6 +15,7 @@ export {
   type SMTPInvitationDeliveryOptions,
   type NodemailerTransactionalEmailTransportOptions,
   type SMTPTransactionalEmailTransportOptions
-} from './email'
+} from './email/transport'
 export { createS3ObjectStore } from '#cloud/runtime/s3/objects'
+export { attachCollaborationRelay, defaultRelayURL } from './relay'
 export { startNodeCloudServer, type NodeCloudServerOptions } from './server'
