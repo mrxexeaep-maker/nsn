@@ -12,7 +12,7 @@ import {
 import { serve, type ServerType } from '@hono/node-server'
 
 import { createMigratedNodeCloudDatabase } from './bootstrap'
-import { createNodeTransactionalEmailRuntime } from './email-runtime'
+import { createNodeTransactionalEmailRuntime } from './email/runtime'
 
 export type NodeCloudServerOptions = {
   environment?: Readonly<Record<string, string | undefined>>

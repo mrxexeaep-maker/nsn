@@ -12,7 +12,7 @@ import { guidToString } from '@open-pencil/kiwi/fig/guid'
 import { computeImageHash, getSharedStyles, type SceneNode } from '@open-pencil/scene-graph'
 import { cloneNodeProps } from '@open-pencil/scene-graph/copy'
 
-import { releaseFigArchive } from '#core/kiwi/fig/session/archive'
+import { releaseFigArchive } from '#core/kiwi/fig/session/archive/access'
 import {
   hasPendingReaderPages,
   populateFigInternalPages

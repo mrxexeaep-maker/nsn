@@ -20,7 +20,7 @@ import { randomHex } from '@open-pencil/scene-graph/random'
 import { reconcileVariableLayouts } from '#core/layout/variables'
 
 import type { AliasTarget, PlannedCollection, PlannedVariable, TokenImportPlan } from './plan'
-import type { PlannedStyle } from './plan-styles'
+import type { PlannedStyle } from './plan/styles'
 
 /** Token fields an import sets; `undefined` clears one. */
 export interface ImportedTokenFields {

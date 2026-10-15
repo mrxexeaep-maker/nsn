@@ -6,8 +6,8 @@ import type { Color } from '@open-pencil/scene-graph/primitives'
 import { useCollaborationMessages } from '@open-pencil/vue'
 
 import { initials } from '@/app/shell/ui'
-import { avatar } from '@/theme/collaboration/avatar'
-import { avatarStack } from '@/theme/collaboration/avatar-stack'
+import { avatar } from '@/theme/collaboration/avatar/person'
+import { avatarStack } from '@/theme/collaboration/avatar/stack'
 
 import type { PresenceVoice } from './rows'
 

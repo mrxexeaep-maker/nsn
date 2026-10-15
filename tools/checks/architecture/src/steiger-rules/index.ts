@@ -17,6 +17,7 @@ import {
   createTextRule,
   filePrefix,
   FILE_PREFIX_GROUP_ALLOWLIST,
+  fileStem,
   PACKAGE_ALIASES,
   PACKAGE_ALIAS_OWNERS,
   relativePath,
@@ -33,8 +34,10 @@ const preferDomainFoldersOverFilenamePrefixes: Rule = {
     for (const folder of collectFolders(root)) {
       const folderRel = relativePath(root.path, folder.path)
       const groups = new Map<string, string[]>()
+      const names = new Set<string>()
       for (const child of folder.children ?? []) {
         if (child.type !== 'file' || !TEXT_EXTENSIONS.has(path.extname(child.path))) continue
+        names.add(fileStem(child.path))
         const prefix = filePrefix(child.path)
         if (!prefix) continue
         const files = groups.get(prefix) ?? []
@@ -42,10 +45,11 @@ const preferDomainFoldersOverFilenamePrefixes: Rule = {
         groups.set(prefix, files)
       }
       for (const [prefix, files] of groups) {
-        if (files.length < 3) continue
+        // `email.ts` beside `email-runtime.ts` is a domain as much as three `email-*` files are.
+        if (files.length < 3 && !names.has(prefix)) continue
         if (FILE_PREFIX_GROUP_ALLOWLIST.has(`${folderRel}::${prefix}`)) continue
         diagnostics.push({
-          message: `Use a ${prefix}/ domain folder instead of ${files.length} sibling files with the ${prefix}- filename prefix.`,
+          message: `Use a ${prefix}/ domain folder instead of sibling files named ${prefix} and ${prefix}-*.`,
           location: { path: folder.path }
         })
       }

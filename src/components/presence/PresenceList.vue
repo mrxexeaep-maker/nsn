@@ -5,7 +5,7 @@ import { useI18n, useInlineRename } from '@open-pencil/vue'
 import type { FollowTarget } from '@/app/presence/types'
 import { initials } from '@/app/shell/ui'
 import IconButton from '@/components/ui/button/IconButton.vue'
-import { avatar } from '@/theme/collaboration/avatar'
+import { avatar } from '@/theme/collaboration/avatar/person'
 import { presenceList } from '@/theme/collaboration/presence-list'
 
 import { isFollowing, type PresenceAgentRow, type PresencePersonRow } from './rows'
