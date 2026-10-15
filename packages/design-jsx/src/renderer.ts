@@ -19,6 +19,7 @@ import {
 import { applySizeOverrides, propsToOverrides } from './props-overrides'
 import { prepareScalarBindings } from './scalar-bindings'
 import type { DesignJSXServices } from './services'
+import { renderStickyNode, STICKY_ELEMENT } from './stickies'
 import { isTextContent, TEXT_CONTENT_NAMES, textContentFields } from './text-content'
 import { FRAGMENT, isTreeNode } from './tree'
 import type { TreeNode } from './tree'
@@ -528,6 +529,7 @@ async function renderNodeContent<Artwork>(
   })
   if (reka) return reka
 
+  if (tree.type === STICKY_ELEMENT) return renderStickyNode(graph, tree, parentId)
   if (isTextContent(tree))
     throw new Error(`<${TEXT_CONTENT_NAMES[tree.type]}> must be inside <Text>`)
   const nodeType = TYPE_MAP[tree.type]

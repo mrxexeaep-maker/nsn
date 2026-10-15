@@ -3,11 +3,12 @@ import { compact } from 'es-toolkit/array'
 import { jsx, type SyntaxNode } from '@open-pencil/emit'
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 
+import { stickyBody, stickyName, stickyProps } from '../stickies'
 import { rekaExport, type RekaExport } from './behaviours'
 import { iconProps } from './icons'
-import { collectProps, NODE_TYPE_TO_TAG } from './props'
+import { collectProps, NODE_TYPE_TO_TAG, positionProps } from './props'
 import { textChildren } from './text'
-import { propAttribute } from './value'
+import { plainValue, propAttribute } from './value'
 
 /** Design JSX with the layer behind each element, in the order elements open. */
 export interface DesignJSXWithLayers {
@@ -64,6 +65,17 @@ function nodeToJSX(
   if (icon) {
     layerIds?.push(node.id)
     return [jsx.element('Icon', icon.map(propAttribute), [], depth)]
+  }
+  if (node.type === 'STICKY') {
+    layerIds?.push(node.id)
+    const body = stickyBody(graph, node)
+    const name = stickyName(graph, node)
+    const attributes = [
+      ...(name ? [propAttribute(['name', name])] : []),
+      ...positionProps(node, graph).map(propAttribute),
+      ...stickyProps(graph, node).map(([key, value]) => propAttribute([key, plainValue(value)]))
+    ]
+    return [jsx.element('Sticky', attributes, body ? [jsx.text(body)] : [], depth, true)]
   }
   const tag = reka.tags.get(node.id) ?? NODE_TYPE_TO_TAG[node.type]
   if (!tag) return []

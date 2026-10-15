@@ -59,6 +59,11 @@ export const DESIGN_JSX_ELEMENTS: DesignJSXElementDefinition[] = [
   { name: 'View', runtimeType: 'frame', description: 'An alias for Frame.' },
   { name: 'Rect', runtimeType: 'rectangle', description: 'An alias for Rectangle.' },
   { name: 'Icon', runtimeType: 'icon', description: 'An Iconify icon.' },
+  {
+    name: 'Sticky',
+    runtimeType: 'sticky',
+    description: 'A FigJam sticky note; its text is the body.'
+  },
   ...rekaElementDefinitions()
 ]
 

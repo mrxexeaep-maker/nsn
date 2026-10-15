@@ -14,6 +14,11 @@ import {
   DESIGN_JSX_TEXT_PARAGRAPH_PROPERTY_NAMES
 } from './schema'
 import type { DesignJSXServices } from './services'
+import {
+  DESIGN_JSX_STICKY_LAYER_PROPERTY_NAMES,
+  DESIGN_JSX_STICKY_PROPERTY_NAMES,
+  STICKY_ELEMENT
+} from './stickies'
 import { PARAGRAPH, SPAN, TEXT_CONTENT_NAMES } from './text-content'
 import { isTreeNode, resolveToTree, type TreeNode } from './tree'
 import type { RenderOptions as RenderJSXOptions } from './types'
@@ -48,9 +53,14 @@ const LAYER_PROPS = new Set<string>(
 const SVG_ROOT_PROPS = new Set([...LAYER_PROPS, 'viewBox', 'body'])
 const PARAGRAPH_PROPS = new Set<string>(['key', ...DESIGN_JSX_PARAGRAPH_PROPERTY_NAMES])
 const SPAN_PROPS = new Set<string>(['key', ...DESIGN_JSX_SPAN_PROPERTY_NAMES])
+const STICKY_PROPS = new Set<string>([
+  ...DESIGN_JSX_STICKY_PROPERTY_NAMES,
+  ...DESIGN_JSX_STICKY_LAYER_PROPERTY_NAMES
+])
 
 function supportedProps(type: string): ReadonlySet<string> {
   if (type === 'svg') return SVG_ROOT_PROPS
+  if (type === STICKY_ELEMENT) return STICKY_PROPS
   if (type === SPAN) return SPAN_PROPS
   if (type === PARAGRAPH) return PARAGRAPH_PROPS
   return LAYER_PROPS
@@ -95,6 +105,7 @@ export function buildComponent(jsxString: string, warnings: string[] = []): Reac
     const Component = 'component', ComponentSet = 'component-set', Instance = 'instance'
     const Span = 'text-span', Paragraph = 'text-paragraph'
     const Icon = 'icon'
+    const Sticky = 'sticky'
     const svg = 'svg'
     ${REKA_ALIASES}
     const dropShadow = __helpers.dropShadow
