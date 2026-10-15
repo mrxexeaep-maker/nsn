@@ -19,8 +19,7 @@ const official: CloudServerEntry = {
   kind: 'official',
   account: { id: 'user-ana', name: 'Ana Duarte', email: 'ana@studio.example' },
   session: 'signed-in',
-  onHome: true,
-  unsaved: 0
+  onHome: true
 }
 const team: CloudServerEntry = {
   id: 'acme',
@@ -28,8 +27,7 @@ const team: CloudServerEntry = {
   kind: 'self-hosted',
   account: { id: 'user-ana-acme', name: 'Ana Duarte', email: 'ana.duarte@acme.example' },
   session: 'signed-in',
-  onHome: false,
-  unsaved: 2
+  onHome: false
 }
 
 const meta = {

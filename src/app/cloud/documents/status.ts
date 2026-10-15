@@ -34,6 +34,17 @@ export function isCloudBinding(binding: StorageDocumentBinding | null): boolean 
   return binding?.providerId === CLOUD_STORAGE_PROVIDER_ID
 }
 
+/** Documents on this device with changes that have not reached this server yet. */
+export async function unsentCloudDocumentCount(serverId: string): Promise<number> {
+  const metas = await getLocalCanvasStore().listMetas()
+  return metas.filter(
+    (meta) =>
+      meta.providerId === CLOUD_STORAGE_PROVIDER_ID &&
+      meta.profileId === serverId &&
+      meta.syncStatus !== 'synced'
+  ).length
+}
+
 /** The open document's Cloud status, kept current while the component using it lives. */
 export function useCloudDocumentStatus(binding: () => StorageDocumentBinding | null) {
   const meta = shallowRef<LocalCanvasMeta | null>(null)

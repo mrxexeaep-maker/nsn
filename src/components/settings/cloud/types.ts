@@ -8,6 +8,4 @@ export type CloudServerEntry = {
   session: 'signed-in' | 'pending' | 'closed' | 'expired' | 'signed-out'
   /** The server whose workspaces Home shows. */
   onHome: boolean
-  /** Documents with changes that have not reached this server yet. */
-  unsaved: number
 }

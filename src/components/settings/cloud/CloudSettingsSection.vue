@@ -5,6 +5,7 @@ import { useCloudMessages, useCommonMessages } from '@open-pencil/vue'
 
 import { cloudOfficialListed } from '@/app/cloud/availability'
 import { openCloudConnect } from '@/app/cloud/connect/flow'
+import { unsentCloudDocumentCount } from '@/app/cloud/documents/status'
 import { cloudServerHost } from '@/app/cloud/servers/address'
 import {
   cloudServers,
@@ -45,13 +46,20 @@ const entries = computed<CloudServerEntry[]>(() =>
       kind: server.kind,
       account,
       session,
-      onHome: homeCloudServer.value?.id === server.id,
-      unsaved: 0
+      onHome: homeCloudServer.value?.id === server.id
     }
   })
 )
 
-const removing = ref<CloudServerEntry | null>(null)
+/** The server being removed, and how many documents would lose changes the server hasn't got. */
+const removing = ref<{ entry: CloudServerEntry; unsaved: number } | null>(null)
+
+async function askToRemove(id: string) {
+  const entry = entries.value.find((candidate) => candidate.id === id)
+  if (!entry) return
+  const unsaved = await unsentCloudDocumentCount(id).catch(() => 0)
+  removing.value = { entry, unsaved }
+}
 
 function manageAccount(id: string) {
   const server = findCloudServer(id)
@@ -69,7 +77,7 @@ async function signOut(id: string) {
 }
 
 async function remove() {
-  const entry = removing.value
+  const entry = removing.value?.entry
   removing.value = null
   if (!entry) return
   const discovery = cloudConnection(entry.id).discovery
@@ -91,14 +99,14 @@ async function remove() {
       @manage-account="manageAccount"
       @show-on-home="showCloudServerOnHome"
       @sign-out="signOut"
-      @remove="(id) => (removing = entries.find((entry) => entry.id === id) ?? null)"
+      @remove="askToRemove"
     >
       <template #hosted><CloudWaitlist /></template>
     </CloudSettingsPanel>
     <AppConfirmationDialog
       :open="removing !== null"
       tone="danger"
-      :heading="t.settingsDisconnectHeading({ host: removing?.host ?? '' })"
+      :heading="t.settingsDisconnectHeading({ host: removing?.entry.host ?? '' })"
       :description="
         removing?.unsaved
           ? t.settingsDisconnectUnsavedDescription(removing.unsaved)
