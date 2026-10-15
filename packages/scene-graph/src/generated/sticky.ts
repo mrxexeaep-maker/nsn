@@ -140,6 +140,17 @@ export function stickyScale(author: Pick<SceneNode, 'fontSize'> | undefined): nu
   return author ? author.fontSize / STICKY_AUTHOR_FONT_SIZE : 1
 }
 
+/** A note's width at a scale, square or wide, as FigJam's side handles switch between them. */
+export function stickyWidth(scale: number, wide: boolean): number {
+  return (wide ? STICKY_WIDE_WIDTH : STICKY_SIZE) * scale
+}
+
+/** Whether a note is wide: nearer FigJam's wide width than its square one at its scale. */
+export function isWideSticky(graph: SceneGraph, sticky: SceneNode): boolean {
+  const scale = stickyScale(stickySublayers(graph, sticky)?.author)
+  return sticky.width > ((STICKY_SIZE + STICKY_WIDE_WIDTH) / 2) * scale
+}
+
 export interface StickySublayers {
   body: SceneNode
   author: SceneNode

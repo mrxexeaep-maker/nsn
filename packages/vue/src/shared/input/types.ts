@@ -41,9 +41,13 @@ export interface DragPlace {
   commit: () => void
 }
 
-/** A sticky note's corner dragged, which scales the whole note. */
+/**
+ * A sticky note's handle dragged: a corner, top, or bottom scales the whole note, a side switches
+ * it between square and wide, as in FigJam.
+ */
 export interface DragStickyScale {
   type: 'sticky-scale'
+  mode: 'scale' | 'wide'
   handle: HandlePosition
   startX: number
   startY: number
@@ -54,6 +58,8 @@ export interface DragStickyScale {
   /** The scale and top-left the latest step reached. */
   scale: number
   position: Vector
+  /** Whether a side drag has reached the wide width. */
+  wide: boolean
   commit: () => void
   cancel: () => void
 }

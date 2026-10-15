@@ -126,3 +126,20 @@ test('double-clicking a note edits its body with all of it selected', async () =
   expect(edited).toMatchObject({ body: { text: 'Replaced' }, name: 'Replaced' })
   expect(edited?.selected).toEqual([edited?.id])
 })
+
+test("dragging a note's right side makes it wide, and back square, as in FigJam", async () => {
+  await editor.page.keyboard.press('Escape')
+  const note = await lastSticky()
+  if (!note) throw new Error('Missing sticky note')
+  await editor.canvas.click((await screenCenter(note)).x, (await screenCenter(note)).y)
+  const edge = await editor.page.evaluate(({ x, y, width, height }) => {
+    const store = window.openPencil?.getStore?.()
+    if (!store) throw new Error('OpenPencil store not initialized')
+    const { panX, panY, zoom } = store.state
+    return { x: (x + width) * zoom + panX, y: (y + height / 2) * zoom + panY }
+  }, note)
+  await editor.canvas.drag(edge.x, edge.y, edge.x + 150, edge.y)
+  await expect.poll(async () => (await lastSticky())?.width).toBe(416)
+  await editor.canvas.drag(edge.x + 176, edge.y, edge.x - 20, edge.y)
+  await expect.poll(async () => (await lastSticky())?.width).toBe(240)
+})

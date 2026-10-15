@@ -3,6 +3,8 @@ import {
   DEFAULT_STICKY_COLOR,
   generatedFrameOwner,
   rescaleNodeTree,
+  stickyScale,
+  stickyWidth,
   STICKY_SIZE,
   stickyBodySizeFields,
   stickySublayers
@@ -128,7 +130,24 @@ export function createStickyActions(ctx: EditorContext) {
     })
   }
 
+  /**
+   * Makes the note `id` wide or square at its scale, keeping the edge on the `anchor` side in
+   * place, as dragging a FigJam note's side does.
+   */
+  function setStickyWide(id: string, wide: boolean, anchor: 'left' | 'right' = 'left') {
+    const sticky = ctx.graph.getNode(id)
+    if (sticky?.type !== 'STICKY') return
+    const scale = stickyScale(stickySublayers(ctx.graph, sticky)?.author)
+    const width = stickyWidth(scale, wide)
+    if (width === sticky.width) return
+    const x = anchor === 'right' ? sticky.x + sticky.width - width : sticky.x
+    recordSubtreeEdit(ctx, wide ? 'Make sticky wide' : 'Make sticky square', id, () => {
+      ctx.graph.updateNode(id, { x, width })
+    })
+  }
+
   return {
+    setStickyWide,
     createStickyNote,
     setStickyColor,
     setStickyTextSize,

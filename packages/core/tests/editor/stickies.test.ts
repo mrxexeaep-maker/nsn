@@ -77,7 +77,19 @@ describe('sticky notes', () => {
     expect(editor.graph.getNode(sticky.id)?.width).toBe(240)
   })
 
-  test("typing in a note's body renames a note that was never renamed", () => {
+  test('a note switches between square and wide, keeping the edge on the anchored side', () => {
+    const { editor, pageId } = setup()
+    const sticky = editor.createStickyNote(pageId, { x: 120, y: 120 })
+    editor.setStickyWide(sticky.id, true)
+    const wide = expectDefined(editor.graph.getNode(sticky.id))
+    expect([wide.x, wide.width, sublayers(editor, wide).body.width]).toEqual([0, 416, 376])
+    editor.setStickyWide(sticky.id, false, 'right')
+    expect(editor.graph.getNode(sticky.id)).toMatchObject({ x: 176, width: 240 })
+    editor.undo.undo()
+    expect(editor.graph.getNode(sticky.id)).toMatchObject({ x: 0, width: 416 })
+  })
+
+    test("typing in a note's body renames a note that was never renamed", () => {
     const { editor, pageId } = setup()
     const sticky = editor.createStickyNote(pageId, { x: 0, y: 0 })
     const { body, author } = sublayers(editor, sticky)
