@@ -131,7 +131,7 @@
   "conflictYourCopyName": "{name}（你的副本）",
   "conflictYouOnThisDevice": "你，在此设备上",
   "conflictResolveFailed": "无法解决冲突。你的更改仍保存在此设备上。",
-  "statusViewOnlyDetail": "你可以浏览和跟随他人，但不能编辑。",
+  "statusViewOnlyDetail": "你可以浏览并跟随他人，但你的更改不会传给任何人。",
   "statusSavedTo": "已保存到 {workspace}",
   "statusSavedAgo": "保存于 {time}",
   "statusUpToDate": "已是最新",

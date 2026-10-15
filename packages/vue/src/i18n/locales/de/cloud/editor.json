@@ -132,7 +132,7 @@
   "conflictYourCopyName": "{name} (deine Kopie)",
   "conflictYouOnThisDevice": "Du, auf diesem Gerät",
   "conflictResolveFailed": "Der Konflikt konnte nicht gelöst werden. Deine Änderungen sind weiterhin auf diesem Gerät.",
-  "statusViewOnlyDetail": "Du kannst dich umsehen und anderen folgen, aber nicht bearbeiten.",
+  "statusViewOnlyDetail": "Du kannst dich umsehen und anderen folgen; deine Änderungen erreichen niemanden.",
   "statusSavedTo": "In {workspace} gespeichert",
   "statusSavedAgo": "Gespeichert {time}",
   "statusUpToDate": "Aktuell",

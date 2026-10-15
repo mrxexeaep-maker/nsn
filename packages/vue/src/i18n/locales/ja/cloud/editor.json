@@ -131,7 +131,7 @@
   "conflictYourCopyName": "{name}（あなたのコピー）",
   "conflictYouOnThisDevice": "このデバイスのあなた",
   "conflictResolveFailed": "競合を解決できませんでした。変更はこのデバイスに残っています。",
-  "statusViewOnlyDetail": "閲覧や他の人のフォローはできますが、編集はできません。",
+  "statusViewOnlyDetail": "閲覧や他の人のフォローはできますが、変更は誰にも届きません。",
   "statusSavedTo": "{workspace} に保存済み",
   "statusSavedAgo": "{time}に保存",
   "statusUpToDate": "最新の状態",

@@ -180,7 +180,7 @@ export const cloudMessageDefaults = {
   conflictResolveFailed: 'Couldn’t resolve the conflict. Your changes are still on this device.',
 
   // Status
-  statusViewOnlyDetail: 'You can look around and follow others, not edit.',
+  statusViewOnlyDetail: 'You can look around and follow others; your changes won’t reach anyone.',
   statusSavedTo: params('Saved to {workspace}'),
   statusSavedAgo: params('Saved {time}'),
   statusUpToDate: 'Up to date',

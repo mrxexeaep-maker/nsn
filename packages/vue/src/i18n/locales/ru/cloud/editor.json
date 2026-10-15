@@ -133,7 +133,7 @@
   "conflictYourCopyName": "{name} (ваша копия)",
   "conflictYouOnThisDevice": "Вы, на этом устройстве",
   "conflictResolveFailed": "Не удалось разрешить конфликт. Ваши изменения по-прежнему на этом устройстве.",
-  "statusViewOnlyDetail": "Можно смотреть и следовать за другими, но не редактировать.",
+  "statusViewOnlyDetail": "Можно осматриваться и следить за другими, но ваши изменения никто не увидит.",
   "statusSavedTo": "Сохранено в {workspace}",
   "statusSavedAgo": "Сохранено {time}",
   "statusUpToDate": "Актуальная версия",
