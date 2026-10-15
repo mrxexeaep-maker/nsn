@@ -13,6 +13,7 @@ type Args = {
 }
 
 const official: CloudSaveDestination = {
+  kind: 'cloud',
   serverId: 'official',
   host: 'cloud.openpencil.dev',
   workspaces: [
@@ -22,10 +23,12 @@ const official: CloudSaveDestination = {
   ]
 }
 const team: CloudSaveDestination = {
+  kind: 'cloud',
   serverId: 'acme',
   host: 'design.acme.internal',
   workspaces: [{ id: 'product', name: 'Product', role: 'editor' }]
 }
+const bucket: CloudSaveDestination = { kind: 'storage', providerId: 's3', label: 'studio-designs' }
 
 const meta = {
   title: 'App/Cloud/Save Dialog',
@@ -33,7 +36,7 @@ const meta = {
   args: {
     destinations: [official],
     state: { kind: 'ready' },
-    destination: 'official/design',
+    destination: 'cloud/official/design',
     onSave: fn()
   },
   render: (args) => ({
@@ -51,6 +54,7 @@ type Story = StoryObj<typeof meta>
 
 export const ChooseWorkspace: Story = {}
 export const TwoServers: Story = { args: { destinations: [official, team] } }
+export const WorkspaceOrBucket: Story = { args: { destinations: [official, bucket] } }
 export const Uploading: Story = {
   args: { state: { kind: 'saving', sentBytes: 14.2 * 1024 ** 2, totalBytes: 38.5 * 1024 ** 2 } }
 }

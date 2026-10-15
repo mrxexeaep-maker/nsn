@@ -17,8 +17,9 @@ import { cloudSave } from '@/theme/cloud/save'
 import type { CloudSaveDestination, CloudSaveState } from './types'
 
 /**
- * Saving a document from this device to a Cloud workspace. The Cloud copy opens in the same tab
- * and syncs from then on; the file on this device is left as it was.
+ * Saving a document from this device to a Cloud workspace or the storage bucket, when there is
+ * more than one place to choose from. The saved copy opens in the same tab and syncs from then
+ * on; the file on this device is left as it was.
  */
 const { destinations, state } = defineProps<{
   destinations: CloudSaveDestination[]
@@ -27,7 +28,7 @@ const { destinations, state } = defineProps<{
 
 const open = defineModel<boolean>('open', { default: false })
 const name = defineModel<string>('name', { default: '' })
-/** `serverId/workspaceId` of the chosen workspace. */
+/** `cloud/serverId/workspaceId` or `storage/providerId`: the chosen destination. */
 const destination = defineModel<string>('destination', { default: '' })
 const emit = defineEmits<{ save: []; cancel: [] }>()
 
@@ -68,24 +69,36 @@ const errors = computed(() => ({
         </div>
 
         <div :class="ui.field()">
-          <span id="cloud-save-destination" :class="ui.label()">{{ t.workspace }}</span>
+          <span id="cloud-save-destination" :class="ui.label()">{{ t.saveWhere }}</span>
           <RadioGroupRoot
             v-model="destination"
             aria-labelledby="cloud-save-destination"
             :class="ui.choices()"
           >
-            <template v-for="server in destinations" :key="server.serverId">
-              <span v-if="destinations.length > 1" :class="ui.server()">{{ server.host }}</span>
-              <RadioGroupItem
-                v-for="workspace in server.workspaces"
-                :key="workspace.id"
-                :value="`${server.serverId}/${workspace.id}`"
-                :disabled="workspace.role === 'viewer'"
-                :class="ui.choice()"
-              >
-                <icon-lucide-layers :class="ui.choiceIcon()" />
-                <span :class="ui.choiceLabel()">{{ workspace.name }}</span>
-                <span :class="ui.choiceRole()">{{ roles[workspace.role] }}</span>
+            <template
+              v-for="group in destinations"
+              :key="group.kind === 'cloud' ? group.serverId : group.providerId"
+            >
+              <span v-if="destinations.length > 1" :class="ui.server()">{{
+                group.kind === 'cloud' ? group.host : t.saveStorageGroup
+              }}</span>
+              <template v-if="group.kind === 'cloud'">
+                <RadioGroupItem
+                  v-for="workspace in group.workspaces"
+                  :key="workspace.id"
+                  :value="`cloud/${group.serverId}/${workspace.id}`"
+                  :disabled="workspace.role === 'viewer'"
+                  :class="ui.choice()"
+                >
+                  <icon-lucide-layers :class="ui.choiceIcon()" />
+                  <span :class="ui.choiceLabel()">{{ workspace.name }}</span>
+                  <span :class="ui.choiceRole()">{{ roles[workspace.role] }}</span>
+                  <span :class="ui.choiceMark()" aria-hidden="true" />
+                </RadioGroupItem>
+              </template>
+              <RadioGroupItem v-else :value="`storage/${group.providerId}`" :class="ui.choice()">
+                <icon-lucide-database :class="ui.choiceIcon()" />
+                <span :class="ui.choiceLabel()">{{ group.label }}</span>
                 <span :class="ui.choiceMark()" aria-hidden="true" />
               </RadioGroupItem>
             </template>
@@ -123,8 +136,8 @@ const errors = computed(() => ({
       </fieldset>
     </AppDialogBody>
 
-    <AppDialogFooter>
-      <AppButton variant="ghost" @click="emit('cancel')">{{ common.cancel }}</AppButton>
+    <AppDialogFooter :ui="{ footer: 'justify-between' }">
+      <AppButton @click="emit('cancel')">{{ common.cancel }}</AppButton>
       <AppButton
         color="primary"
         variant="solid"
@@ -132,7 +145,7 @@ const errors = computed(() => ({
         :disabled="!name.trim() || !destination"
         @click="emit('save')"
       >
-        {{ t.saveHeading }}
+        {{ t.saveAction }}
       </AppButton>
     </AppDialogFooter>
   </AppDialogRoot>

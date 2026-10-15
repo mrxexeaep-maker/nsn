@@ -5,12 +5,12 @@ import {
   cloudSaveName,
   cloudSaveOpen,
   cloudSaveState,
-  saveToCloud
+  saveToDestination
 } from '@/app/cloud/documents/save'
 
 import CloudSaveDialog from './CloudSaveDialog.vue'
 
-/** The Save to Cloud dialog, driven by the app's save flow for whichever tab opened it. */
+/** The Save to dialog, driven by the app's save flow for whichever tab opened it. */
 </script>
 
 <template>
@@ -20,7 +20,7 @@ import CloudSaveDialog from './CloudSaveDialog.vue'
     v-model:destination="cloudSaveDestination"
     :destinations="cloudSaveDestinations"
     :state="cloudSaveState"
-    @save="saveToCloud"
+    @save="saveToDestination"
     @cancel="cloudSaveOpen = false"
   />
 </template>

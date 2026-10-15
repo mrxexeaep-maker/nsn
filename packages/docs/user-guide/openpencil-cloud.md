@@ -31,11 +31,11 @@ The desktop app keeps its sign-in in the system credential store. In the browser
 
 Home lists places in a sidebar: **Recent**, the workspaces of the server Home shows, **Shared with you**, and your storage bucket. On a phone the same places are in a menu above the documents. With more than one server connected, choose which one Home shows with **Show on Home** in Settings.
 
-A workspace lists its documents with where each one stands, how much of the workspace's storage they use, and your role in it. **New design** creates a document in the workspace you are looking at, unless you can only view it. **Shared with you** lists documents people invited you to in workspaces you are not a member of.
+A workspace lists its documents with where each one stands, how much of the workspace's storage they use, and your role in it. Every account starts with a workspace of its own. **New design** creates a document in the workspace you are looking at, and says which one; in Recent, or a workspace you can only view, it creates a file on your device. **Shared with you** lists documents people invited you to in workspaces you are not a member of.
 
 ## Save a Document to Cloud
 
-Open or create a document, then choose **File → Save to Cloud…**. Name it and pick a workspace; workspaces where you can only view are listed but can't be chosen. The Cloud copy opens in the same tab and saves as you work. A file you had open on your device keeps its last saved contents.
+Open or create a document, then choose **File → Save to…**. When there is only one place it can go, it is saved there under its current name; with several workspaces, or a storage bucket too, pick one, and the last place you used is chosen first. Workspaces where you can only view are listed but can't be chosen. The Cloud copy opens in the same tab and saves as you work. A file you had open on your device keeps its last saved contents.
 
 Saving can fail when the file is over the size the workspace allows, when the workspace is out of space, or when you are offline. Nothing changes on your device in those cases.
 

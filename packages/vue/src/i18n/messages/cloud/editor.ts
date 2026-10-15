@@ -99,15 +99,18 @@ export const cloudMessageDefaults = {
   openDocument: 'Open document',
 
   // Save
-  saveHeading: 'Save to Cloud',
+  saveHeading: 'Choose where to save',
   saveDescription: 'Keep this design in sync across devices and share it with people.',
+  saveWhere: 'Location',
+  saveAction: 'Save',
+  saveStorageGroup: 'Storage',
   saveName: 'Name',
   saveQuotaHeading: 'This workspace is out of space',
   saveQuotaDescription: 'Free some space or choose another workspace.',
   saveOfflineHeading: 'You’re offline',
   saveOfflineDescription:
     'Connect to the internet to save to Cloud. Nothing has changed on this device.',
-  saveFailedHeading: 'Couldn’t save to Cloud',
+  saveFailedHeading: 'Couldn’t save',
   saveFailedDescription: 'The server didn’t accept the file. Try again in a moment.',
   saveUploading: params('Uploading… {sent} of {total}'),
   saveTooLargeHeading: 'This file is too large for this server',
@@ -115,7 +118,7 @@ export const cloudMessageDefaults = {
     'It takes files up to {limit}. Remove unused images or pages, then try again.'
   ),
   saveNote:
-    'The Cloud copy opens in this tab and saves as you work. The file on this device stays as it is.',
+    'The saved copy opens in this tab and saves as you work. The file on this device stays as it is.',
 
   // Share
   shareHeading: params('Share “{name}”'),

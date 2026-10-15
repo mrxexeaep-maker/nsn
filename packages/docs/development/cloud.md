@@ -260,3 +260,10 @@ email and password.
 waitlist, which used to sit under Storage, and a team's own server can be connected at any time.
 This supersedes hiding Settings until the official server's listing; Save to Cloud still waits for
 it.
+
+**2026-10 · Every account starts with a workspace, and Save to asks only when there is a choice.**
+An active account with no workspace gets one of its own when it first asks for its status, under a
+slug fixed per person so concurrent requests make one. Save to goes straight to the only workspace
+or bucket a document can go to, and New design creates in the place Home shows, so neither asks a
+question with one answer. A setup step that makes people name a first workspace would stop them
+before they have anything to put in it.

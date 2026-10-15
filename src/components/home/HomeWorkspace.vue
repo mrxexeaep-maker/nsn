@@ -4,7 +4,6 @@ import { computed, ref, watch } from 'vue'
 
 import { useDocumentWorkspace, useI18n, useViewportKind } from '@open-pencil/vue'
 
-import { createCloudDocument } from '@/app/cloud/documents/create'
 import { CLOUD_STORAGE_PROVIDER_ID } from '@/app/cloud/sessions/token'
 import { useHomeLocations } from '@/app/home/locations'
 import {
@@ -15,7 +14,8 @@ import {
   sameStorageLocation,
   storageLocationOf,
   storageProviderRegistry,
-  type StorageDocument
+  type StorageDocument,
+  type StorageLocation
 } from '@/app/integrations/storage'
 import {
   clearRecentFiles,
@@ -27,6 +27,7 @@ import {
 import { useCredentialSettings } from '@/app/settings/credentials/preferences/use'
 import { openSettingsDialog } from '@/app/settings/dialog'
 import { openFileFromPath } from '@/app/shell/menu/use'
+import { createStoredDocument } from '@/app/storage/workspace/create'
 import { activeStorageLocation, createStorageWorkspaceSource } from '@/app/storage/workspace/source'
 import { openStorageDocumentInNewTab } from '@/app/tabs'
 import CloudSharedSection from '@/components/home/cloud/CloudSharedSection.vue'
@@ -49,19 +50,11 @@ const openError = ref<string | null>(null)
 const storageConfigured = ref(storagePreferencesComplete(activeStorageProviderID.value))
 const places = useHomeLocations()
 
-/** A new design lands in the Cloud workspace Home shows, or opens as a local file. */
+/** A new design lands in the place Home shows: a Cloud workspace, the bucket, or a local file. */
 function newDocument() {
-  const workspace = places.workspace.value
-  const serverId = places.serverId.value
-  if (!workspace || !serverId || workspace.role === 'viewer') {
-    emit('new-document')
-    return
-  }
-  void createCloudDocument({
-    providerId: CLOUD_STORAGE_PROVIDER_ID,
-    profileId: serverId,
-    containerId: workspace.id
-  })
+  const target = newDesignTarget.value
+  if (target) void createStoredDocument(target.location)
+  else emit('new-document')
 }
 
 const workspace = useDocumentWorkspace<RecentDocument>({
@@ -133,6 +126,28 @@ const sidebarStorage = computed(() => {
     return { label: storage.value.workspace, detail: settings.value.notConfigured }
   const bucket = readStoragePreferences(activeStorageProviderID.value).bucket?.trim()
   return { label: bucket || storage.value.workspace, detail: storageDescription.value }
+})
+/** Where New design creates, named on the button; a local file when this is null. */
+const newDesignTarget = computed<{ location: StorageLocation; label: string } | null>(() => {
+  const workspace = places.workspace.value
+  const serverId = places.serverId.value
+  if (workspace && serverId && workspace.role !== 'viewer') {
+    return {
+      location: {
+        providerId: CLOUD_STORAGE_PROVIDER_ID,
+        profileId: serverId,
+        containerId: workspace.id
+      },
+      label: workspace.name
+    }
+  }
+  if (places.location.value.kind === 'storage' && storageConfigured.value) {
+    return {
+      location: { providerId: activeStorageProviderID.value },
+      label: sidebarStorage.value.label
+    }
+  }
+  return null
 })
 const storagePreviewURL = storageWorkspace.previewURL
 const vStoragePreview = storageWorkspace.previewDirective
@@ -229,7 +244,11 @@ function formattedDate(updatedAt: string): string {
         @connect="places.connect"
       />
     </template>
-    <HomeSearchActions v-model="query" @new-document="newDocument" />
+    <HomeSearchActions
+      v-model="query"
+      :destination="newDesignTarget?.label ?? null"
+      @new-document="newDocument"
+    />
 
     <p v-if="openError" class="mb-4 text-xs text-error" role="alert">{{ openError }}</p>
     <CloudWorkspaceSection

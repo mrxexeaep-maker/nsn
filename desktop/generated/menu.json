@@ -17,8 +17,8 @@
         "label": "Open Recent"
       },
       {
-        "id": "open-storage-workspace",
-        "label": "Open Storage Workspace…"
+        "id": "browse-files",
+        "label": "Browse Files…"
       },
       {
         "id": "open-tour",
@@ -38,13 +38,8 @@
         "accelerator": "CmdOrCtrl+Shift+S"
       },
       {
-        "id": "save-to-storage",
-        "label": "Save to Storage…"
-      },
-      {
-        "id": "save-to-cloud",
-        "label": "Save to Cloud…",
-        "feature": "cloud"
+        "id": "save-to",
+        "label": "Save To…"
       },
       {
         "type": "separator"

@@ -1,9 +1,12 @@
-/** A workspace a document can be saved to, on the server it belongs to. */
-export type CloudSaveDestination = {
-  serverId: string
-  host: string
-  workspaces: { id: string; name: string; role: 'viewer' | 'editor' | 'admin' }[]
-}
+/** Where a document can be saved: a server's workspaces, or the storage bucket. */
+export type CloudSaveDestination =
+  | {
+      kind: 'cloud'
+      serverId: string
+      host: string
+      workspaces: { id: string; name: string; role: 'viewer' | 'editor' | 'admin' }[]
+    }
+  | { kind: 'storage'; providerId: string; label: string }
 
 export type CloudSaveState =
   | { kind: 'ready' }

@@ -11,6 +11,7 @@ export function openHomeLocation(router: Router, location: HomeLocation): void {
     .then(({ showNewTab }) => showNewTab())
 }
 
-export function openStorageWorkspace(router: Router): void {
-  openHomeLocation(router, { kind: 'storage' })
+/** Home at the place the person browsed last: a Cloud workspace, the bucket, or Recent. */
+export function browseFiles(router: Router): void {
+  openHomeLocation(router, homeLocation.value)
 }

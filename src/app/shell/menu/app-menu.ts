@@ -33,7 +33,7 @@ import { appPreferences } from '@/app/settings/preferences/store'
 import { createSharedEditorMenuActions } from '@/app/shell/menu/actions/editor'
 import { createSelectionMenuActions } from '@/app/shell/menu/actions/selection'
 import { menuFeatureAvailable } from '@/app/shell/menu/features'
-import { openStorageWorkspace } from '@/app/shell/menu/navigation'
+import { browseFiles } from '@/app/shell/menu/navigation'
 import { createSaveMenuActions } from '@/app/shell/menu/save-actions'
 import type {
   AppMenuActionItem,
@@ -105,12 +105,11 @@ export function useAppMenu() {
   const translatedMenuItemLabels: Partial<Record<string, keyof typeof menu.value>> = {
     new: 'new',
     open: 'open',
-    'open-storage-workspace': 'openStorageWorkspace',
+    'browse-files': 'browseFiles',
     'open-tour': 'openTour',
     save: 'save',
     'save-as': 'saveAs',
-    'save-to-storage': 'saveToStorage',
-    'save-to-cloud': 'saveToCloud',
+    'save-to': 'saveTo',
     'export-selection': 'exportSelection',
     autosave: 'autosave',
     close: 'closeTab',
@@ -174,7 +173,7 @@ export function useAppMenu() {
       void import('@/app/tabs').then((m) => m.createTab())
     },
     open: () => void openFileDialog(),
-    'open-storage-workspace': () => openStorageWorkspace(router),
+    'browse-files': () => browseFiles(router),
     'open-tour': () => {
       openTour().catch((error: unknown) => console.error('[Tour] Could not open the tour:', error))
     },

@@ -4,7 +4,6 @@ import { computed, shallowRef, watch } from 'vue'
 
 import { useCloudMessages, useDocumentWorkspace, useI18n } from '@open-pencil/vue'
 
-import { createCloudDocument } from '@/app/cloud/documents/create'
 import { cloudSyncState } from '@/app/cloud/documents/status'
 import { findCloudServer } from '@/app/cloud/servers/store'
 import { cloudAPIClient, cloudConnection } from '@/app/cloud/sessions/connection'
@@ -18,6 +17,7 @@ import {
 } from '@/app/integrations/storage'
 import { getLocalCanvasStore, type LocalCanvasMeta } from '@/app/storage/local-store'
 import { pendingSyncCount, syncUIState, uploadProgressByCanvas } from '@/app/storage/sync'
+import { createStoredDocument } from '@/app/storage/workspace/create'
 import { createStorageWorkspaceSource } from '@/app/storage/workspace/source'
 import { openStorageDocumentInNewTab } from '@/app/tabs'
 
@@ -154,7 +154,7 @@ function open(row: CloudDocumentRow) {
     :can-create="workspace.role !== 'viewer'"
     @open="open"
     @refresh="files.refresh"
-    @new-design="createCloudDocument(location)"
+    @new-design="createStoredDocument(location)"
     @review-conflicts="reviewConflicts"
   />
 </template>
