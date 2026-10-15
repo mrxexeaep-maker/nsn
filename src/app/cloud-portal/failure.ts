@@ -13,6 +13,10 @@ export function usePortalFailureMessages() {
       'password-too-long': value.failurePasswordTooLong,
       'invalid-link': value.failureInvalidLink,
       'invalid-code': value.failureInvalidCode,
+      'passkey-cancelled': value.failurePasskeyCancelled,
+      'passkey-exists': value.failurePasskeyExists,
+      'passkey-unavailable': value.failurePasskeyUnavailable,
+      'session-not-fresh': value.errorSessionNotFresh,
       'rate-limited': value.failureRateLimited,
       unavailable: value.failureUnavailable
     }

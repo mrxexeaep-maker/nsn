@@ -42,6 +42,10 @@ export const cloudPortalMessageDefaults = {
   failurePasswordTooLong: 'The password is too long.',
   failureInvalidLink: 'This link has expired or was already used. Ask for a new one.',
   failureInvalidCode: 'That code didn’t work. Check it and try again.',
+  failurePasskeyCancelled: 'Passkey setup was cancelled.',
+  failurePasskeyExists: 'This device already has a passkey for your account.',
+  failurePasskeyUnavailable:
+    'This browser couldn’t create a passkey for this address. Try another browser, or use an authenticator app.',
   failureRateLimited: 'Too many attempts. Wait a minute and try again.',
   failureUnavailable: 'Something went wrong on the server. Try again in a moment.',
   failureCancelled: 'Sign-in was cancelled.',
