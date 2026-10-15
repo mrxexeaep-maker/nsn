@@ -12,16 +12,6 @@ import type { GUID } from '@open-pencil/scene-graph/primitives'
 
 import { withFigExportRuntime } from '#core/canvas/text/shape'
 import { IS_BROWSER, IS_TAURI } from '#core/constants'
-import {
-  exportSchema,
-  figExportRecordOptions,
-  figFileExtras,
-  type FigFileExtrasOptions,
-  prepareFigExport,
-  type FigExportSetup,
-  type KiwiNodeChange
-} from '#core/io/formats/fig/export-setup'
-import { archiveImagesNamedForFigma, writePatchedFigFile } from '#core/io/formats/fig/patch/export'
 import { sceneNodeToKiwi } from '#core/kiwi/fig/node-change/serialize'
 import { cloneSceneGraphForFigExport } from '#core/kiwi/fig/parse/transfer'
 import {
@@ -31,11 +21,17 @@ import {
 } from '#core/kiwi/fig/session/document-state'
 import { originalFigArchive } from '#core/kiwi/fig/session/original-archive'
 
+import { archiveImagesNamedForFigma, writePatchedFigFile } from './patch'
 import {
-  appendVariableNodeChanges,
-  sequentialPositions,
-  assignSharedStyleGuids
-} from './variable-export'
+  exportSchema,
+  figExportRecordOptions,
+  figFileExtras,
+  type FigFileExtrasOptions,
+  prepareFigExport,
+  type FigExportSetup,
+  type KiwiNodeChange
+} from './setup'
+import { appendVariableNodeChanges, sequentialPositions, assignSharedStyleGuids } from './variables'
 
 type InternalResourceContext = FigExportSetup & { nodeChanges: KiwiNodeChange[] }
 
@@ -236,7 +232,7 @@ function compressViaWorker(
   figKiwiVersion?: number
 ): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./export-worker.ts', import.meta.url), {
+    const worker = new Worker(new URL('./worker.ts', import.meta.url), {
       type: 'module'
     })
 

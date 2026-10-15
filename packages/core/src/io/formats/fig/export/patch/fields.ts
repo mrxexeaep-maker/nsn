@@ -13,7 +13,7 @@ import type { GUID, NodeChange } from '@open-pencil/kiwi/fig/codec'
 import { guidToString } from '@open-pencil/kiwi/fig/guid'
 import type { SceneGraph } from '@open-pencil/scene-graph'
 
-import { prepareFigExport, type FigExportSetup } from '#core/io/formats/fig/export-setup'
+import { prepareFigExport, type FigExportSetup } from '#core/io/formats/fig/export/setup'
 import { cloneSceneGraphForFigExport } from '#core/kiwi/fig/parse/transfer'
 import { archiveBaseline, type ArchiveBaseline } from '#core/kiwi/fig/session/archive-changes'
 

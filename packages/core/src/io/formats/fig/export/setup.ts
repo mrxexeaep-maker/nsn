@@ -39,7 +39,7 @@ import {
   settleFontDigestMap
 } from '#core/kiwi/fig/node-change/serialize'
 
-import { assignVariableGuid, assignVariableGuids } from './variable-export'
+import { assignVariableGuid, assignVariableGuids } from './variables'
 
 /**
  * What a `.fig` write shares however many records it writes: the GUID maps, caches and

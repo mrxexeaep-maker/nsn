@@ -22,8 +22,8 @@ import {
   type FigFileExtrasOptions,
   type FigExportSetup,
   type KiwiNodeChange
-} from '#core/io/formats/fig/export-setup'
-import { appendVariableNodeChanges } from '#core/io/formats/fig/variable-export'
+} from '#core/io/formats/fig/export/setup'
+import { appendVariableNodeChanges } from '#core/io/formats/fig/export/variables'
 import { sceneNodeToKiwi } from '#core/kiwi/fig/node-change/serialize'
 import { figArchive, type FigArchiveAccess } from '#core/kiwi/fig/session/archive'
 import { archiveChanges, type ArchiveChangeSummary } from '#core/kiwi/fig/session/archive-changes'
