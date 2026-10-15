@@ -72,6 +72,7 @@ describe('document sharing invitations integration', () => {
       expect(
         await sharing.previewInvitation(created.invitation.id, { token: created.token })
       ).toEqual({
+        kind: 'document',
         documentName: 'Homepage',
         inviterName: 'Owner Name',
         permission: 'edit',

@@ -135,6 +135,7 @@ describe('createCloudAPIClient', () => {
         if (request.url.endsWith('/preview')) {
           return Response.json({
             invitation: {
+              kind: 'document',
               documentName: 'Homepage',
               inviterName: 'Alice',
               permission: 'view',
@@ -143,7 +144,7 @@ describe('createCloudAPIClient', () => {
             }
           })
         }
-        return Response.json({ grant })
+        return Response.json({ accepted: { kind: 'document', grant } })
       }
     })
 
@@ -153,12 +154,14 @@ describe('createCloudAPIClient', () => {
       email: 'recipient@example.com',
       image: null
     })
-    expect(
-      await client.previewDocumentInvitation(invitationId, { token: 't'.repeat(32) })
-    ).toMatchObject({ documentName: 'Homepage', recipientHint: 're*******@example.com' })
-    expect(await client.acceptDocumentInvitation(invitationId, { token: 't'.repeat(32) })).toEqual(
+    expect(await client.previewInvitation(invitationId, { token: 't'.repeat(32) })).toMatchObject({
+      documentName: 'Homepage',
+      recipientHint: 're*******@example.com'
+    })
+    expect(await client.acceptInvitation(invitationId, { token: 't'.repeat(32) })).toEqual({
+      kind: 'document',
       grant
-    )
+    })
     expect(requests.map((request) => request.url)).toEqual([
       `https://cloud.example.com/api/documents/${documentId}/users/lookup`,
       `https://cloud.example.com/api/invitations/${invitationId}/preview`,

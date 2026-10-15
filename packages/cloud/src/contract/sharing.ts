@@ -2,6 +2,7 @@ import * as v from 'valibot'
 
 import { collaborationPrincipalSchema } from './collaboration'
 import { documentPermissionSchema } from './documents'
+import { workspaceRoleSchema } from './workspaces'
 
 export const documentShareSchema = v.object({
   id: v.pipe(v.string(), v.uuid()),
@@ -66,6 +67,17 @@ export const documentGrantSchema = v.object({
 })
 export type DocumentGrant = v.InferOutput<typeof documentGrantSchema>
 
+/** What accepting an invitation gave: access to a document, or a place in a workspace. */
+export const acceptedInvitationSchema = v.variant('kind', [
+  v.object({ kind: v.literal('document'), grant: documentGrantSchema }),
+  v.object({
+    kind: v.literal('workspace'),
+    workspaceId: v.pipe(v.string(), v.uuid()),
+    role: workspaceRoleSchema
+  })
+])
+export type AcceptedInvitation = v.InferOutput<typeof acceptedInvitationSchema>
+
 export const lookupCloudUserSchema = v.object({
   email: v.pipe(v.string(), v.trim(), v.toLowerCase(), v.email())
 })
@@ -98,13 +110,27 @@ export const invitationContinuationSchema = v.object({
 })
 export type InvitationContinuation = v.InferOutput<typeof invitationContinuationSchema>
 
-export const invitationPreviewSchema = v.object({
-  documentName: v.string(),
+const invitationPreviewFields = {
   inviterName: v.string(),
-  permission: documentPermissionSchema,
   expiresAt: v.string(),
   recipientHint: v.string()
-})
+}
+
+/** What an invitation link opens: one document, or a whole workspace. */
+export const invitationPreviewSchema = v.variant('kind', [
+  v.object({
+    kind: v.literal('document'),
+    documentName: v.string(),
+    permission: documentPermissionSchema,
+    ...invitationPreviewFields
+  }),
+  v.object({
+    kind: v.literal('workspace'),
+    workspaceName: v.string(),
+    role: workspaceRoleSchema,
+    ...invitationPreviewFields
+  })
+])
 export type InvitationPreview = v.InferOutput<typeof invitationPreviewSchema>
 
 export const documentInvitationSchema = v.object({

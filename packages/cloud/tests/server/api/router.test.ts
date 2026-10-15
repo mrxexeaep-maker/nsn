@@ -9,6 +9,10 @@ const actor: CloudActor = {
   name: 'Alice'
 }
 
+async function notUsed(): Promise<never> {
+  throw new Error('not used')
+}
+
 function services() {
   return {
     collaboration: {
@@ -93,6 +97,16 @@ function services() {
         throw new Error('not used')
       },
       ensurePersonal: async () => undefined
+    },
+    workspaceMembers: {
+      rename: notUsed,
+      list: notUsed,
+      invite: notUsed,
+      revokeInvitation: notUsed,
+      updateRole: notUsed,
+      remove: notUsed,
+      preview: async () => null,
+      accept: async () => null
     }
   }
 }

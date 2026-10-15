@@ -1,4 +1,4 @@
-import type { DocumentPermission } from '#cloud/contract'
+import type { InvitationPreview } from '#cloud/contract'
 import type { CloudActor } from '#cloud/server/auth'
 import type { CloudDatabase } from '#cloud/server/db'
 import { DocumentShareInvalidError } from '#cloud/server/sharing/errors'
@@ -13,16 +13,7 @@ export type InvitationContinuationService = ReturnType<typeof createInvitationCo
 export function createInvitationContinuationService(
   database: Kysely<CloudDatabase>,
   secret: string,
-  validateInvitation: (
-    invitationId: string,
-    token: string
-  ) => Promise<{
-    documentName: string
-    inviterName: string
-    permission: DocumentPermission
-    expiresAt: string
-    recipientHint: string
-  }>
+  validateInvitation: (invitationId: string, token: string) => Promise<InvitationPreview>
 ) {
   return {
     async create(input: { invitationId: string; token: string }): Promise<{ id: string }> {

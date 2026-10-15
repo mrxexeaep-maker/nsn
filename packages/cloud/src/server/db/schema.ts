@@ -62,6 +62,19 @@ export interface WorkspaceMemberTable {
   createdAt: TimestampColumn
 }
 
+export interface WorkspaceInvitationTable {
+  id: string
+  workspaceId: string
+  emailNormalized: string
+  role: WorkspaceRole
+  tokenHash: string
+  invitedBy: string
+  invitedAt: TimestampColumn
+  expiresAt: TimestampColumn
+  acceptedAt: TimestampColumn | null
+  revokedAt: TimestampColumn | null
+}
+
 export interface DocumentTable {
   id: string
   workspaceId: string
@@ -275,6 +288,7 @@ export interface CloudDatabase {
   cloudAdminAuditEvent: CloudAdminAuditEventTable
   workspace: WorkspaceTable
   workspaceMember: WorkspaceMemberTable
+  workspaceInvitation: WorkspaceInvitationTable
   document: DocumentTable
   storageObject: StorageObjectTable
   documentRevision: DocumentRevisionTable

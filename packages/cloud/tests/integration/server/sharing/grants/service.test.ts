@@ -41,9 +41,8 @@ describe('document sharing grants integration', () => {
       )
       // The grant names the inviter, so "shared by" shows who shared it.
       expect(accepted).toMatchObject({
-        userId: 'invited-user',
-        permission: 'edit',
-        createdBy: 'owner'
+        kind: 'document',
+        grant: { userId: 'invited-user', permission: 'edit', createdBy: 'owner' }
       })
       await expect(
         context.sharing.acceptInvitation(

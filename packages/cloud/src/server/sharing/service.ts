@@ -12,7 +12,7 @@ import {
   type ResolvedSharePrincipal
 } from './capabilities/service'
 import { createGrantService } from './grants/service'
-import { createInvitationService } from './invitations/service'
+import { createInvitationService, type WorkspaceInvitationResolver } from './invitations/service'
 
 export type { DocumentShareCapability, ResolvedDocumentShare, ResolvedSharePrincipal }
 
@@ -24,6 +24,7 @@ export type DocumentSharingServiceOptions = {
   appURL?: string
   policy?: CloudPolicy
   deploymentMode?: 'official' | 'self-hosted'
+  workspaceInvitations?: WorkspaceInvitationResolver
 }
 
 export function createDocumentSharingService(

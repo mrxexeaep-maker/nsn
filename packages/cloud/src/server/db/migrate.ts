@@ -20,6 +20,7 @@ import * as authSchema from './migrations/016_auth_schema'
 import * as authenticationEmailKinds from './migrations/017_authentication_email_kinds'
 import * as authenticationMFA from './migrations/018_authentication_mfa'
 import * as betterAuthAccountIssuer from './migrations/019_better_auth_account_issuer'
+import * as workspaceInvitations from './migrations/020_workspace_invitations'
 import type { CloudDatabase } from './schema'
 
 const migrations: Record<string, Migration> = {
@@ -41,7 +42,8 @@ const migrations: Record<string, Migration> = {
   '016_auth_schema': authSchema,
   '017_authentication_email_kinds': authenticationEmailKinds,
   '018_authentication_mfa': authenticationMFA,
-  '019_better_auth_account_issuer': betterAuthAccountIssuer
+  '019_better_auth_account_issuer': betterAuthAccountIssuer,
+  '020_workspace_invitations': workspaceInvitations
 }
 
 class CloudMigrationProvider implements MigrationProvider {

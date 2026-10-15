@@ -1,9 +1,14 @@
 import { DocumentForbiddenError, DocumentNotFoundError } from '#cloud/server/documents'
 import { DocumentShareInvalidError, InvitationDeliveryError } from '#cloud/server/sharing/errors'
+import { WorkspaceInvitationInvalidError } from '#cloud/server/workspaces/members'
 import type { Context } from 'hono'
 
 export function sharingDomainError(context: Context, error: unknown): Response | null {
-  if (error instanceof DocumentNotFoundError || error instanceof DocumentShareInvalidError) {
+  if (
+    error instanceof DocumentNotFoundError ||
+    error instanceof DocumentShareInvalidError ||
+    error instanceof WorkspaceInvitationInvalidError
+  ) {
     return context.json({ error: { code: 'not_found' as const } }, 404)
   }
   if (error instanceof InvitationDeliveryError) {

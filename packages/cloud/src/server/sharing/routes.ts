@@ -182,7 +182,7 @@ export function createDocumentSharingRoutes(
       (context) =>
         sharingRoute(context, async () =>
           context.json({
-            grant: await service.acceptInvitation(
+            accepted: await service.acceptInvitation(
               context.get('actor'),
               context.req.param('invitationId'),
               context.req.valid('json')

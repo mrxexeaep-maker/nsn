@@ -1,5 +1,5 @@
 import { checkColumnIn, CURRENT_TIMESTAMP } from '#cloud/server/db/expressions'
-import type { Kysely } from 'kysely'
+import type { CreateTableBuilder, Kysely } from 'kysely'
 
 export async function addCheckConstraint(
   database: Kysely<unknown>,
@@ -38,4 +38,34 @@ export async function addCurrentTimestampColumns(
       )
       .execute()
   }
+}
+
+type InvitationColumn =
+  | 'email_normalized'
+  | 'token_hash'
+  | 'invited_by'
+  | 'expires_at'
+  | 'accepted_at'
+  | 'revoked_at'
+
+/**
+ * What every emailed invitation keeps: whom it went to, the access it grants (`permission` on a
+ * document, `role` in a workspace), its hashed secret, and its lifecycle.
+ */
+export function addInvitationColumns<
+  Table extends string,
+  Column extends string,
+  Access extends 'permission' | 'role'
+>(
+  table: CreateTableBuilder<Table, Column>,
+  access: Access
+): CreateTableBuilder<Table, Column | InvitationColumn | Access> {
+  return table
+    .addColumn('email_normalized', 'text', (column) => column.notNull())
+    .addColumn(access, 'text', (column) => column.notNull())
+    .addColumn('token_hash', 'text', (column) => column.notNull())
+    .addColumn('invited_by', 'text', (column) => column.notNull())
+    .addColumn('expires_at', 'timestamptz', (column) => column.notNull())
+    .addColumn('accepted_at', 'timestamptz')
+    .addColumn('revoked_at', 'timestamptz')
 }

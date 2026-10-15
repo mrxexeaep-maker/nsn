@@ -15,7 +15,7 @@ import {
   createPublicDocumentRoutes,
   createPublicSharingRoutes
 } from '#cloud/server/sharing'
-import type { WorkspaceService } from '#cloud/server/workspaces'
+import type { WorkspaceMemberService, WorkspaceService } from '#cloud/server/workspaces'
 import { createWorkspaceRoutes } from '#cloud/server/workspaces'
 import { Hono } from 'hono'
 import type { Kysely } from 'kysely'
@@ -29,6 +29,7 @@ export type CloudAPIServices = {
   resolveSession?: CloudSessionResolver
   entitlements?: EntitlementService
   workspaces: WorkspaceService
+  workspaceMembers: WorkspaceMemberService
 }
 
 export function createPublicCloudAPIRouter(services: CloudAPIServices) {
@@ -83,6 +84,7 @@ export function createCloudAPIRouter(services: CloudAPIServices) {
       '/workspaces',
       createWorkspaceRoutes(
         services.workspaces,
+        services.workspaceMembers,
         services.database && services.rateLimitSecret
           ? { database: services.database, secret: services.rateLimitSecret }
           : undefined

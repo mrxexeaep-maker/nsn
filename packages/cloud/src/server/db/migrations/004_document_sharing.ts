@@ -1,7 +1,7 @@
 import { checkColumnIn } from '#cloud/server/db/expressions'
 import type { Kysely } from 'kysely'
 
-import { addCurrentTimestampColumns } from './helpers'
+import { addCurrentTimestampColumns, addInvitationColumns } from './helpers'
 
 export async function up(database: Kysely<unknown>): Promise<void> {
   await database.schema
@@ -42,19 +42,15 @@ export async function up(database: Kysely<unknown>): Promise<void> {
     .execute()
   await addCurrentTimestampColumns(database, 'document_grant', ['created_at', 'updated_at'])
 
-  await database.schema
-    .createTable('document_invitation')
-    .addColumn('id', 'uuid', (column) => column.primaryKey())
-    .addColumn('document_id', 'uuid', (column) =>
-      column.references('document.id').onDelete('cascade').notNull()
-    )
-    .addColumn('email_normalized', 'text', (column) => column.notNull())
-    .addColumn('permission', 'text', (column) => column.notNull())
-    .addColumn('token_hash', 'text', (column) => column.notNull())
-    .addColumn('invited_by', 'text', (column) => column.notNull())
-    .addColumn('expires_at', 'timestamptz', (column) => column.notNull())
-    .addColumn('accepted_at', 'timestamptz')
-    .addColumn('revoked_at', 'timestamptz')
+  await addInvitationColumns(
+    database.schema
+      .createTable('document_invitation')
+      .addColumn('id', 'uuid', (column) => column.primaryKey())
+      .addColumn('document_id', 'uuid', (column) =>
+        column.references('document.id').onDelete('cascade').notNull()
+      ),
+    'permission'
+  )
     .addCheckConstraint(
       'document_invitation_permission_check',
       checkColumnIn('permission', ['view', 'edit'])

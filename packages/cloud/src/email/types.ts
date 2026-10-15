@@ -1,8 +1,9 @@
-import { documentPermissionSchema } from '#cloud/contract'
+import { documentPermissionSchema, workspaceRoleSchema } from '#cloud/contract'
 import * as v from 'valibot'
 
 export type TransactionalEmailKind =
   | 'document-invitation'
+  | 'workspace-invitation'
   | 'enrollment-requested'
   | 'admin-enrollment-notification'
   | 'enrollment-approved'
@@ -16,6 +17,14 @@ const documentInvitationEmailPayloadSchema = v.object({
   inviterName: v.string(),
   documentName: v.string(),
   permission: documentPermissionSchema,
+  expiresAt: v.string(),
+  acceptanceURL: v.string()
+})
+
+const workspaceInvitationEmailPayloadSchema = v.object({
+  inviterName: v.string(),
+  workspaceName: v.string(),
+  role: workspaceRoleSchema,
   expiresAt: v.string(),
   acceptanceURL: v.string()
 })
@@ -46,6 +55,7 @@ function content<const Kind extends TransactionalEmailKind, Payload extends v.Ge
 
 export const transactionalEmailContentSchema = v.variant('kind', [
   content('document-invitation', documentInvitationEmailPayloadSchema),
+  content('workspace-invitation', workspaceInvitationEmailPayloadSchema),
   content('enrollment-requested', enrollmentEmailPayloadSchema),
   content('admin-enrollment-notification', adminEnrollmentNotificationPayloadSchema),
   content('enrollment-approved', enrollmentEmailPayloadSchema),
@@ -61,6 +71,9 @@ export type TransactionalEmailContent = v.InferOutput<typeof transactionalEmailC
 
 export type DocumentInvitationEmailPayload = v.InferOutput<
   typeof documentInvitationEmailPayloadSchema
+>
+export type WorkspaceInvitationEmailPayload = v.InferOutput<
+  typeof workspaceInvitationEmailPayloadSchema
 >
 export type EnrollmentEmailPayload = v.InferOutput<typeof enrollmentEmailPayloadSchema>
 export type AdminEnrollmentNotificationPayload = v.InferOutput<

@@ -1,6 +1,8 @@
 import type { CloudFetch } from '#cloud/client/discovery'
 import {
+  acceptedInvitationSchema,
   cloudSessionSchema,
+  createdWorkspaceInvitationSchema,
   cloudUserProfileSchema,
   collaborationTicketSchema,
   createInvitationContinuationSchema,
@@ -16,6 +18,8 @@ import {
   resolvedDocumentShareSchema,
   workspaceEntitlementsSchema,
   workspaceListSchema,
+  workspaceMembersSchema,
+  workspaceSummarySchema,
   workspaceUsageSchema,
   type AcceptDocumentInvitationInput,
   type CloudSession,
@@ -41,7 +45,13 @@ import {
   type ResolveDocumentShareInput,
   type UpdateDocumentShareInput,
   type WorkspaceEntitlements,
+  type AcceptedInvitation,
+  type CreatedWorkspaceInvitation,
+  type CreateWorkspaceInvitationInput,
   type WorkspaceList,
+  type WorkspaceMembers,
+  type WorkspaceRole,
+  type WorkspaceSummary,
   type WorkspaceUsage
 } from '#cloud/contract'
 import type { CloudAPI, PublicCloudAPI } from '#cloud/server/api'
@@ -63,6 +73,8 @@ const shareCapabilityResponseSchema = v.object({
 })
 const grantsResponseSchema = v.object({ grants: v.array(documentGrantSchema) })
 const grantResponseSchema = v.object({ grant: documentGrantSchema })
+const acceptedResponseSchema = v.object({ accepted: acceptedInvitationSchema })
+const workspaceResponseSchema = v.object({ workspace: workspaceSummarySchema })
 const invitationPreviewResponseSchema = v.object({ invitation: invitationPreviewSchema })
 const invitationsResponseSchema = v.object({ invitations: v.array(documentInvitationSchema) })
 const invitationCapabilityResponseSchema = v.object({
@@ -218,6 +230,73 @@ export function createCloudAPIClient(baseURL: string, options: CloudRequestOptio
     },
     async listWorkspaces(): Promise<WorkspaceList> {
       return parseResponse(client.workspaces.$get(), workspaceListSchema, options.onDiagnostic)
+    },
+    async createWorkspace(name: string): Promise<WorkspaceSummary> {
+      const response = await parseResponse(
+        client.workspaces.$post({ json: { name } }),
+        workspaceResponseSchema,
+        options.onDiagnostic
+      )
+      return response.workspace
+    },
+    async renameWorkspace(workspaceId: string, name: string): Promise<WorkspaceSummary> {
+      const response = await parseResponse(
+        client.workspaces[':workspaceId'].$patch({ param: { workspaceId }, json: { name } }),
+        workspaceResponseSchema,
+        options.onDiagnostic
+      )
+      return response.workspace
+    },
+    /** The workspace's members, and for administrators its pending invitations. */
+    async listWorkspaceMembers(workspaceId: string): Promise<WorkspaceMembers> {
+      return parseResponse(
+        client.workspaces[':workspaceId'].members.$get({ param: { workspaceId } }),
+        workspaceMembersSchema,
+        options.onDiagnostic
+      )
+    },
+    async inviteToWorkspace(
+      workspaceId: string,
+      input: CreateWorkspaceInvitationInput
+    ): Promise<CreatedWorkspaceInvitation> {
+      return parseResponse(
+        client.workspaces[':workspaceId'].invitations.$post({
+          param: { workspaceId },
+          json: input
+        }),
+        createdWorkspaceInvitationSchema,
+        options.onDiagnostic
+      )
+    },
+    async revokeWorkspaceInvitation(workspaceId: string, invitationId: string): Promise<void> {
+      await responseBody(
+        await client.workspaces[':workspaceId'].invitations[':invitationId'].$delete({
+          param: { workspaceId, invitationId }
+        }),
+        options.onDiagnostic
+      )
+    },
+    async updateWorkspaceMember(
+      workspaceId: string,
+      userId: string,
+      role: WorkspaceRole
+    ): Promise<void> {
+      await responseBody(
+        await client.workspaces[':workspaceId'].members[':userId'].$patch({
+          param: { workspaceId, userId },
+          json: { role }
+        }),
+        options.onDiagnostic
+      )
+    },
+    /** Removes someone from the workspace; with the person's own id, leaves it. */
+    async removeWorkspaceMember(workspaceId: string, userId: string): Promise<void> {
+      await responseBody(
+        await client.workspaces[':workspaceId'].members[':userId'].$delete({
+          param: { workspaceId, userId }
+        }),
+        options.onDiagnostic
+      )
     },
     async getWorkspaceEntitlements(workspaceId: string): Promise<WorkspaceEntitlements> {
       const response = await parseResponse(
@@ -409,7 +488,7 @@ export function createCloudAPIClient(baseURL: string, options: CloudRequestOptio
         options.onDiagnostic
       )
     },
-    async previewDocumentInvitation(
+    async previewInvitation(
       invitationId: string,
       input: AcceptDocumentInvitationInput
     ): Promise<InvitationPreview> {
@@ -423,19 +502,20 @@ export function createCloudAPIClient(baseURL: string, options: CloudRequestOptio
       )
       return response.invitation
     },
-    async acceptDocumentInvitation(
+    /** Accepts a document or workspace invitation, and says which it was. */
+    async acceptInvitation(
       invitationId: string,
       input: AcceptDocumentInvitationInput
-    ): Promise<DocumentGrant> {
+    ): Promise<AcceptedInvitation> {
       const response = await parseResponse(
         client.invitations[':invitationId'].accept.$post({
           param: { invitationId },
           json: input
         }),
-        grantResponseSchema,
+        acceptedResponseSchema,
         options.onDiagnostic
       )
-      return response.grant
+      return response.accepted
     },
     async revokeDocumentInvitation(documentId: string, invitationId: string): Promise<void> {
       await responseBody(

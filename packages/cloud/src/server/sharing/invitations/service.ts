@@ -1,10 +1,11 @@
 import type {
   AcceptDocumentInvitationInput,
+  AcceptedInvitation,
   CreateDocumentInvitationInput,
   CreateInvitationContinuationInput,
-  DocumentGrant,
   DocumentInvitation,
-  InvitationPreview
+  InvitationPreview,
+  WorkspaceRole
 } from '#cloud/contract'
 import type { CloudActor } from '#cloud/server/auth'
 import type { CloudDatabase } from '#cloud/server/db'
@@ -28,7 +29,18 @@ import { DocumentShareInvalidError, InvitationDeliveryError } from '../errors'
 const INVITATION_SECRET_BYTES = 24
 const INVITATION_LIFETIME_MS = 7 * 24 * 60 * 60_000
 
+/** Workspace invitations share the invitation link; their ids are not document invitations. */
+export type WorkspaceInvitationResolver = {
+  preview(invitationId: string, token: string): Promise<InvitationPreview | null>
+  accept(
+    actor: CloudActor,
+    invitationId: string,
+    token: string
+  ): Promise<{ workspaceId: string; role: WorkspaceRole } | null>
+}
+
 export type InvitationServiceOptions = {
+  workspaceInvitations?: WorkspaceInvitationResolver
   continuationSecret?: string
   delivery?: InvitationDelivery
   outbox?: InvitationOutbox
@@ -40,7 +52,7 @@ export function createInvitationService(
   database: Kysely<CloudDatabase>,
   options: InvitationServiceOptions
 ) {
-  async function previewInvitation(
+  async function previewDocumentInvitation(
     invitationId: string,
     input: AcceptDocumentInvitationInput
   ): Promise<InvitationPreview> {
@@ -68,6 +80,7 @@ export function createInvitationService(
       .where('id', '=', invitation.invitedBy)
       .executeTakeFirst()
     return {
+      kind: 'document',
       documentName: invitation.documentName,
       inviterName: inviter?.name ?? 'An OpenPencil user',
       permission: invitation.permission,
@@ -80,7 +93,8 @@ export function createInvitationService(
     ? createInvitationContinuationService(
         database,
         options.continuationSecret,
-        async (invitationId, token) => previewInvitation(invitationId, { token })
+        // Continuations are kept for document invitations only.
+        async (invitationId, token) => previewDocumentInvitation(invitationId, { token })
       )
     : null
 
@@ -205,13 +219,22 @@ export function createInvitationService(
       return continuation.consume(id)
     },
 
-    previewInvitation,
+    /** What an invitation link offers: a document, or a workspace when the id is one of those. */
+    async previewInvitation(
+      invitationId: string,
+      input: AcceptDocumentInvitationInput
+    ): Promise<InvitationPreview> {
+      const workspace = await options.workspaceInvitations?.preview(invitationId, input.token)
+      return workspace ?? previewDocumentInvitation(invitationId, input)
+    },
 
     async acceptInvitation(
       actor: CloudActor,
       invitationId: string,
       input: AcceptDocumentInvitationInput
-    ): Promise<DocumentGrant> {
+    ): Promise<AcceptedInvitation> {
+      const workspace = await options.workspaceInvitations?.accept(actor, invitationId, input.token)
+      if (workspace) return { kind: 'workspace', ...workspace }
       const invitation = await database
         .selectFrom('documentInvitation')
         .select([
@@ -270,7 +293,7 @@ export function createInvitationService(
           .where('id', '=', invitationId)
           .where('acceptedAt', 'is', null)
           .execute()
-        return grantContract(row)
+        return { kind: 'document' as const, grant: grantContract(row) }
       })
     },
 

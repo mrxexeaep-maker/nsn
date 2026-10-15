@@ -44,7 +44,7 @@ import {
   createTrustedIPRateLimiter
 } from '#cloud/server/rate-limit'
 import { createDocumentSharingService } from '#cloud/server/sharing'
-import { createWorkspaceService } from '#cloud/server/workspaces'
+import { createWorkspaceMemberService, createWorkspaceService } from '#cloud/server/workspaces'
 import { Hono, type Context } from 'hono'
 import { cors } from 'hono/cors'
 import type { Kysely } from 'kysely'
@@ -147,6 +147,11 @@ export function createCloudApp(services: CloudServices) {
     maxAge: 600
   })
   const workspaces = createWorkspaceService(services.database)
+  const workspaceMembers = createWorkspaceMemberService(services.database, {
+    email: services.transactionalEmail,
+    publicURL: services.config.publicURL,
+    appURL: services.config.appURL ?? services.config.publicURL
+  })
   const enrollment =
     services.enrollment ??
     createEnrollmentService(services.database, {
@@ -201,7 +206,8 @@ export function createCloudApp(services: CloudServices) {
     publicURL: services.config.publicURL,
     appURL: services.config.appURL ?? services.config.publicURL,
     policy,
-    deploymentMode: services.config.deployment
+    deploymentMode: services.config.deployment,
+    workspaceInvitations: workspaceMembers
   })
   const collaboration = createCollaborationTicketService({
     database: services.database,
@@ -268,6 +274,7 @@ export function createCloudApp(services: CloudServices) {
     entitlements,
     sharing,
     workspaces,
+    workspaceMembers,
     resolveSession
   })
   const publicCloudAPI = createPublicCloudAPIRouter({
@@ -276,6 +283,7 @@ export function createCloudApp(services: CloudServices) {
     entitlements,
     sharing,
     workspaces,
+    workspaceMembers,
     resolveSession
   })
 

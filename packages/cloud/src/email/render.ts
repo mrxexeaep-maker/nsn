@@ -6,6 +6,7 @@ import type {
   AdminEnrollmentNotificationPayload,
   AuthenticationEmailPayload,
   DocumentInvitationEmailPayload,
+  WorkspaceInvitationEmailPayload,
   EnrollmentEmailPayload,
   RenderedTransactionalEmail,
   TransactionalEmailContent,
@@ -39,9 +40,28 @@ async function renderDocumentInvitation(payload: DocumentInvitationEmailPayload)
   )
 }
 
+const WORKSPACE_ROLE_LABELS = { admin: 'manage', editor: 'edit in', viewer: 'view' } as const
+
+async function renderWorkspaceInvitation(payload: WorkspaceInvitationEmailPayload) {
+  const action = WORKSPACE_ROLE_LABELS[payload.role]
+  return rendered(
+    EnrollmentEmail,
+    {
+      heading: `Join ${payload.workspaceName}`,
+      preview: `${payload.inviterName} invited you to ${payload.workspaceName}`,
+      message: `${payload.inviterName} invited you to ${action} the workspace “${payload.workspaceName}” on OpenPencil Cloud. You will see its documents on Home once you join.`,
+      actionLabel: 'Join workspace',
+      actionURL: payload.acceptanceURL,
+      footer: `This invitation expires ${new Date(payload.expiresAt).toUTCString()}.`
+    },
+    `${payload.inviterName} invited you to ${payload.workspaceName}`
+  )
+}
+
 type EnrollmentMessageKind = Exclude<
   TransactionalEmailKind,
   | 'document-invitation'
+  | 'workspace-invitation'
   | 'admin-enrollment-notification'
   | 'email-verification'
   | 'password-reset'
@@ -94,17 +114,7 @@ function enrollmentCopy(kind: EnrollmentMessageKind, name: string): EnrollmentCo
   return { ...copy, message: messages[kind] }
 }
 
-async function renderEnrollment(
-  kind: Exclude<
-    TransactionalEmailKind,
-    | 'document-invitation'
-    | 'admin-enrollment-notification'
-    | 'email-verification'
-    | 'password-reset'
-    | 'password-changed'
-  >,
-  payload: EnrollmentEmailPayload
-) {
+async function renderEnrollment(kind: EnrollmentMessageKind, payload: EnrollmentEmailPayload) {
   const copy = enrollmentCopy(kind, payload.name)
   return rendered(EnrollmentEmail, { ...copy, actionURL: payload.actionURL }, copy.subject)
 }
@@ -159,6 +169,7 @@ export async function renderTransactionalEmail(
   content: TransactionalEmailContent
 ): Promise<RenderedTransactionalEmail> {
   if (content.kind === 'document-invitation') return renderDocumentInvitation(content.payload)
+  if (content.kind === 'workspace-invitation') return renderWorkspaceInvitation(content.payload)
   if (content.kind === 'admin-enrollment-notification') {
     return renderAdminNotification(content.payload)
   }
