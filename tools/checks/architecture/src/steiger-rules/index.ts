@@ -360,8 +360,8 @@ const VIEW_ENTRYPOINTS = new Set([
   'src/main.ts',
   'src/router.ts',
   'src/updater.ts',
-  'src/cloud.ts',
-  'src/cloud-router.ts'
+  'src/cloud/main.ts',
+  'src/cloud/router.ts'
 ])
 
 const noViewsImportedOutsideEntry = createImportRule(
@@ -376,8 +376,7 @@ const noViewsImportedOutsideEntry = createImportRule(
 // The Cloud portal is served by the Cloud server on its own; it reuses the app's UI, never the
 // editor, so its build stays small.
 const CLOUD_PORTAL_SOURCES = [
-  'src/cloud.ts',
-  'src/cloud-router.ts',
+  'src/cloud/',
   'src/views/cloud/',
   'src/app/cloud-portal/',
   'src/components/cloud-portal/',

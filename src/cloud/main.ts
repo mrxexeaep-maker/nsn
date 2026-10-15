@@ -1,12 +1,12 @@
 import { createHead } from '@unhead/vue/client'
 import { createApp } from 'vue'
 
-import './app.css'
+import '@/app.css'
 import { loadPortalContext, PORTAL_CONTEXT } from '@/app/cloud-portal/context'
+import CloudPortalApp from '@/views/cloud/CloudPortalApp.vue'
+import CloudPortalUnavailableView from '@/views/cloud/CloudPortalUnavailableView.vue'
 
-import { createCloudPortalRouter } from './cloud-router'
-import CloudPortalApp from './views/cloud/CloudPortalApp.vue'
-import CloudPortalUnavailableView from './views/cloud/CloudPortalUnavailableView.vue'
+import { createCloudPortalRouter } from './router'
 
 // Entry for the pages a Cloud server shows on its own address (`cloud.html`): signing in,
 // approving the desktop app, account security, and the administrator console. The editor
