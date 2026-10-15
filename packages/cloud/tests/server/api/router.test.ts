@@ -105,6 +105,7 @@ function services() {
       revokeInvitation: notUsed,
       updateRole: notUsed,
       remove: notUsed,
+      delete: notUsed,
       preview: async () => null,
       accept: async () => null
     }

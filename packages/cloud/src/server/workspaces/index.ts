@@ -4,6 +4,7 @@ export {
   WorkspaceForbiddenError,
   WorkspaceInvitationInvalidError,
   WorkspaceLastAdminError,
+  WorkspaceNotEmptyError,
   WorkspaceNotFoundError,
   type WorkspaceMemberService
 } from './members'

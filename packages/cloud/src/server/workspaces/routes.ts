@@ -12,6 +12,7 @@ import {
   WorkspaceAlreadyMemberError,
   WorkspaceForbiddenError,
   WorkspaceLastAdminError,
+  WorkspaceNotEmptyError,
   WorkspaceNotFoundError,
   type WorkspaceMemberService
 } from '#cloud/server/workspaces/members'
@@ -39,6 +40,10 @@ async function memberRoute<T>(context: Context, action: () => Promise<T>): Promi
     }
     if (error instanceof WorkspaceLastAdminError) {
       return context.json({ error: { code: 'last_admin' as const } }, 409)
+    }
+    if (error instanceof WorkspaceNotEmptyError) {
+      const code = error.reason === 'documents' ? 'not_empty' : 'cleanup_pending'
+      return context.json({ error: { code } }, 409)
     }
     if (error instanceof WorkspaceAlreadyMemberError) {
       return context.json({ error: { code: 'already_member' as const } }, 409)
@@ -111,6 +116,12 @@ export function createWorkspaceRoutes(
           )
         })
       )
+    )
+    .delete('/:workspaceId', (context) =>
+      memberRoute(context, async () => {
+        await members.delete(context.get('actor').userId, context.req.param('workspaceId'))
+        return context.body(null, 204)
+      })
     )
     .get('/:workspaceId/members', (context) =>
       memberRoute(context, async () =>

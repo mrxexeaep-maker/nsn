@@ -49,6 +49,17 @@ export class WorkspaceLastAdminError extends Error {
   }
 }
 
+/**
+ * A workspace still holds documents: live ones, or deleted ones kept until cleanup removes their
+ * files, which deleting the workspace now would leave behind in object storage.
+ */
+export class WorkspaceNotEmptyError extends Error {
+  constructor(readonly reason: 'documents' | 'pending-cleanup') {
+    super('Workspace still holds documents')
+    this.name = 'WorkspaceNotEmptyError'
+  }
+}
+
 /** The person invited already belongs to the workspace. */
 export class WorkspaceAlreadyMemberError extends Error {
   constructor() {
@@ -307,6 +318,30 @@ export function createWorkspaceMemberService(
           .where('workspaceId', '=', workspaceId)
           .where('userId', '=', memberId)
           .execute()
+      })
+    },
+
+    /** Deletes an empty workspace, with its members and invitations. */
+    async delete(userId: string, workspaceId: string): Promise<void> {
+      await requireAdmin(userId, workspaceId)
+      await database.transaction().execute(async (transaction) => {
+        // Locked first, so a document created meanwhile waits and then finds no workspace.
+        await transaction
+          .selectFrom('workspace')
+          .select('id')
+          .where('id', '=', workspaceId)
+          .forUpdate()
+          .executeTakeFirstOrThrow()
+        const documents = await transaction
+          .selectFrom('document')
+          .select(['deletedAt'])
+          .where('workspaceId', '=', workspaceId)
+          .execute()
+        if (documents.some((document) => document.deletedAt === null)) {
+          throw new WorkspaceNotEmptyError('documents')
+        }
+        if (documents.length > 0) throw new WorkspaceNotEmptyError('pending-cleanup')
+        await transaction.deleteFrom('workspace').where('id', '=', workspaceId).execute()
       })
     },
 

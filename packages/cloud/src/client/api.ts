@@ -2,7 +2,6 @@ import type { CloudFetch } from '#cloud/client/discovery'
 import {
   acceptedInvitationSchema,
   cloudSessionSchema,
-  createdWorkspaceInvitationSchema,
   cloudUserProfileSchema,
   collaborationTicketSchema,
   createInvitationContinuationSchema,
@@ -16,11 +15,6 @@ import {
   invitationContinuationSchema,
   invitationPreviewSchema,
   resolvedDocumentShareSchema,
-  workspaceEntitlementsSchema,
-  workspaceListSchema,
-  workspaceMembersSchema,
-  workspaceSummarySchema,
-  workspaceUsageSchema,
   type AcceptDocumentInvitationInput,
   type CloudSession,
   type CloudUserProfile,
@@ -44,25 +38,21 @@ import {
   type PutDocumentGrantInput,
   type ResolveDocumentShareInput,
   type UpdateDocumentShareInput,
-  type WorkspaceEntitlements,
-  type AcceptedInvitation,
-  type CreatedWorkspaceInvitation,
-  type CreateWorkspaceInvitationInput,
-  type WorkspaceList,
-  type WorkspaceMembers,
-  type WorkspaceRole,
-  type WorkspaceSummary,
-  type WorkspaceUsage
+  type AcceptedInvitation
 } from '#cloud/contract'
 import type { CloudAPI, PublicCloudAPI } from '#cloud/server/api'
 import { hc } from 'hono/client'
 import * as v from 'valibot'
 
+import { CloudAPIError, parseResponse, responseBody, type CloudClientDiagnostic } from './response'
+import { createWorkspaceRequests } from './workspaces'
+
+export { CloudAPIError, type CloudClientDiagnostic } from './response'
+
 const documentsResponseSchema = v.object({ documents: v.array(documentSummarySchema) })
 const sharedDocumentsResponseSchema = v.object({ documents: v.array(sharedDocumentSchema) })
 const documentResponseSchema = v.object({ document: documentSummarySchema })
 const downloadResponseSchema = v.object({ document: documentDownloadSchema })
-const usageResponseSchema = v.object({ usage: workspaceUsageSchema })
 const accessResponseSchema = v.object({ access: documentAccessSchema })
 const sharesResponseSchema = v.object({ shares: v.array(documentShareSchema) })
 const shareResponseSchema = v.object({ share: documentShareSchema })
@@ -74,7 +64,6 @@ const shareCapabilityResponseSchema = v.object({
 const grantsResponseSchema = v.object({ grants: v.array(documentGrantSchema) })
 const grantResponseSchema = v.object({ grant: documentGrantSchema })
 const acceptedResponseSchema = v.object({ accepted: acceptedInvitationSchema })
-const workspaceResponseSchema = v.object({ workspace: workspaceSummarySchema })
 const invitationPreviewResponseSchema = v.object({ invitation: invitationPreviewSchema })
 const invitationsResponseSchema = v.object({ invitations: v.array(documentInvitationSchema) })
 const invitationCapabilityResponseSchema = v.object({
@@ -88,7 +77,6 @@ const sharedDocumentResponseSchema = v.object({
   document: documentDownloadSchema
 })
 const userLookupResponseSchema = v.object({ user: v.nullable(cloudUserProfileSchema) })
-const entitlementResponseSchema = v.object({ entitlements: workspaceEntitlementsSchema })
 const uploadResponseSchema = v.object({
   id: v.pipe(v.string(), v.uuid()),
   upload: v.variant('kind', [
@@ -116,15 +104,6 @@ const uploadResponseSchema = v.object({
   ])
 })
 
-const cloudErrorResponseSchema = v.object({
-  error: v.object({ code: v.string() })
-})
-
-/** The part of a fetch or Hono client response the client reads. */
-type CloudResponse = Pick<Response, 'ok' | 'status' | 'json'>
-
-export type CloudClientDiagnostic = (message: string, error: unknown) => void
-
 export type CloudRequestOptions = {
   fetch?: CloudFetch
   signal?: AbortSignal
@@ -133,18 +112,6 @@ export type CloudRequestOptions = {
 }
 
 export type CloudUpload = v.InferOutput<typeof uploadResponseSchema>
-
-export class CloudAPIError extends Error {
-  override readonly name = 'CloudAPIError'
-
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly code?: string
-  ) {
-    super(message)
-  }
-}
 
 function apiURL(baseURL: string): string {
   const url = new URL(baseURL)
@@ -155,33 +122,6 @@ function apiURL(baseURL: string): string {
   url.search = ''
   url.hash = ''
   return url.href
-}
-
-async function responseBody(
-  response: CloudResponse,
-  onDiagnostic?: CloudClientDiagnostic
-): Promise<unknown> {
-  if (response.ok) return response.status === 204 ? null : response.json()
-  let code: string | undefined
-  try {
-    const body = v.safeParse(cloudErrorResponseSchema, await response.json())
-    if (body.success) code = body.output.error.code
-  } catch (error) {
-    onDiagnostic?.('Cloud API error response was not JSON', error)
-  }
-  throw new CloudAPIError(
-    `OpenPencil Cloud request failed with HTTP ${response.status}`,
-    response.status,
-    code
-  )
-}
-
-async function parseResponse<TSchema extends v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>>(
-  request: Promise<CloudResponse>,
-  schema: TSchema,
-  onDiagnostic?: CloudClientDiagnostic
-): Promise<v.InferOutput<TSchema>> {
-  return v.parse(schema, await responseBody(await request, onDiagnostic))
 }
 
 export function createCloudAPIClient(baseURL: string, options: CloudRequestOptions = {}) {
@@ -228,94 +168,7 @@ export function createCloudAPIClient(baseURL: string, options: CloudRequestOptio
       )
       return response.user
     },
-    async listWorkspaces(): Promise<WorkspaceList> {
-      return parseResponse(client.workspaces.$get(), workspaceListSchema, options.onDiagnostic)
-    },
-    async createWorkspace(name: string): Promise<WorkspaceSummary> {
-      const response = await parseResponse(
-        client.workspaces.$post({ json: { name } }),
-        workspaceResponseSchema,
-        options.onDiagnostic
-      )
-      return response.workspace
-    },
-    async renameWorkspace(workspaceId: string, name: string): Promise<WorkspaceSummary> {
-      const response = await parseResponse(
-        client.workspaces[':workspaceId'].$patch({ param: { workspaceId }, json: { name } }),
-        workspaceResponseSchema,
-        options.onDiagnostic
-      )
-      return response.workspace
-    },
-    /** The workspace's members, and for administrators its pending invitations. */
-    async listWorkspaceMembers(workspaceId: string): Promise<WorkspaceMembers> {
-      return parseResponse(
-        client.workspaces[':workspaceId'].members.$get({ param: { workspaceId } }),
-        workspaceMembersSchema,
-        options.onDiagnostic
-      )
-    },
-    async inviteToWorkspace(
-      workspaceId: string,
-      input: CreateWorkspaceInvitationInput
-    ): Promise<CreatedWorkspaceInvitation> {
-      return parseResponse(
-        client.workspaces[':workspaceId'].invitations.$post({
-          param: { workspaceId },
-          json: input
-        }),
-        createdWorkspaceInvitationSchema,
-        options.onDiagnostic
-      )
-    },
-    async revokeWorkspaceInvitation(workspaceId: string, invitationId: string): Promise<void> {
-      await responseBody(
-        await client.workspaces[':workspaceId'].invitations[':invitationId'].$delete({
-          param: { workspaceId, invitationId }
-        }),
-        options.onDiagnostic
-      )
-    },
-    async updateWorkspaceMember(
-      workspaceId: string,
-      userId: string,
-      role: WorkspaceRole
-    ): Promise<void> {
-      await responseBody(
-        await client.workspaces[':workspaceId'].members[':userId'].$patch({
-          param: { workspaceId, userId },
-          json: { role }
-        }),
-        options.onDiagnostic
-      )
-    },
-    /** Removes someone from the workspace; with the person's own id, leaves it. */
-    async removeWorkspaceMember(workspaceId: string, userId: string): Promise<void> {
-      await responseBody(
-        await client.workspaces[':workspaceId'].members[':userId'].$delete({
-          param: { workspaceId, userId }
-        }),
-        options.onDiagnostic
-      )
-    },
-    async getWorkspaceEntitlements(workspaceId: string): Promise<WorkspaceEntitlements> {
-      const response = await parseResponse(
-        client.workspaces[':workspaceId'].entitlements.$get({ param: { workspaceId } }),
-        entitlementResponseSchema,
-        options.onDiagnostic
-      )
-      return response.entitlements
-    },
-    async getUsage(workspaceId: string): Promise<WorkspaceUsage> {
-      const response = await parseResponse(
-        client.workspaces[':workspaceId'].usage.$get({
-          param: { workspaceId }
-        }),
-        usageResponseSchema,
-        options.onDiagnostic
-      )
-      return response.usage
-    },
+    ...createWorkspaceRequests(client, options.onDiagnostic),
     /** Documents shared with the person directly, outside their workspaces. */
     async listSharedDocuments(): Promise<SharedDocument[]> {
       const response = await parseResponse(

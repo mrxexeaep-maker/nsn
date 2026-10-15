@@ -214,4 +214,39 @@ describe('workspace members', () => {
       await runtime.close()
     }
   })
+  test('deletes a workspace only once it holds no documents', async () => {
+    const { runtime, as } = await testApp()
+    try {
+      const created = await responseJSON(
+        await as(people.alice)('/api/workspaces', { method: 'POST', json: { name: 'Studio' } }),
+        v.object({ workspace: v.object({ id: v.string() }) })
+      )
+      const workspaceId = created.workspace.id
+      const documentId = crypto.randomUUID()
+      await runtime.database
+        .insertInto('document')
+        .values({ id: documentId, workspaceId, name: 'Poster', createdBy: people.alice.userId })
+        .execute()
+      const remove = () => as(people.alice)(`/api/workspaces/${workspaceId}`, { method: 'DELETE' })
+
+      const withDocument = await remove()
+      expect(withDocument.status).toBe(409)
+      expect(await withDocument.json()).toEqual({ error: { code: 'not_empty' } })
+
+      await runtime.database
+        .updateTable('document')
+        .set({ deletedAt: new Date() })
+        .where('id', '=', documentId)
+        .execute()
+      expect(await (await remove()).json()).toEqual({ error: { code: 'cleanup_pending' } })
+
+      await runtime.database.deleteFrom('document').where('id', '=', documentId).execute()
+      const notAdmin = await as(people.bob)(`/api/workspaces/${workspaceId}`, { method: 'DELETE' })
+      expect(notAdmin.status).toBe(404)
+      expect((await remove()).status).toBe(204)
+      expect((await as(people.alice)(`/api/workspaces/${workspaceId}`)).status).toBe(404)
+    } finally {
+      await runtime.close()
+    }
+  })
 })
