@@ -66,7 +66,7 @@ export const cloudMFAVerifyResponseSchema = v.object({ ok: v.literal(true) })
 export const cloudMFARecoveryCodesResponseSchema = v.object({ backupCodes: v.array(v.string()) })
 export const cloudPasskeySchema = v.object({
   id: v.string(),
-  name: v.optional(v.string()),
+  name: v.nullish(v.string()),
   createdAt: v.string()
 })
 export const cloudPasskeysResponseSchema = v.object({ passkeys: v.array(cloudPasskeySchema) })
