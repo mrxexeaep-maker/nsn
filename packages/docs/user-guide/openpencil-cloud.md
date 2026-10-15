@@ -31,7 +31,7 @@ The desktop app keeps its sign-in in the system credential store. In the browser
 
 Home lists places in a sidebar: **Recent**, the workspaces of the server Home shows, **Shared with you**, and your storage bucket. On a phone the same places are in a menu above the documents. With more than one server connected, choose which one Home shows with **Show on Home** in Settings.
 
-A workspace lists its documents with where each one stands, how much of the workspace's storage they use, and your role in it. Every account starts with a workspace of its own. **New design** creates a document in the workspace you are looking at, and says which one; in Recent, or a workspace you can only view, it creates a file on your device. **Shared with you** lists documents people invited you to in workspaces you are not a member of.
+A workspace lists its documents with where each one stands, how much of the workspace's storage they use, and your role in it. Every account starts with a workspace of its own. **New design** creates a document in the workspace you are looking at, and says which one; in **Shared with you** it creates in your own workspace, and in Recent, or a workspace you can only view, it creates a file on your device. **Shared with you** lists documents people invited you to in workspaces you are not a member of.
 
 ## Save a Document to Cloud
 

@@ -141,6 +141,14 @@ const newDesignTarget = computed<{ location: StorageLocation; label: string } | 
       label: workspace.name
     }
   }
+  // Shared documents belong to other people's workspaces, so a new one goes to the person's own.
+  const own = places.workspaces.value.find((entry) => entry.role !== 'viewer')
+  if (places.location.value.kind === 'shared' && own && serverId) {
+    return {
+      location: { providerId: CLOUD_STORAGE_PROVIDER_ID, profileId: serverId, containerId: own.id },
+      label: own.name
+    }
+  }
   if (places.location.value.kind === 'storage' && storageConfigured.value) {
     return {
       location: { providerId: activeStorageProviderID.value },

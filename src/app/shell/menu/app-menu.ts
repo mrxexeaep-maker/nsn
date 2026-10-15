@@ -306,6 +306,11 @@ export function useAppMenu() {
       return { label: menuLabel(entry), sub: languageMenu.value }
     }
 
+    // Cloud and storage documents always save; auto-save is a choice only for a file on disk.
+    if (entry.id === 'autosave' && (!store.hasWritableSource() || store.getStorageBinding())) {
+      return null
+    }
+
     if (entry.id === 'selection.moveToPage') {
       if (otherPages.value.length === 0) return null
       const disabled = !commands['selection.moveToPage'].enabled.value
