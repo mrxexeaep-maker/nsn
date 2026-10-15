@@ -7,8 +7,6 @@ import type { GUID, NodeChange } from '@open-pencil/kiwi/fig/codec'
  */
 export const GENERATED_SESSION_ID = 40_000_000
 
-export const STICKY_SLOTS = { background: 0, body: 1, author: 2 } as const
-
 export interface GeneratedEntry extends NodeChange {
   guidPath?: { guids?: GUID[] }
 }
