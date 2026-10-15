@@ -260,5 +260,10 @@
   "leaveWorkspaceDescription": "除非有人直接与你共享，否则你将无法访问其中的文档。管理员可以再次邀请你。",
   "removeMemberHeading": "将 {name} 从 {workspace} 中移除？",
   "removeMemberDescription": "除非直接共享，对方将无法访问其中的文档。你可以再次邀请对方。",
-  "removeMemberConfirm": "移除"
+  "removeMemberConfirm": "移除",
+  "deleteWorkspace": "删除工作区",
+  "deleteWorkspaceHeading": "删除 {workspace}？",
+  "deleteWorkspaceDescription": "所有人都将失去访问权限，其邀请也会失效。只能删除空的工作区。",
+  "workspaceNotEmpty": "请先删除或移走其中的文档；只能删除空的工作区。",
+  "workspaceCleanupPending": "已删除的文档会保留一段时间后才彻底清除。请在那之后再试。"
 }

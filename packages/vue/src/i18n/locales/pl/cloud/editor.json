@@ -266,5 +266,10 @@
   "leaveWorkspaceDescription": "Stracisz dostęp do jego dokumentów, chyba że ktoś udostępnił je bezpośrednio. Administrator może zaprosić Cię ponownie.",
   "removeMemberHeading": "Usunąć {name} z {workspace}?",
   "removeMemberDescription": "Ta osoba straci dostęp do dokumentów, chyba że udostępniono je bezpośrednio. Możesz zaprosić ją ponownie.",
-  "removeMemberConfirm": "Usuń"
+  "removeMemberConfirm": "Usuń",
+  "deleteWorkspace": "Usuń obszar",
+  "deleteWorkspaceHeading": "Usunąć {workspace}?",
+  "deleteWorkspaceDescription": "Wszyscy stracą dostęp, a zaproszenia przestaną działać. Usunąć można tylko pusty obszar.",
+  "workspaceNotEmpty": "Najpierw usuń lub przenieś jego dokumenty; usunąć można tylko pusty obszar.",
+  "workspaceCleanupPending": "Usunięte dokumenty są jeszcze przez jakiś czas przechowywane. Spróbuj ponownie później."
 }

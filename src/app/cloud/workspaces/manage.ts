@@ -10,6 +10,8 @@ import { cloudAPIClient, cloudConnection, refreshCloudConnection } from '../sess
 
 /** Why a workspace change did not go through, in terms the dialogs explain. */
 export type WorkspaceFailure =
+  | 'not-empty'
+  | 'cleanup-pending'
   | 'already-member'
   | 'last-admin'
   | 'forbidden'
@@ -18,6 +20,8 @@ export type WorkspaceFailure =
 
 function failureOf(error: unknown): WorkspaceFailure {
   if (!(error instanceof CloudAPIError)) return 'unavailable'
+  if (error.code === 'not_empty') return 'not-empty'
+  if (error.code === 'cleanup_pending') return 'cleanup-pending'
   if (error.code === 'already_member') return 'already-member'
   if (error.code === 'last_admin') return 'last-admin'
   if (error.status === 403) return 'forbidden'
@@ -170,6 +174,24 @@ export async function renameWorkspace(name: string): Promise<boolean> {
   const context = target ? serverClient(target.serverId) : null
   if (renamed && context) await refreshCloudConnection(context.server)
   return renamed
+}
+
+/** Deletes an empty workspace; Home goes back to Recent once it is gone. */
+export async function deleteWorkspace(): Promise<void> {
+  const target = membersTarget.value
+  const context = target ? serverClient(target.serverId) : null
+  if (!target || !context || membersBusy.value) return
+  membersBusy.value = true
+  membersFailure.value = null
+  try {
+    await context.client.deleteWorkspace(target.workspaceId)
+    membersOpen.value = false
+    await refreshCloudConnection(context.server)
+  } catch (error) {
+    membersFailure.value = failureOf(error)
+  } finally {
+    membersBusy.value = false
+  }
 }
 
 /** Leaves the workspace; Home goes back to Recent once it is gone. */

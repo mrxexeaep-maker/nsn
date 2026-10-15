@@ -251,6 +251,7 @@ function formattedDate(updatedAt: string): string {
         :storage="sidebarStorage"
         @select="places.select"
         @connect="places.connect"
+        @new-workspace="places.newWorkspace"
       />
     </template>
     <HomeSearchActions

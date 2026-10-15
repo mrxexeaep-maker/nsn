@@ -54,6 +54,7 @@ const emit = defineEmits<{
   changeRole: [userId: string, role: WorkspaceRole]
   remove: [userId: string]
   leave: []
+  delete: []
 }>()
 
 const ui = cloudWorkspace()
@@ -85,12 +86,19 @@ const roleLabels = computed<Record<WorkspaceRole, string>>(() => ({
 const renamed = computed(() => name.value.trim() && name.value.trim() !== workspaceName)
 
 /** Leaving or removing someone takes away access, so it is asked once more. */
-const confirming = ref<{ kind: 'leave' } | { kind: 'remove'; userId: string; name: string } | null>(
-  null
-)
+const confirming = ref<
+  { kind: 'leave' } | { kind: 'delete' } | { kind: 'remove'; userId: string; name: string } | null
+>(null)
 const confirmation = computed(() => {
   const pending = confirming.value
   if (!pending) return null
+  if (pending.kind === 'delete') {
+    return {
+      heading: t.value.deleteWorkspaceHeading({ workspace: workspaceName }),
+      description: t.value.deleteWorkspaceDescription,
+      confirm: t.value.deleteWorkspace
+    }
+  }
   return pending.kind === 'leave'
     ? {
         heading: t.value.leaveWorkspaceHeading({ workspace: workspaceName }),
@@ -107,6 +115,7 @@ function confirm() {
   const pending = confirming.value
   confirming.value = null
   if (pending?.kind === 'leave') emit('leave')
+  else if (pending?.kind === 'delete') emit('delete')
   else if (pending) emit('remove', pending.userId)
 }
 
@@ -246,14 +255,25 @@ function invite() {
       </div>
     </AppDialogBody>
     <AppDialogFooter :ui="{ footer: 'justify-between' }">
-      <AppButton
-        color="error"
-        variant="ghost"
-        :disabled="busy"
-        @click="confirming = { kind: 'leave' }"
-      >
-        {{ t.leaveWorkspace }}
-      </AppButton>
+      <div :class="ui.inline()">
+        <AppButton
+          color="error"
+          variant="ghost"
+          :disabled="busy"
+          @click="confirming = { kind: 'leave' }"
+        >
+          {{ t.leaveWorkspace }}
+        </AppButton>
+        <AppButton
+          v-if="canManage"
+          color="error"
+          variant="ghost"
+          :disabled="busy"
+          @click="confirming = { kind: 'delete' }"
+        >
+          {{ t.deleteWorkspace }}
+        </AppButton>
+      </div>
       <AppButton color="primary" variant="solid" @click="open = false">
         {{ common.done }}
       </AppButton>

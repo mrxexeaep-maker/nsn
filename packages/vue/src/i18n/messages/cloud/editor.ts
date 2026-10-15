@@ -228,6 +228,13 @@ export const cloudMessageDefaults = {
   removeMemberDescription:
     'They lose access to its documents unless someone shared them directly. You can invite them again.',
   removeMemberConfirm: 'Remove',
+  deleteWorkspace: 'Delete workspace',
+  deleteWorkspaceHeading: params('Delete {workspace}?'),
+  deleteWorkspaceDescription:
+    'Everyone loses access and its invitations stop working. Only an empty workspace can be deleted.',
+  workspaceNotEmpty: 'Delete or move its documents first; only an empty workspace can be deleted.',
+  workspaceCleanupPending:
+    'Its deleted documents are kept for a while before they’re gone for good. Try again after that.',
   workspaceAlreadyMember: 'They’re already in this workspace.',
   workspaceLastAdmin: 'A workspace needs an admin. Make someone else an admin first.',
   workspaceForbidden: 'Only admins of this workspace can do that.',

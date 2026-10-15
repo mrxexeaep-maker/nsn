@@ -260,5 +260,10 @@
   "leaveWorkspaceDescription": "直接共有されたものを除き、ドキュメントにアクセスできなくなります。管理者が再度招待できます。",
   "removeMemberHeading": "{name} を {workspace} から削除しますか？",
   "removeMemberDescription": "直接共有されたものを除き、ドキュメントにアクセスできなくなります。再度招待できます。",
-  "removeMemberConfirm": "削除"
+  "removeMemberConfirm": "削除",
+  "deleteWorkspace": "ワークスペースを削除",
+  "deleteWorkspaceHeading": "{workspace} を削除しますか？",
+  "deleteWorkspaceDescription": "全員がアクセスできなくなり、招待も無効になります。削除できるのは空のワークスペースだけです。",
+  "workspaceNotEmpty": "先にドキュメントを削除するか移動してください。削除できるのは空のワークスペースだけです。",
+  "workspaceCleanupPending": "削除されたドキュメントは完全に消えるまでしばらく保管されます。その後にもう一度お試しください。"
 }

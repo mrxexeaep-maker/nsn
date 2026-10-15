@@ -263,5 +263,10 @@
   "leaveWorkspaceDescription": "Du verlierst den Zugriff auf die Dokumente, sofern sie nicht direkt mit dir geteilt wurden. Ein Admin kann dich wieder einladen.",
   "removeMemberHeading": "{name} aus {workspace} entfernen?",
   "removeMemberDescription": "Die Person verliert den Zugriff auf die Dokumente, sofern sie nicht direkt geteilt wurden. Du kannst sie wieder einladen.",
-  "removeMemberConfirm": "Entfernen"
+  "removeMemberConfirm": "Entfernen",
+  "deleteWorkspace": "Arbeitsbereich löschen",
+  "deleteWorkspaceHeading": "{workspace} löschen?",
+  "deleteWorkspaceDescription": "Alle verlieren den Zugriff und seine Einladungen funktionieren nicht mehr. Nur ein leerer Arbeitsbereich kann gelöscht werden.",
+  "workspaceNotEmpty": "Lösche oder verschiebe zuerst seine Dokumente; nur ein leerer Arbeitsbereich kann gelöscht werden.",
+  "workspaceCleanupPending": "Seine gelöschten Dokumente werden noch eine Weile aufbewahrt, bevor sie endgültig verschwinden. Versuche es danach erneut."
 }

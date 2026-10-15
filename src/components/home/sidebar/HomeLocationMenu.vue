@@ -36,7 +36,11 @@ const {
   storage?: { label: string; detail: string } | null
 }>()
 
-const emit = defineEmits<{ select: [location: HomeLocation]; connect: [] }>()
+const emit = defineEmits<{
+  select: [location: HomeLocation]
+  connect: []
+  newWorkspace: []
+}>()
 
 const ui = homeLocationMenu()
 const menuUI = menu()
@@ -117,6 +121,13 @@ const isActive = (location: HomeLocation) =>
                 :class="ui.check()"
               />
               <span v-else-if="sharedCount" :class="ui.count()">{{ sharedCount }}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              :class="menuUI.item({ justify: 'start' })"
+              @select="emit('newWorkspace')"
+            >
+              <icon-lucide-plus :class="menuUI.icon()" />
+              <span :class="ui.itemLabel()">{{ t.homeNewWorkspace }}</span>
             </DropdownMenuItem>
           </template>
           <DropdownMenuItem

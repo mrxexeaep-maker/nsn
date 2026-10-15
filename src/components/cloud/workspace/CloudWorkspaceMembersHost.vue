@@ -5,6 +5,7 @@ import { useCloudMessages } from '@open-pencil/vue'
 
 import {
   changeWorkspaceRole,
+  deleteWorkspace,
   inviteToWorkspace,
   lastInvitationLink,
   leaveWorkspace,
@@ -29,6 +30,8 @@ const failure = computed(() => {
   const kind = membersFailure.value
   if (!kind) return null
   const words: Record<WorkspaceFailure, string> = {
+    'not-empty': t.value.workspaceNotEmpty,
+    'cleanup-pending': t.value.workspaceCleanupPending,
     'already-member': t.value.workspaceAlreadyMember,
     'last-admin': t.value.workspaceLastAdmin,
     forbidden: t.value.workspaceForbidden,
@@ -57,5 +60,6 @@ const failure = computed(() => {
     @change-role="changeWorkspaceRole"
     @remove="removeWorkspaceMember"
     @leave="leaveWorkspace"
+    @delete="deleteWorkspace"
   />
 </template>

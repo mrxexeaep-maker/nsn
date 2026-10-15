@@ -263,5 +263,10 @@
   "leaveWorkspaceDescription": "Perdi l’accesso ai suoi documenti, salvo quelli condivisi direttamente con te. Un admin può invitarti di nuovo.",
   "removeMemberHeading": "Rimuovere {name} da {workspace}?",
   "removeMemberDescription": "Perde l’accesso ai documenti, salvo quelli condivisi direttamente. Puoi invitarla di nuovo.",
-  "removeMemberConfirm": "Rimuovi"
+  "removeMemberConfirm": "Rimuovi",
+  "deleteWorkspace": "Elimina area",
+  "deleteWorkspaceHeading": "Eliminare {workspace}?",
+  "deleteWorkspaceDescription": "Tutti perdono l’accesso e i suoi inviti smettono di funzionare. Si può eliminare solo un’area vuota.",
+  "workspaceNotEmpty": "Prima elimina o sposta i suoi documenti; si può eliminare solo un’area vuota.",
+  "workspaceCleanupPending": "I suoi documenti eliminati vengono conservati per un po’ prima di sparire del tutto. Riprova dopo."
 }

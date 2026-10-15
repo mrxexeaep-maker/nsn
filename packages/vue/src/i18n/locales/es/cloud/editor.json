@@ -263,5 +263,10 @@
   "leaveWorkspaceDescription": "Pierdes el acceso a sus documentos salvo los compartidos directamente contigo. Un administrador puede volver a invitarte.",
   "removeMemberHeading": "¿Quitar a {name} de {workspace}?",
   "removeMemberDescription": "Pierde el acceso a sus documentos salvo los compartidos directamente. Puedes volver a invitarla.",
-  "removeMemberConfirm": "Quitar"
+  "removeMemberConfirm": "Quitar",
+  "deleteWorkspace": "Eliminar espacio",
+  "deleteWorkspaceHeading": "¿Eliminar {workspace}?",
+  "deleteWorkspaceDescription": "Todos pierden el acceso y sus invitaciones dejan de funcionar. Solo se puede eliminar un espacio vacío.",
+  "workspaceNotEmpty": "Elimina o mueve primero sus documentos; solo se puede eliminar un espacio vacío.",
+  "workspaceCleanupPending": "Sus documentos eliminados se conservan un tiempo antes de borrarse definitivamente. Vuelve a intentarlo después."
 }

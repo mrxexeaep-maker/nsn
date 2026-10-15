@@ -40,6 +40,7 @@ Every account starts with a workspace of its own. To work with a team, select **
 - Admins rename the workspace, invite people by email as an admin, editor, or viewer, change roles, and remove people. Editors and admins change documents; viewers only look.
 - An invitation arrives by email. If the server doesn't send email, copy the invitation link from the dialog and pass it on. Invitations expire after seven days, and inviting the same address again replaces the earlier one.
 - Anyone can leave a workspace, except its last admin: make someone else an admin first.
+- Admins can delete a workspace once it holds no documents. Deleted documents are kept for a while before they are gone for good, and the workspace can be deleted after that.
 
 Opening a workspace invitation works like a document invitation: sign in with the invited address, choose **Join workspace**, and Home shows the workspace.
 
