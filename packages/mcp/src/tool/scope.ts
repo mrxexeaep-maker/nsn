@@ -11,7 +11,7 @@ export type MCPToolScope = (typeof MCP_TOOL_SCOPES)[number]
 /** The tools selection scope keeps, each with the arguments that name the nodes it reads. */
 export const SELECTION_SCOPE_TOOLS: Readonly<Record<string, readonly string[]>> = {
   get_selection: [],
-  get_node: ['id'],
+  get_node: ['id', 'ids'],
   get_page_tree: ['root_id'],
   describe: ['id', 'ids'],
   export_image: ['ids']

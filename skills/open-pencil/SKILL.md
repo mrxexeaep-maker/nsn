@@ -22,6 +22,12 @@ openpencil tree design.fig
 
 Use `openpencil --help`, per-command help, and the connected MCP server’s tool schemas to check the installed version’s capabilities. See the [CLI reference](https://openpencil.dev/reference/cli) and [MCP guide](https://openpencil.dev/programmable/mcp-server) for current documentation.
 
+## Batch related tool calls
+
+Check each connected tool's schema for `ids` and `items`. Use `ids` with shared arguments to update several layers together, or `items` with complete arguments when their values differ. For example, `set_font({ ids: ["1:2", "1:3"], size: 16 })` updates both text layers in one call; `create_variable({ items: [...] })` creates a token list together.
+
+Limit batches to 200 entries. A failed mutation batch rolls back and successful editor batches have one undo step. Read batches return indexed results and individual errors within a shared output budget; keep inspection depth small. Continue using single-item calls for tools without batch inputs.
+
 ## Requirements
 
 ```bash

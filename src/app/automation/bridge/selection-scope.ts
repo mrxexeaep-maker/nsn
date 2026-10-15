@@ -36,6 +36,21 @@ export function limitToSelection(
     throw new Error('Nothing is selected in OpenPencil. Ask the user to select the layers to use.')
   }
 
+  if (toolArgs.items !== undefined) {
+    if (toolName !== 'get_node' || !Array.isArray(toolArgs.items) || toolArgs.items.length === 0)
+      throw new Error('This selection-scoped tool does not accept these batch items')
+    if (Object.keys(toolArgs).some((key) => key !== 'items'))
+      throw new Error('Use items alone for per-target reads')
+    for (const item of toolArgs.items) {
+      if (!item || typeof item !== 'object' || Array.isArray(item))
+        throw new Error('Each batch item must name a selected node')
+      if (typeof item.id !== 'string' || item.items !== undefined)
+        throw new Error('Each batch item must name one node with id')
+      limitToSelection(store, toolName, item)
+    }
+    return toolArgs
+  }
+
   const ids = fields.flatMap((field) => namedIds(toolArgs[field]))
   for (const id of ids) {
     if (!selected.some((root) => store.graph.isDescendant(id, root))) {

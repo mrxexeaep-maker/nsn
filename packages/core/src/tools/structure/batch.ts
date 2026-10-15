@@ -1,134 +1,28 @@
-import { safeDestr } from 'destr'
 import * as v from 'valibot'
 
-import type { FigmaNodeProxy } from '#core/figma-api'
+import { executeMutationBatch, MAX_TOOL_BATCH_ITEMS } from '#core/tools/batch/execute'
+import { nodeIdInput } from '#core/tools/input'
+import { applyPropertyPatch, batchPropertiesInput } from '#core/tools/modify/patch'
 import { defineTool } from '#core/tools/schema'
 
-interface BatchOp {
-  id: string
-  props: Record<string, unknown>
-}
-
-function str(value: unknown): string {
-  return typeof value === 'string' ? value : ''
-}
-
-function num(value: unknown): number {
-  return typeof value === 'number' ? value : 0
-}
-
-function applyBatchProps(node: FigmaNodeProxy, props: Record<string, unknown>): string[] {
-  const updated: string[] = []
-
-  if (props.spacing !== undefined) {
-    node.itemSpacing = num(props.spacing)
-    updated.push('spacing')
-  }
-  if (props.padding !== undefined) {
-    const value = num(props.padding)
-    node.paddingTop = value
-    node.paddingRight = value
-    node.paddingBottom = value
-    node.paddingLeft = value
-    updated.push('padding')
-  }
-  if (props.padding_horizontal !== undefined) {
-    node.paddingLeft = num(props.padding_horizontal)
-    node.paddingRight = num(props.padding_horizontal)
-    updated.push('padding_horizontal')
-  }
-  if (props.padding_vertical !== undefined) {
-    node.paddingTop = num(props.padding_vertical)
-    node.paddingBottom = num(props.padding_vertical)
-    updated.push('padding_vertical')
-  }
-  if (props.counter_align !== undefined) {
-    node.counterAxisAlignItems = str(props.counter_align)
-    updated.push('counter_align')
-  }
-  if (props.align !== undefined) {
-    node.primaryAxisAlignItems = str(props.align)
-    updated.push('align')
-  }
-  if (props.sizing_horizontal !== undefined) {
-    node.layoutSizingHorizontal = str(props.sizing_horizontal)
-    updated.push('sizing_horizontal')
-  }
-  if (props.sizing_vertical !== undefined) {
-    node.layoutSizingVertical = str(props.sizing_vertical)
-    updated.push('sizing_vertical')
-  }
-  if (props.grow !== undefined) {
-    node.layoutGrow = num(props.grow)
-    updated.push('grow')
-  }
-  if (props.name !== undefined) {
-    node.name = str(props.name)
-    updated.push('name')
-  }
-  if (props.visible !== undefined) {
-    node.visible = Boolean(props.visible)
-    updated.push('visible')
-  }
-  if (props.corner_radius !== undefined) {
-    node.cornerRadius = num(props.corner_radius)
-    updated.push('corner_radius')
-  }
-  if (props.opacity !== undefined) {
-    node.opacity = num(props.opacity)
-    updated.push('opacity')
-  }
-  if (props.auto_resize !== undefined) {
-    node.textAutoResize = str(props.auto_resize)
-    updated.push('auto_resize')
-  }
-  if (props.direction !== undefined) {
-    node.layoutMode = str(props.direction) as 'HORIZONTAL' | 'VERTICAL'
-    updated.push('direction')
-  }
-
-  return updated
-}
+const operationsInput = v.pipe(
+  v.array(v.strictObject({ id: nodeIdInput, props: batchPropertiesInput })),
+  v.minLength(1),
+  v.maxLength(MAX_TOOL_BATCH_ITEMS)
+)
 
 export const batchUpdate = defineTool({
   name: 'batch_update',
-
   description:
-    'Execute multiple modifications in one call. Each operation is {id, props} where props can include: spacing, padding, padding_horizontal, padding_vertical, counter_align, sizing_horizontal, sizing_vertical, grow, name, visible, corner_radius, auto_resize (for text), direction. Runs all updates with one layout recompute.',
-  execution: { kind: 'sync', mutation: 'document' },
+    'Apply related property edits in one undo operation. Pass a native operations array of {id, props}; each node can receive different text, font, appearance, or layout values. Uses the same validation and behavior as focused property tools. Invalid properties or a failed item reject the whole batch without retaining partial changes. Legacy JSON-encoded arrays are also accepted.',
+  execution: { kind: 'sync', mutation: 'properties' },
   input: v.strictObject({
-    operations: v.pipe(
-      v.string(),
-      v.description(
-        'JSON array: [{"id":"0:5","props":{"spacing":8}},{"id":"0:6","props":{"sizing_horizontal":"FILL","grow":1}}]'
-      )
-    )
+    operations: v.union([operationsInput, v.pipe(v.string(), v.parseJson(), operationsInput)])
   }),
   execute: (figma, { operations }) => {
-    let ops: BatchOp[]
-    try {
-      ops = safeDestr<BatchOp[]>(String(operations))
-    } catch {
-      return { error: 'Invalid JSON in operations' }
-    }
-    if (!Array.isArray(ops)) return { error: 'operations must be a JSON array' }
-
-    const results: Array<{ id: string; updated: string[] }> = []
-    const errors: string[] = []
-
-    for (const op of ops) {
-      const node = figma.getNodeById(op.id)
-      if (!node) {
-        errors.push(`Node "${op.id}" not found`)
-        continue
-      }
-      const updated = applyBatchProps(node, op.props)
-      if (updated.length > 0) results.push({ id: op.id, updated })
-    }
-
-    const out: Record<string, unknown> = { updated: results.length }
-    if (results.length > 0) out.results = results
-    if (errors.length > 0) out.errors = errors
-    return out
+    const results = executeMutationBatch(figma, operations, ({ id, props }) =>
+      applyPropertyPatch(figma, id, props)
+    )
+    return { updated: results.length, results }
   }
 })

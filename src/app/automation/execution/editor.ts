@@ -24,13 +24,28 @@ export async function executeAtomicEditorTool(
   args: Record<string, unknown>,
   options: Parameters<typeof executeAtomicTool>[4] = {}
 ): Promise<unknown> {
-  const result = executeAtomicTool(store, figma, def, args, options)
-  const targetId = typeof args.id === 'string' ? args.id : figma.currentPageId
-  if (figma.graph.getNode(targetId)?.type === 'TEXT') {
+  const textIds = new Set<string>()
+  const stop = figma.graph.onNodeEvents({
+    updated(id) {
+      if (figma.graph.getNode(id)?.type === 'TEXT') textIds.add(id)
+    }
+  })
+  let result: unknown
+  try {
+    result = executeAtomicTool(store, figma, def, args, options)
+  } finally {
+    stop()
+  }
+  if (textIds.size > 0) {
     try {
-      await ensureGraphFonts(figma.graph, [targetId], store.renderer)
-      if (store.graph === figma.graph && options.isLive?.() !== false) {
-        store.runLayoutForNode(targetId)
+      const loaded = await ensureGraphFonts(figma.graph, [...textIds], store.renderer)
+      if (loaded && store.graph === figma.graph && options.isLive?.() !== false) {
+        const pages = new Set(
+          [...textIds]
+            .map((id) => figma.graph.closest(id, (node) => node.type === 'CANVAS')?.id)
+            .filter((id) => id !== undefined)
+        )
+        for (const page of pages) store.runLayoutForNode(page)
         store.requestRender()
       }
     } catch (error) {

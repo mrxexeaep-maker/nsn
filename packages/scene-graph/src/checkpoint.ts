@@ -1,14 +1,14 @@
 import { isEqual } from 'es-toolkit'
 
-import type { SceneGraph } from './index'
+import type { SceneGraph, SceneNode } from './index'
 
 /** Capture rollback state without changing graph or surviving object identities. */
-export function captureGraphCheckpoint(graph: SceneGraph) {
+export function captureGraphCheckpoint(graph: SceneGraph, options: { incremental?: boolean } = {}) {
   const nodeRefs = new Map(graph.nodes)
   const variableRefs = new Map(graph.variables)
   const collectionRefs = new Map(graph.variableCollections)
   const snapshot = structuredClone({
-    nodes: graph.nodes,
+    nodes: options.incremental ? new Map<string, SceneNode>() : graph.nodes,
     variables: graph.variables,
     variableCollections: graph.variableCollections,
     activeMode: graph.activeMode,
@@ -21,13 +21,25 @@ export function captureGraphCheckpoint(graph: SceneGraph) {
   })
   // Atomic property tools cannot edit assets. Retain existing buffers, not copies of every bitmap.
   const images = new Map(graph.images)
+  // Graph mutations announce their writes before changing live values. Keep full copies only
+  // for those nodes, including writes made by layout and changes on other pages.
+  const dispose = options.incremental
+    ? graph.observeNodeChanges({
+        before: (node) => {
+          if (nodeRefs.has(node.id) && !snapshot.nodes.has(node.id))
+            snapshot.nodes.set(node.id, structuredClone(node))
+        },
+        created: () => undefined
+      })
+    : () => undefined
 
   function assertPropertiesOnly() {
-    if (
-      snapshot.nodes.size !== graph.nodes.size ||
-      snapshot.variables.size !== graph.variables.size
-    )
+    if (nodeRefs.size !== graph.nodes.size || snapshot.variables.size !== graph.variables.size)
       throw new Error('Atomic tools must not create or remove nodes or variables')
+    for (const [id, node] of nodeRefs) {
+      if (graph.nodes.get(id) !== node)
+        throw new Error('Atomic tools must not change node hierarchy or identity')
+    }
     for (const [id, before] of snapshot.nodes) {
       const after = graph.nodes.get(id)
       if (
@@ -74,8 +86,15 @@ export function captureGraphCheckpoint(graph: SceneGraph) {
   }
 
   function restore() {
+    dispose()
     const failedNodes = new Map(graph.nodes)
-    restoreObjects(graph.nodes, snapshot.nodes, nodeRefs)
+    if (options.incremental) {
+      for (const [id, saved] of snapshot.nodes) {
+        const original = nodeRefs.get(id)
+        if (original) restoreObject(original, saved)
+      }
+      restoreMap(graph.nodes, nodeRefs)
+    } else restoreObjects(graph.nodes, snapshot.nodes, nodeRefs)
     restoreObjects(graph.variables, snapshot.variables, variableRefs)
     restoreObjects(graph.variableCollections, snapshot.variableCollections, collectionRefs)
     restoreMap(graph.activeMode, structuredClone(snapshot.activeMode))
@@ -92,12 +111,26 @@ export function captureGraphCheckpoint(graph: SceneGraph) {
       if (!graph.nodes.has(id)) graph.emitter.emit('node:deleted', id, node.parentId)
     }
     for (const [id, node] of graph.nodes) {
+      if (options.incremental && !snapshot.nodes.has(id) && failedNodes.get(id) === node) continue
       if (failedNodes.has(id)) graph.emitter.emit('node:updated', id, node)
       else graph.emitter.emit('node:created', node)
     }
   }
 
-  return { nodes: snapshot.nodes, variables: snapshot.variables, assertPropertiesOnly, restore }
+  return {
+    nodes: snapshot.nodes,
+    variables: snapshot.variables,
+    assertPropertiesOnly,
+    restore,
+    dispose
+  }
+}
+
+function restoreObject<T extends object>(original: T, saved: T): void {
+  for (const key of Object.keys(original) as (keyof T)[]) {
+    if (!(key in saved)) Reflect.deleteProperty(original, key)
+  }
+  Object.assign(original, structuredClone(saved))
 }
 
 function restoreObjects<T extends object>(
@@ -109,10 +142,7 @@ function restoreObjects<T extends object>(
   for (const [id, saved] of snapshot) {
     const original = refs.get(id)
     if (!original) throw new Error(`Missing checkpoint reference: ${id}`)
-    for (const key of Object.keys(original) as (keyof T)[]) {
-      if (!(key in saved)) Reflect.deleteProperty(original, key)
-    }
-    Object.assign(original, structuredClone(saved))
+    restoreObject(original, saved)
     target.set(id, original)
   }
 }

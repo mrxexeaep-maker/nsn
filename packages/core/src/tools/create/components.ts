@@ -1,6 +1,7 @@
 import * as v from 'valibot'
 
 import type { FigmaComponentNode, FigmaNodeProxy } from '#core/figma-api'
+import { withBatch } from '#core/tools/batch/define'
 import { toolNumber } from '#core/tools/input'
 import { defineTool, nodeSummary, requireNodes } from '#core/tools/schema'
 
@@ -20,25 +21,28 @@ export const createComponent = defineTool({
   }
 })
 
-export const createInstance = defineTool({
-  name: 'create_instance',
+export const createInstance = withBatch(
+  defineTool({
+    name: 'create_instance',
 
-  description: 'Create an instance of a component.',
-  execution: { kind: 'sync', mutation: 'document' },
-  input: v.strictObject({
-    component_id: v.pipe(v.string(), v.description('Component node ID')),
-    x: v.optional(toolNumber(v.pipe(v.number(), v.description('X position')))),
-    y: v.optional(toolNumber(v.pipe(v.number(), v.description('Y position'))))
+    description: 'Create an instance of a component.',
+    execution: { kind: 'sync', mutation: 'document' },
+    input: v.strictObject({
+      component_id: v.pipe(v.string(), v.description('Component node ID')),
+      x: v.optional(toolNumber(v.pipe(v.number(), v.description('X position')))),
+      y: v.optional(toolNumber(v.pipe(v.number(), v.description('Y position'))))
+    }),
+    execute: (figma, args) => {
+      const component = figma.getNodeById(args.component_id)
+      if (!component) return { error: `Component "${args.component_id}" not found` }
+      const instance = component.createInstance()
+      if (args.x !== undefined) instance.x = args.x
+      if (args.y !== undefined) instance.y = args.y
+      return nodeSummary(instance)
+    }
   }),
-  execute: (figma, args) => {
-    const component = figma.getNodeById(args.component_id)
-    if (!component) return { error: `Component "${args.component_id}" not found` }
-    const instance = component.createInstance()
-    if (args.x !== undefined) instance.x = args.x
-    if (args.y !== undefined) instance.y = args.y
-    return nodeSummary(instance)
-  }
-})
+  { rollbackSingle: true }
+)
 
 export const combineAsVariants = defineTool({
   name: 'combine_as_variants',

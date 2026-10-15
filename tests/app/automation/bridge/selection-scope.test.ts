@@ -65,4 +65,22 @@ describe('limitToSelection', () => {
     store.clearSelection()
     expect(() => limitToSelection(store, 'get_selection', {})).toThrow(/Nothing is selected/)
   })
+
+  test('checks every shared or per-item batch target', () => {
+    const targetStore = store
+    for (const args of [
+      { ids: [ids.card, ids.title], depth: 0 },
+      { items: [{ id: ids.card }, { id: ids.title, depth: 1 }] }
+    ])
+      expect(limitToSelection(targetStore, 'get_node', args)).toEqual(args)
+    for (const args of [
+      { ids: [ids.title, ids.other] },
+      { items: [{ id: ids.title }, { id: ids.other }] },
+      { items: [{ id: ids.title, path: 'out.json' }] },
+      { items: [{ depth: 0 }] },
+      { id: ids.title, items: [{ id: ids.other }] },
+      { items: [{ id: ids.title, items: [{ id: ids.other }] }] }
+    ])
+      expect(() => limitToSelection(targetStore, 'get_node', args)).toThrow()
+  })
 })

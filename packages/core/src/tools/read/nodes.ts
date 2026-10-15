@@ -1,6 +1,7 @@
 import * as v from 'valibot'
 
 import type { FigmaNodeProxy } from '#core/figma-api'
+import { withBatch } from '#core/tools/batch/define'
 import { toolNumber, nodeIdInput } from '#core/tools/input'
 import { defineTool, nodeSummary, nodeToResult } from '#core/tools/schema'
 
@@ -93,28 +94,31 @@ export const getPageTree = defineTool({
   }
 })
 
-export const getNode = defineTool({
-  name: 'get_node',
-  description:
-    'Get detailed properties of a node by ID. Use depth to limit child recursion (0 = node only, 1 = direct children, etc). Default: unlimited.',
-  execution: { kind: 'sync', mutation: 'none' },
-  input: v.strictObject({
-    id: nodeIdInput,
-    depth: v.optional(
-      toolNumber(
-        v.pipe(
-          v.number(),
-          v.description('Max depth of children to include (0 = no children). Default: unlimited')
+export const getNode = withBatch(
+  defineTool({
+    name: 'get_node',
+    description:
+      'Get detailed properties of a node by ID. Use depth to limit child recursion (0 = node only, 1 = direct children, etc). Default: unlimited.',
+    execution: { kind: 'sync', mutation: 'none' },
+    input: v.strictObject({
+      id: nodeIdInput,
+      depth: v.optional(
+        toolNumber(
+          v.pipe(
+            v.number(),
+            v.description('Max depth of children to include (0 = no children). Default: unlimited')
+          )
         )
       )
-    )
+    }),
+    execute: (figma, { id, depth }) => {
+      const node = figma.getNodeById(id)
+      if (!node) return { error: `Node "${id}" not found` }
+      return nodeToResult(node, depth)
+    }
   }),
-  execute: (figma, { id, depth }) => {
-    const node = figma.getNodeById(id)
-    if (!node) return { error: `Node "${id}" not found` }
-    return nodeToResult(node, depth)
-  }
-})
+  { target: 'id', readDefaults: { depth: 0 } }
+)
 
 export const findNodes = defineTool({
   name: 'find_nodes',

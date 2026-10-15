@@ -1,5 +1,6 @@
 import * as v from 'valibot'
 
+import { withBatch } from '#core/tools/batch/define'
 import { toolNumber, nodeIdInput, nodeInput } from '#core/tools/input'
 import { defineTool, nodeNotFound, nodeSummary } from '#core/tools/schema'
 
@@ -52,17 +53,20 @@ export const renameNode = defineTool({
   }
 })
 
-export const nodeBounds = defineTool({
-  name: 'node_bounds',
-  description: 'Get absolute bounding box of a node.',
-  execution: { kind: 'sync', mutation: 'none' },
-  exposure: { webmcp: false },
-  input: nodeInput,
-  execute: (figma, { id }) => {
-    const node = figma.getNodeById(id)
-    return node ? { id, bounds: node.absoluteBoundingBox } : nodeNotFound(id)
-  }
-})
+export const nodeBounds = withBatch(
+  defineTool({
+    name: 'node_bounds',
+    description: 'Get absolute bounding box of a node.',
+    execution: { kind: 'sync', mutation: 'none' },
+    exposure: { webmcp: false },
+    input: nodeInput,
+    execute: (figma, { id }) => {
+      const node = figma.getNodeById(id)
+      return node ? { id, bounds: node.absoluteBoundingBox } : nodeNotFound(id)
+    }
+  }),
+  { target: 'id' }
+)
 
 export const nodeMove = defineTool({
   name: 'node_move',

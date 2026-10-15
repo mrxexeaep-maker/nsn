@@ -6,112 +6,119 @@ import { linearGradientTransform } from '@open-pencil/scene-graph/gradient'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
 
 import { BLACK } from '#core/constants'
+import { withBatch } from '#core/tools/batch/define'
 import { toolNumber, nodeIdInput } from '#core/tools/input'
 import { defineTool } from '#core/tools/schema'
 
-export const setFill = defineTool({
-  name: 'set_fill',
+export const setFill = withBatch(
+  defineTool({
+    name: 'set_fill',
 
-  description:
-    'Set fill on a node. Solid: color="#ff0000". Linear gradient: gradient="top-bottom" or "left-right" with color (start) and color_end (end).',
-  execution: { kind: 'sync', mutation: 'properties' },
-  input: v.strictObject({
-    id: nodeIdInput,
-    color: v.pipe(v.string(), v.description('Color (hex). For gradient: start color.')),
-    color_end: v.optional(
-      v.pipe(v.string(), v.description('End color for gradient (if omitted, solid fill)'))
-    ),
-    gradient: v.optional(
-      v.pipe(
-        v.picklist(['top-bottom', 'bottom-top', 'left-right', 'right-left']),
-        v.description('Gradient direction')
+    description:
+      'Set fill on a node. Solid: color="#ff0000". Linear gradient: gradient="top-bottom" or "left-right" with color (start) and color_end (end).',
+    execution: { kind: 'sync', mutation: 'properties' },
+    input: v.strictObject({
+      id: nodeIdInput,
+      color: v.pipe(v.string(), v.description('Color (hex). For gradient: start color.')),
+      color_end: v.optional(
+        v.pipe(v.string(), v.description('End color for gradient (if omitted, solid fill)'))
+      ),
+      gradient: v.optional(
+        v.pipe(
+          v.picklist(['top-bottom', 'bottom-top', 'left-right', 'right-left']),
+          v.description('Gradient direction')
+        )
       )
-    )
-  }),
-  execute: (figma, { id, color, color_end, gradient }) => {
-    const node = figma.getNodeById(id)
-    if (!node) return { error: `Node "${id}" not found` }
+    }),
+    execute: (figma, { id, color, color_end, gradient }) => {
+      const node = figma.getNodeById(id)
+      if (!node) return { error: `Node "${id}" not found` }
 
-    const c = parseColor(color)
+      const c = parseColor(color)
 
-    if (gradient && color_end) {
-      const cEnd = parseColor(color_end)
-      // Edge middles of the layer's unit square that each direction runs between.
-      const ends: Record<string, [Vector, Vector]> = {
-        'top-bottom': [
-          { x: 0.5, y: 0 },
-          { x: 0.5, y: 1 }
-        ],
-        'bottom-top': [
-          { x: 0.5, y: 1 },
-          { x: 0.5, y: 0 }
-        ],
-        'left-right': [
-          { x: 0, y: 0.5 },
-          { x: 1, y: 0.5 }
-        ],
-        'right-left': [
-          { x: 1, y: 0.5 },
-          { x: 0, y: 0.5 }
+      if (gradient && color_end) {
+        const cEnd = parseColor(color_end)
+        // Edge middles of the layer's unit square that each direction runs between.
+        const ends: Record<string, [Vector, Vector]> = {
+          'top-bottom': [
+            { x: 0.5, y: 0 },
+            { x: 0.5, y: 1 }
+          ],
+          'bottom-top': [
+            { x: 0.5, y: 1 },
+            { x: 0.5, y: 0 }
+          ],
+          'left-right': [
+            { x: 0, y: 0.5 },
+            { x: 1, y: 0.5 }
+          ],
+          'right-left': [
+            { x: 1, y: 0.5 },
+            { x: 0, y: 0.5 }
+          ]
+        }
+        const [start, end] = ends[gradient] ?? ends['top-bottom']
+        node.fills = [
+          {
+            type: 'GRADIENT_LINEAR',
+            color: c,
+            opacity: 1,
+            visible: true,
+            gradientStops: [
+              { position: 0, color: c },
+              { position: 1, color: cEnd }
+            ],
+            gradientTransform: linearGradientTransform(start, end)
+          }
         ]
+        return { id, gradient, start: c, end: cEnd }
       }
-      const [start, end] = ends[gradient] ?? ends['top-bottom']
-      node.fills = [
+
+      node.fills = [{ type: 'SOLID', color: c, opacity: 1, visible: true }]
+      return { id, color: c }
+    }
+  }),
+  { target: 'id' }
+)
+
+export const setStroke = withBatch(
+  defineTool({
+    name: 'set_stroke',
+
+    description: 'Set the stroke (border) of a node.',
+    execution: { kind: 'sync', mutation: 'properties' },
+    input: v.strictObject({
+      id: nodeIdInput,
+      color: v.pipe(v.string(), v.description('Stroke color (hex)')),
+      weight: v.optional(
+        toolNumber(v.pipe(v.number(), v.minValue(0.1), v.description('Stroke weight'))),
+        1
+      ),
+      align: v.optional(
+        v.pipe(v.picklist(['INSIDE', 'CENTER', 'OUTSIDE']), v.description('Stroke alignment')),
+        'INSIDE'
+      )
+    }),
+    execute: (figma, { id, color, weight, align }) => {
+      const node = figma.getNodeById(id)
+      if (!node) return { error: `Node "${id}" not found` }
+
+      const c = parseColor(color)
+      node.strokes = [
         {
-          type: 'GRADIENT_LINEAR',
+          type: 'SOLID',
           color: c,
+          weight: weight,
           opacity: 1,
           visible: true,
-          gradientStops: [
-            { position: 0, color: c },
-            { position: 1, color: cEnd }
-          ],
-          gradientTransform: linearGradientTransform(start, end)
+          align
         }
       ]
-      return { id, gradient, start: c, end: cEnd }
+      return { id, color: c, weight: weight }
     }
-
-    node.fills = [{ type: 'SOLID', color: c, opacity: 1, visible: true }]
-    return { id, color: c }
-  }
-})
-
-export const setStroke = defineTool({
-  name: 'set_stroke',
-
-  description: 'Set the stroke (border) of a node.',
-  execution: { kind: 'sync', mutation: 'properties' },
-  input: v.strictObject({
-    id: nodeIdInput,
-    color: v.pipe(v.string(), v.description('Stroke color (hex)')),
-    weight: v.optional(
-      toolNumber(v.pipe(v.number(), v.minValue(0.1), v.description('Stroke weight'))),
-      1
-    ),
-    align: v.optional(
-      v.pipe(v.picklist(['INSIDE', 'CENTER', 'OUTSIDE']), v.description('Stroke alignment')),
-      'INSIDE'
-    )
   }),
-  execute: (figma, { id, color, weight, align }) => {
-    const node = figma.getNodeById(id)
-    if (!node) return { error: `Node "${id}" not found` }
-
-    const c = parseColor(color)
-    node.strokes = [
-      {
-        type: 'SOLID',
-        color: c,
-        weight: weight,
-        opacity: 1,
-        visible: true,
-        align
-      }
-    ]
-    return { id, color: c, weight: weight }
-  }
-})
+  { target: 'id' }
+)
 
 export const setImageFill = defineTool({
   name: 'set_image_fill',

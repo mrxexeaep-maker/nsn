@@ -1,0 +1,1 @@
+- `batch_update` rejects unsupported properties and invalid operations atomically instead of retaining partial edits; native arrays and the existing JSON-string input are supported.

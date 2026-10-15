@@ -119,6 +119,8 @@ describe('atomic agent tools', () => {
           {
             ...tool('set_opacity'),
             execute: () => {
+              const node = kind === 'node' ? graph.getNode(rectangle.id) : undefined
+              if (node) graph.willChangeNode(node)
               set(after)
             }
           },

@@ -1,0 +1,1 @@
+- AI and MCP tools accept shared targets or per-item batches for related property edits, variables, instance creation, and inspection, with one undo step and rollback on failed edits.

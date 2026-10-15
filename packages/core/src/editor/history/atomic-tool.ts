@@ -6,13 +6,10 @@ import {
 } from '@open-pencil/scene-graph'
 
 import type { Editor } from '#core/editor/create'
-import type { FigmaAPI } from '#core/figma-api'
+import type { FigmaAPI } from '#core/figma-api/index'
 import { isAtomicTool, type ToolDef } from '#core/tools/schema'
 
 import { diffFields, type FieldChanges } from './diff'
-
-// Capture property changes across pages. Component synchronization remains editor-owned.
-const MAX_TRANSACTION_NODES = 10_000
 
 type MutationEditor = Pick<Editor, 'graph' | 'runLayoutForNode' | 'requestRender' | 'pushUndoStep'>
 
@@ -27,7 +24,6 @@ function changes<T extends object>(
     const change = diffFields(id, previous, current)
     if (change) result.push(change)
   }
-  if (before.size !== after.size) throw new Error('Atomic tools must not create nodes or variables')
   return result
 }
 
@@ -35,6 +31,7 @@ function changes<T extends object>(
  * No await is permitted between snapshot and commit. Browser events, other agents and
  * cancellation cannot interleave with this bounded transaction. Async tools use their
  * existing execution path and are not exposed through WebMCP.
+ * Tools mutate through graph/API setters; direct node writes must call willChangeNode first.
  */
 export function executeAtomicTool(
   editor: MutationEditor,
@@ -49,10 +46,7 @@ export function executeAtomicTool(
     throw new Error('The target document is no longer open')
   }
   const graph = figma.graph
-  if (graph.nodes.size + graph.variables.size > MAX_TRANSACTION_NODES) {
-    throw new Error('Document too large for atomic agent editing (maximum 10000 nodes)')
-  }
-  const checkpoint = captureGraphCheckpoint(graph)
+  const checkpoint = captureGraphCheckpoint(graph, { incremental: true })
   const { nodes, variables } = checkpoint
   const pageId = figma.currentPageId
 
@@ -103,6 +97,7 @@ export function executeAtomicTool(
       changes(nodes, graph.nodes).map((change) => change.id)
     )
     const nodeChanges = changes(nodes, graph.nodes)
+    checkpoint.assertPropertiesOnly()
     const contentChanged =
       variableChanges.length > 0 ||
       nodeChanges.some((change) => Object.keys(change.after).some((key) => key !== 'source'))
@@ -120,6 +115,8 @@ export function executeAtomicTool(
     checkpoint.restore()
     editor.requestRender()
     throw error
+  } finally {
+    checkpoint.dispose()
   }
 }
 
@@ -132,9 +129,7 @@ function layout(
 ): void {
   const scopes = new Set(allPages ? graph.getPages().map((page) => page.id) : [pageId])
   for (const id of changedIds) {
-    let node = graph.getNode(id)
-    while (node && node.type !== 'CANVAS')
-      node = node.parentId ? graph.getNode(node.parentId) : undefined
+    const node = graph.closest(id, (candidate) => candidate.type === 'CANVAS')
     if (node) scopes.add(node.id)
   }
   for (const id of scopes) editor.runLayoutForNode(id)

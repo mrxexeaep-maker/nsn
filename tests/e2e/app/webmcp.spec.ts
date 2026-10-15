@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
 import * as v from 'valibot'
 
+import { CanvasHelper } from '#tests/helpers/canvas'
+
 const pageResult = v.object({
   ok: v.literal(true),
   result: v.object({ id: v.string(), name: v.string() })
@@ -13,6 +15,7 @@ test.use({
 test('native WebMCP discovery, editing, validation and undo', async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'Native WebMCP requires a supporting Chromium build')
   await page.goto('/?test')
+  await new CanvasHelper(page).waitForInit()
   await expect(page.getByRole('button', { name: 'Add page', exact: true })).toBeVisible()
   test.skip(
     !(await page.evaluate(() => Boolean(document.modelContext))),

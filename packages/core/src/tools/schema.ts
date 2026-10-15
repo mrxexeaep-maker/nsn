@@ -39,7 +39,7 @@ interface ToolMetadata {
 }
 
 export interface ToolDef extends ToolMetadata {
-  input: v.StrictObjectSchema<v.ObjectEntries, undefined>
+  input: v.GenericSchema<unknown, Record<string, unknown>> & { entries: v.ObjectEntries }
   /** Derived from execution metadata, never declared independently by a tool. */
   readonly mutates: boolean
   execute: (figma: FigmaAPI, args: Record<string, unknown>) => unknown

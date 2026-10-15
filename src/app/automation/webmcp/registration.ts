@@ -35,7 +35,7 @@ export function registerWebMCPTools(
           {
             name: def.name,
             description: `${def.description} Targets the active OpenPencil document.`,
-            inputSchema: toJSONSchema(schema, { typeMode: 'input' }),
+            inputSchema: toJSONSchema(schema, { typeMode: 'input', ignoreActions: ['check'] }),
             annotations: { readOnlyHint: !def.mutates, untrustedContentHint: true },
             execute: async (input, options?: WebMCP.ToolExecuteCallbackOptions) => {
               // Early document.modelContext implementations omit execution options.

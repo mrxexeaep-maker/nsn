@@ -11,6 +11,14 @@ Two transports: **stdio** for MCP clients, and **Streamable HTTP** for browser e
 
 Tool definitions own native Valibot input schemas, execution/mutation metadata, capabilities, and optional interface exposure exclusions. Tools are included by default; `exposure: { mcp: false, ai: false, webmcp: false }` can exclude them independently from each adapter. Exposure does not bypass execution support or user permissions: WebMCP still requires supported execution and explicit Off, Inspect, or Edit access. AI and MCP consume the same schema through Standard Schema; WebMCP derives its JSON Schema from that input. Numeric strings are accepted consistently across adapters, while non-finite values are rejected. Programmatic integrations use MCP SDK v2; custom tools replace the former `params`/`ParamDef` contract with `input` and execution metadata.
 
+## Batch operations
+
+Property, variable, instance-creation, and node-inspection tools accept batches where their input schema lists `ids` or `items`. Use `ids` to apply shared arguments, such as `set_font({ ids: ["1:2", "1:3"], size: 16 })`. Use `items` for different arguments per operation, such as `set_text({ items: [{ id: "1:2", text: "Save" }, { id: "1:3", text: "Cancel" }] })`. Existing single-item calls still work.
+
+Each batch accepts up to 200 entries. Mutating batches validate every entry before editing, roll back if an operation fails, and create one editor undo step. Read batches return indexed results and per-item errors, with a shared output budget of 48,000 characters. Inspect small subtrees instead of requesting every descendant.
+
+`batch_update` also accepts a native `operations` array of `{ id, props }` for mixed property edits; its former JSON-string input remains supported. All forms retain the tool's access policy and document/selection scope.
+
 ## Tool access settings
 
 Use **Settings → Tool access** (select **Local MCP**) to search and toggle the local server's tools, individually or by read-only/side-effect group. Group switches affect all group members, even during search. **Restore defaults** enables the configurable MCP tools again. Existing MCP preferences are preserved separately from the **Built-in AI** settings.

@@ -8,6 +8,7 @@
 import { toStandardJsonSchema as toStandardJSONSchema } from '@valibot/to-json-schema'
 import type { JSONValue, ToolResultPart, ToolSet, tool as createTool } from 'ai'
 import { isEmptyObject } from 'es-toolkit'
+import * as v from 'valibot'
 
 import type { FigmaAPI } from '#core/figma-api'
 
@@ -179,7 +180,13 @@ export function toolsToAI(
     if (!isToolExposed(def, 'ai')) continue
     const toolOpts: Record<string, unknown> = {
       description: def.description,
-      inputSchema: toStandardJSONSchema(def.input),
+      inputSchema: {
+        '~standard': {
+          ...toStandardJSONSchema(v.strictObject(def.input.entries))['~standard'],
+          // JSON Schema describes fields; Valibot also enforces cross-field batch rules.
+          validate: def.input['~standard'].validate
+        }
+      },
       execute: async (args: Record<string, unknown>, { toolCallId }: { toolCallId: string }) => {
         const startTime = Date.now()
         const figma = options.getFigma()

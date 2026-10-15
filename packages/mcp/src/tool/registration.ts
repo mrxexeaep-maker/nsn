@@ -6,7 +6,7 @@ import type { McpServer, ToolCallback, ToolAnnotations } from '@modelcontextprot
 import { toStandardJsonSchema as toStandardJSONSchema } from '@valibot/to-json-schema'
 import * as v from 'valibot'
 
-import { CODEGEN_PROMPT } from '@open-pencil/core/tools'
+import { CODEGEN_PROMPT, parseToolArgs } from '@open-pencil/core/tools'
 
 import type { RPCJSONObject } from '#mcp/json'
 import { MAX_RESULT_BYTES, fail, ok, resultTooLargeMessage } from '#mcp/result'
@@ -125,6 +125,7 @@ export function registerTools(mcpServer: McpServer, options: RegisterToolsOption
       async (args: Record<string, unknown>) => {
         try {
           const { target, args: toolArgs } = splitAutomationTarget(args)
+          parseToolArgs(def.name, def.input, toolArgs)
           if (policy.scope === 'selection' && toolArgs.path !== undefined) {
             return fail(new Error(SELECTION_SCOPE_FILE_OUTPUT_ERROR))
           }

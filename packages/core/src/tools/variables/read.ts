@@ -1,5 +1,6 @@
 import * as v from 'valibot'
 
+import { withBatch } from '#core/tools/batch/define'
 import { defineTool } from '#core/tools/schema'
 
 export const listVariables = defineTool({
@@ -20,19 +21,22 @@ export const listVariables = defineTool({
   }
 })
 
-export const getVariable = defineTool({
-  name: 'get_variable',
-  description: 'Get a variable by ID.',
-  execution: { kind: 'sync', mutation: 'none' },
-  input: v.strictObject({
-    id: v.pipe(v.string(), v.description('Variable ID'))
+export const getVariable = withBatch(
+  defineTool({
+    name: 'get_variable',
+    description: 'Get a variable by ID.',
+    execution: { kind: 'sync', mutation: 'none' },
+    input: v.strictObject({
+      id: v.pipe(v.string(), v.description('Variable ID'))
+    }),
+    execute: (figma, { id }) => {
+      const variable = figma.getVariableById(id)
+      if (!variable) return { error: `Variable "${id}" not found` }
+      return variable
+    }
   }),
-  execute: (figma, { id }) => {
-    const variable = figma.getVariableById(id)
-    if (!variable) return { error: `Variable "${id}" not found` }
-    return variable
-  }
-})
+  { target: 'id' }
+)
 
 export const findVariables = defineTool({
   name: 'find_variables',
