@@ -283,3 +283,10 @@ desktop app, which gets the same path, server, and secret as `openpencil://cloud
 The native side checks the ID, secret, and server before the editor sees a link. The secret is
 visible in the launch arguments to other processes on the same computer; pasting links into the
 app would avoid that at the cost of a manual step for everyone.
+
+**2026-10 · Cloud's server is Apache-2.0, and the editor builds without it.** The server, relay,
+administration, and the pages the server serves are Apache-2.0 for its patent grant; the protocol
+in `contract` and `client` stays MIT, so the editor and other clients stay MIT. `REUSE.toml` maps
+the paths rather than a separate package, which would have moved the protocol out of
+`packages/cloud` for no legal gain. `VITE_OPENPENCIL_CLOUD=off` swaps Cloud's two entry points for
+stand-ins, and `check:cloud-off` proves that build bundles none of Cloud.
