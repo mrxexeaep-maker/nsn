@@ -9,6 +9,7 @@ import {
   parseCloudServerConfig,
   type AuthenticationEmailService
 } from '#cloud/server'
+import * as v from 'valibot'
 
 const config = parseCloudServerConfig({
   deployment: 'self-hosted',
@@ -106,6 +107,38 @@ describe('email and password authentication', () => {
       const verification = await app.auth.handler(new Request(verificationURL))
       expect(verification.status).toBe(302)
       expect(await app.enrollment.statusForEmail('person@example.com')).toBe('pending')
+    } finally {
+      await app.close()
+    }
+  })
+
+  test('signs in with a bearer token and turns away an unconfirmed email without mailing again', async () => {
+    const verificationURLs: string[] = []
+    const app = await runtime({
+      async sendVerification(input) {
+        verificationURLs.push(input.url)
+      },
+      sendPasswordReset: ignoreAuthenticationEmail,
+      sendPasswordChanged: ignoreAuthenticationEmail
+    })
+    const credentials = { email: 'person@example.com', password: 'a sufficiently long password' }
+    try {
+      await app.auth.handler(authRequest('/sign-up/email', { ...credentials, name: 'Person' }))
+
+      const unconfirmed = await app.auth.handler(authRequest('/sign-in/email', credentials))
+      expect(unconfirmed.status).toBe(403)
+      expect(await unconfirmed.json()).toMatchObject({ code: 'EMAIL_NOT_VERIFIED' })
+      expect(verificationURLs).toHaveLength(1)
+
+      await app.auth.handler(new Request(verificationURLs[0] ?? ''))
+      const signedIn = await app.auth.handler(authRequest('/sign-in/email', credentials))
+      const { token } = v.parse(v.object({ token: v.string() }), await signedIn.json())
+      const session = await app.auth.handler(
+        new Request(new URL('/api/auth/get-session', config.publicURL), {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      )
+      expect(await session.json()).toMatchObject({ user: { email: 'person@example.com' } })
     } finally {
       await app.close()
     }

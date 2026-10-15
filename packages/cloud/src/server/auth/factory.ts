@@ -215,7 +215,8 @@ export function createBetterAuthAdapter(
         ? {
             expiresIn: config.emailVerificationExpiresIn,
             sendOnSignUp: true,
-            sendOnSignIn: true,
+            // Signing in unverified only says so; people ask for another link with Send again.
+            sendOnSignIn: false,
             autoSignInAfterVerification: true,
             sendVerificationEmail: ({ user, url, token }) =>
               authenticationEmail.sendVerification({

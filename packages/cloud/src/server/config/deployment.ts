@@ -95,7 +95,7 @@ export const cloudDeploymentConfigSchema = v.object({
         sign_up: v.optional(v.boolean(), true),
         minimum_password_length: v.optional(
           v.pipe(v.number(), v.integer(), v.minValue(8), v.maxValue(128)),
-          15
+          8
         ),
         maximum_password_length: v.optional(
           v.pipe(v.number(), v.integer(), v.minValue(15), v.maxValue(128)),
@@ -108,7 +108,7 @@ export const cloudDeploymentConfigSchema = v.object({
       {
         enabled: false,
         sign_up: true,
-        minimum_password_length: 15,
+        minimum_password_length: 8,
         maximum_password_length: 128,
         verification_link_expires_minutes: 60,
         password_reset_link_expires_minutes: 60,

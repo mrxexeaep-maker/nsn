@@ -8,7 +8,11 @@ const shared = {
   outDir: './dist',
   treeshake: { moduleSideEffects: false },
   outputOptions: { minifyInternalExports: false },
-  deps: { neverBundle: [/^node:/], skipNodeModulesBundle: true }
+  deps: {
+    neverBundle: [/^node:/],
+    // Dependencies stay imports, except the shared email layout, which ships as source.
+    alwaysBundle: [/^@open-pencil\/feedback\//]
+  }
 }
 
 export default defineConfig([

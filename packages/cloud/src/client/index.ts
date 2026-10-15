@@ -7,8 +7,13 @@ export {
   type CloudRequestOptions,
   type CloudUpload
 } from './api'
+export { cloudAuthFailure, type CloudAuthFailure, type CloudAuthResult } from './auth-failure'
 export {
   createCloudAuthClient,
+  resendCloudVerification,
+  signInToCloudWithEmail,
+  signUpToCloudWithEmail,
+  type CloudEmailSignIn,
   signInToCloud,
   signOutFromCloud,
   type CloudAuthClient,

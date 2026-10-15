@@ -3,6 +3,7 @@ import { passkeyClient } from '@better-auth/passkey/client'
 import { createAuthClient } from 'better-auth/client'
 import { deviceAuthorizationClient, twoFactorClient } from 'better-auth/client/plugins'
 
+import { cloudAuthFailure, type CloudAuthResult } from './auth-failure'
 import type { CloudFetch } from './discovery'
 
 export type CloudSocialProvider = CloudDiscovery['authentication']['socialProviders'][number]
@@ -127,4 +128,62 @@ export async function signOutFromCloud(
 ): Promise<void> {
   const result = await createCloudAuthClient(discovery, options).signOut()
   if (result.error) throw new Error(result.error.message ?? 'Cloud sign-out failed')
+}
+
+/** An email sign-in that went through: the session's bearer token, or a second step to take. */
+export type CloudEmailSignIn = { status: 'signed-in'; token: string } | { status: 'two-step' }
+
+type CloudEmailAuthOptions = Pick<CloudAuthClientOptions, 'fetch' | 'captchaResponse'>
+
+/**
+ * Signs in with an email and password without leaving the app. The token goes on every later
+ * request, so no cookie has to cross from the server to the editor.
+ */
+export async function signInToCloudWithEmail(
+  discovery: CloudDiscovery,
+  input: { email: string; password: string },
+  options: CloudEmailAuthOptions = {}
+): Promise<CloudAuthResult<CloudEmailSignIn>> {
+  const result = await createCloudAuthClient(discovery, options)
+    .signIn.email({ ...input, rememberMe: true })
+    .catch(() => null)
+  if (!result) return cloudAuthFailure(null)
+  if (result.error) return cloudAuthFailure(result.error)
+  if ('twoFactorRedirect' in result.data && result.data.twoFactorRedirect === true) {
+    return { ok: true, value: { status: 'two-step' } }
+  }
+  if (!('token' in result.data) || typeof result.data.token !== 'string') {
+    return cloudAuthFailure(null)
+  }
+  return { ok: true, value: { status: 'signed-in', token: result.data.token } }
+}
+
+/** Creates an account; the server emails a link that opens `verifiedURL` once it is confirmed. */
+export async function signUpToCloudWithEmail(
+  discovery: CloudDiscovery,
+  input: { name: string; email: string; password: string; verifiedURL: string },
+  options: CloudEmailAuthOptions = {}
+): Promise<CloudAuthResult> {
+  const result = await createCloudAuthClient(discovery, options)
+    .signUp.email({
+      name: input.name,
+      email: input.email,
+      password: input.password,
+      callbackURL: input.verifiedURL
+    })
+    .catch(() => null)
+  if (!result) return cloudAuthFailure(null)
+  return result.error ? cloudAuthFailure(result.error) : { ok: true, value: undefined }
+}
+
+export async function resendCloudVerification(
+  discovery: CloudDiscovery,
+  input: { email: string; verifiedURL: string },
+  options: CloudEmailAuthOptions = {}
+): Promise<CloudAuthResult> {
+  const result = await createCloudAuthClient(discovery, options)
+    .sendVerificationEmail({ email: input.email, callbackURL: input.verifiedURL })
+    .catch(() => null)
+  if (!result) return cloudAuthFailure(null)
+  return result.error ? cloudAuthFailure(result.error) : { ok: true, value: undefined }
 }

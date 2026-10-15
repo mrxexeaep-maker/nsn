@@ -8,6 +8,8 @@ export type EnrollmentEmailProps = {
   message: string
   actionLabel: string
   actionURL: string
+  /** Small print under the button. */
+  footer?: string
 }
 
 export const EnrollmentEmail = defineComponent({
@@ -16,8 +18,9 @@ export const EnrollmentEmail = defineComponent({
     preview: { type: String, required: true },
     message: { type: String, required: true },
     actionLabel: { type: String, required: true },
-    actionURL: { type: String, required: true }
-  } satisfies Record<keyof EnrollmentEmailProps, { type: PropType<string>; required: true }>,
+    actionURL: { type: String, required: true },
+    footer: { type: String, required: false }
+  } satisfies Record<keyof EnrollmentEmailProps, { type: PropType<string>; required: boolean }>,
   setup(props) {
     return () => transactionalEmailLayout(props)
   }

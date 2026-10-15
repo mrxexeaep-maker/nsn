@@ -14,7 +14,7 @@ import type {
 
 async function rendered(
   component: Parameters<typeof render>[0],
-  props: Record<string, string>,
+  props: Record<string, string | undefined>,
   subject: string
 ): Promise<RenderedTransactionalEmail> {
   const [html, text] = await Promise.all([
@@ -129,18 +129,20 @@ async function renderAuthentication(
 ) {
   const copy = {
     'email-verification': {
-      subject: 'Verify your OpenPencil Cloud email',
-      heading: 'Verify your email',
-      preview: 'Verify your email address to continue to OpenPencil Cloud.',
-      message: `Hi ${payload.name}, verify your email address to continue.`,
-      actionLabel: 'Verify email'
+      subject: 'Confirm your OpenPencil Cloud email',
+      heading: 'Confirm your email',
+      preview: 'One click to finish creating your OpenPencil Cloud account.',
+      message: `Hi ${payload.name}, confirm this address to finish creating your OpenPencil Cloud account. Then go back to OpenPencil; it signs you in by itself.`,
+      actionLabel: 'Confirm email',
+      footer: 'Didn’t create an account? Ignore this email and nothing happens.'
     },
     'password-reset': {
       subject: 'Reset your OpenPencil Cloud password',
       heading: 'Reset your password',
       preview: 'Use this secure link to choose a new password.',
       message: `Hi ${payload.name}, use the link below to choose a new password.`,
-      actionLabel: 'Reset password'
+      actionLabel: 'Reset password',
+      footer: 'Didn’t ask for this? Ignore this email and your password stays the same.'
     },
     'password-changed': {
       subject: 'Your OpenPencil Cloud password changed',

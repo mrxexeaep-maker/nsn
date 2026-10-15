@@ -75,6 +75,7 @@
     "@better-auth/utils": "0.4.2",
     "@hono/node-server": "^1.19.17",
     "@noble/hashes": "^2.4.0",
+    "@open-pencil/feedback": "workspace:*",
     "@open-pencil/scene-graph": "workspace:*",
     "@openfeature/server-sdk": "^1.23.0",
     "@vue-email/components": "^0.0.21",

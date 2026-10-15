@@ -1,15 +1,6 @@
-import {
-  Body,
-  Button,
-  Container,
-  Head,
-  Heading,
-  // eslint-disable-next-line open-pencil/no-mixed-case-acronym-identifiers -- Upstream export spelling.
-  Html as HTML,
-  Preview,
-  Text
-} from '@vue-email/components'
-import { h, type VNode } from 'vue'
+import type { VNode } from 'vue'
+
+import { emailLayout } from '@open-pencil/feedback/email'
 
 export type TransactionalEmailLayout = {
   preview: string
@@ -20,30 +11,8 @@ export type TransactionalEmailLayout = {
   footer?: string
 }
 
+/** Cloud's mail in the same branded layout as the waitlist's, so people know who wrote. */
 export function transactionalEmailLayout(props: TransactionalEmailLayout): VNode {
-  return h(HTML, { lang: 'en' }, () => [
-    h(Head),
-    h(Preview, () => props.preview),
-    h(Body, { style: { backgroundColor: '#f5f5f5', fontFamily: 'Arial, sans-serif' } }, () =>
-      h(
-        Container,
-        { style: { margin: '40px auto', padding: '32px', backgroundColor: '#ffffff' } },
-        () => [
-          h(Heading, { as: 'h1', style: { fontSize: '22px' } }, () => props.heading),
-          h(Text, () => props.message),
-          h(
-            Button,
-            {
-              href: props.actionURL,
-              style: { backgroundColor: '#171717', color: '#ffffff', padding: '12px 18px' }
-            },
-            () => props.actionLabel
-          ),
-          props.footer
-            ? h(Text, { style: { color: '#737373', fontSize: '12px' } }, () => props.footer)
-            : null
-        ]
-      )
-    )
-  ])
+  const { footer, ...content } = props
+  return emailLayout({ ...content, note: footer ? { text: footer } : undefined })
 }

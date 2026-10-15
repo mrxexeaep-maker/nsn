@@ -27,7 +27,7 @@ export function localCloudDeployment(endpoints: LocalCloudEndpoints): CloudDeplo
       email_password: {
         enabled: true,
         sign_up: true,
-        minimum_password_length: 15,
+        minimum_password_length: 8,
         maximum_password_length: 128,
         verification_link_expires_minutes: 60,
         password_reset_link_expires_minutes: 60,

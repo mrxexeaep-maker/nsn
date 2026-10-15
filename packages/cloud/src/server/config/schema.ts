@@ -75,7 +75,7 @@ const rawCloudServerConfigSchema = v.object({
   emailPasswordSignUpEnabled: v.optional(v.boolean(), true),
   emailPasswordMinimumLength: v.optional(
     v.pipe(v.number(), v.integer(), v.minValue(8), v.maxValue(128)),
-    15
+    8
   ),
   emailPasswordMaximumLength: v.optional(
     v.pipe(v.number(), v.integer(), v.minValue(15), v.maxValue(128)),
