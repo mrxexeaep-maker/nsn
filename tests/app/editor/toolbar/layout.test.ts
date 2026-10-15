@@ -15,10 +15,11 @@ import {
   type ToolbarEntry,
   type ToolbarLayout
 } from '@/app/editor/toolbar/layout'
-import { TOOL_SHORTCUT_LABELS } from '@/app/editor/toolbar/shortcuts'
+import { toolShortcutLabels } from '@/app/editor/toolbar/shortcuts'
 
 const SHAPES: ToolbarEntry[] = ['RECTANGLE', 'LINE', 'ELLIPSE', 'POLYGON', 'STAR']
-const LABELS = { ...TOOL_SHORTCUT_LABELS }
+const SHORTCUTS = toolShortcutLabels('mac')
+const LABELS = { ...SHORTCUTS }
 
 function layout(groups: ToolbarEntry[][], hidden: ToolbarEntry[] = []): ToolbarLayout {
   return normalizeToolbarLayout(groups, hidden)
@@ -58,7 +59,7 @@ describe('normalizeToolbarLayout', () => {
       ['SELECT'],
       ['FRAME', 'SECTION'],
       SHAPES,
-      ['PEN'],
+      ['PEN', 'PENCIL'],
       ['HAND'],
       ['COMMENT'],
       ['insert-icon']
@@ -71,7 +72,7 @@ describe('toolbarItems', () => {
     const items = toolbarItems(
       layout(DEFAULT_TOOLBAR_LAYOUT.groups, ['SECTION', 'RECTANGLE']),
       LABELS,
-      TOOL_SHORTCUT_LABELS
+      SHORTCUTS
     )
     expect(items[1]).toEqual({
       kind: 'tool',
@@ -93,7 +94,7 @@ describe('toolbarItems', () => {
     const items = toolbarItems(
       layout(DEFAULT_TOOLBAR_LAYOUT.groups, ['FRAME', 'SECTION']),
       LABELS,
-      TOOL_SHORTCUT_LABELS
+      SHORTCUTS
     )
     expect(items.map((item) => (item.kind === 'tool' ? item.tool.key : item.action))).not.toContain(
       'FRAME'
@@ -113,8 +114,8 @@ describe('editing', () => {
   })
 
   test('a button swaps with the button or flyout next to it', () => {
-    const moved = moveToolbarEntry(base, 'PEN', -1)
-    expect(moved.groups.slice(2, 4)).toEqual([['PEN'], SHAPES])
+    const moved = moveToolbarEntry(base, 'TEXT', -1)
+    expect(moved.groups.slice(3, 5)).toEqual([['TEXT'], ['PEN', 'PENCIL']])
     expect(moveToolbarEntry(base, 'SELECT', -1)).toBe(base)
   })
 
@@ -129,7 +130,7 @@ describe('editing', () => {
 
   test('joining merges a group into the one above', () => {
     const joined = joinToolbarEntry(base, 'TEXT')
-    expect(joined.groups[3]).toEqual(['PEN', 'TEXT'])
+    expect(joined.groups[3]).toEqual(['PEN', 'PENCIL', 'TEXT'])
     expect(joinToolbarEntry(base, 'insert-icon')).toBe(base)
     expect(joinToolbarEntry(base, 'SELECT')).toBe(base)
     expect(joinToolbarEntry(base, 'LINE')).toBe(base)
@@ -140,7 +141,7 @@ describe('editing', () => {
       ['RECTANGLE', 'LINE', 'POLYGON', 'STAR'],
       ['ELLIPSE']
     ])
-    expect(detachToolbarEntry(base, 'PEN')).toBe(base)
+    expect(detachToolbarEntry(base, 'TEXT')).toBe(base)
   })
 
   test('rows say how each entry relates to the one above', () => {
@@ -185,7 +186,7 @@ describe('dragging', () => {
   test('a flyout member dragged to the gap leaves its flyout', () => {
     const flat = base.groups.flat().filter((entry) => entry !== 'SECTION')
     const dropped = placeToolbarEntry(base, 'SECTION', flat.indexOf('PEN'))
-    expect(dropped.groups.slice(1, 5)).toEqual([['FRAME'], SHAPES, ['SECTION'], ['PEN']])
+    expect(dropped.groups.slice(1, 5)).toEqual([['FRAME'], SHAPES, ['SECTION'], ['PEN', 'PENCIL']])
   })
 
   test('a command never lands inside a flyout', () => {

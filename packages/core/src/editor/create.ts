@@ -26,6 +26,7 @@ import { fontResolver } from '#core/text/resolver'
 import { createAlignmentActions } from './alignment'
 import { createClipboardBridge } from './bridges/clipboard'
 import { createComponentBridge } from './bridges/components'
+import { createFrameNavigationBridge } from './bridges/frames'
 import { createLintFixBridge } from './bridges/lint'
 import { createStructureBridge } from './bridges/structure'
 import { createUndoBridge } from './bridges/undo'
@@ -284,6 +285,7 @@ export function createEditor(options?: EditorOptions) {
   const clipboardBridge = createClipboardBridge(clipboard, selection)
   const componentBridge = createComponentBridge(components, selection, structure, pages)
   const structureBridge = createStructureBridge(structure, selection)
+  const frameNavigation = createFrameNavigationBridge(ctx, selection, viewport)
   const undoBridge = createUndoBridge(undoActions, selection, nodes.flushNudge)
   const lintFixBridge = createLintFixBridge(ctx, nodes, structure, clipboard)
   const textSelectionStyle = createTextSelectionStyle(ctx, text.runTextEditStep)
@@ -447,6 +449,7 @@ export function createEditor(options?: EditorOptions) {
 
     // Viewport
     ...viewport,
+    ...frameNavigation,
 
     // Undo — bridge functions that need cross-module refs
     ...undoBridge,
