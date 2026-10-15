@@ -373,6 +373,30 @@ const noViewsImportedOutsideEntry = createImportRule(
   }
 )
 
+// The Cloud portal is served by the Cloud server on its own; it reuses the app's UI, never the
+// editor, so its build stays small.
+const CLOUD_PORTAL_SOURCES = [
+  'src/cloud.ts',
+  'src/cloud-router.ts',
+  'src/views/cloud/',
+  'src/app/cloud-portal/',
+  'src/components/cloud-portal/',
+  'src/theme/cloud-portal/'
+]
+const EDITOR_ONLY_MODULES = ['src/app/editor/', 'src/app/shell/']
+
+const noEditorImportsInCloudPortal = createImportRule(
+  'open-pencil/no-editor-imports-in-cloud-portal',
+  (sourceRel, specifier, resolved) => {
+    if (!CLOUD_PORTAL_SOURCES.some((prefix) => sourceRel.startsWith(prefix))) return null
+    const editorOnly =
+      specifier.startsWith('canvaskit-wasm') ||
+      EDITOR_ONLY_MODULES.some((prefix) => resolved?.startsWith(prefix))
+    if (!editorOnly) return null
+    return 'The Cloud portal must not import editor sessions, CanvasKit, or the app shell, so `bun run build:cloud-portal` stays small.'
+  }
+)
+
 const noAppImportsInSharedUI = createImportRule(
   'open-pencil/no-app-imports-in-shared-ui',
   (sourceRel, _specifier, resolved) => {
@@ -562,6 +586,7 @@ export const openPencilArchitecturePlugin = {
     noAppImportsComponentsOrViews,
     noComponentsImportViews,
     noViewsImportedOutsideEntry,
+    noEditorImportsInCloudPortal,
     noNonUIImportsInSharedUI,
     noAppImportsInSharedUI,
     noPropertyPanelInternalsOutsidePanel,
