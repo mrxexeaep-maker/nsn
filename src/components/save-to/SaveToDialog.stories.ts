@@ -2,17 +2,17 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { fn } from 'storybook/test'
 import { ref } from 'vue'
 
-import CloudSaveDialog from './CloudSaveDialog.vue'
-import type { CloudSaveDestination, CloudSaveState } from './types'
+import SaveToDialog from './SaveToDialog.vue'
+import type { SaveToDestination, SaveToState } from './types'
 
 type Args = {
-  destinations: CloudSaveDestination[]
-  state: CloudSaveState
+  destinations: SaveToDestination[]
+  state: SaveToState
   destination: string
   onSave: () => void
 }
 
-const official: CloudSaveDestination = {
+const official: SaveToDestination = {
   kind: 'cloud',
   serverId: 'official',
   host: 'cloud.openpencil.dev',
@@ -22,16 +22,16 @@ const official: CloudSaveDestination = {
     { id: 'brand', name: 'Brand archive', role: 'viewer' }
   ]
 }
-const team: CloudSaveDestination = {
+const team: SaveToDestination = {
   kind: 'cloud',
   serverId: 'acme',
   host: 'design.acme.internal',
   workspaces: [{ id: 'product', name: 'Product', role: 'editor' }]
 }
-const bucket: CloudSaveDestination = { kind: 'storage', providerId: 's3', label: 'studio-designs' }
+const bucket: SaveToDestination = { kind: 'storage', providerId: 's3', label: 'studio-designs' }
 
 const meta = {
-  title: 'App/Cloud/Save Dialog',
+  title: 'App/Save To/Dialog',
   tags: ['autodocs'],
   args: {
     destinations: [official],
@@ -40,11 +40,11 @@ const meta = {
     onSave: fn()
   },
   render: (args) => ({
-    components: { CloudSaveDialog },
+    components: { SaveToDialog },
     setup: () => ({ args, name: ref('Onboarding flow'), destination: ref(args.destination) }),
     template: `
       <div class="h-[680px]">
-        <CloudSaveDialog :open="true" v-model:name="name" v-model:destination="destination" :destinations="args.destinations" :state="args.state" @save="args.onSave" />
+        <SaveToDialog :open="true" v-model:name="name" v-model:destination="destination" :destinations="args.destinations" :state="args.state" @save="args.onSave" />
       </div>`
   })
 } satisfies Meta<Args>

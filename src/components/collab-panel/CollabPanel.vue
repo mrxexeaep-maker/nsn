@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { isCloudBinding } from '@/app/cloud/documents/status'
+import { isCloudBinding } from '@/app/cloud/integration'
 import { useEditorStore } from '@/app/editor/active-store'
-import CloudShareButton from '@/components/cloud/share/CloudShareButton.vue'
+import { CloudShareButton } from '@/components/cloud/integration'
 import CollabAvatarStack from '@/components/collab-panel/CollabAvatarStack.vue'
 import CollabSharePopover from '@/components/collab-panel/CollabSharePopover.vue'
 import { provideCollabPanel } from '@/components/collab-panel/context'

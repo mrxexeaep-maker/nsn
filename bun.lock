@@ -582,6 +582,13 @@
         "@open-pencil/package-artifacts-tools": "workspace:*",
       },
     },
+    "tools/checks/cloud-off": {
+      "name": "@open-pencil/cloud-off-tools",
+      "dependencies": {
+        "@open-pencil/package-artifacts-tools": "workspace:*",
+        "vite": "8.1.4",
+      },
+    },
     "tools/checks/docs": {
       "name": "@open-pencil/docs-tools",
       "dependencies": {
@@ -1559,6 +1566,8 @@
     "@open-pencil/cli": ["@open-pencil/cli@workspace:packages/cli"],
 
     "@open-pencil/cloud": ["@open-pencil/cloud@workspace:packages/cloud"],
+
+    "@open-pencil/cloud-off-tools": ["@open-pencil/cloud-off-tools@workspace:tools/checks/cloud-off"],
 
     "@open-pencil/cloud-tools": ["@open-pencil/cloud-tools@workspace:tools/dev/cloud"],
 

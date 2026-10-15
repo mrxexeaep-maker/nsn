@@ -120,6 +120,9 @@ jobs:
       - name: Enforce architecture and type-shape boundaries
         run: bun run check:arch && bun run check:test-homes && bun run test:type-shapes
 
+      - name: Build the editor without Cloud
+        run: bun run check:cloud-off
+
   package-quality:
     name: Package integrity
     needs: changes

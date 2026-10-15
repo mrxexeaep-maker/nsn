@@ -28,9 +28,12 @@ const {
   account = null,
   workspaces = [],
   sharedCount = 0,
-  storage = null
+  storage = null,
+  cloud = true
 } = defineProps<{
   active: HomeLocation
+  /** The build has Cloud, so its sign-in and workspaces have a place. */
+  cloud?: boolean
   account?: HomeCloudAccount | null
   workspaces?: { id: string; name: string; documentCount?: number; attention?: boolean }[]
   sharedCount?: number
@@ -75,7 +78,7 @@ const workspaceLocations = computed(() =>
       </button>
     </div>
 
-    <div :class="ui.group()">
+    <div v-if="cloud" :class="ui.group()">
       <div :class="ui.header()">
         <span :class="ui.title()">{{ t.productName }}</span>
         <div v-if="account" :class="ui.actions()">

@@ -1,11 +1,6 @@
 import { computed } from 'vue'
 
-import { openCloudConnect } from '@/app/cloud/connect/flow'
-import { cloudServerHost } from '@/app/cloud/servers/address'
-import { homeCloudServer } from '@/app/cloud/servers/store'
-import { cloudConnection } from '@/app/cloud/sessions/connection'
-import { signOutOfCloud } from '@/app/cloud/sessions/sign-out'
-import { openNewWorkspace } from '@/app/cloud/workspaces/manage'
+import { useHomeCloud } from '@/app/cloud/integration'
 import { openSettingsDialog } from '@/app/settings/dialog'
 
 import { homeLocation, type HomeLocation } from './location'
@@ -37,23 +32,12 @@ function fromView(location: HomeLocationView): HomeLocation {
  * reach falls back to Recent.
  */
 export function useHomeLocations() {
-  const connection = computed(() => {
-    const server = homeCloudServer.value
-    return server ? { server, ...cloudConnection(server.id) } : null
-  })
-  const signedIn = computed(() =>
-    connection.value?.state === 'signed-in' ? connection.value : null
-  )
-  const account = computed(() => {
-    const current = signedIn.value
-    if (!current?.account) return null
-    return { ...current.account, host: cloudServerHost(current.server.url) }
-  })
-  const workspaces = computed(() => signedIn.value?.workspaces ?? [])
+  const cloud = useHomeCloud()
+  const workspaces = cloud.workspaces
 
   const location = computed<HomeLocation>(() => {
     const chosen = homeLocation.value
-    if (chosen.kind === 'shared' && !signedIn.value) return { kind: 'recent' }
+    if (chosen.kind === 'shared' && !cloud.signedIn.value) return { kind: 'recent' }
     if (chosen.kind === 'workspace' && !workspaces.value.some((entry) => entry.id === chosen.id)) {
       return { kind: 'recent' }
     }
@@ -67,26 +51,19 @@ export function useHomeLocations() {
   })
 
   return {
-    account,
+    account: cloud.account,
     workspaces,
     location,
     workspace,
-    serverId: computed(() => signedIn.value?.server.id ?? null),
+    serverId: cloud.serverId,
     active: computed(() => toView(location.value)),
     select(next: HomeLocationView) {
       homeLocation.value = fromView(next)
     },
-    // Signing back in goes straight to the server Home shows; without one, choose a server.
-    connect: () => openCloudConnect({ serverId: homeCloudServer.value?.id }),
+    connect: cloud.connect,
     accountSettings: () => openSettingsDialog('cloud'),
-    newWorkspace() {
-      const server = signedIn.value?.server
-      if (server) openNewWorkspace(server.id)
-    },
+    newWorkspace: cloud.newWorkspace,
     storageSettings: () => openSettingsDialog('storage'),
-    async signOut() {
-      const current = signedIn.value
-      if (current?.discovery) await signOutOfCloud(current.server.id, current.discovery)
-    }
+    signOut: cloud.signOut
   }
 }

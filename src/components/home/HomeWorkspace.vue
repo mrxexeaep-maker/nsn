@@ -4,7 +4,7 @@ import { computed, ref, watch } from 'vue'
 
 import { useDocumentWorkspace, useI18n, useViewportKind } from '@open-pencil/vue'
 
-import { CLOUD_STORAGE_PROVIDER_ID } from '@/app/cloud/sessions/token'
+import { CLOUD_INCLUDED, CLOUD_STORAGE_PROVIDER_ID } from '@/app/cloud/integration'
 import { useHomeLocations } from '@/app/home/locations'
 import {
   activeStorageProviderID,
@@ -30,8 +30,7 @@ import { openFileFromPath } from '@/app/shell/menu/use'
 import { createStoredDocument } from '@/app/storage/workspace/create'
 import { activeStorageLocation, createStorageWorkspaceSource } from '@/app/storage/workspace/source'
 import { openStorageDocumentInNewTab } from '@/app/tabs'
-import CloudSharedSection from '@/components/home/cloud/CloudSharedSection.vue'
-import CloudWorkspaceSection from '@/components/home/cloud/CloudWorkspaceSection.vue'
+import { CloudSharedSection, CloudWorkspaceSection } from '@/components/cloud/integration'
 import DocumentEntry from '@/components/home/document/DocumentEntry.vue'
 import HomeLayout from '@/components/home/HomeLayout.vue'
 import HomeSearchActions from '@/components/home/search/HomeSearchActions.vue'
@@ -230,6 +229,7 @@ function formattedDate(updatedAt: string): string {
   <HomeLayout data-test-id="recent-files-home">
     <template #sidebar>
       <HomeSidebar
+        :cloud="CLOUD_INCLUDED"
         :active="places.active.value"
         :account="places.account.value"
         :workspaces="places.workspaces.value"
@@ -245,6 +245,7 @@ function formattedDate(updatedAt: string): string {
     </template>
     <template #locations>
       <HomeLocationMenu
+        :cloud="CLOUD_INCLUDED"
         :active="places.active.value"
         :account="places.account.value"
         :workspaces="places.workspaces.value"

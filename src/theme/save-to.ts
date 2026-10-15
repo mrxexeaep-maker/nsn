@@ -1,7 +1,7 @@
 import { tv } from 'tailwind-variants'
 
-/** Choosing where on Cloud a document from this device goes. */
-export const cloudSave = tv({
+/** Choosing where a document from this device goes: a Cloud workspace or the storage bucket. */
+export const saveTo = tv({
   slots: {
     field: 'flex flex-col gap-1.5',
     label: 'text-[11px] font-medium text-muted',

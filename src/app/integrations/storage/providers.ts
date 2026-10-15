@@ -1,6 +1,5 @@
-import { CLOUD_SESSION_FIELD, CLOUD_STORAGE_PROVIDER_ID } from '@/app/cloud/sessions/token'
+import { CLOUD_STORAGE_PROVIDERS } from '@/app/cloud/integration/storage'
 
-import { createCloudStorageAdapter } from './cloud/adapter'
 import { defineStorageProvider, StorageProviderRegistry } from './registry'
 import { createS3StorageAdapter } from './s3/adapter'
 
@@ -20,17 +19,7 @@ export const S3_STORAGE_PROVIDER = defineStorageProvider({
   createAdapter: createS3StorageAdapter
 })
 
-/** Servers are profiles and workspaces containers; signing in replaces typed credentials. */
-export const CLOUD_STORAGE_PROVIDER = defineStorageProvider({
-  id: CLOUD_STORAGE_PROVIDER_ID,
-  label: 'OpenPencil Cloud',
-  description: 'Workspaces on OpenPencil Cloud or your team’s own server',
-  preferenceFields: [],
-  credentialFields: [{ id: CLOUD_SESSION_FIELD, label: 'Session' }],
-  createAdapter: (runtime) => createCloudStorageAdapter(runtime)
-})
-
 export const storageProviderRegistry = new StorageProviderRegistry([
   S3_STORAGE_PROVIDER,
-  CLOUD_STORAGE_PROVIDER
+  ...CLOUD_STORAGE_PROVIDERS
 ])

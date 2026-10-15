@@ -1,11 +1,34 @@
 import { resolve } from 'node:path'
 
-export function createOpenPencilAliases(rootDir: string) {
+/**
+ * The modules a build without Cloud (`VITE_OPENPENCIL_CLOUD=off`) uses instead of Cloud's two
+ * entry points, so nothing else of Cloud is bundled. They precede the `@` alias, which would
+ * otherwise resolve these paths first.
+ */
+function cloudOffAliases(rootDir: string) {
+  return [
+    {
+      find: /^@\/app\/cloud\/integration$/,
+      replacement: resolve(rootDir, 'src/app/cloud/integration/off/index.ts')
+    },
+    {
+      find: /^@\/app\/cloud\/integration\/storage$/,
+      replacement: resolve(rootDir, 'src/app/cloud/integration/off/storage.ts')
+    },
+    {
+      find: /^@\/components\/cloud\/integration$/,
+      replacement: resolve(rootDir, 'src/components/cloud/integration/off.ts')
+    }
+  ]
+}
+
+export function createOpenPencilAliases(rootDir: string, options: { cloud?: boolean } = {}) {
   const emptyNodeModule = resolve(rootDir, 'vite/empty-node-module.ts')
 
   return [
     { find: /^fs$/, replacement: emptyNodeModule },
     { find: /^path$/, replacement: emptyNodeModule },
+    ...(options.cloud === false ? cloudOffAliases(rootDir) : []),
     { find: '@', replacement: resolve(rootDir, 'src') },
     { find: '#vue', replacement: resolve(rootDir, 'packages/vue/src') },
     { find: '#core', replacement: resolve(rootDir, 'packages/core/src') },

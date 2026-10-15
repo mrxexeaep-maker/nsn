@@ -232,7 +232,7 @@ bun run dev:portless  # Web editor at https://open-pencil.localhost
 bun run tauri dev     # Desktop app (requires Rust)
 ```
 
-[CONTRIBUTING.md](CONTRIBUTING.md) covers setup, quality gates, pull requests, and commits. [AGENTS.md](AGENTS.md) maps the repository and links the guide inside each package. Desktop builds need [Rust](https://rustup.rs/) and the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/); run `bun run tauri build`.
+[CONTRIBUTING.md](CONTRIBUTING.md) covers setup, quality gates, pull requests, and commits. [AGENTS.md](AGENTS.md) maps the repository and links the guide inside each package. Desktop builds need [Rust](https://rustup.rs/) and the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/); run `bun run tauri build`. Set `VITE_OPENPENCIL_CLOUD=off` to build the web or desktop editor without OpenPencil Cloud.
 
 ### Tech stack
 

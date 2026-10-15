@@ -6,7 +6,7 @@ import vue from '@vitejs/plugin-vue'
 import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
 import Components from 'unplugin-vue-components/vite'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 
 import { ensureBrandAssets } from '@open-pencil/brand-tools'
 import { ensureDemoDocument } from '@open-pencil/demo-tools'
@@ -33,10 +33,12 @@ export default defineConfig(async ({ command, mode }) => {
   // `--mode cloud-portal` builds only the Cloud server's own pages (`cloud.html`), without the
   // editor, its demo document, CanvasKit, or the PWA.
   const cloudPortal = mode === 'cloud-portal'
+  // `VITE_OPENPENCIL_CLOUD=off` builds the editor without OpenPencil Cloud.
+  const cloud = loadEnv(mode, __dirname, 'VITE_').VITE_OPENPENCIL_CLOUD !== 'off'
   await Promise.all([ensureBrandAssets(['web']), cloudPortal ? undefined : ensureDemoDocument()])
   return {
     resolve: {
-      alias: createOpenPencilAliases(__dirname)
+      alias: createOpenPencilAliases(__dirname, { cloud })
     },
     define: {
       __OPENPENCIL_APP_VERSION__: JSON.stringify(packageJson.version),

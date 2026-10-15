@@ -12,9 +12,9 @@ import AppDialogHeader from '@/components/ui/dialog/AppDialogHeader.vue'
 import AppDialogRoot from '@/components/ui/dialog/AppDialogRoot.vue'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 import AppInput from '@/components/ui/input/AppInput.vue'
-import { cloudSave } from '@/theme/cloud/save'
+import { saveTo } from '@/theme/save-to'
 
-import type { CloudSaveDestination, CloudSaveState } from './types'
+import type { SaveToDestination, SaveToState } from './types'
 
 /**
  * Saving a document from this device to a Cloud workspace or the storage bucket, when there is
@@ -22,8 +22,8 @@ import type { CloudSaveDestination, CloudSaveState } from './types'
  * on; the file on this device is left as it was.
  */
 const { destinations, state } = defineProps<{
-  destinations: CloudSaveDestination[]
-  state: CloudSaveState
+  destinations: SaveToDestination[]
+  state: SaveToState
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
@@ -32,7 +32,7 @@ const name = defineModel<string>('name', { default: '' })
 const destination = defineModel<string>('destination', { default: '' })
 const emit = defineEmits<{ save: []; cancel: [] }>()
 
-const ui = cloudSave()
+const ui = saveTo()
 const t = useCloudMessages()
 const common = useCommonMessages()
 const saving = computed(() => state.kind === 'saving')
@@ -64,15 +64,15 @@ const errors = computed(() => ({
     <AppDialogBody>
       <fieldset :class="ui.stack()" :disabled="saving">
         <div :class="ui.field()">
-          <label for="cloud-save-name" :class="ui.label()">{{ t.saveName }}</label>
-          <AppInput id="cloud-save-name" v-model="name" />
+          <label for="save-to-name" :class="ui.label()">{{ t.saveName }}</label>
+          <AppInput id="save-to-name" v-model="name" />
         </div>
 
         <div :class="ui.field()">
-          <span id="cloud-save-destination" :class="ui.label()">{{ t.saveWhere }}</span>
+          <span id="save-to-destination" :class="ui.label()">{{ t.saveWhere }}</span>
           <RadioGroupRoot
             v-model="destination"
-            aria-labelledby="cloud-save-destination"
+            aria-labelledby="save-to-destination"
             :class="ui.choices()"
           >
             <template

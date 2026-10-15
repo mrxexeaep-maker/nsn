@@ -8,8 +8,7 @@ import { useRouter } from 'vue-router'
 
 import { provideEditor, useI18n } from '@open-pencil/vue'
 
-import { watchCloudRooms } from '@/app/cloud/rooms/live'
-import { startCloudSessions } from '@/app/cloud/sessions/startup'
+import { startCloud } from '@/app/cloud/integration'
 import { useDocumentCloseProtection } from '@/app/document/close/use'
 import { useFollowingEditorStore } from '@/app/editor/active-store'
 import { animationsEnabled } from '@/app/shell/motion'
@@ -19,15 +18,12 @@ import { useRestartApprovals } from '@/app/shell/updater/approvals'
 import { scheduleStartupUpdateCheck } from '@/app/shell/updater/check'
 import { kickSyncEngine } from '@/app/storage/sync'
 import { prepareForReload } from '@/app/tabs'
-import CloudConnectHost from '@/components/cloud/connect/CloudConnectHost.vue'
-import CloudInvitationHost from '@/components/cloud/invitation/CloudInvitationHost.vue'
-import CloudSaveHost from '@/components/cloud/save/CloudSaveHost.vue'
-import CloudNewWorkspaceHost from '@/components/cloud/workspace/CloudNewWorkspaceHost.vue'
-import CloudWorkspaceMembersHost from '@/components/cloud/workspace/CloudWorkspaceMembersHost.vue'
+import { CloudHosts } from '@/components/cloud/integration'
 import UnsavedChangesDialog from '@/components/document/UnsavedChangesDialog.vue'
 import PublishLibraryDialog from '@/components/libraries/PublishLibraryDialog.vue'
 import LibraryUpdateReviewDialog from '@/components/libraries/review/LibraryUpdateReviewDialog.vue'
 import RecoveryDialog from '@/components/recovery/RecoveryDialog.vue'
+import SaveToHost from '@/components/save-to/SaveToHost.vue'
 import AISetupDialog from '@/components/settings/ai-setup/AISetupDialog.vue'
 import SettingsDialog from '@/components/settings/SettingsDialog.vue'
 import UsageStatsPrompt from '@/components/sharing/UsageStatsPrompt.vue'
@@ -58,10 +54,9 @@ onMounted(() => {
   toast.setupGlobalErrorHandler()
   scheduleStartupUpdateCheck(updates)
   void kickSyncEngine()
-  onUnmounted(watchCloudRooms())
-  void startCloudSessions({
-    leaveLinkAddress: () => router.isReady().then(() => router.replace('/'))
-  })
+  onUnmounted(
+    startCloud({ leaveLinkAddress: () => router.isReady().then(() => router.replace('/')) })
+  )
 })
 </script>
 
@@ -73,11 +68,8 @@ onMounted(() => {
       </AppShell>
       <SettingsDialog />
       <AISetupDialog />
-      <CloudConnectHost />
-      <CloudSaveHost />
-      <CloudInvitationHost />
-      <CloudNewWorkspaceHost />
-      <CloudWorkspaceMembersHost />
+      <SaveToHost />
+      <CloudHosts />
       <RecoveryDialog />
       <UnsavedChangesDialog />
       <PublishLibraryDialog />

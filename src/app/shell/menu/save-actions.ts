@@ -1,5 +1,5 @@
-import { openSaveTo } from '@/app/cloud/documents/save'
 import type { EditorStore } from '@/app/editor/active-store'
+import { openSaveTo } from '@/app/storage/save-to'
 
 export function createSaveMenuActions(store: EditorStore) {
   return {
