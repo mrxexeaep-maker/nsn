@@ -16,6 +16,6 @@ const messages = useCloudPortalMessages()
     :description="messages.verifiedDescription"
     tone="success"
   >
-    <template #icon><icon-lucide-circle-check class="size-5" /></template>
+    <template #icon><icon-lucide-circle-check class="size-6" /></template>
   </PortalNotice>
 </template>

@@ -1,6 +1,6 @@
 import { tv } from 'tailwind-variants'
 
-/** Cloud's own pages outside the editor: a centered card for sign-in, a sidebar for the console. */
+/** The Cloud console: a bar with the server and account, sections in a sidebar. */
 export const portalLayout = tv({
   slots: {
     page: 'flex h-full min-h-0 flex-col overflow-hidden bg-canvas text-surface',
@@ -8,10 +8,6 @@ export const portalLayout = tv({
     barTitle: 'text-xs font-semibold whitespace-nowrap',
     barHost: 'truncate text-[11px] text-muted max-sm:hidden',
     barEnd: 'ml-auto flex items-center gap-2',
-    center: 'flex flex-1 items-start justify-center overflow-y-auto px-4 py-12 sm:items-center',
-    card: 'flex w-full max-w-sm flex-col overflow-hidden rounded-xl bg-panel shadow-[0_8px_30px_rgb(0_0_0/0.4)]',
-    cardBody: 'flex flex-col gap-3 p-4',
-    cardNote: 'flex items-center justify-center gap-1 text-[11px] text-muted',
     console: 'flex min-h-0 flex-1 max-md:flex-col',
     // Narrow screens turn the section list into one scrolling row above the page.
     nav: 'max-md:h-auto max-md:w-full max-md:flex-row max-md:overflow-x-auto max-md:border-r-0 max-md:border-b max-md:pb-0',

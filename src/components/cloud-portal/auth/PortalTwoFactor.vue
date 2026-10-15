@@ -30,7 +30,7 @@ const emit = defineEmits<{
   passkey: []
 }>()
 
-const ui = portalForm()
+const ui = portalForm({ size: 'lg' })
 const messages = useCloudPortalMessages()
 const code = ref('')
 </script>
@@ -44,9 +44,10 @@ const code = ref('')
     "
   >
     <AppAlert v-if="error" tone="error" :heading="error" />
-    <form id="portal-two-step" :class="ui.form()" novalidate @submit.prevent="emit('verify', code)">
+    <form :class="ui.form()" novalidate @submit.prevent="emit('verify', code)">
       <AppInput
         v-model="code"
+        size="lg"
         :inputmode="method === 'authenticator' ? 'numeric' : 'text'"
         autocomplete="one-time-code"
         :aria-label="
@@ -55,31 +56,40 @@ const code = ref('')
         :placeholder="method === 'authenticator' ? '000000' : 'xxxx-xxxx'"
         :ui="{ input: ui.code() }"
       />
-    </form>
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <AppButton size="xs" variant="link" @click="emit('switchMethod')">
-        {{ method === 'authenticator' ? messages.useRecoveryCode : messages.useAuthenticator }}
-      </AppButton>
-      <AppButton
-        v-if="passkeys"
-        size="xs"
-        variant="link"
-        :disabled="verifying"
-        @click="emit('passkey')"
-      >
-        {{ messages.usePasskey }}
-      </AppButton>
-    </div>
-    <template #actions>
       <AppButton
         type="submit"
-        form="portal-two-step"
+        size="lg"
         color="primary"
         variant="solid"
+        :class="ui.submit()"
         :loading="verifying"
       >
         {{ messages.continue }}
       </AppButton>
+    </form>
+    <template #aside>
+      <AppButton
+        size="lg"
+        color="primary"
+        variant="link"
+        :class="ui.inlineLink()"
+        @click="emit('switchMethod')"
+      >
+        {{ method === 'authenticator' ? messages.useRecoveryCode : messages.useAuthenticator }}
+      </AppButton>
+      <template v-if="passkeys">
+        <span aria-hidden="true">·</span>
+        <AppButton
+          size="lg"
+          color="primary"
+          variant="link"
+          :class="ui.inlineLink()"
+          :disabled="verifying"
+          @click="emit('passkey')"
+        >
+          {{ messages.usePasskey }}
+        </AppButton>
+      </template>
     </template>
   </PortalPublicLayout>
 </template>

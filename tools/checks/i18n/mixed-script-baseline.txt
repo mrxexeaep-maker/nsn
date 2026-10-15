@@ -446,6 +446,7 @@ zh-cn:storage.waitlistUnavailable
 zh-cn:statuses.figmaShows
 zh-cn:statuses.presetHandoff
 ja:cloudPortal.signInTitle
+ja:cloudPortal.newHere
 ja:cloudPortal.returnsToDesktop
 ja:cloudPortal.continueWithGoogle
 ja:cloudPortal.continueWithApple
@@ -456,6 +457,7 @@ ja:cloudPortal.deviceApprovedDescription
 ja:cloudPortal.deviceExpiredDescription
 ja:cloudPortal.authenticatorOff
 zh-cn:cloudPortal.signInTitle
+zh-cn:cloudPortal.newHere
 zh-cn:cloudPortal.returnsToDesktop
 zh-cn:cloudPortal.continueWithGoogle
 zh-cn:cloudPortal.continueWithApple

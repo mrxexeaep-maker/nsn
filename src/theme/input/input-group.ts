@@ -13,7 +13,8 @@ export default {
     size: {
       xs: { toolbar: controlHeight.xs },
       sm: { toolbar: controlHeight.sm },
-      md: { toolbar: controlHeight.md }
+      md: { toolbar: controlHeight.md },
+      lg: { toolbar: controlHeight.lg }
     },
     disabled: {
       true: { root: 'opacity-60' }

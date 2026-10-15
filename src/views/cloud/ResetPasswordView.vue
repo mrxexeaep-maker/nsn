@@ -60,9 +60,14 @@ async function choose(password: string) {
     :heading="messages.resetSentTitle"
     :description="messages.resetSentDescription({ email: sentTo })"
   >
-    <template #icon><icon-lucide-mail-check class="size-5" /></template>
+    <template #icon><icon-lucide-mail-check class="size-6" /></template>
     <template #actions>
-      <AppButton variant="ghost" @click="router.replace({ name: 'sign-in', query: { redirect } })">
+      <AppButton
+        size="lg"
+        variant="outline"
+        class="w-full"
+        @click="router.replace({ name: 'sign-in', query: { redirect } })"
+      >
         {{ messages.backToSignIn }}
       </AppButton>
     </template>

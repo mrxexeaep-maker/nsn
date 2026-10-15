@@ -62,7 +62,7 @@ const {
     :heading="messages.deviceApprovedTitle"
     :description="messages.deviceApprovedDescription"
   >
-    <template #icon><icon-lucide-check class="size-5" /></template>
+    <template #icon><icon-lucide-check class="size-6" /></template>
   </PortalNotice>
   <PortalNotice
     v-else-if="state === 'denied'"
@@ -70,9 +70,14 @@ const {
     :heading="messages.deviceDeniedTitle"
     :description="messages.deviceDeniedDescription"
   >
-    <template #icon><icon-lucide-monitor-x class="size-5" /></template>
+    <template #icon><icon-lucide-monitor-x class="size-6" /></template>
     <template #actions>
-      <AppButton variant="outline" @click="router.push({ name: 'security' })">
+      <AppButton
+        size="lg"
+        variant="outline"
+        class="w-full"
+        @click="router.push({ name: 'security' })"
+      >
         {{ messages.accountSettings }}
       </AppButton>
     </template>
@@ -83,6 +88,6 @@ const {
     :heading="messages.deviceExpiredTitle"
     :description="messages.deviceExpiredDescription"
   >
-    <template #icon><icon-lucide-timer-off class="size-5" /></template>
+    <template #icon><icon-lucide-timer-off class="size-6" /></template>
   </PortalNotice>
 </template>

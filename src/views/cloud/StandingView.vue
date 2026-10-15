@@ -30,11 +30,13 @@ async function signOut() {
     :description="pending ? messages.pendingDescription({ email }) : messages.closedDescription"
   >
     <template #icon>
-      <icon-lucide-clock v-if="pending" class="size-5" />
-      <icon-lucide-ban v-else class="size-5" />
+      <icon-lucide-clock v-if="pending" class="size-6" />
+      <icon-lucide-ban v-else class="size-6" />
     </template>
     <template v-if="portal.account.value" #actions>
-      <AppButton variant="ghost" @click="signOut">{{ messages.signOut }}</AppButton>
+      <AppButton size="lg" variant="outline" class="w-full" @click="signOut">
+        {{ messages.signOut }}
+      </AppButton>
     </template>
   </PortalNotice>
 </template>

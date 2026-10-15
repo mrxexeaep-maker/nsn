@@ -1,7 +1,12 @@
 <script setup lang="ts">
+import { portalPublic } from '@/theme/cloud-portal/public'
+
 import PortalPublicLayout from '../layout/PortalPublicLayout.vue'
 
-/** A Cloud page that tells the person where they stand and what to do next. */
+/**
+ * A Cloud page that tells the person where they stand and what to do next: an icon, one
+ * sentence, and at most a primary and a secondary button stacked below.
+ */
 const {
   host,
   heading,
@@ -13,24 +18,20 @@ const {
   description: string
   tone?: 'neutral' | 'success' | 'waiting'
 }>()
+
+const ui = portalPublic()
 </script>
 
 <template>
-  <PortalPublicLayout :host="host" :heading="heading">
+  <PortalPublicLayout :host="host" :heading="heading" :description="description">
     <template #icon>
-      <div class="flex items-start gap-3">
-        <span
-          class="flex size-10 shrink-0 items-center justify-center rounded-full bg-panel-field text-muted data-[tone=success]:bg-success/10 data-[tone=success]:text-success"
-          :data-tone="tone"
-        >
-          <slot name="icon" />
-        </span>
-        <p class="pt-1 text-xs leading-relaxed text-muted">{{ description }}</p>
-      </div>
+      <span :class="ui.tile({ tone })" aria-hidden="true"><slot name="icon" /></span>
     </template>
-    <slot />
-    <template v-if="$slots.actions" #actions>
-      <slot name="actions" />
+    <template v-if="$slots.default || $slots.actions" #default>
+      <slot />
+      <div v-if="$slots.actions" :class="ui.actions()">
+        <slot name="actions" />
+      </div>
     </template>
   </PortalPublicLayout>
 </template>

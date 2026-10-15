@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { toRef, watch } from 'vue'
+import { computed, toRef, watch } from 'vue'
 
 import { useCloudPortalMessages } from '@open-pencil/vue'
 
@@ -14,24 +14,27 @@ import AppPasswordInput from '@/components/ui/input/AppPasswordInput.vue'
 import { portalForm } from '@/theme/cloud-portal/form'
 
 /**
- * The email and password form for a Cloud server, in the editor's connect dialog and on the
- * server's own pages. The submit button lives with the host's actions and names this form by `id`.
+ * The email and password form for a Cloud server, in the editor's connect dialog and, larger, on
+ * the server's own pages. The submit button lives with the host's actions and names this form by
+ * `id`.
  */
 const {
   id,
   mode,
   minimumPasswordLength,
-  disabled = false
+  disabled = false,
+  size = 'md'
 } = defineProps<{
   id: string
   mode: CloudAccountFormMode
   minimumPasswordLength: number
   disabled?: boolean
+  size?: 'md' | 'lg'
 }>()
 
 const emit = defineEmits<{ submit: [credentials: CloudAccountCredentials]; forgotPassword: [] }>()
 
-const ui = portalForm()
+const ui = computed(() => portalForm({ size }))
 const messages = useCloudPortalMessages()
 const form = useCloudAccountForm(
   toRef(() => mode),
@@ -55,6 +58,7 @@ function describedBy(field: 'name' | 'email' | 'password' | 'repeat', hint = fal
       <div v-if="mode === 'sign-up'" :class="ui.field()">
         <label :for="`${id}-name`" :class="ui.label()">{{ messages.name }}</label>
         <AppInput
+          :size="size"
           :id="`${id}-name`"
           v-model="name"
           autocomplete="name"
@@ -70,6 +74,7 @@ function describedBy(field: 'name' | 'email' | 'password' | 'repeat', hint = fal
       <div :class="ui.field()">
         <label :for="`${id}-email`" :class="ui.label()">{{ messages.email }}</label>
         <AppInput
+          :size="size"
           :id="`${id}-email`"
           v-model="email"
           type="email"
@@ -90,7 +95,8 @@ function describedBy(field: 'name' | 'email' | 'password' | 'repeat', hint = fal
           <label :for="`${id}-password`" :class="ui.label()">{{ messages.password }}</label>
           <AppButton
             v-if="mode === 'sign-in'"
-            size="xs"
+            :size="size === 'lg' ? 'lg' : 'xs'"
+            :class="ui.inlineLink()"
             variant="link"
             type="button"
             @click="emit('forgotPassword')"
@@ -99,6 +105,7 @@ function describedBy(field: 'name' | 'email' | 'password' | 'repeat', hint = fal
           </AppButton>
         </div>
         <AppPasswordInput
+          :size="size"
           :id="`${id}-password`"
           v-model="password"
           :autocomplete="mode === 'sign-up' ? 'new-password' : 'current-password'"
@@ -117,6 +124,7 @@ function describedBy(field: 'name' | 'email' | 'password' | 'repeat', hint = fal
       <div v-if="mode === 'sign-up'" :class="ui.field()">
         <label :for="`${id}-repeat`" :class="ui.label()">{{ messages.repeatPassword }}</label>
         <AppPasswordInput
+          :size="size"
           :id="`${id}-repeat`"
           v-model="repeat"
           autocomplete="new-password"

@@ -3,6 +3,7 @@ import { useCloudPortalMessages } from '@open-pencil/vue'
 
 import AppButton from '@/components/ui/button/AppButton.vue'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
+import { portalForm } from '@/theme/cloud-portal/form'
 
 import PortalPublicLayout from '../layout/PortalPublicLayout.vue'
 
@@ -27,6 +28,7 @@ const {
 }>()
 const emit = defineEmits<{ approve: []; deny: [] }>()
 const messages = useCloudPortalMessages()
+const ui = portalForm({ size: 'lg' })
 </script>
 
 <template>
@@ -35,8 +37,8 @@ const messages = useCloudPortalMessages()
     :heading="messages.deviceTitle"
     :description="messages.deviceDescription({ email })"
   >
-    <div class="flex flex-col items-center gap-2 rounded-lg bg-input px-4 py-4">
-      <span class="text-[11px] text-muted">{{ messages.deviceCheckCode }}</span>
+    <div class="flex flex-col items-center gap-2 rounded-lg border border-border px-4 py-4">
+      <span class="text-xs text-muted">{{ messages.deviceCheckCode }}</span>
       <span class="font-mono text-xl tracking-[0.3em] text-surface">{{ code }}</span>
     </div>
     <AppAlert v-if="error" tone="error" :heading="messages.errorTitle" :description="error" />
@@ -45,13 +47,26 @@ const messages = useCloudPortalMessages()
       :heading="messages.deviceWarningTitle"
       :description="messages.deviceWarningDescription"
     />
-    <template #actions>
-      <AppButton :disabled="deciding" @click="emit('deny')">
-        {{ messages.deny }}
-      </AppButton>
-      <AppButton color="primary" variant="solid" :loading="deciding" @click="emit('approve')">
+    <div :class="ui.methods()">
+      <AppButton
+        size="lg"
+        color="primary"
+        variant="solid"
+        :class="ui.submit()"
+        :loading="deciding"
+        @click="emit('approve')"
+      >
         {{ messages.approve }}
       </AppButton>
-    </template>
+      <AppButton
+        size="lg"
+        variant="outline"
+        :class="ui.submit()"
+        :disabled="deciding"
+        @click="emit('deny')"
+      >
+        {{ messages.deny }}
+      </AppButton>
+    </div>
   </PortalPublicLayout>
 </template>

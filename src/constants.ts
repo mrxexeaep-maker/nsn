@@ -96,6 +96,8 @@ export const NODE_DOWNLOAD_URL = 'https://nodejs.org/en/download'
  */
 const DOCS_ORIGIN = 'https://openpencil.dev'
 export const MCP_SERVER_DOCS_URL = `${DOCS_ORIGIN}/programmable/mcp-server`
+/** The guide to OpenPencil Cloud, linked from the Cloud server's own pages. */
+export const CLOUD_DOCS_URL = `${DOCS_ORIGIN}/user-guide/openpencil-cloud`
 export const WEBMCP_DOCS_URL = `${MCP_SERVER_DOCS_URL}#webmcp`
 export const MCP_CONNECTIONS_DOCS_URL = `${DOCS_ORIGIN}/programmable/ai-chat#external-mcp-connections`
 export const CODING_AGENTS_GUIDE_URL = `${DOCS_ORIGIN}/programmable/coding-agents`

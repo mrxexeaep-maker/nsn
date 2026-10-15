@@ -5,6 +5,7 @@ import { i18n } from '#vue/i18n/create'
 /** Copy for the pages a Cloud server shows on its own address. */
 export const cloudPortalMessageDefaults = {
   productName: 'OpenPencil Cloud',
+  help: 'Help',
   loading: 'Loading…',
   unavailableTitle: 'This server isn’t answering',
   unavailableDescription: 'Check the address, or try again in a moment.',
@@ -12,8 +13,6 @@ export const cloudPortalMessageDefaults = {
 
   signInTitle: 'Sign in to OpenPencil Cloud',
   signUpTitle: 'Create your account',
-  signInWelcome: 'Welcome back.',
-  signUpDescription: 'Create an account on this server.',
   returnsTo: params('Then you go back to {destination}.'),
   returnsToDesktop: 'the OpenPencil app',
   returnsToEditor: 'the editor',
@@ -38,7 +37,7 @@ export const cloudPortalMessageDefaults = {
   signIn: 'Sign in',
   createAccount: 'Create account',
   haveAccount: 'Already have an account?',
-  newHere: 'New here?',
+  newHere: 'New to OpenPencil Cloud?',
   createAnAccount: 'Create an account',
   approvalTitle: 'An administrator reviews new accounts',
   approvalDescription: 'You can sign in once your request is approved. We email you when it is.',

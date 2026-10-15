@@ -27,7 +27,7 @@ const {
 }>()
 const emit = defineEmits<{ request: [email: string]; choose: [password: string]; back: [] }>()
 
-const ui = portalForm()
+const ui = portalForm({ size: 'lg' })
 const messages = useCloudPortalMessages()
 const value = ref('')
 </script>
@@ -40,7 +40,6 @@ const value = ref('')
   >
     <AppAlert v-if="error" tone="error" :heading="error" />
     <form
-      id="portal-reset-form"
       :class="ui.form()"
       novalidate
       @submit.prevent="step === 'request' ? emit('request', value) : emit('choose', value)"
@@ -53,26 +52,42 @@ const value = ref('')
           v-if="step === 'request'"
           id="portal-reset"
           v-model="value"
+          size="lg"
           type="email"
           inputmode="email"
           autocomplete="email"
         />
-        <AppPasswordInput v-else id="portal-reset" v-model="value" autocomplete="new-password" />
+        <AppPasswordInput
+          v-else
+          id="portal-reset"
+          v-model="value"
+          size="lg"
+          autocomplete="new-password"
+        />
         <p v-if="step === 'choose'" :class="ui.hint()">
           {{ messages.passwordHint({ count: minimumPasswordLength }) }}
         </p>
       </div>
-    </form>
-    <template #actions>
-      <AppButton class="mr-auto" @click="emit('back')">{{ messages.backToSignIn }}</AppButton>
       <AppButton
         type="submit"
-        form="portal-reset-form"
+        size="lg"
         color="primary"
         variant="solid"
+        :class="ui.submit()"
         :loading="submitting"
       >
         {{ step === 'request' ? messages.sendLink : messages.savePassword }}
+      </AppButton>
+    </form>
+    <template #aside>
+      <AppButton
+        size="lg"
+        color="primary"
+        variant="link"
+        :class="ui.inlineLink()"
+        @click="emit('back')"
+      >
+        {{ messages.backToSignIn }}
       </AppButton>
     </template>
   </PortalPublicLayout>
