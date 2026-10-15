@@ -44,6 +44,7 @@ const emit = defineEmits<{
   accountSettings: []
   storageSettings: []
   switchServer: []
+  newWorkspace: []
   signOut: []
 }>()
 
@@ -77,6 +78,9 @@ const workspaceLocations = computed(() =>
     <div :class="ui.group()">
       <div :class="ui.header()">
         <span :class="ui.title()">{{ t.productName }}</span>
+        <IconButton v-if="account" :label="t.homeNewWorkspace" @click="emit('newWorkspace')">
+          <icon-lucide-plus class="size-3.5" />
+        </IconButton>
         <DropdownMenuRoot v-if="account" :modal="false">
           <DropdownMenuTrigger as-child>
             <IconButton :label="t.homeAccount({ email: account.email })">

@@ -3,14 +3,15 @@ import * as v from 'valibot'
 import { computed, ref, shallowRef } from 'vue'
 
 import { CloudAPIError, createCloudAPIClient } from '@open-pencil/cloud/client'
-import type { InvitationPreview } from '@open-pencil/cloud/contract'
+import type { AcceptedInvitation, InvitationPreview } from '@open-pencil/cloud/contract'
 
+import { openHomeLocation } from '@/app/shell/menu/navigation'
 import { openStorageDocumentInNewTab } from '@/app/tabs'
 import { IS_BROWSER, OFFICIAL_CLOUD_URL } from '@/constants'
 
 import { openCloudConnect } from '../connect/flow'
 import { cloudServerHost, normalizeCloudServerURL } from '../servers/address'
-import { addCloudServer, cloudServers } from '../servers/store'
+import { addCloudServer, cloudServers, showCloudServerOnHome } from '../servers/store'
 import {
   cloudAPIClient,
   cloudConnection,
@@ -88,7 +89,7 @@ export async function checkCloudInvitation(): Promise<void> {
   try {
     const discovery = await discoverCloudServer(url)
     const client = createCloudAPIClient(discovery.apiURL, { fetch: cloudFetch })
-    cloudInvitationPreview.value = await client.previewDocumentInvitation(invitation.id, {
+    cloudInvitationPreview.value = await client.previewInvitation(invitation.id, {
       token: invitation.token
     })
   } catch {
@@ -131,8 +132,9 @@ export async function signInForCloudInvitation(): Promise<void> {
 }
 
 /**
- * Accepts the invitation and opens the document. The server refuses another account's
- * invitation the same way as a used one; right after a valid preview, that means the account.
+ * Accepts the invitation and opens what it gives: the document, or the workspace on Home. The
+ * server refuses another account's invitation the same way as a used one; right after a valid
+ * preview, that means the account.
  */
 export async function acceptCloudInvitation(): Promise<void> {
   const invitation = pending.value
@@ -141,17 +143,23 @@ export async function acceptCloudInvitation(): Promise<void> {
   if (!invitation || !server || !discovery) return
   cloudInvitationState.value = 'accepting'
   const client = cloudAPIClient(server, discovery)
-  let documentId: string
+  let accepted: AcceptedInvitation
   try {
-    documentId = (await client.acceptDocumentInvitation(invitation.id, { token: invitation.token }))
-      .documentId
+    accepted = await client.acceptInvitation(invitation.id, { token: invitation.token })
   } catch (error) {
     cloudInvitationState.value =
       error instanceof CloudAPIError && error.status === 404 ? 'wrong-account' : 'unavailable'
     return
   }
   dismissCloudInvitation()
-  const { document } = await client.getDocument(documentId)
+  if (accepted.kind === 'workspace') {
+    await refreshCloudConnection(server)
+    showCloudServerOnHome(server.id)
+    const router = (await import('@/router')).default
+    openHomeLocation(router, { kind: 'workspace', id: accepted.workspaceId })
+    return
+  }
+  const { document } = await client.getDocument(accepted.grant.documentId)
   await openStorageDocumentInNewTab(
     {
       id: document.id,

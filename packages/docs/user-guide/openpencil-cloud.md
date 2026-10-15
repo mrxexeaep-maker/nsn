@@ -33,6 +33,16 @@ Home lists places in a sidebar: **Recent**, the workspaces of the server Home sh
 
 A workspace lists its documents with where each one stands, how much of the workspace's storage they use, and your role in it. Every account starts with a workspace of its own. **New design** creates a document in the workspace you are looking at, and says which one; in **Shared with you** it creates in your own workspace, and in Recent, or a workspace you can only view, it creates a file on your device. **Shared with you** lists documents people invited you to in workspaces you are not a member of.
 
+## Work in a Team Workspace
+
+Every account starts with a workspace of its own. To work with a team, select **+** beside **OpenPencil Cloud** in Home's sidebar, name the workspace, and you administer it. **Members** in the workspace's header lists who is in it:
+
+- Admins rename the workspace, invite people by email as an admin, editor, or viewer, change roles, and remove people. Editors and admins change documents; viewers only look.
+- An invitation arrives by email. If the server doesn't send email, copy the invitation link from the dialog and pass it on. Invitations expire after seven days, and inviting the same address again replaces the earlier one.
+- Anyone can leave a workspace, except its last admin: make someone else an admin first.
+
+Opening a workspace invitation works like a document invitation: sign in with the invited address, choose **Join workspace**, and Home shows the workspace.
+
 ## Save a Document to Cloud
 
 Open or create a document, then choose **File → Save to…**. When there is only one place it can go, it is saved there under its current name; with several workspaces, or a storage bucket too, pick one, and the last place you used is chosen first. Workspaces where you can only view are listed but can't be chosen. The Cloud copy opens in the same tab and saves as you work. A file you had open on your device keeps its last saved contents.

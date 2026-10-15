@@ -24,6 +24,7 @@ beforeEach(() => {
       status: 200,
       body: {
         invitation: {
+          kind: 'document',
           documentName: 'Pricing page',
           inviterName: 'Ana',
           permission: 'edit',
@@ -84,6 +85,27 @@ describe('Cloud invitations', () => {
     await checkCloudInvitation()
     await acceptCloudInvitation()
     expect(cloudInvitationState.value).toBe('wrong-account')
+  })
+
+  test('say when the link is for a whole workspace', async () => {
+    answers[`/api/invitations/${INVITATION}/preview`] = {
+      status: 200,
+      body: {
+        invitation: {
+          kind: 'workspace',
+          workspaceName: 'Studio',
+          role: 'editor',
+          inviterName: 'Ana',
+          expiresAt: '2030-01-01T00:00:00.000Z',
+          recipientHint: 'b•••@example.com'
+        }
+      }
+    }
+    await signedIn()
+    beginCloudInvitation(INVITATION, ORIGIN, 'token'.repeat(8))
+    await checkCloudInvitation()
+    expect(cloudInvitationState.value).toBe('ready')
+    expect(cloudInvitation.value).toMatchObject({ kind: 'workspace', workspaceName: 'Studio' })
   })
 
   test('are unavailable when the preview is refused', async () => {

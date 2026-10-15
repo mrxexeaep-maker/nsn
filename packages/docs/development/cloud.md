@@ -59,6 +59,11 @@ link, and the strongest source wins. Revoking one source leaves access inherited
 Documents granted to someone outside their own workspaces are listed for them separately, so a
 client can show what was shared with them.
 
+Workspace administrators invite people by email with a role. Workspace invitations use the same
+`/cloud/invitations/:id` link as document invitations: preview and accept look for a workspace
+invitation first and fall back to a document one, so email, the desktop handoff, and the editor's
+invitation dialog serve both. A workspace with members always keeps an administrator.
+
 Database rows use UUIDs. Capability secrets and invitation tokens are random hex; only their SHA-256
 digests are stored, and they travel in URL fragments so they never reach access logs or `Referer`
 headers. Invitation continuations through OAuth are single-use compact JWE.
@@ -267,3 +272,8 @@ slug fixed per person so concurrent requests make one. Save to goes straight to 
 or bucket a document can go to, and New design creates in the place Home shows, so neither asks a
 question with one answer. A setup step that makes people name a first workspace would stop them
 before they have anything to put in it.
+
+**2026-10 · Workspace invitations share the document invitation link.** Previewing an invitation
+says whether it is for a document or a workspace, so one link format, one email path, and one
+editor dialog cover both, and the desktop app's link handling needs no new kind. Invitation
+continuations through OAuth stay document-only; the editor keeps a pending invitation itself.

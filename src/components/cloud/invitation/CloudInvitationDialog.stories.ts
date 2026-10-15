@@ -13,6 +13,7 @@ type Args = {
 }
 
 const invitation: CloudInvitationSummary = {
+  kind: 'document',
   documentName: 'Pricing page',
   inviterName: 'Ana Duarte',
   permission: 'edit',
@@ -57,5 +58,20 @@ export const UnknownServer: Story = {
 export const WrongAccount: Story = {
   args: { state: 'wrong-account', account: { email: 'ben.personal@example.com' } }
 }
-export const ViewOnly: Story = { args: { invitation: { ...invitation, permission: 'view' } } }
+export const ViewOnly: Story = {
+  args: { invitation: { ...invitation, kind: 'document', permission: 'view' } }
+}
+export const JoinWorkspace: Story = {
+  args: {
+    invitation: {
+      kind: 'workspace',
+      workspaceName: 'Studio',
+      role: 'editor',
+      inviterName: 'Ana Duarte',
+      expiresIn: '6 days',
+      recipientHint: 'b•••@studio.example',
+      host: 'cloud.openpencil.dev'
+    }
+  }
+}
 export const Unavailable: Story = { args: { state: 'unavailable' } }

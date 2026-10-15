@@ -14,7 +14,8 @@ import { cloudInvitation } from '@/theme/cloud/invitation'
 import type { CloudInvitationState, CloudInvitationSummary } from './types'
 
 /**
- * Opening an invitation link: who invited you to which document and on which server, then the
+ * Opening an invitation link: who invited you to which document or workspace and on which
+ * server, then the
  * one step left — accept it, sign in to that server first, or switch to the invited account.
  * A self-hosted server the editor has never used gets a warning before anyone signs in to it.
  */
@@ -42,9 +43,27 @@ const heading = computed(() => {
 })
 const description = computed(() => {
   if (!invitation || state === 'unavailable') return undefined
+  if (invitation.kind === 'workspace') {
+    return t.value.invitationWorkspaceDescription({ host: invitation.host })
+  }
   return invitation.permission === 'edit'
     ? t.value.invitationEditDescription({ host: invitation.host })
     : t.value.invitationViewDescription({ host: invitation.host })
+})
+const roles = computed(() => ({
+  admin: t.value.roleAdmin,
+  editor: t.value.roleEditor,
+  viewer: t.value.roleViewer
+}))
+/** The invited thing's name and the access it brings. */
+const target = computed(() => {
+  if (!invitation) return null
+  return invitation.kind === 'workspace'
+    ? { name: invitation.workspaceName, access: roles.value[invitation.role] }
+    : {
+        name: invitation.documentName,
+        access: invitation.permission === 'edit' ? t.value.canEdit : t.value.canView
+      }
 })
 </script>
 
@@ -75,9 +94,12 @@ const description = computed(() => {
     <AppDialogBody v-else-if="invitation">
       <div :class="ui.stack()">
         <div :class="ui.document()">
-          <span :class="ui.documentIcon()"><icon-lucide-file class="size-4" /></span>
+          <span :class="ui.documentIcon()">
+            <icon-lucide-layers v-if="invitation.kind === 'workspace'" class="size-4" />
+            <icon-lucide-file v-else class="size-4" />
+          </span>
           <span :class="ui.documentBody()">
-            <span :class="ui.documentName()">{{ invitation.documentName }}</span>
+            <span :class="ui.documentName()">{{ target?.name }}</span>
             <span :class="ui.documentMeta()">{{
               t.invitationSentTo({ recipient: invitation.recipientHint })
             }}</span>
@@ -85,16 +107,18 @@ const description = computed(() => {
               t.invitationExpiresIn({ duration: invitation.expiresIn })
             }}</span>
           </span>
-          <span :class="ui.permission()">
-            {{ invitation.permission === 'edit' ? t.canEdit : t.canView }}
-          </span>
+          <span :class="ui.permission()">{{ target?.access }}</span>
         </div>
 
         <AppAlert
           v-if="state === 'sign-in' && invitation.unknownServer"
           tone="warning"
           :heading="t.unknownServerHeading({ host: invitation.host })"
-          :description="t.unknownServerDescription"
+          :description="
+            invitation.kind === 'workspace'
+              ? t.unknownServerWorkspaceDescription
+              : t.unknownServerDescription
+          "
         />
         <AppAlert
           v-else-if="state === 'sign-in'"
@@ -143,7 +167,7 @@ const description = computed(() => {
           :loading="state === 'accepting'"
           @click="emit('accept')"
         >
-          {{ t.openDocument }}
+          {{ invitation?.kind === 'workspace' ? t.joinWorkspace : t.openDocument }}
         </AppButton>
       </template>
     </AppDialogFooter>

@@ -45,6 +45,7 @@ const view = defineModel<'grid' | 'list'>('view', { default: 'grid' })
 const emit = defineEmits<{
   open: [document: CloudDocumentRow]
   newDesign: []
+  members: []
   refresh: []
   reviewConflicts: []
 }>()
@@ -89,6 +90,10 @@ const metadata = (document: CloudDocumentRow) =>
         </div>
       </div>
       <div class="flex items-center gap-1">
+        <AppButton v-if="role" size="sm" variant="ghost" @click="emit('members')">
+          <template #leading><icon-lucide-users class="size-3.5" /></template>
+          {{ t.homeMembers }}
+        </AppButton>
         <IconButton :label="common.refresh" class="size-7" @click="emit('refresh')">
           <icon-lucide-refresh-cw class="size-3.5" />
         </IconButton>

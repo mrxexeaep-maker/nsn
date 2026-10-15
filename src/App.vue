@@ -22,6 +22,8 @@ import { prepareForReload } from '@/app/tabs'
 import CloudConnectHost from '@/components/cloud/connect/CloudConnectHost.vue'
 import CloudInvitationHost from '@/components/cloud/invitation/CloudInvitationHost.vue'
 import CloudSaveHost from '@/components/cloud/save/CloudSaveHost.vue'
+import CloudNewWorkspaceHost from '@/components/cloud/workspace/CloudNewWorkspaceHost.vue'
+import CloudWorkspaceMembersHost from '@/components/cloud/workspace/CloudWorkspaceMembersHost.vue'
 import UnsavedChangesDialog from '@/components/document/UnsavedChangesDialog.vue'
 import PublishLibraryDialog from '@/components/libraries/PublishLibraryDialog.vue'
 import LibraryUpdateReviewDialog from '@/components/libraries/review/LibraryUpdateReviewDialog.vue'
@@ -74,6 +76,8 @@ onMounted(() => {
       <CloudConnectHost />
       <CloudSaveHost />
       <CloudInvitationHost />
+      <CloudNewWorkspaceHost />
+      <CloudWorkspaceMembersHost />
       <RecoveryDialog />
       <UnsavedChangesDialog />
       <PublishLibraryDialog />

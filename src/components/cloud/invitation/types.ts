@@ -7,10 +7,12 @@ export type CloudInvitationState =
   | 'wrong-account'
   | 'unavailable'
 
-export type CloudInvitationSummary = {
-  documentName: string
+/** What the invitation opens: one document, or a whole workspace. */
+export type CloudInvitationSummary = (
+  | { kind: 'document'; documentName: string; permission: 'edit' | 'view' }
+  | { kind: 'workspace'; workspaceName: string; role: 'admin' | 'editor' | 'viewer' }
+) & {
   inviterName: string
-  permission: 'edit' | 'view'
   /** How long until it expires, already worded, such as `6 days`. */
   expiresIn: string
   /** The invited address with most of it hidden, such as `g•••@studio.example`. */

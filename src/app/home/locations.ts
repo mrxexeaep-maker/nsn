@@ -5,6 +5,7 @@ import { cloudServerHost } from '@/app/cloud/servers/address'
 import { homeCloudServer } from '@/app/cloud/servers/store'
 import { cloudConnection } from '@/app/cloud/sessions/connection'
 import { signOutOfCloud } from '@/app/cloud/sessions/sign-out'
+import { openNewWorkspace } from '@/app/cloud/workspaces/manage'
 import { openSettingsDialog } from '@/app/settings/dialog'
 
 import { homeLocation, type HomeLocation } from './location'
@@ -78,6 +79,10 @@ export function useHomeLocations() {
     // Signing back in goes straight to the server Home shows; without one, choose a server.
     connect: () => openCloudConnect({ serverId: homeCloudServer.value?.id }),
     accountSettings: () => openSettingsDialog('cloud'),
+    newWorkspace() {
+      const server = signedIn.value?.server
+      if (server) openNewWorkspace(server.id)
+    },
     storageSettings: () => openSettingsDialog('storage'),
     async signOut() {
       const current = signedIn.value

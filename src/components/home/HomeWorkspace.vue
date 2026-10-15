@@ -239,6 +239,7 @@ function formattedDate(updatedAt: string): string {
         @account-settings="places.accountSettings"
         @storage-settings="places.storageSettings"
         @switch-server="places.connect"
+        @new-workspace="places.newWorkspace"
         @sign-out="places.signOut"
       />
     </template>

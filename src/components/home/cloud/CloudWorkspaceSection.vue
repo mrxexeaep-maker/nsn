@@ -8,6 +8,7 @@ import { cloudSyncState } from '@/app/cloud/documents/status'
 import { findCloudServer } from '@/app/cloud/servers/store'
 import { cloudAPIClient, cloudConnection } from '@/app/cloud/sessions/connection'
 import { CLOUD_STORAGE_PROVIDER_ID } from '@/app/cloud/sessions/token'
+import { openWorkspaceMembers } from '@/app/cloud/workspaces/manage'
 import { formatCommentTime, useCommentClock } from '@/app/comments/time'
 import {
   sameStorageLocation,
@@ -153,6 +154,7 @@ function open(row: CloudDocumentRow) {
     :usage="usage"
     :can-create="workspace.role !== 'viewer'"
     @open="open"
+    @members="openWorkspaceMembers(serverId, workspace.id)"
     @refresh="files.refresh"
     @new-design="createStoredDocument(location)"
     @review-conflicts="reviewConflicts"

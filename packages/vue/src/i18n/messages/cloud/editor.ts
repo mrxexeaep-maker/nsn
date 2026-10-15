@@ -75,6 +75,8 @@ export const cloudMessageDefaults = {
   invitedYou: params('{name} invited you'),
   invitationEditDescription: params('To edit a document on {host}.'),
   invitationViewDescription: params('To view a document on {host}.'),
+  invitationWorkspaceDescription: params('To join a workspace on {host}.'),
+  joinWorkspace: 'Join workspace',
   invitationChecking: 'Checking the invitation…',
   invitationUnavailableDescription: params(
     'It expired, was withdrawn, or was already accepted. Ask {name} for a new one.'
@@ -86,6 +88,8 @@ export const cloudMessageDefaults = {
   unknownServerHeading: params('You haven’t used {host} before'),
   unknownServerDescription:
     'Only sign in if you trust this server. It stores the document and sees your edits.',
+  unknownServerWorkspaceDescription:
+    'Only sign in if you trust this server. It stores the workspace’s documents and sees your edits.',
   invitationSignInHeading: params('Sign in to {host}'),
   invitationSignInDescription:
     'Use the account this invitation was sent to. The document opens right after.',
@@ -191,6 +195,44 @@ export const cloudMessageDefaults = {
   statusResolve: 'Resolve',
   statusChooseVersion: 'Choose a version',
   statusOpenWorkspace: 'Open workspace',
+
+  // Workspaces
+  homeNewWorkspace: 'New workspace',
+  homeMembers: 'Members',
+  newWorkspaceHeading: 'New workspace',
+  newWorkspaceDescription: 'A place to keep designs with your team. You manage who joins it.',
+  workspaceName: 'Workspace name',
+  workspaceNamePlaceholder: 'Design team',
+  createWorkspace: 'Create workspace',
+  renameWorkspace: 'Rename',
+  membersDescription:
+    'Everyone here sees the workspace’s documents; editors and admins change them.',
+  invitePeople: 'Invite people',
+  inviteEmail: 'Email address',
+  inviteEmailPlaceholder: 'name@example.com',
+  inviteRole: 'Role',
+  invite: 'Invite',
+  invitationSentNote:
+    'We emailed the invitation. If this server doesn’t send email, share this link with them instead.',
+  copyInvitationLink: 'Copy invitation link',
+  membersLoading: 'Loading members…',
+  memberRole: params('Role of {name}'),
+  removeMember: params('Remove {name}'),
+  pendingInvitations: 'Waiting to join',
+  revokeInvitation: 'Withdraw',
+  leaveWorkspace: 'Leave workspace',
+  leaveWorkspaceHeading: params('Leave {workspace}?'),
+  leaveWorkspaceDescription:
+    'You lose access to its documents unless someone shared them with you directly. An admin can invite you back.',
+  removeMemberHeading: params('Remove {name} from {workspace}?'),
+  removeMemberDescription:
+    'They lose access to its documents unless someone shared them directly. You can invite them again.',
+  removeMemberConfirm: 'Remove',
+  workspaceAlreadyMember: 'They’re already in this workspace.',
+  workspaceLastAdmin: 'A workspace needs an admin. Make someone else an admin first.',
+  workspaceForbidden: 'Only admins of this workspace can do that.',
+  workspaceNotFound: 'This workspace or invitation is gone. Close this and try again.',
+  workspaceFailed: 'Couldn’t change the workspace. Try again in a moment.',
 
   // Settings
   settingsTitle: 'Cloud',

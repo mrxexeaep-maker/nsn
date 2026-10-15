@@ -454,12 +454,15 @@ it:cloud.homeCloudOnHost
 it:cloud.settingsTitle
 ja:cloud.productName
 ja:cloud.homeCloudOnHost
+ja:cloud.inviteEmailPlaceholder
 zh-cn:cloud.productName
 zh-cn:cloud.homeCloudOnHost
+zh-cn:cloud.inviteEmailPlaceholder
 de:cloud.productName
 de:cloud.server
 de:cloud.saveName
 de:cloud.homeCloudOnHost
+de:cloud.inviteEmailPlaceholder
 de:cloud.settingsTitle
 fr:cloud.productName
 fr:cloud.homeCloudOnHost
@@ -468,3 +471,4 @@ pl:cloud.productName
 pl:cloud.homeCloudOnHost
 ru:cloud.productName
 ru:cloud.homeCloudOnHost
+ru:cloud.inviteEmailPlaceholder
