@@ -1,4 +1,5 @@
 import { expect, test, useEditorSetup } from '#tests/e2e/fixtures'
+import { toolbarToolTestId } from '#tests/helpers/test-ids'
 
 const editor = useEditorSetup()
 
@@ -57,10 +58,20 @@ function screenCenter(note: StickyState) {
   }, note)
 }
 
-test('S picks the sticky tool, and a click places a note to type into', async () => {
+/** Picks the sticky tool, which has no key: Figma's S is Slice. */
+async function pickStickyTool() {
+  await editor.page.evaluate(() => window.openPencil?.getStore?.().setTool('STICKY'))
+}
+
+test('the toolbar hides the sticky tool until it is shown, and S does not pick it', async () => {
+  await expect(editor.page.getByTestId(toolbarToolTestId('STICKY'))).toHaveCount(0)
   await editor.page.keyboard.press('s')
   const tool = await editor.page.evaluate(() => window.openPencil?.getStore?.().state.activeTool)
-  expect(tool).toBe('STICKY')
+  expect(tool).toBe('SELECT')
+})
+
+test('the sticky tool places a note to type into where the pointer is released', async () => {
+  await pickStickyTool()
 
   await editor.canvas.click(400, 300)
   await editor.canvas.waitForRender()
@@ -104,7 +115,7 @@ test('the Sticky note section recolours the note, sizes its text, and hides its 
 
 test('the next note takes the colour picked last', async () => {
   await editor.page.keyboard.press('Escape')
-  await editor.page.keyboard.press('s')
+  await pickStickyTool()
   await editor.canvas.click(150, 150)
   await editor.canvas.waitForRender()
   expect((await lastSticky())?.fill).toBe('#ffe299')

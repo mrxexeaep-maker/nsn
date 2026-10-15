@@ -18,7 +18,8 @@ export const EDITOR_TOOLS: EditorToolDef[] = [
   },
   { key: 'PEN', label: 'Pen', shortcut: 'P', flyout: ['PEN', 'PENCIL'] },
   { key: 'TEXT', label: 'Text', shortcut: 'T' },
-  { key: 'STICKY', label: 'Sticky note', shortcut: 'S' },
+  // Figma's S is Slice, and FigJam's sticky tool has no key in Figma Design.
+  { key: 'STICKY', label: 'Sticky note', shortcut: '' },
   { key: 'HAND', label: 'Hand', shortcut: 'H' },
   { key: 'COMMENT', label: 'Comment', shortcut: 'C' }
 ]
@@ -32,7 +33,6 @@ export const TOOL_SHORTCUTS: Partial<Record<string, Tool>> = {
   KeyO: 'ELLIPSE',
   KeyL: 'LINE',
   KeyT: 'TEXT',
-  KeyS: 'STICKY',
   KeyP: 'PEN',
   'Shift+KeyP': 'PENCIL',
   KeyH: 'HAND',

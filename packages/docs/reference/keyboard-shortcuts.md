@@ -29,7 +29,7 @@ Full Figma-compatible shortcut map. ✅ = implemented.
 | <kbd>P</kbd> | Pen | ✅ |
 | <kbd>⇧</kbd><kbd>P</kbd> | Pencil | ✅ |
 | <kbd>T</kbd> | Text | ✅ |
-| <kbd>S</kbd> | Sticky note (FigJam) | ✅ |
+| — | Sticky note (FigJam) | ✅ (toolbar, hidden by default) |
 | <kbd>C</kbd> | Comment | ✅ |
 | <kbd>I</kbd> | Eyedropper | 🔲 |
 

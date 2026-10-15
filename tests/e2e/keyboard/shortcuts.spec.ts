@@ -117,10 +117,10 @@ test.describe('tool switching', () => {
     expect(await getActiveTool()).toBe('SECTION')
   })
 
-  test('S → STICKY, as in FigJam', async () => {
+  test('S alone leaves the tool unchanged', async () => {
     await editor.page.keyboard.press('v')
     await editor.page.keyboard.press('s')
-    expect(await getActiveTool()).toBe('STICKY')
+    expect(await getActiveTool()).toBe('SELECT')
   })
 })
 
