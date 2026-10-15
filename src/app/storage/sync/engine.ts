@@ -17,7 +17,7 @@ import { getLocalCanvasStore } from '@/app/storage/local-store'
 import { getOutbox } from '@/app/storage/sync/outbox'
 import { setUploadProgress } from '@/app/storage/sync/progress'
 import { setPendingSyncCount, setSyncUI } from '@/app/storage/sync/status'
-import type { OutboxJob } from '@/app/storage/sync/types'
+import { PARKED_ATTEMPT_AT, type OutboxJob } from '@/app/storage/sync/types'
 import { emitStorageWorkspaceEvent } from '@/app/storage/workspace/events'
 
 const MAX_ATTEMPTS = 8
@@ -44,7 +44,7 @@ function backoffMs(attempts: number): number {
 export function nextSyncWakeDelay(jobs: OutboxJob[], now = Date.now()): number | null {
   if (jobs.length === 0) return null
   const nextAt = Math.min(...jobs.map((job) => job.nextAttemptAt))
-  return nextAt === Number.MAX_SAFE_INTEGER ? null : Math.max(250, nextAt - now)
+  return nextAt === PARKED_ATTEMPT_AT ? null : Math.max(250, nextAt - now)
 }
 
 function isPermanentError(error: unknown): boolean {
@@ -186,7 +186,7 @@ async function pumpOnce(): Promise<void> {
         conflictRevision: error.currentRevision,
         lastSyncError: null
       })
-      await outbox.update({ ...job, nextAttemptAt: Number.MAX_SAFE_INTEGER })
+      await outbox.update({ ...job, nextAttemptAt: PARKED_ATTEMPT_AT })
       const conflicted = await getLocalCanvasStore().getMeta(job.canvasId)
       if (conflicted) {
         emitStorageWorkspaceEvent({
@@ -201,7 +201,7 @@ async function pumpOnce(): Promise<void> {
     if (error instanceof StorageUnavailableError) {
       await outbox.update({
         ...job,
-        nextAttemptAt: Number.MAX_SAFE_INTEGER
+        nextAttemptAt: PARKED_ATTEMPT_AT
       })
       setSyncUI('error', message)
       return
@@ -237,7 +237,7 @@ async function pumpOnce(): Promise<void> {
         await outbox.update({
           ...job,
           attempts,
-          nextAttemptAt: Number.MAX_SAFE_INTEGER
+          nextAttemptAt: PARKED_ATTEMPT_AT
         })
       }
       return

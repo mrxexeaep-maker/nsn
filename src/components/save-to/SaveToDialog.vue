@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { groupBy } from 'es-toolkit'
 import { RadioGroupItem, RadioGroupRoot } from 'reka-ui'
 import { computed } from 'vue'
 
@@ -14,7 +15,7 @@ import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 import AppInput from '@/components/ui/input/AppInput.vue'
 import { saveTo } from '@/theme/save-to'
 
-import type { SaveToDestination, SaveToState } from './types'
+import type { SaveDestination, SaveToState } from './types'
 
 /**
  * Saving a document from this device to a Cloud workspace or the storage bucket, when there is
@@ -22,13 +23,13 @@ import type { SaveToDestination, SaveToState } from './types'
  * on; the file on this device is left as it was.
  */
 const { destinations, state } = defineProps<{
-  destinations: SaveToDestination[]
+  destinations: SaveDestination[]
   state: SaveToState
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
 const name = defineModel<string>('name', { default: '' })
-/** `cloud/serverId/workspaceId` or `storage/providerId`: the chosen destination. */
+/** The chosen destination's key. */
 const destination = defineModel<string>('destination', { default: '' })
 const emit = defineEmits<{ save: []; cancel: [] }>()
 
@@ -41,6 +42,15 @@ const progress = computed(() =>
     ? Math.round((state.sentBytes / state.totalBytes) * 100)
     : 0
 )
+/** Destinations by the server they are on; the bucket is a group of its own. */
+const groups = computed(() =>
+  Object.values(groupBy(destinations, (entry) => entry.place?.id ?? '')).map((entries) => ({
+    id: entries[0]?.place?.id ?? '',
+    label: entries[0]?.place?.label ?? t.value.saveStorageGroup,
+    entries
+  }))
+)
+const chosen = computed(() => destinations.find((entry) => entry.key === destination.value))
 const roles = computed(() => ({
   viewer: t.value.viewOnly,
   editor: t.value.roleEditor,
@@ -75,30 +85,19 @@ const errors = computed(() => ({
             aria-labelledby="save-to-destination"
             :class="ui.choices()"
           >
-            <template
-              v-for="group in destinations"
-              :key="group.kind === 'cloud' ? group.serverId : group.providerId"
-            >
-              <span v-if="destinations.length > 1" :class="ui.server()">{{
-                group.kind === 'cloud' ? group.host : t.saveStorageGroup
-              }}</span>
-              <template v-if="group.kind === 'cloud'">
-                <RadioGroupItem
-                  v-for="workspace in group.workspaces"
-                  :key="workspace.id"
-                  :value="`cloud/${group.serverId}/${workspace.id}`"
-                  :disabled="workspace.role === 'viewer'"
-                  :class="ui.choice()"
-                >
-                  <icon-lucide-layers :class="ui.choiceIcon()" />
-                  <span :class="ui.choiceLabel()">{{ workspace.name }}</span>
-                  <span :class="ui.choiceRole()">{{ roles[workspace.role] }}</span>
-                  <span :class="ui.choiceMark()" aria-hidden="true" />
-                </RadioGroupItem>
-              </template>
-              <RadioGroupItem v-else :value="`storage/${group.providerId}`" :class="ui.choice()">
-                <icon-lucide-database :class="ui.choiceIcon()" />
-                <span :class="ui.choiceLabel()">{{ group.label }}</span>
+            <template v-for="group in groups" :key="group.id">
+              <span v-if="groups.length > 1" :class="ui.server()">{{ group.label }}</span>
+              <RadioGroupItem
+                v-for="entry in group.entries"
+                :key="entry.key"
+                :value="entry.key"
+                :disabled="entry.role === 'viewer'"
+                :class="ui.choice()"
+              >
+                <icon-lucide-layers v-if="entry.kind === 'workspace'" :class="ui.choiceIcon()" />
+                <icon-lucide-database v-else :class="ui.choiceIcon()" />
+                <span :class="ui.choiceLabel()">{{ entry.label }}</span>
+                <span v-if="entry.role" :class="ui.choiceRole()">{{ roles[entry.role] }}</span>
                 <span :class="ui.choiceMark()" aria-hidden="true" />
               </RadioGroupItem>
             </template>
@@ -142,7 +141,7 @@ const errors = computed(() => ({
         color="primary"
         variant="solid"
         :loading="saving"
-        :disabled="!name.trim() || !destination"
+        :disabled="!name.trim() || !chosen || chosen.role === 'viewer'"
         @click="emit('save')"
       >
         {{ t.saveAction }}

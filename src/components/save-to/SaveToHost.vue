@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import {
-  saveToChosenDestination,
-  saveToDestination,
-  saveToDestinations,
-  saveToName,
-  saveToOpen,
-  saveToState
-} from '@/app/storage/save-to'
+import { closeSaveTo, confirmSaveTo, saveToSession } from '@/app/storage/save-to/session'
 
 import SaveToDialog from './SaveToDialog.vue'
 
@@ -15,12 +8,14 @@ import SaveToDialog from './SaveToDialog.vue'
 
 <template>
   <SaveToDialog
-    v-model:open="saveToOpen"
-    v-model:name="saveToName"
-    v-model:destination="saveToDestination"
-    :destinations="saveToDestinations"
-    :state="saveToState"
-    @save="saveToChosenDestination"
-    @cancel="saveToOpen = false"
+    v-if="saveToSession"
+    v-model:name="saveToSession.name"
+    v-model:destination="saveToSession.chosen"
+    :open="saveToSession.open"
+    :destinations="saveToSession.destinations"
+    :state="saveToSession.state"
+    @update:open="(open) => !open && closeSaveTo()"
+    @save="confirmSaveTo"
+    @cancel="closeSaveTo"
   />
 </template>

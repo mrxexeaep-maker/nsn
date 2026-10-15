@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import type { WorkspaceSummary } from '@open-pencil/cloud/contract'
 
 import type { CloudAccount } from '@/app/cloud/servers/store'
-import type { SaveDestinationGroup, SaveToState } from '@/app/storage/save-to'
+import type { SaveDestination, SaveFailure } from '@/app/storage/save-to/model'
 
 /**
  * What a build without Cloud (`VITE_OPENPENCIL_CLOUD=off`) resolves `@/app/cloud/integration`
@@ -24,7 +24,7 @@ export function isCloudBinding(): boolean {
   return false
 }
 
-export async function cloudSaveDestinations(): Promise<SaveDestinationGroup[]> {
+export async function cloudSaveDestinations(): Promise<SaveDestination[]> {
   return []
 }
 
@@ -32,8 +32,8 @@ export function signInToSaveTo(): boolean {
   return false
 }
 
-export async function cloudUploadFailure(): Promise<SaveToState> {
-  return { kind: 'error', reason: 'unavailable' }
+export async function cloudUploadFailure(): Promise<SaveFailure | null> {
+  return null
 }
 
 export function useHomeCloud() {

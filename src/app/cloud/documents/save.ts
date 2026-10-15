@@ -1,38 +1,45 @@
-import { computed } from 'vue'
-
-import type { SaveDestinationGroup, SaveToState } from '@/app/storage/save-to'
+import type { StorageLocation } from '@/app/integrations/storage'
+import {
+  saveDestinationKey,
+  type SaveDestination,
+  type SaveFailure
+} from '@/app/storage/save-to/model'
 
 import { openCloudConnect } from '../connect/flow'
 import { cloudServerHost } from '../servers/address'
 import { cloudServers, findCloudServer } from '../servers/store'
 import { cloudAPIClient, cloudConnection, refreshCloudConnection } from '../sessions/connection'
-
-/** Workspaces of every signed-in server, grouped by server. */
-const cloudDestinations = computed(() =>
-  cloudServers.value.flatMap((server): SaveDestinationGroup[] => {
-    const connection = cloudConnection(server.id)
-    if (connection.state !== 'signed-in' || !connection.workspaces.length) return []
-    return [
-      {
-        kind: 'cloud',
-        serverId: server.id,
-        host: cloudServerHost(server.url),
-        workspaces: connection.workspaces.map(({ id, name, role }) => ({ id, name, role }))
-      }
-    ]
-  })
-)
+import { CLOUD_STORAGE_PROVIDER_ID } from '../sessions/token'
 
 /**
- * Where Save to can put a document on Cloud servers. Servers still being checked are waited for,
- * so a fresh start does not look signed out.
+ * The workspaces of every signed-in server, as places Save to can put a document. Servers still
+ * being checked are waited for, so a fresh start does not look signed out.
  */
-export async function cloudSaveDestinations(): Promise<SaveDestinationGroup[]> {
+export async function cloudSaveDestinations(): Promise<SaveDestination[]> {
   const checking = cloudServers.value.filter(
     (server) => cloudConnection(server.id).state === 'checking'
   )
   await Promise.all(checking.map((server) => refreshCloudConnection(server)))
-  return cloudDestinations.value
+  return cloudServers.value.flatMap((server) => {
+    const connection = cloudConnection(server.id)
+    if (connection.state !== 'signed-in') return []
+    const place = { id: server.id, label: cloudServerHost(server.url) }
+    return connection.workspaces.map((workspace): SaveDestination => {
+      const location = {
+        providerId: CLOUD_STORAGE_PROVIDER_ID,
+        profileId: server.id,
+        containerId: workspace.id
+      }
+      return {
+        key: saveDestinationKey(location),
+        location,
+        label: workspace.name,
+        kind: 'workspace',
+        place,
+        role: workspace.role
+      }
+    })
+  })
 }
 
 /** Signs in to a server this app knows but is signed out of; false when there is none. */
@@ -46,28 +53,30 @@ export function signInToSaveTo(): boolean {
 }
 
 /**
- * Why the first upload failed, from the workspace's limits: the server refuses a file over its
- * size limit or one that does not fit the remaining storage without saying which.
+ * Why a document's first upload to a Cloud workspace failed, from the workspace's limits: the
+ * server refuses a file over its size limit, or one that does not fit the remaining storage,
+ * without saying which. Null for anywhere that is not a Cloud workspace.
  */
 export async function cloudUploadFailure(
-  serverId: string,
-  workspaceId: string,
+  location: StorageLocation,
   size: number
-): Promise<SaveToState> {
-  const server = findCloudServer(serverId)
+): Promise<SaveFailure | null> {
+  const { providerId, profileId, containerId } = location
+  if (providerId !== CLOUD_STORAGE_PROVIDER_ID || !profileId || !containerId) return null
+  const server = findCloudServer(profileId)
   const discovery = server ? cloudConnection(server.id).discovery : null
-  if (!server || !discovery) return { kind: 'error', reason: 'unavailable' }
+  if (!server || !discovery) return { reason: 'unavailable' }
   const entitlements = await cloudAPIClient(server, discovery)
-    .getWorkspaceEntitlements(workspaceId)
+    .getWorkspaceEntitlements(containerId)
     .catch(() => null)
-  if (!entitlements) return { kind: 'error', reason: 'unavailable' }
+  if (!entitlements) return { reason: 'unavailable' }
   const { limits, usage } = entitlements
   if (size > limits.maximumFileBytes) {
-    return { kind: 'error', reason: 'too-large', limitBytes: limits.maximumFileBytes }
+    return { reason: 'too-large', limitBytes: limits.maximumFileBytes }
   }
   const stored = usage.committedStorageBytes + usage.reservedStorageBytes
   if (limits.maximumStorageBytes !== null && stored + size > limits.maximumStorageBytes) {
-    return { kind: 'error', reason: 'quota' }
+    return { reason: 'quota' }
   }
-  return { kind: 'error', reason: 'unavailable' }
+  return { reason: 'unavailable' }
 }
