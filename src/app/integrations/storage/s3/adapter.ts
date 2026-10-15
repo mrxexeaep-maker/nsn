@@ -202,7 +202,8 @@ export function createS3StorageAdapter(runtime: StorageProviderRuntime): S3Stora
         signal
       )
       if (!bytes) throw new Error(`Document not found: ${id}`)
-      return bytes
+      // Buckets do not record which version a copy came from, so S3 documents are last-writer-wins.
+      return { bytes, revision: null }
     },
 
     async putDocument(id, bytes, metadata, onProgress) {
@@ -229,6 +230,7 @@ export function createS3StorageAdapter(runtime: StorageProviderRuntime): S3Stora
         }),
         'application/json'
       )
+      return { revision: null }
     },
 
     async getDocumentMetadata(id) {

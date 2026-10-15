@@ -337,8 +337,16 @@ const noNonUIImportsInSharedUI = createImportRule(
   }
 )
 
-// The editor's root and router, plus the desktop Software Update window's page entry.
-const VIEW_ENTRYPOINTS = new Set(['src/App.vue', 'src/main.ts', 'src/router.ts', 'src/updater.ts'])
+// The editor's root and router, the desktop Software Update window's page entry, and the Cloud
+// portal's entry and router.
+const VIEW_ENTRYPOINTS = new Set([
+  'src/App.vue',
+  'src/main.ts',
+  'src/router.ts',
+  'src/updater.ts',
+  'src/cloud/main.ts',
+  'src/cloud/router.ts'
+])
 
 const noViewsImportedOutsideEntry = createImportRule(
   'open-pencil/no-views-imported-outside-entry',
@@ -346,6 +354,29 @@ const noViewsImportedOutsideEntry = createImportRule(
     if (!resolved?.startsWith('src/views/')) return null
     if (VIEW_ENTRYPOINTS.has(sourceRel)) return null
     return 'Views are top-level composition entrypoints and must not be imported by app services or reusable components.'
+  }
+)
+
+// The Cloud portal is served by the Cloud server on its own; it reuses the app's UI, never the
+// editor, so its build stays small.
+const CLOUD_PORTAL_SOURCES = [
+  'src/cloud/',
+  'src/views/cloud/',
+  'src/app/cloud-portal/',
+  'src/components/cloud-portal/',
+  'src/theme/cloud-portal/'
+]
+const EDITOR_ONLY_MODULES = ['src/app/editor/', 'src/app/shell/']
+
+const noEditorImportsInCloudPortal = createImportRule(
+  'open-pencil/no-editor-imports-in-cloud-portal',
+  (sourceRel, specifier, resolved) => {
+    if (!CLOUD_PORTAL_SOURCES.some((prefix) => sourceRel.startsWith(prefix))) return null
+    const editorOnly =
+      specifier.startsWith('canvaskit-wasm') ||
+      EDITOR_ONLY_MODULES.some((prefix) => resolved?.startsWith(prefix))
+    if (!editorOnly) return null
+    return 'The Cloud portal must not import editor sessions, CanvasKit, or the app shell, so `bun run build:cloud-portal` stays small.'
   }
 )
 
@@ -538,6 +569,7 @@ export const openPencilArchitecturePlugin = {
     noAppImportsComponentsOrViews,
     noComponentsImportViews,
     noViewsImportedOutsideEntry,
+    noEditorImportsInCloudPortal,
     noNonUIImportsInSharedUI,
     noAppImportsInSharedUI,
     noPropertyPanelInternalsOutsidePanel,

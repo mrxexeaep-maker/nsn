@@ -19,7 +19,8 @@ export default {
     size: {
       xs: 'h-6 px-2 text-[11px]',
       sm: 'h-7 px-2.5 text-xs',
-      md: 'h-8 px-3 text-xs'
+      md: 'h-8 px-3 text-xs',
+      lg: 'h-9 px-3 text-sm'
     },
     density: {
       compact: '',

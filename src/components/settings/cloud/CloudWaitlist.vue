@@ -5,18 +5,20 @@ import { useStorageMessages } from '@open-pencil/vue'
 
 import { useWaitlistSignup } from '@/app/cloud/waitlist/signup'
 import { openExternalLink } from '@/app/shell/ui'
-import SettingsSection from '@/components/settings/layout/SettingsSection.vue'
 import ProviderSettingsField from '@/components/settings/provider/ProviderSettingsField.vue'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 import AppInput from '@/components/ui/input/AppInput.vue'
 import { CLOUD_WAITLIST_URL, IS_TAURI } from '@/constants'
+import { cloudServers } from '@/theme/cloud/servers'
 
 /**
- * OpenPencil Cloud, offered where people set up storage by hand. The web app signs up here; the
- * desktop app opens the website, since Turnstile runs only on the sites the service accepts.
+ * The hosted OpenPencil Cloud before it opens: its waitlist, in place of connecting to it. The web
+ * app signs up here; the desktop app opens the website, since Turnstile runs only on the sites
+ * the service accepts.
  */
 const storage = useStorageMessages()
+const ui = cloudServers()
 const turnstile = useTemplateRef<HTMLElement>('turnstile')
 const { email, status, submitting, confirming, edit, submit } = useWaitlistSignup(turnstile)
 
@@ -30,9 +32,18 @@ const failure = computed(() => {
 </script>
 
 <template>
-  <SettingsSection data-test-id="settings-cloud-waitlist">
-    <template #title>{{ storage.cloudTitle }}</template>
-    <template #description>{{ storage.cloudDescription }}</template>
+  <section
+    :class="ui.waitlist()"
+    data-test-id="settings-cloud-waitlist"
+    :aria-label="storage.cloudTitle"
+  >
+    <div :class="ui.waitlistHeader()">
+      <span :class="ui.icon()"><icon-lucide-cloud class="size-4" /></span>
+      <div :class="ui.body()">
+        <p :class="ui.title()">{{ storage.cloudTitle }}</p>
+        <p :class="ui.waitlistDescription()">{{ storage.cloudDescription }}</p>
+      </div>
+    </div>
     <AppButton
       v-if="IS_TAURI"
       class="self-start"
@@ -49,7 +60,7 @@ const failure = computed(() => {
       :description="storage.waitlistJoinedDetail"
     />
     <template v-else>
-      <!-- The Storage panel is a form of its own, so this is a group that submits on Enter. -->
+      <!-- A group that submits on Enter, like the form it would be outside Settings. -->
       <div class="flex flex-col gap-2" role="group" :aria-label="storage.cloudTitle">
         <ProviderSettingsField
           v-slot="{ control }"
@@ -89,5 +100,5 @@ const failure = computed(() => {
         </template>
       </AppAlert>
     </template>
-  </SettingsSection>
+  </section>
 </template>

@@ -392,14 +392,18 @@ export function createBetterAuthAdapter(
       await auth.api.unlinkAccount({ headers, body: { accountId: methodId } })
     },
     async listUsers(headers, query) {
+      // Paging by offset needs a stable order, or people skip or repeat between pages.
+      const page = {
+        limit: query?.limit,
+        offset: query?.offset,
+        // Better Auth sorts by one field, so accounts created in the same millisecond, such as a
+        // bulk import, can trade places between pages; ordinary sign-ups never collide.
+        sortBy: 'createdAt',
+        sortDirection: 'asc' as const
+      }
       const listQuery = query?.searchValue
-        ? {
-            searchValue: query.searchValue,
-            searchField: 'email' as const,
-            limit: query.limit,
-            offset: query.offset
-          }
-        : { limit: query?.limit, offset: query?.offset }
+        ? { ...page, searchValue: query.searchValue, searchField: 'email' as const }
+        : page
       const response = await auth.api.listUsers({ headers, query: listQuery })
       return { users: response.users, total: response.total }
     },
