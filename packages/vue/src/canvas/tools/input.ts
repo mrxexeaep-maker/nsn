@@ -9,7 +9,7 @@ import { startShapeDraw, startTextDraw } from '#vue/shared/input/draw'
 import { startPanDrag } from '#vue/shared/input/pan'
 import { handleSelectDown } from '#vue/shared/input/select'
 import type { HitTestFns } from '#vue/shared/input/select'
-import { startStickyPlace } from '#vue/shared/input/sticky'
+import { startStickyPlace } from '#vue/shared/input/sticky/place'
 import type { DragState } from '#vue/shared/input/types'
 
 type ToolMouseDownOptions = {

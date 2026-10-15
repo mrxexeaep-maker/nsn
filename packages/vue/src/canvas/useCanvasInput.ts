@@ -28,7 +28,7 @@ import { applyResize, cancelResizePreview, commitResizePreview } from '#vue/shar
 import { updateHoverCursor } from '#vue/shared/input/select'
 import { resolveShapeHandleHover } from '#vue/shared/input/shape-handles'
 import { useSpaceHeld } from '#vue/shared/input/space-key'
-import { applyStickyScale } from '#vue/shared/input/sticky-scale'
+import { applyStickyScale } from '#vue/shared/input/sticky/scale'
 import type { DragState } from '#vue/shared/input/types'
 import { handleNodeEditMove } from '#vue/shared/input/vector'
 

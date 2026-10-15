@@ -14,7 +14,7 @@ import {
   selectionIsLocked
 } from '#vue/shared/input/select/move'
 import { tryStartShapeHandleDrag } from '#vue/shared/input/shape-handles'
-import { tryStartStickyScale } from '#vue/shared/input/sticky-scale'
+import { tryStartStickyScale } from '#vue/shared/input/sticky/scale'
 import type { DragState } from '#vue/shared/input/types'
 
 export interface HitTestFns {
