@@ -90,6 +90,7 @@ export function buildComponent(jsxString: string, warnings: string[] = []): Reac
     const radialGradient = __helpers.radialGradient
     const angularGradient = __helpers.angularGradient
     const diamondGradient = __helpers.diamondGradient
+    const ref = __helpers.ref
     const __varSymbol = Symbol.for('open-pencil.variable')
     const designVar = (def, value) => typeof def === 'string'
       ? ({ [__varSymbol]: true, id: def, name: def, value })

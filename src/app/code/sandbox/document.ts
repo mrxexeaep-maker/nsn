@@ -22,7 +22,10 @@ self.onmessage = ({ data }) => {
     return element
   }
   const helper = (name) => (...args) => ({ __openPencilHelper: name, args })
+  // Each ref() is numbered, so the layer it marks and the ends that refer to it share one handle.
+  let refs = 0
   const helperRuntime = (name) => {
+    if (name === 'ref') return () => ({ __openPencilHelper: 'ref', args: [++refs] })
     if (name === 'defineVars') return (vars) => Object.fromEntries(Object.entries(vars).map(([key, value]) => [key, { __openPencilHelper: 'designVar', args: [value] }]))
     return helper(name)
   }

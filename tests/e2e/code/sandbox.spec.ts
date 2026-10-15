@@ -96,6 +96,29 @@ return <Frame fill={vars.primary}><Text color={designVar('text', '#000')}>Hello<
   })
 })
 
+test('numbers each ref() so a layer and the ends that refer to it share it', async ({ page }) => {
+  const result = await evaluate(
+    page,
+    `const left = ref()
+const right = ref()
+return <Frame>
+  <Frame name="Card" ref={left} />
+  <Frame name="Card" ref={right} />
+  <Connector from={left} to={right} />
+</Frame>`
+  )
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+  const ref = (number: number) => ({ __openPencilHelper: 'ref', args: [number] })
+  expect(result.roots[0]).toMatchObject({
+    children: [
+      { props: { ref: ref(1) } },
+      { props: { ref: ref(2) } },
+      { type: 'connector', props: { from: ref(1), to: ref(2) } }
+    ]
+  })
+})
+
 test('supports multiple roots through fragments', async ({ page }) => {
   const result = await evaluate(page, '<><Rectangle name="One" /><Ellipse name="Two" /></>')
   expect(result).toEqual({
