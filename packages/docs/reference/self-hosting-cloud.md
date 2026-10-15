@@ -22,7 +22,7 @@ bun --filter @open-pencil/cloud build:standalone # writes packages/cloud/dist-st
 
 ## Configure
 
-Settings live in a TOML file; environment variables only supply secrets.
+Settings live in a TOML file; environment variables supply secrets and tell the server where that file and the portal are and where to listen.
 
 1. Copy [`openpencil-cloud.example.toml`](https://github.com/open-pencil/open-pencil/blob/master/packages/cloud/deploy/openpencil-cloud.example.toml) and set at least:
    - `deployment.public_url`: the address the server answers on, for example `https://cloud.example.com`;
