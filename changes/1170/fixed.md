@@ -1,0 +1,1 @@
+- In the web app, Test connection for cloud storage says when the browser couldn't reach the bucket, instead of asking you to check the endpoint and credentials, and offers setup steps for Backblaze B2, Cloudflare R2, Amazon S3, and other providers with your site and bucket filled in. Other connection failures show their actual reason.

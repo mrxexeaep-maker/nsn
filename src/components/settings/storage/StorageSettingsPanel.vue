@@ -10,6 +10,7 @@ import {
 } from '@open-pencil/vue'
 
 import { useNotificationMessages } from '@/app/i18n/notifications'
+import type { StorageConnectionResult } from '@/app/integrations/storage'
 import { useStorageSettingsFeedback } from '@/app/integrations/storage/settings/feedback'
 import { useStorageSettings } from '@/app/integrations/storage/settings/use'
 import { settingsDialogOpen } from '@/app/settings/dialog'
@@ -20,10 +21,12 @@ import SettingsSaveFeedback from '@/components/settings/layout/SettingsSaveFeedb
 import SettingsSection from '@/components/settings/layout/SettingsSection.vue'
 import ProviderSettingsField from '@/components/settings/provider/ProviderSettingsField.vue'
 import CloudWaitlistSection from '@/components/settings/storage/CloudWaitlistSection.vue'
+import StorageCORSSetupDialog from '@/components/settings/storage/StorageCORSSetupDialog.vue'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 import AppInput from '@/components/ui/input/AppInput.vue'
 import AppActionRow from '@/components/ui/list/AppActionRow.vue'
+import { IS_TAURI } from '@/constants'
 
 const storage = useStorageMessages()
 const settings = useSettingsMessages()
@@ -37,7 +40,8 @@ const connection = useStorageSettings(credentialDrafts)
 const feedback = useStorageSettingsFeedback(connection, credentialDrafts, settings)
 const { errors: fieldErrors } = feedback
 const formElement = useTemplateRef<HTMLFormElement>('formElement')
-const testResult = ref<'success' | 'error' | null>(null)
+const testResult = ref<StorageConnectionResult | null>(null)
+const corsSetupOpen = ref(false)
 const testing = computed(() => connection.operation.value === 'test')
 const {
   provider,
@@ -51,6 +55,17 @@ const {
   clearCredential
 } = connection
 useSettingsFormGuard({ dirty, busy, cancel }, editing)
+
+// Only the browser enforces CORS; desktop requests go through the native HTTP bridge.
+// Hidden once a test has run: success needs no setup, and a CORS failure offers it itself.
+const showCORSSetupNotice = computed(() => !IS_TAURI && !configured.value && !testResult.value)
+const testCORSFailure = computed(() => !IS_TAURI && testResult.value?.isCORSFailure === true)
+const testFailureHeading = computed(() =>
+  testCORSFailure.value ? storage.value.unreachable : settings.value.connectionFailed
+)
+const testFailureDetail = computed(() =>
+  testCORSFailure.value ? storage.value.unreachableDetail : testResult.value?.message
+)
 
 function preferenceLabel(field: string) {
   if (field === 'endpoint') return storage.value.endpoint
@@ -93,7 +108,7 @@ async function testConnection() {
     return
   }
   const result = await connection.testConnection()
-  if (result) testResult.value = result.ok ? 'success' : 'error'
+  if (result) testResult.value = result
 }
 </script>
 
@@ -189,6 +204,19 @@ async function testConnection() {
             />
           </ProviderSettingsField>
         </fieldset>
+        <AppAlert
+          v-if="showCORSSetupNotice"
+          tone="info"
+          :heading="storage.corsSetupNotice"
+          :ui="{ root: 'border-accent/30 bg-accent/5', icon: 'text-accent' }"
+          data-test-id="settings-storage-cors-notice"
+        >
+          <template #actions>
+            <AppButton size="xs" variant="outline" @click="corsSetupOpen = true">{{
+              storage.corsSetupOpen
+            }}</AppButton>
+          </template>
+        </AppAlert>
         <AppButton
           class="self-start"
           variant="outline"
@@ -200,12 +228,24 @@ async function testConnection() {
           <template #leading><icon-lucide-plug-zap aria-hidden="true" /></template>
           {{ testing ? common.testingConnection : common.testConnection }}
         </AppButton>
+        <AppAlert v-if="testResult?.ok" tone="success" :heading="notifications.storageConnected" />
         <AppAlert
-          v-if="testResult"
-          :tone="testResult === 'success' ? 'success' : 'error'"
-          :heading="
-            testResult === 'success' ? notifications.storageConnected : settings.connectionFailed
-          "
+          v-else-if="testResult"
+          tone="error"
+          :heading="testFailureHeading"
+          :description="testFailureDetail"
+          data-test-id="settings-storage-test-failure"
+        >
+          <template v-if="testCORSFailure" #actions>
+            <AppButton size="xs" variant="outline" @click="corsSetupOpen = true">{{
+              storage.corsSetupOpen
+            }}</AppButton>
+          </template>
+        </AppAlert>
+        <StorageCORSSetupDialog
+          v-model:open="corsSetupOpen"
+          :endpoint="preferenceDrafts.endpoint ?? ''"
+          :bucket="preferenceDrafts.bucket ?? ''"
         />
         <SettingsSaveFeedback :error="error" :result="saveResult" />
       </SettingsSection>

@@ -33,6 +33,8 @@ export type StorageUsage = {
 export type StorageConnectionResult = {
   ok: boolean
   message: string
+  /** The browser blocked the request before the server answered, usually bucket CORS. */
+  isCORSFailure?: boolean
 }
 
 export interface LibraryObjectSummary {

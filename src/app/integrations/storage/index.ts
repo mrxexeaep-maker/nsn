@@ -9,6 +9,9 @@ export { S3_STORAGE_PROVIDER, storageProviderRegistry } from './providers'
 export { defineStorageProvider, StorageProviderRegistry } from './registry'
 export { createS3StorageAdapter } from './s3/adapter'
 export type { S3StorageAdapter } from './s3/adapter'
+export { buildB2CORSCommand, buildCORSConfigurationJSON } from './s3/cors'
+export { s3HostFromEndpoint } from './s3/host'
+export type { S3Host } from './s3/host'
 export type { S3CompatibleConfig, S3ConnectionResult } from './s3/types'
 export {
   createActiveStorageAdapter,
