@@ -270,6 +270,10 @@
   "deleteWorkspace": "Удалить пространство",
   "deleteWorkspaceHeading": "Удалить {workspace}?",
   "deleteWorkspaceDescription": "Все потеряют доступ, а приглашения перестанут работать. Удалить можно только пустое пространство.",
+  "deleteWorkspaceTypeName": "Для подтверждения введите «{workspace}».",
+  "dangerZone": "Опасная зона",
+  "leaveWorkspaceShort": "Покинуть",
+  "deleteWorkspaceShort": "Удалить",
   "workspaceNotEmpty": "Сначала удалите или перенесите его документы: удалить можно только пустое пространство.",
   "workspaceCleanupPending": "Удалённые документы ещё какое-то время хранятся, прежде чем исчезнуть окончательно. Попробуйте позже."
 }

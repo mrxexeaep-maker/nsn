@@ -267,6 +267,10 @@
   "deleteWorkspace": "Arbeitsbereich löschen",
   "deleteWorkspaceHeading": "{workspace} löschen?",
   "deleteWorkspaceDescription": "Alle verlieren den Zugriff und seine Einladungen funktionieren nicht mehr. Nur ein leerer Arbeitsbereich kann gelöscht werden.",
+  "deleteWorkspaceTypeName": "Gib zur Bestätigung „{workspace}“ ein.",
+  "dangerZone": "Gefahrenbereich",
+  "leaveWorkspaceShort": "Verlassen",
+  "deleteWorkspaceShort": "Löschen",
   "workspaceNotEmpty": "Lösche oder verschiebe zuerst seine Dokumente; nur ein leerer Arbeitsbereich kann gelöscht werden.",
   "workspaceCleanupPending": "Seine gelöschten Dokumente werden noch eine Weile aufbewahrt, bevor sie endgültig verschwinden. Versuche es danach erneut."
 }

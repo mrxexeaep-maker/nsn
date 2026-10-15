@@ -18,8 +18,12 @@ export const cloudWorkspace = tv({
     personEmail: 'truncate text-[11px] text-muted',
     you: 'ml-1 text-[11px] text-muted',
     role: 'shrink-0 text-[11px] text-muted',
-    roleSelect: 'w-24 shrink-0',
-    removeSpace: 'size-6 shrink-0',
+    roleSelect: 'w-28 shrink-0',
+    dangerTitle: 'text-[11px] font-medium text-error',
+    dangerList: 'flex flex-col divide-y divide-error-border rounded border border-error-border',
+    dangerRow: 'flex items-center gap-3 px-3 py-2.5',
+    dangerDescription: 'text-[11px] text-pretty text-muted',
+    confirmName: 'mt-3 flex flex-col gap-1.5',
     pendingIcon:
       'flex size-6 shrink-0 items-center justify-center rounded-full bg-panel-field text-muted'
   }

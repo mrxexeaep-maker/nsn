@@ -232,6 +232,10 @@ export const cloudMessageDefaults = {
   deleteWorkspaceHeading: params('Delete {workspace}?'),
   deleteWorkspaceDescription:
     'Everyone loses access and its invitations stop working. Only an empty workspace can be deleted.',
+  deleteWorkspaceTypeName: params('To confirm, type “{workspace}”.'),
+  dangerZone: 'Danger zone',
+  leaveWorkspaceShort: 'Leave',
+  deleteWorkspaceShort: 'Delete',
   workspaceNotEmpty: 'Delete or move its documents first; only an empty workspace can be deleted.',
   workspaceCleanupPending:
     'Its deleted documents are kept for a while before they’re gone for good. Try again after that.',

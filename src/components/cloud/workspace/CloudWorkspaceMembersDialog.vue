@@ -7,7 +7,6 @@ import { useCloudMessages, useCommonMessages } from '@open-pencil/vue'
 
 import AccountAvatar from '@/components/presence/AccountAvatar.vue'
 import AppButton from '@/components/ui/button/AppButton.vue'
-import IconButton from '@/components/ui/button/IconButton.vue'
 import AppConfirmationDialog from '@/components/ui/dialog/AppConfirmationDialog.vue'
 import AppDialogBody from '@/components/ui/dialog/AppDialogBody.vue'
 import AppDialogFooter from '@/components/ui/dialog/AppDialogFooter.vue'
@@ -20,7 +19,8 @@ import { cloudWorkspace } from '@/theme/cloud/workspace'
 
 /**
  * Who belongs to a Cloud workspace. Administrators rename it, invite people by email with a
- * role, change roles, and remove people; everyone sees the members and may leave.
+ * role, change roles, and remove people; everyone sees the members and may leave. Leaving and
+ * deleting sit apart in a danger zone, and deleting asks for the workspace's name.
  */
 const {
   workspaceName,
@@ -78,6 +78,15 @@ const roleOptions = computed(() => [
   { value: 'editor' as const, label: t.value.roleEditor },
   { value: 'viewer' as const, label: t.value.roleViewer }
 ])
+/** As in the Share dialog, removing someone is the last choice of their role menu. */
+const memberOptions = computed(() => [
+  ...roleOptions.value,
+  { value: 'remove' as const, label: t.value.shareRemoveAccess }
+])
+function changeMember(userId: string, name: string, next: WorkspaceRole | 'remove') {
+  if (next === 'remove') confirming.value = { kind: 'remove', userId, name }
+  else emit('changeRole', userId, next)
+}
 const roleLabels = computed<Record<WorkspaceRole, string>>(() => ({
   admin: t.value.roleAdmin,
   editor: t.value.roleEditor,
@@ -111,8 +120,17 @@ const confirmation = computed(() => {
         confirm: t.value.removeMemberConfirm
       }
 })
+/** Deleting can't be undone, so it waits for the workspace's name. */
+const typedName = ref('')
+watch(confirming, () => {
+  typedName.value = ''
+})
+const confirmBlocked = computed(
+  () => confirming.value?.kind === 'delete' && typedName.value.trim() !== workspaceName.trim()
+)
 function confirm() {
   const pending = confirming.value
+  if (confirmBlocked.value) return
   confirming.value = null
   if (pending?.kind === 'leave') emit('leave')
   else if (pending?.kind === 'delete') emit('delete')
@@ -213,21 +231,12 @@ function invite() {
                 v-if="canManage"
                 :model-value="member.role"
                 :label="t.memberRole({ name: member.name })"
-                :options="roleOptions"
+                :options="member.userId === self ? roleOptions : memberOptions"
                 :disabled="busy"
                 :ui="{ trigger: ui.roleSelect() }"
-                @update:model-value="(next) => emit('changeRole', member.userId, next)"
+                @update:model-value="(next) => changeMember(member.userId, member.name, next)"
               />
               <span v-else :class="ui.role()">{{ roleLabels[member.role] }}</span>
-              <IconButton
-                v-if="canManage && member.userId !== self"
-                :label="t.removeMember({ name: member.name })"
-                :disabled="busy"
-                @click="confirming = { kind: 'remove', userId: member.userId, name: member.name }"
-              >
-                <icon-lucide-user-minus class="size-3.5" />
-              </IconButton>
-              <span v-else-if="canManage" :class="ui.removeSpace()" aria-hidden="true" />
             </li>
           </ul>
         </section>
@@ -252,28 +261,43 @@ function invite() {
             </li>
           </ul>
         </section>
+
+        <section :class="ui.section()" aria-labelledby="cloud-workspace-danger">
+          <h3 id="cloud-workspace-danger" :class="ui.dangerTitle()">{{ t.dangerZone }}</h3>
+          <ul :class="ui.dangerList()">
+            <li :class="ui.dangerRow()">
+              <span :class="ui.person()">
+                <span :class="ui.personName()">{{ t.leaveWorkspace }}</span>
+                <span :class="ui.dangerDescription()">{{ t.leaveWorkspaceDescription }}</span>
+              </span>
+              <AppButton
+                color="error"
+                variant="outline"
+                :disabled="busy"
+                @click="confirming = { kind: 'leave' }"
+              >
+                {{ t.leaveWorkspaceShort }}
+              </AppButton>
+            </li>
+            <li v-if="canManage" :class="ui.dangerRow()">
+              <span :class="ui.person()">
+                <span :class="ui.personName()">{{ t.deleteWorkspace }}</span>
+                <span :class="ui.dangerDescription()">{{ t.deleteWorkspaceDescription }}</span>
+              </span>
+              <AppButton
+                color="error"
+                variant="outline"
+                :disabled="busy"
+                @click="confirming = { kind: 'delete' }"
+              >
+                {{ t.deleteWorkspaceShort }}
+              </AppButton>
+            </li>
+          </ul>
+        </section>
       </div>
     </AppDialogBody>
-    <AppDialogFooter :ui="{ footer: 'justify-between' }">
-      <div :class="ui.inline()">
-        <AppButton
-          color="error"
-          variant="ghost"
-          :disabled="busy"
-          @click="confirming = { kind: 'leave' }"
-        >
-          {{ t.leaveWorkspace }}
-        </AppButton>
-        <AppButton
-          v-if="canManage"
-          color="error"
-          variant="ghost"
-          :disabled="busy"
-          @click="confirming = { kind: 'delete' }"
-        >
-          {{ t.deleteWorkspace }}
-        </AppButton>
-      </div>
+    <AppDialogFooter>
       <AppButton color="primary" variant="solid" @click="open = false">
         {{ common.done }}
       </AppButton>
@@ -286,7 +310,21 @@ function invite() {
     :description="confirmation?.description"
     :cancel-label="common.cancel"
     :confirm-label="confirmation?.confirm ?? ''"
+    :confirm-disabled="confirmBlocked"
     @update:open="(isOpen) => !isOpen && (confirming = null)"
     @confirm="confirm"
-  />
+  >
+    <div v-if="confirming?.kind === 'delete'" :class="ui.confirmName()">
+      <label for="cloud-workspace-delete-name" :class="ui.label()">
+        {{ t.deleteWorkspaceTypeName({ workspace: workspaceName }) }}
+      </label>
+      <AppInput
+        id="cloud-workspace-delete-name"
+        v-model="typedName"
+        autocomplete="off"
+        spellcheck="false"
+        @enter="confirm"
+      />
+    </div>
+  </AppConfirmationDialog>
 </template>
