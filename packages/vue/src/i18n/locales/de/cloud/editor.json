@@ -20,8 +20,6 @@
   "deviceHeading": "Im Browser bestätigen",
   "deviceDescription": "Genehmige diese Anmeldung auf {host}.",
   "deviceDescriptionNoHost": "Genehmige diese Anmeldung auf dem Server.",
-  "signInDescription": "Melde dich bei {host} an, um deine Dateien zu synchronisieren.",
-  "signInDescriptionNoHost": "Melde dich beim Server an, um deine Dateien zu synchronisieren.",
   "officialDescription": "Gehostet von OpenPencil · {host}",
   "selfHostedLabel": "Server deines Teams",
   "selfHostedDescription": "Eine selbst gehostete OpenPencil Cloud",
@@ -49,7 +47,6 @@
   "copyCode": "Code kopieren",
   "deviceWaiting": "Warten auf deine Genehmigung… Der Code läuft in {duration} ab.",
   "openBrowserAgain": "Browser erneut öffnen",
-  "useAnotherServer": "Anderen Server verwenden",
   "accountPending": "Dein Konto auf {host} wartet auf die Genehmigung durch einen Administrator.",
   "signedInAs": "Bei {host} angemeldet als {email}.",
   "invitationUnavailableHeading": "Diese Einladung kann nicht verwendet werden",
@@ -218,5 +215,14 @@
   "syncOffline": "Offline – Änderungen werden auf diesem Gerät gespeichert",
   "syncConflict": "Auch anderswo bearbeitet – wähle, welche Version du behalten möchtest",
   "syncError": "Änderungen konnten nicht hochgeladen werden",
-  "shareLinkFailed": "Dieser Link öffnet kein Dokument. Bitte um einen neuen."
+  "shareLinkFailed": "Dieser Link öffnet kein Dokument. Bitte um einen neuen.",
+  "connectServerHeading": "Server deines Teams verbinden",
+  "connectServerDescription": "Gib die Adresse ein, die dein Team für OpenPencil Cloud nutzt.",
+  "checkingServer": "Server wird geprüft…",
+  "signInHeading": "Bei {name} anmelden",
+  "onHost": "Auf {host}.",
+  "verifyDescription": "Wir haben einen Link an {email} gesendet.",
+  "verifyNote": "Öffne den Link in der E-Mail und komm dann hierher zurück. Die Anmeldung wird automatisch abgeschlossen.",
+  "verifyNotYet": "Deine E-Mail-Adresse ist noch nicht bestätigt. Öffne den Link in der E-Mail und versuche es dann erneut.",
+  "verifyNoEmail": "Keine E-Mail?"
 }

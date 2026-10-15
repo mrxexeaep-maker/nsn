@@ -111,12 +111,13 @@ either role: the first operator is approved and promoted through the `admin` com
 ## Portal
 
 The server shows its own pages on its public address: sign-in and sign-up, email verification,
-password reset, two-step sign-in, desktop sign-in approval, account security, and the
-administration console. They are a separate Vite entry, `cloud.html`, in the app project, so they
-reuse the editor's components and theme without loading the editor; `bun run build:cloud-portal`
-writes them to `dist-cloud-portal/`. The editor, on the web and on the desktop, never embeds these
-pages; it opens them in a browser and gets the person back through `/auth/return` or the device
-code.
+password reset, two-step sign-in, desktop sign-in approval, account security, and the administration
+console. They are a separate Vite entry, `cloud.html`, in the app project, so they reuse the
+editor's components and theme without loading the editor; `bun run build:cloud-portal` writes them
+to `dist-cloud-portal/`. The editor never embeds these pages; when it needs them, for a social
+provider or a second sign-in step, it opens them in a browser and gets the person back through
+`/auth/return` or the device code. A verification link started in the editor lands on
+`/auth/verified`, which sends the person back to the editor.
 
 `CLOUD_PORTAL_PAGE_ROOTS` in the contract lists the page paths, and every runtime serves
 `cloud.html` at and below them with `frame-ancestors 'none'`, so the approval page cannot be
@@ -129,9 +130,11 @@ watched portal build next to the server.
 The editor treats each Cloud server as a profile of the `openpencil-cloud` storage provider, with a
 workspace as the container, so the sync engine, recent files, and tabs handle Cloud documents the
 way they handle a bucket. A server's id is hex from its address, which also names its credentials.
-A browser on the server's own editor address signs in on the server's pages and keeps its session
-cookie; the desktop app and other editor addresses approve a device code and keep the token in the
-credential store. Each connection tells a signed-in account from one waiting for approval, one
+Email and password sign in inside the connect dialog wherever the server accepts the editor's
+requests, which is the desktop app and the server's own editor address; the session's bearer token
+goes in the credential store. Social providers and accounts with two-step sign-in finish in the
+browser: the server's own editor address leaves for its pages and comes back, and the desktop app
+approves a device code. Each connection tells a signed-in account from one waiting for approval, one
 whose sign-in expired, and one never signed in.
 
 Saves name the revision they were edited from, so a write over someone else's newer revision
@@ -245,3 +248,15 @@ opened the editor with `?cloud=preview`. Launching, or pulling back, is a change
 config rather than an editor release, and a launch that needs a client change sets the minimum to the
 release that has it. A separate flags file or a third-party flag service would be one more thing to
 deploy for one switch.
+
+**2026-10 · Email and password sign in inside the editor.** The connect dialog signs in, signs up,
+and waits for the verification link itself, and keeps a bearer token, so no cookie has to cross
+from the server's address to the editor's; Safari treats sibling `.localhost` hosts as separate
+sites and dropped that cookie. Signing in on the server's pages stays for social providers and the
+second sign-in step, which need the server's own origin. This supersedes the redirect decision for
+email and password.
+
+**2026-10 · Settings → Cloud is always there.** Before the hosted service opens, its card holds the
+waitlist, which used to sit under Storage, and a team's own server can be connected at any time.
+This supersedes hiding Settings until the official server's listing; Save to Cloud still waits for
+it.

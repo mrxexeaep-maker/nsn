@@ -60,6 +60,14 @@ async function submit(input: { name: string; email: string; password: string }) 
       return
     }
     const result = await portal.auth.withEmail({ email: input.email, password: input.password })
+    if (!result.ok && result.failure === 'email-not-verified') {
+      // The page explains it and sends the link again on request.
+      await router.push({
+        name: 'check-email',
+        query: { email: input.email, redirect: redirect.value }
+      })
+      return
+    }
     if (!result.ok) {
       error.value = failure(result.failure)
       return

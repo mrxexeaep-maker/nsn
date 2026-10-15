@@ -20,8 +20,6 @@
   "deviceHeading": "ブラウザで確認してください",
   "deviceDescription": "{host} でこのサインインを承認してください。",
   "deviceDescriptionNoHost": "サーバーでこのサインインを承認してください。",
-  "signInDescription": "ファイルを同期するには {host} にサインインしてください。",
-  "signInDescriptionNoHost": "ファイルを同期するにはサーバーにサインインしてください。",
   "officialDescription": "OpenPencil がホスト · {host}",
   "selfHostedLabel": "チームのサーバー",
   "selfHostedDescription": "セルフホストの OpenPencil Cloud",
@@ -49,7 +47,6 @@
   "copyCode": "コードをコピー",
   "deviceWaiting": "承認を待っています… コードの有効期限まであと{duration}です。",
   "openBrowserAgain": "ブラウザをもう一度開く",
-  "useAnotherServer": "別のサーバーを使う",
   "accountPending": "{host} のアカウントは管理者の承認待ちです。",
   "signedInAs": "{host} に {email} としてサインインしています。",
   "invitationUnavailableHeading": "この招待は使用できません",
@@ -215,5 +212,14 @@
   "syncOffline": "オフライン：変更はこのデバイスに保存されています",
   "syncConflict": "他の場所でも編集されました。残すバージョンを選んでください",
   "syncError": "変更をアップロードできませんでした",
-  "shareLinkFailed": "このリンクではドキュメントを開けません。新しいリンクを依頼してください。"
+  "shareLinkFailed": "このリンクではドキュメントを開けません。新しいリンクを依頼してください。",
+  "connectServerHeading": "チームのサーバーに接続",
+  "connectServerDescription": "チームが OpenPencil Cloud に使っているアドレスを入力してください。",
+  "checkingServer": "サーバーを確認しています…",
+  "signInHeading": "{name} にサインイン",
+  "onHost": "{host} 上。",
+  "verifyDescription": "{email} にリンクを送信しました。",
+  "verifyNote": "メールのリンクを開いてから、ここに戻ってください。サインインは自動で完了します。",
+  "verifyNotYet": "メールアドレスはまだ確認されていません。メールのリンクを開いてから、もう一度お試しください。",
+  "verifyNoEmail": "メールが届かない場合"
 }

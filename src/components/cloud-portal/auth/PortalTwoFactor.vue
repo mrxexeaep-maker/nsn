@@ -44,7 +44,7 @@ const code = ref('')
     "
   >
     <AppAlert v-if="error" tone="error" :heading="error" />
-    <form :class="ui.form()" novalidate @submit.prevent="emit('verify', code)">
+    <form id="portal-two-step" :class="ui.form()" novalidate @submit.prevent="emit('verify', code)">
       <AppInput
         v-model="code"
         :inputmode="method === 'authenticator' ? 'numeric' : 'text'"
@@ -55,16 +55,6 @@ const code = ref('')
         :placeholder="method === 'authenticator' ? '000000' : 'xxxx-xxxx'"
         :ui="{ input: ui.code() }"
       />
-      <AppButton
-        type="submit"
-        color="primary"
-        variant="solid"
-        size="lg"
-        :loading="verifying"
-        :ui="{ base: ui.submit() }"
-      >
-        {{ messages.continue }}
-      </AppButton>
     </form>
     <div class="flex flex-wrap items-center justify-between gap-2">
       <AppButton size="xs" variant="link" @click="emit('switchMethod')">
@@ -80,5 +70,16 @@ const code = ref('')
         {{ messages.usePasskey }}
       </AppButton>
     </div>
+    <template #actions>
+      <AppButton
+        type="submit"
+        form="portal-two-step"
+        color="primary"
+        variant="solid"
+        :loading="verifying"
+      >
+        {{ messages.continue }}
+      </AppButton>
+    </template>
   </PortalPublicLayout>
 </template>

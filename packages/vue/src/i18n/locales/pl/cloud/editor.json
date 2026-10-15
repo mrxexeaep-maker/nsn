@@ -20,8 +20,6 @@
   "deviceHeading": "Potwierdź w przeglądarce",
   "deviceDescription": "Zatwierdź to logowanie na {host}.",
   "deviceDescriptionNoHost": "Zatwierdź to logowanie na serwerze.",
-  "signInDescription": "Zaloguj się do {host}, aby synchronizować pliki.",
-  "signInDescriptionNoHost": "Zaloguj się do serwera, aby synchronizować pliki.",
   "officialDescription": "Serwer OpenPencil · {host}",
   "selfHostedLabel": "Serwer Twojego zespołu",
   "selfHostedDescription": "Własny serwer OpenPencil Cloud",
@@ -49,7 +47,6 @@
   "copyCode": "Kopiuj kod",
   "deviceWaiting": "Czekamy na zatwierdzenie… Kod wygaśnie za {duration}.",
   "openBrowserAgain": "Otwórz przeglądarkę ponownie",
-  "useAnotherServer": "Użyj innego serwera",
   "accountPending": "Twoje konto na {host} czeka na zatwierdzenie przez administratora.",
   "signedInAs": "Zalogowano do {host} jako {email}.",
   "invitationUnavailableHeading": "Tego zaproszenia nie można użyć",
@@ -221,5 +218,14 @@
   "syncOffline": "Offline — zmiany są zapisane na tym urządzeniu",
   "syncConflict": "Edytowano też gdzie indziej — wybierz, którą wersję zachować",
   "syncError": "Nie udało się przesłać zmian",
-  "shareLinkFailed": "Ten link nie otwiera dokumentu. Poproś o nowy."
+  "shareLinkFailed": "Ten link nie otwiera dokumentu. Poproś o nowy.",
+  "connectServerHeading": "Połącz serwer zespołu",
+  "connectServerDescription": "Wpisz adres, którego zespół używa dla OpenPencil Cloud.",
+  "checkingServer": "Sprawdzanie serwera…",
+  "signInHeading": "Zaloguj się do {name}",
+  "onHost": "Na {host}.",
+  "verifyDescription": "Wysłaliśmy link na adres {email}.",
+  "verifyNote": "Otwórz link z e-maila i wróć tutaj. Logowanie zakończy się samo.",
+  "verifyNotYet": "Adres e-mail nie jest jeszcze potwierdzony. Otwórz link z e-maila i spróbuj ponownie.",
+  "verifyNoEmail": "Brak e-maila?"
 }

@@ -45,13 +45,13 @@ const messages = useCloudPortalMessages()
       :heading="messages.deviceWarningTitle"
       :description="messages.deviceWarningDescription"
     />
-    <div class="flex items-center justify-end gap-2">
-      <AppButton variant="ghost" :disabled="deciding" @click="emit('deny')">
+    <template #actions>
+      <AppButton :disabled="deciding" @click="emit('deny')">
         {{ messages.deny }}
       </AppButton>
       <AppButton color="primary" variant="solid" :loading="deciding" @click="emit('approve')">
         {{ messages.approve }}
       </AppButton>
-    </div>
+    </template>
   </PortalPublicLayout>
 </template>

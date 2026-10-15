@@ -16,18 +16,21 @@ const {
 </script>
 
 <template>
-  <PortalPublicLayout :host="host" :heading="heading" :description="description">
+  <PortalPublicLayout :host="host" :heading="heading">
     <template #icon>
-      <span
-        class="flex size-10 items-center justify-center rounded-full bg-panel-field text-muted data-[tone=success]:bg-success/10 data-[tone=success]:text-success"
-        :data-tone="tone"
-      >
-        <slot name="icon" />
-      </span>
+      <div class="flex items-start gap-3">
+        <span
+          class="flex size-10 shrink-0 items-center justify-center rounded-full bg-panel-field text-muted data-[tone=success]:bg-success/10 data-[tone=success]:text-success"
+          :data-tone="tone"
+        >
+          <slot name="icon" />
+        </span>
+        <p class="pt-1 text-xs leading-relaxed text-muted">{{ description }}</p>
+      </div>
     </template>
     <slot />
-    <div v-if="$slots.actions" class="flex flex-wrap items-center gap-2">
+    <template v-if="$slots.actions" #actions>
       <slot name="actions" />
-    </div>
+    </template>
   </PortalPublicLayout>
 </template>

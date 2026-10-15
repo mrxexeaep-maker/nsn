@@ -18,7 +18,7 @@ import { portalForm } from '@/theme/cloud-portal/form'
  */
 const {
   purpose,
-  minimumPasswordLength = 15,
+  minimumPasswordLength = 8,
   error = null,
   saving = false
 } = defineProps<{

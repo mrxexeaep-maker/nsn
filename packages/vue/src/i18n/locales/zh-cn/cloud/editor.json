@@ -20,8 +20,6 @@
   "deviceHeading": "在浏览器中确认",
   "deviceDescription": "请在 {host} 上批准此次登录。",
   "deviceDescriptionNoHost": "请在服务器上批准此次登录。",
-  "signInDescription": "登录 {host} 以同步你的文件。",
-  "signInDescriptionNoHost": "登录服务器以同步你的文件。",
   "officialDescription": "由 OpenPencil 托管 · {host}",
   "selfHostedLabel": "你团队的服务器",
   "selfHostedDescription": "自托管的 OpenPencil Cloud",
@@ -49,7 +47,6 @@
   "copyCode": "复制代码",
   "deviceWaiting": "正在等待你批准… 代码将在 {duration} 后过期。",
   "openBrowserAgain": "重新打开浏览器",
-  "useAnotherServer": "使用其他服务器",
   "accountPending": "你在 {host} 上的账号正在等待管理员批准。",
   "signedInAs": "已以 {email} 身份登录 {host}。",
   "invitationUnavailableHeading": "此邀请无法使用",
@@ -215,5 +212,14 @@
   "syncOffline": "离线——更改已保存在此设备上",
   "syncConflict": "其他地方也有编辑——请选择要保留的版本",
   "syncError": "无法上传更改",
-  "shareLinkFailed": "此链接无法打开文档。请索取新链接。"
+  "shareLinkFailed": "此链接无法打开文档。请索取新链接。",
+  "connectServerHeading": "连接团队的服务器",
+  "connectServerDescription": "输入团队用于 OpenPencil Cloud 的地址。",
+  "checkingServer": "正在检查服务器…",
+  "signInHeading": "登录 {name}",
+  "onHost": "在 {host} 上。",
+  "verifyDescription": "我们已向 {email} 发送了链接。",
+  "verifyNote": "打开邮件中的链接，然后回到这里。登录会自动完成。",
+  "verifyNotYet": "你的邮箱尚未确认。打开邮件中的链接后再试一次。",
+  "verifyNoEmail": "没有收到邮件？"
 }

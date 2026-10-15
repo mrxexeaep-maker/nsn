@@ -19,7 +19,7 @@ const { failure } = usePortalFailureMessages()
 const token = computed(() => (typeof route.query.token === 'string' ? route.query.token : null))
 const redirect = computed(() => continuationPath(route.query.redirect))
 const minimum = computed(
-  () => portal.discovery.authentication.emailPassword?.minimumPasswordLength ?? 15
+  () => portal.discovery.authentication.emailPassword?.minimumPasswordLength ?? 8
 )
 const submitting = ref(false)
 const error = ref<string | null>(

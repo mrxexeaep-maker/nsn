@@ -7,6 +7,7 @@ export const portalForm = tv({
     labelRow: 'flex items-center justify-between',
     label: 'text-[11px] font-medium text-muted',
     hint: 'text-[11px] text-muted',
+    error: 'text-[11px] text-error',
     methods: 'flex flex-col gap-1.5',
     divider: 'flex items-center gap-3 text-[11px] text-muted',
     dividerLine: 'h-px flex-1 bg-border',

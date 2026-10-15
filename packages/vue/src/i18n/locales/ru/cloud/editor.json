@@ -20,8 +20,6 @@
   "deviceHeading": "Подтвердите в браузере",
   "deviceDescription": "Одобрите этот вход на {host}.",
   "deviceDescriptionNoHost": "Одобрите этот вход на сервере.",
-  "signInDescription": "Войдите на {host}, чтобы синхронизировать файлы.",
-  "signInDescriptionNoHost": "Войдите на сервер, чтобы синхронизировать файлы.",
   "officialDescription": "Сервер OpenPencil · {host}",
   "selfHostedLabel": "Сервер вашей команды",
   "selfHostedDescription": "Собственный сервер OpenPencil Cloud",
@@ -49,7 +47,6 @@
   "copyCode": "Скопировать код",
   "deviceWaiting": "Ждём вашего одобрения… Код действует ещё {duration}.",
   "openBrowserAgain": "Открыть браузер снова",
-  "useAnotherServer": "Использовать другой сервер",
   "accountPending": "Ваш аккаунт на {host} ждёт одобрения администратора.",
   "signedInAs": "Вы вошли на {host} как {email}.",
   "invitationUnavailableHeading": "Это приглашение нельзя использовать",
@@ -221,5 +218,14 @@
   "syncOffline": "Не в сети — изменения сохранены на этом устройстве",
   "syncConflict": "Изменено и в другом месте — выберите, какую версию оставить",
   "syncError": "Не удалось загрузить изменения",
-  "shareLinkFailed": "Эта ссылка не открывает документ. Попросите новую."
+  "shareLinkFailed": "Эта ссылка не открывает документ. Попросите новую.",
+  "connectServerHeading": "Подключите сервер команды",
+  "connectServerDescription": "Введите адрес, который ваша команда использует для OpenPencil Cloud.",
+  "checkingServer": "Проверяем сервер…",
+  "signInHeading": "Вход в {name}",
+  "onHost": "На {host}.",
+  "verifyDescription": "Мы отправили ссылку на {email}.",
+  "verifyNote": "Откройте ссылку из письма и вернитесь сюда. Вход завершится сам.",
+  "verifyNotYet": "Почта ещё не подтверждена. Откройте ссылку из письма и попробуйте снова.",
+  "verifyNoEmail": "Нет письма?"
 }

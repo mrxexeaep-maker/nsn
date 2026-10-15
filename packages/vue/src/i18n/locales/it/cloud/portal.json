@@ -235,5 +235,14 @@
   "errorNotAllowed": "Non hai l’autorizzazione per farlo.",
   "errorNetwork": "Impossibile raggiungere il server. Controlla la connessione.",
   "errorAlreadyDecided": "Qualcuno ha già deciso su questa richiesta. Aggiorna per vederla.",
-  "passwordResetSent": "Ti abbiamo inviato via email un link per impostare una password."
+  "passwordResetSent": "Ti abbiamo inviato via email un link per impostare una password.",
+  "repeatPassword": "Ripeti la password",
+  "errorNameRequired": "Inserisci il tuo nome.",
+  "errorEmailRequired": "Inserisci il tuo indirizzo email.",
+  "errorEmailInvalid": "Inserisci un indirizzo come tu@example.com.",
+  "errorPasswordRequired": "Inserisci la password.",
+  "errorPasswordTooShort": "Usa almeno {count} caratteri.",
+  "errorPasswordsDiffer": "Le password non coincidono.",
+  "verifiedTitle": "Email confermata",
+  "verifiedDescription": "Torna a OpenPencil per completare l’accesso. Puoi chiudere questa scheda."
 }

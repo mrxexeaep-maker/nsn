@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 
 import { useCloudPortalMessages } from '@open-pencil/vue'
 
+import CloudAccountForm from '@/components/cloud/account/CloudAccountForm.vue'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
-import AppInput from '@/components/ui/input/AppInput.vue'
 import AppActionRow from '@/components/ui/list/AppActionRow.vue'
 import { portalForm } from '@/theme/cloud-portal/form'
 
@@ -47,9 +47,6 @@ const emit = defineEmits<{
 
 const ui = portalForm()
 const messages = useCloudPortalMessages()
-const name = ref('')
-const email = ref('')
-const password = ref('')
 const signUp = computed(() => mode === 'sign-up')
 const labels = computed<Record<PortalSignInMethod, string>>(() => ({
   google: messages.value.continueWithGoogle,
@@ -107,65 +104,31 @@ const showForm = computed(() => !!emailPassword && (!signUp.value || emailPasswo
       <span :class="ui.dividerLine()" />{{ messages.or }}<span :class="ui.dividerLine()" />
     </div>
 
-    <form
+    <CloudAccountForm
       v-if="showForm && emailPassword"
-      :class="ui.form()"
-      novalidate
-      @submit.prevent="emit('submit', { name, email, password })"
-    >
-      <div v-if="signUp" :class="ui.field()">
-        <label for="portal-name" :class="ui.label()">{{ messages.name }}</label>
-        <AppInput id="portal-name" v-model="name" autocomplete="name" />
-      </div>
-      <div :class="ui.field()">
-        <label for="portal-email" :class="ui.label()">{{ messages.email }}</label>
-        <AppInput
-          id="portal-email"
-          v-model="email"
-          inputmode="email"
-          autocomplete="email"
-          :placeholder="messages.emailPlaceholder"
-        />
-      </div>
-      <div :class="ui.field()">
-        <div :class="ui.labelRow()">
-          <label for="portal-password" :class="ui.label()">{{ messages.password }}</label>
-          <AppButton
-            v-if="!signUp"
-            size="xs"
-            variant="link"
-            type="button"
-            @click="emit('forgotPassword')"
-          >
-            {{ messages.forgotPassword }}
-          </AppButton>
-        </div>
-        <AppInput
-          id="portal-password"
-          v-model="password"
-          type="password"
-          :autocomplete="signUp ? 'new-password' : 'current-password'"
-        />
-        <p v-if="signUp" :class="ui.hint()">
-          {{ messages.passwordHint({ count: emailPassword.minimumPasswordLength }) }}
-        </p>
-      </div>
-      <AppButton
-        type="submit"
-        color="primary"
-        variant="solid"
-        size="lg"
-        :loading="submitting"
-        :ui="{ base: ui.submit() }"
-      >
-        {{ signUp ? messages.createAccount : messages.signIn }}
-      </AppButton>
-    </form>
+      id="portal-account"
+      :mode="mode"
+      :minimum-password-length="emailPassword.minimumPasswordLength"
+      :disabled="submitting"
+      @submit="(credentials) => emit('submit', credentials)"
+      @forgot-password="emit('forgotPassword')"
+    />
 
     <template v-if="emailPassword?.signUp || signUp" #footer>
       {{ signUp ? messages.haveAccount : messages.newHere }}
       <AppButton size="xs" variant="link" @click="emit('switchMode')">
         {{ signUp ? messages.signIn : messages.createAnAccount }}
+      </AppButton>
+    </template>
+    <template v-if="showForm && emailPassword" #actions>
+      <AppButton
+        type="submit"
+        form="portal-account"
+        color="primary"
+        variant="solid"
+        :loading="submitting"
+      >
+        {{ signUp ? messages.createAccount : messages.signIn }}
       </AppButton>
     </template>
   </PortalPublicLayout>

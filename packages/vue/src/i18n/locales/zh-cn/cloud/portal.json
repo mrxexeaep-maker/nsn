@@ -231,5 +231,14 @@
   "errorNotAllowed": "你没有执行此操作的权限。",
   "errorNetwork": "无法连接到服务器。请检查网络连接。",
   "errorAlreadyDecided": "已有人处理了此申请。请刷新查看。",
-  "passwordResetSent": "我们已向你发送设置密码的链接。"
+  "passwordResetSent": "我们已向你发送设置密码的链接。",
+  "repeatPassword": "再次输入密码",
+  "errorNameRequired": "请输入你的名字。",
+  "errorEmailRequired": "请输入你的邮箱地址。",
+  "errorEmailInvalid": "请输入类似 you@example.com 的邮箱地址。",
+  "errorPasswordRequired": "请输入密码。",
+  "errorPasswordTooShort": "至少使用 {count} 个字符。",
+  "errorPasswordsDiffer": "两次输入的密码不一致。",
+  "verifiedTitle": "邮箱已确认",
+  "verifiedDescription": "回到 OpenPencil 完成登录。你可以关闭此标签页。"
 }

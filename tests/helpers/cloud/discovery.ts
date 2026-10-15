@@ -15,7 +15,7 @@ export function cloudDiscoveryFixture(
       socialProviders: ['google'],
       enterpriseSSO: false,
       enrollmentMode: 'approval',
-      emailPassword: { signIn: true, signUp: true, minimumPasswordLength: 15 }
+      emailPassword: { signIn: true, signUp: true, minimumPasswordLength: 8 }
     },
     capabilities: { documents: true, workspaces: true, collaboration: true }
   }

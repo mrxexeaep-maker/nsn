@@ -41,16 +41,16 @@ const story = (template: string): Story => ({
 })
 
 export const SignIn = story(
-  `<PortalSignIn :host="host" mode="sign-in" :providers="['google', 'apple']" :email-password="{ signUp: true, minimumPasswordLength: 15 }" />`
+  `<PortalSignIn :host="host" mode="sign-in" :providers="['google', 'apple']" :email-password="{ signUp: true, minimumPasswordLength: 8 }" />`
 )
 export const SignInForTheDesktopApp = story(
-  `<PortalSignIn :host="host" mode="sign-in" :providers="['google']" :email-password="{ signUp: true, minimumPasswordLength: 15 }" returns-to="desktop" />`
+  `<PortalSignIn :host="host" mode="sign-in" :providers="['google']" :email-password="{ signUp: true, minimumPasswordLength: 8 }" returns-to="desktop" />`
 )
 export const SignInWithAnError = story(
-  `<PortalSignIn :host="host" mode="sign-in" :providers="[]" :email-password="{ signUp: false, minimumPasswordLength: 15 }" error="The email or password is wrong." />`
+  `<PortalSignIn :host="host" mode="sign-in" :providers="[]" :email-password="{ signUp: false, minimumPasswordLength: 8 }" error="The email or password is wrong." />`
 )
 export const SignUpWithApproval = story(
-  `<PortalSignIn :host="host" mode="sign-up" :providers="['google']" :email-password="{ signUp: true, minimumPasswordLength: 15 }" approval-required />`
+  `<PortalSignIn :host="host" mode="sign-up" :providers="['google']" :email-password="{ signUp: true, minimumPasswordLength: 8 }" approval-required />`
 )
 export const CheckYourEmail = story(`
   <PortalNotice :host="host" heading="Check your email" description="We sent a link to ana@studio.example. Open it on this device to finish creating your account.">

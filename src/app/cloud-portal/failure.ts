@@ -1,27 +1,12 @@
 import { CloudPortalAPIError, type CloudAuthFailure } from '@open-pencil/cloud/client'
 import { useCloudPortalMessages } from '@open-pencil/vue'
 
+import { cloudAuthFailureMessage } from '@/app/cloud/sessions/account-form'
+
 /** Words for a failed sign-in step, and for errors the provider sends back in the URL. */
 export function usePortalFailureMessages() {
   const messages = useCloudPortalMessages()
-  function failure(kind: CloudAuthFailure): string {
-    const value = messages.value
-    const words: Record<CloudAuthFailure, string> = {
-      'invalid-credentials': value.failureInvalidCredentials,
-      'email-not-verified': value.failureEmailNotVerified,
-      'password-too-short': value.failurePasswordTooShort,
-      'password-too-long': value.failurePasswordTooLong,
-      'invalid-link': value.failureInvalidLink,
-      'invalid-code': value.failureInvalidCode,
-      'passkey-cancelled': value.failurePasskeyCancelled,
-      'passkey-exists': value.failurePasskeyExists,
-      'passkey-unavailable': value.failurePasskeyUnavailable,
-      'session-not-fresh': value.errorSessionNotFresh,
-      'rate-limited': value.failureRateLimited,
-      unavailable: value.failureUnavailable
-    }
-    return words[kind]
-  }
+  const failure = (kind: CloudAuthFailure) => cloudAuthFailureMessage(kind, messages.value)
   /** The provider's `error` query values after a social sign-in comes back, or null. */
   function callback(query: Record<string, unknown>): string | null {
     const values = ['error', 'error_description', 'error_code']

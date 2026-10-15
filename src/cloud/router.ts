@@ -27,6 +27,11 @@ export function createCloudPortalRouter(context: PortalContext) {
         component: () => import('@/views/cloud/CheckEmailView.vue')
       },
       {
+        path: '/auth/verified',
+        name: 'verified',
+        component: () => import('@/views/cloud/VerifiedView.vue')
+      },
+      {
         path: '/auth/two-factor',
         name: 'two-factor',
         component: () => import('@/views/cloud/TwoStepView.vue')

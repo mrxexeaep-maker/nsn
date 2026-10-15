@@ -20,8 +20,6 @@
   "deviceHeading": "Confirmez dans votre navigateur",
   "deviceDescription": "Approuvez cette connexion sur {host}.",
   "deviceDescriptionNoHost": "Approuvez cette connexion sur le serveur.",
-  "signInDescription": "Connectez-vous à {host} pour synchroniser vos fichiers.",
-  "signInDescriptionNoHost": "Connectez-vous au serveur pour synchroniser vos fichiers.",
   "officialDescription": "Hébergé par OpenPencil · {host}",
   "selfHostedLabel": "Le serveur de votre équipe",
   "selfHostedDescription": "Un OpenPencil Cloud auto-hébergé",
@@ -49,7 +47,6 @@
   "copyCode": "Copier le code",
   "deviceWaiting": "En attente de votre approbation… Le code expire dans {duration}.",
   "openBrowserAgain": "Rouvrir le navigateur",
-  "useAnotherServer": "Utiliser un autre serveur",
   "accountPending": "Votre compte sur {host} attend l’approbation d’un administrateur.",
   "signedInAs": "Connecté à {host} en tant que {email}.",
   "invitationUnavailableHeading": "Cette invitation ne peut pas être utilisée",
@@ -218,5 +215,14 @@
   "syncOffline": "Hors ligne — les modifications sont enregistrées sur cet appareil",
   "syncConflict": "Modifié ailleurs aussi — choisissez la version à conserver",
   "syncError": "Impossible d’envoyer les modifications",
-  "shareLinkFailed": "Ce lien n’ouvre aucun document. Demandez-en un nouveau."
+  "shareLinkFailed": "Ce lien n’ouvre aucun document. Demandez-en un nouveau.",
+  "connectServerHeading": "Connecter le serveur de votre équipe",
+  "connectServerDescription": "Saisissez l’adresse que votre équipe utilise pour OpenPencil Cloud.",
+  "checkingServer": "Vérification du serveur…",
+  "signInHeading": "Se connecter à {name}",
+  "onHost": "Sur {host}.",
+  "verifyDescription": "Nous avons envoyé un lien à {email}.",
+  "verifyNote": "Ouvrez le lien de l’e-mail, puis revenez ici. La connexion se termine d’elle-même.",
+  "verifyNotYet": "Votre adresse n’est pas encore confirmée. Ouvrez le lien de l’e-mail, puis réessayez.",
+  "verifyNoEmail": "Pas d’e-mail ?"
 }

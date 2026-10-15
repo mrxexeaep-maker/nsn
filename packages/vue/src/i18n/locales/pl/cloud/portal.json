@@ -239,5 +239,14 @@
   "errorNotAllowed": "Nie masz uprawnień do wykonania tej czynności.",
   "errorNetwork": "Nie udało się połączyć z serwerem. Sprawdź połączenie.",
   "errorAlreadyDecided": "Ktoś już rozpatrzył tę prośbę. Odśwież stronę, aby zobaczyć decyzję.",
-  "passwordResetSent": "Wysłaliśmy Ci link do ustawienia hasła."
+  "passwordResetSent": "Wysłaliśmy Ci link do ustawienia hasła.",
+  "repeatPassword": "Powtórz hasło",
+  "errorNameRequired": "Wpisz swoje imię.",
+  "errorEmailRequired": "Wpisz adres e-mail.",
+  "errorEmailInvalid": "Wpisz adres taki jak ty@example.com.",
+  "errorPasswordRequired": "Wpisz hasło.",
+  "errorPasswordTooShort": "Użyj co najmniej {count} znaków.",
+  "errorPasswordsDiffer": "Hasła się różnią.",
+  "verifiedTitle": "Adres e-mail potwierdzony",
+  "verifiedDescription": "Wróć do OpenPencil, aby dokończyć logowanie. Możesz zamknąć tę kartę."
 }

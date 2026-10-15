@@ -20,8 +20,6 @@
   "deviceHeading": "Confirma en tu navegador",
   "deviceDescription": "Aprueba este inicio de sesión en {host}.",
   "deviceDescriptionNoHost": "Aprueba este inicio de sesión en el servidor.",
-  "signInDescription": "Inicia sesión en {host} para sincronizar tus archivos.",
-  "signInDescriptionNoHost": "Inicia sesión en el servidor para sincronizar tus archivos.",
   "officialDescription": "Alojado por OpenPencil · {host}",
   "selfHostedLabel": "El servidor de tu equipo",
   "selfHostedDescription": "Un OpenPencil Cloud autoalojado",
@@ -49,7 +47,6 @@
   "copyCode": "Copiar código",
   "deviceWaiting": "Esperando tu aprobación… El código caduca en {duration}.",
   "openBrowserAgain": "Abrir el navegador de nuevo",
-  "useAnotherServer": "Usar otro servidor",
   "accountPending": "Tu cuenta en {host} está pendiente de que un administrador la apruebe.",
   "signedInAs": "Has iniciado sesión en {host} como {email}.",
   "invitationUnavailableHeading": "Esta invitación no se puede usar",
@@ -218,5 +215,14 @@
   "syncOffline": "Sin conexión: los cambios se guardan en este dispositivo",
   "syncConflict": "También se ha editado en otro sitio: elige qué versión conservar",
   "syncError": "No se pudieron subir los cambios",
-  "shareLinkFailed": "Este enlace no abre ningún documento. Pide uno nuevo."
+  "shareLinkFailed": "Este enlace no abre ningún documento. Pide uno nuevo.",
+  "connectServerHeading": "Conecta el servidor de tu equipo",
+  "connectServerDescription": "Escribe la dirección que usa tu equipo para OpenPencil Cloud.",
+  "checkingServer": "Comprobando el servidor…",
+  "signInHeading": "Inicia sesión en {name}",
+  "onHost": "En {host}.",
+  "verifyDescription": "Enviamos un enlace a {email}.",
+  "verifyNote": "Abre el enlace del correo y vuelve aquí. El inicio de sesión termina solo.",
+  "verifyNotYet": "Tu correo aún no está confirmado. Abre el enlace del correo y vuelve a intentarlo.",
+  "verifyNoEmail": "¿No te llegó?"
 }

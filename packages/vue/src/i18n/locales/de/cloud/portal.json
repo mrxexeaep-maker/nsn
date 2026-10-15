@@ -235,5 +235,14 @@
   "errorNotAllowed": "Dazu bist du nicht berechtigt.",
   "errorNetwork": "Der Server ist nicht erreichbar. Prüfe deine Verbindung.",
   "errorAlreadyDecided": "Über diese Anfrage wurde bereits entschieden. Aktualisiere die Seite, um das Ergebnis zu sehen.",
-  "passwordResetSent": "Wir haben dir einen Link zum Festlegen eines Passworts gesendet."
+  "passwordResetSent": "Wir haben dir einen Link zum Festlegen eines Passworts gesendet.",
+  "repeatPassword": "Passwort wiederholen",
+  "errorNameRequired": "Gib deinen Namen ein.",
+  "errorEmailRequired": "Gib deine E-Mail-Adresse ein.",
+  "errorEmailInvalid": "Gib eine E-Mail-Adresse wie du@example.com ein.",
+  "errorPasswordRequired": "Gib dein Passwort ein.",
+  "errorPasswordTooShort": "Verwende mindestens {count} Zeichen.",
+  "errorPasswordsDiffer": "Die Passwörter stimmen nicht überein.",
+  "verifiedTitle": "E-Mail bestätigt",
+  "verifiedDescription": "Geh zurück zu OpenPencil, um die Anmeldung abzuschließen. Du kannst diesen Tab schließen."
 }

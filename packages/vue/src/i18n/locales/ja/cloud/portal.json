@@ -231,5 +231,14 @@
   "errorNotAllowed": "この操作を行う権限がありません。",
   "errorNetwork": "サーバーに接続できませんでした。接続を確認してください。",
   "errorAlreadyDecided": "このリクエストはすでに他の人が対応しました。更新して確認してください。",
-  "passwordResetSent": "パスワードを設定するためのリンクをメールでお送りしました。"
+  "passwordResetSent": "パスワードを設定するためのリンクをメールでお送りしました。",
+  "repeatPassword": "パスワード（確認）",
+  "errorNameRequired": "名前を入力してください。",
+  "errorEmailRequired": "メールアドレスを入力してください。",
+  "errorEmailInvalid": "you@example.com のようなメールアドレスを入力してください。",
+  "errorPasswordRequired": "パスワードを入力してください。",
+  "errorPasswordTooShort": "{count}文字以上にしてください。",
+  "errorPasswordsDiffer": "パスワードが一致しません。",
+  "verifiedTitle": "メールアドレスを確認しました",
+  "verifiedDescription": "OpenPencil に戻ってサインインを完了してください。このタブは閉じてかまいません。"
 }

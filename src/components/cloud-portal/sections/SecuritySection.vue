@@ -59,7 +59,7 @@ const linkable = computed<PortalSignInMethod[]>(() =>
   )
 )
 const minimum = computed(
-  () => portal.discovery.authentication.emailPassword?.minimumPasswordLength ?? 15
+  () => portal.discovery.authentication.emailPassword?.minimumPasswordLength ?? 8
 )
 
 /** One change from the page, then what the page shows read again. */

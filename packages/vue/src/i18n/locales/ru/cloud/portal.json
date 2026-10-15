@@ -239,5 +239,14 @@
   "errorNotAllowed": "У вас нет прав на это действие.",
   "errorNetwork": "Не удалось связаться с сервером. Проверьте подключение.",
   "errorAlreadyDecided": "По этой заявке уже приняли решение. Обновите страницу, чтобы его увидеть.",
-  "passwordResetSent": "Мы отправили вам ссылку для установки пароля."
+  "passwordResetSent": "Мы отправили вам ссылку для установки пароля.",
+  "repeatPassword": "Повторите пароль",
+  "errorNameRequired": "Введите имя.",
+  "errorEmailRequired": "Введите адрес почты.",
+  "errorEmailInvalid": "Введите адрес вида you@example.com.",
+  "errorPasswordRequired": "Введите пароль.",
+  "errorPasswordTooShort": "Минимум символов: {count}.",
+  "errorPasswordsDiffer": "Пароли не совпадают.",
+  "verifiedTitle": "Почта подтверждена",
+  "verifiedDescription": "Вернитесь в OpenPencil, чтобы завершить вход. Эту вкладку можно закрыть."
 }

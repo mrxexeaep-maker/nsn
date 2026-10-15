@@ -9,16 +9,16 @@ OpenPencil Cloud keeps documents on a server so they follow you across devices a
 
 ## Connect a Server
 
-Open **Settings → OpenPencil Cloud** and choose **OpenPencil Cloud**, or **Your team's server** and enter the address your team uses. OpenPencil checks that the address answers as an OpenPencil Cloud server before asking you to sign in, and says when nothing answers, when the address belongs to something else, or when the server runs a version this app doesn't support.
+Open **Settings → Cloud**. Until the hosted service opens, its card there takes your email for the waitlist; **Your team's server** asks for the address your team uses. OpenPencil checks that the address answers as an OpenPencil Cloud server before asking you to sign in, and says when nothing answers, when the address belongs to something else, or when the server runs a version this app doesn't support.
 
 The ways to sign in come from the server: Google, Apple, or email and password.
 
-- In the web app opened at the server's own editor address, signing in takes you to the server's sign-in page and back to the same tab.
-- In the desktop app, or the web app at any other address, your browser opens a sign-in page with a code. Check that it matches the code OpenPencil shows, approve it, and the app picks up the sign-in by itself.
+- Email and password work right in the dialog, in the desktop app and in the web app at the server's own editor address. **Create an account** asks for your name, email, and a password of at least 8 characters, twice. The server emails you a link; open it, come back to OpenPencil, and signing in finishes by itself.
+- Google and Apple, and accounts with two-step sign-in, finish in your browser: in the web app at the server's own editor address you come back to the same tab, and the desktop app shows a code to check against the browser's before you approve it.
 
 Servers that review new accounts say so before you sign up. Until an administrator approves you, Settings shows that your account is waiting.
 
-Each server in **Settings → OpenPencil Cloud** shows who is signed in to it:
+Each server in **Settings → Cloud** shows who is signed in to it:
 
 - **Sign-in expired** keeps your account, so **Sign in** goes back to the same one.
 - **Account and security** in the server's **…** menu opens the server's own account page, where you change your password, two-step sign-in, and passkeys.

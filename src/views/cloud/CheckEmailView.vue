@@ -47,16 +47,17 @@ async function sendAgain() {
     <template #icon><icon-lucide-mail-check class="size-5" /></template>
     <AppAlert v-if="error" tone="error" :heading="messages.errorTitle" :description="error" />
     <template #actions>
+      <AppButton class="mr-auto" @click="router.replace({ name: 'sign-up', query: { redirect } })">
+        {{ messages.useAnotherEmail }}
+      </AppButton>
       <AppButton
-        variant="outline"
+        color="primary"
+        variant="solid"
         :loading="state === 'sending'"
         :disabled="state === 'sent' || !email"
         @click="sendAgain"
       >
         {{ state === 'sent' ? messages.sent : messages.sendAgain }}
-      </AppButton>
-      <AppButton variant="ghost" @click="router.replace({ name: 'sign-up', query: { redirect } })">
-        {{ messages.useAnotherEmail }}
       </AppButton>
     </template>
   </PortalNotice>

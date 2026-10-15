@@ -466,6 +466,7 @@ zh-cn:cloudPortal.deviceApprovedDescription
 zh-cn:cloudPortal.deviceExpiredDescription
 zh-cn:cloudPortal.authenticatorOff
 ja:cloud.connectHeading
+ja:cloud.connectServerDescription
 ja:cloud.officialDescription
 ja:cloud.selfHostedDescription
 ja:cloud.errorInvalidAddressDescription
@@ -478,7 +479,10 @@ ja:cloud.shareDescriptionInWorkspace
 ja:cloud.shareDescription
 ja:cloud.settingsOfficialDescription
 ja:cloud.settingsSelfHostedDescription
+ja:cloudPortal.errorEmailInvalid
+ja:cloudPortal.verifiedDescription
 zh-cn:cloud.connectHeading
+zh-cn:cloud.connectServerDescription
 zh-cn:cloud.officialDescription
 zh-cn:cloud.selfHostedDescription
 zh-cn:cloud.errorInvalidAddressDescription
@@ -491,3 +495,5 @@ zh-cn:cloud.shareDescriptionInWorkspace
 zh-cn:cloud.shareDescription
 zh-cn:cloud.settingsOfficialDescription
 zh-cn:cloud.settingsSelfHostedDescription
+zh-cn:cloudPortal.errorEmailInvalid
+zh-cn:cloudPortal.verifiedDescription

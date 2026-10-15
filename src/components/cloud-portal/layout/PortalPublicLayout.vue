@@ -2,9 +2,13 @@
 import { useCloudPortalMessages } from '@open-pencil/vue'
 
 import BrandMark from '@/components/brand/BrandMark.vue'
+import { useDialogUI } from '@/components/ui/dialog/ui'
 import { portalLayout } from '@/theme/cloud-portal/layout'
 
-/** A Cloud page for people who are signing in or answering a request, around one card. */
+/**
+ * A Cloud page for people who are signing in or answering a request: one card laid out as the
+ * editor's dialogs are, with the page's buttons in its footer.
+ */
 const { host, heading, description } = defineProps<{
   host: string
   heading: string
@@ -12,6 +16,7 @@ const { host, heading, description } = defineProps<{
 }>()
 
 const ui = portalLayout()
+const dialog = useDialogUI()
 const messages = useCloudPortalMessages()
 </script>
 
@@ -24,14 +29,21 @@ const messages = useCloudPortalMessages()
     </header>
     <main :class="ui.center()">
       <section :class="ui.card()" :aria-label="heading">
-        <slot name="icon" />
-        <div :class="ui.cardHeader()">
-          <h1 :class="ui.cardTitle()">{{ heading }}</h1>
-          <p v-if="description" :class="ui.cardDescription()">{{ description }}</p>
+        <header :class="dialog.header">
+          <div :class="dialog.heading">
+            <h1 :class="dialog.title">{{ heading }}</h1>
+            <p v-if="description" :class="[dialog.description, 'mt-0.5']">{{ description }}</p>
+          </div>
+        </header>
+        <div :class="ui.cardBody()">
+          <slot name="icon" />
+          <slot />
+          <p v-if="$slots.footer" :class="ui.cardNote()">
+            <slot name="footer" />
+          </p>
         </div>
-        <slot />
-        <footer v-if="$slots.footer" :class="ui.cardFooter()">
-          <slot name="footer" />
+        <footer v-if="$slots.actions" :class="dialog.footer">
+          <slot name="actions" />
         </footer>
       </section>
     </main>

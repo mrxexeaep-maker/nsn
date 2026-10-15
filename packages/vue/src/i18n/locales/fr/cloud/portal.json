@@ -235,5 +235,14 @@
   "errorNotAllowed": "Vous n’avez pas l’autorisation de faire cela.",
   "errorNetwork": "Impossible de joindre le serveur. Vérifiez votre connexion.",
   "errorAlreadyDecided": "Quelqu’un a déjà statué sur cette demande. Actualisez pour voir la décision.",
-  "passwordResetSent": "Nous vous avons envoyé par e-mail un lien pour définir un mot de passe."
+  "passwordResetSent": "Nous vous avons envoyé par e-mail un lien pour définir un mot de passe.",
+  "repeatPassword": "Répétez le mot de passe",
+  "errorNameRequired": "Saisissez votre nom.",
+  "errorEmailRequired": "Saisissez votre adresse e-mail.",
+  "errorEmailInvalid": "Saisissez une adresse comme vous@example.com.",
+  "errorPasswordRequired": "Saisissez votre mot de passe.",
+  "errorPasswordTooShort": "Utilisez au moins {count} caractères.",
+  "errorPasswordsDiffer": "Les mots de passe ne correspondent pas.",
+  "verifiedTitle": "Adresse confirmée",
+  "verifiedDescription": "Revenez à OpenPencil pour terminer la connexion. Vous pouvez fermer cet onglet."
 }

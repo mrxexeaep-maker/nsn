@@ -1,6 +1,9 @@
 import {
   cloudAuthFailure,
   createCloudAuthClient,
+  resendCloudVerification,
+  signInToCloudWithEmail,
+  signUpToCloudWithEmail,
   type CloudAuthResult,
   type CloudSocialProvider
 } from '@open-pencil/cloud/client'
@@ -10,7 +13,8 @@ const done = <T>(value: T): CloudAuthResult<T> => ({ ok: true, value })
 
 /** Sign-in steps against the Cloud server the portal is served from. */
 export function createPortalAuth(discovery: CloudDiscovery, options: { captcha?: string } = {}) {
-  const auth = createCloudAuthClient(discovery, { captchaResponse: options.captcha })
+  const captcha = { captchaResponse: options.captcha }
+  const auth = createCloudAuthClient(discovery, captcha)
 
   return {
     /** Leaves for the provider; the browser comes back to `returnURL`. */
@@ -30,31 +34,15 @@ export function createPortalAuth(discovery: CloudDiscovery, options: { captcha?:
       email: string
       password: string
     }): Promise<CloudAuthResult<'signed-in' | 'two-step'>> {
-      const result = await auth.signIn.email({ ...input, rememberMe: true })
-      if (result.error) return cloudAuthFailure(result.error)
-      const twoStep = 'twoFactorRedirect' in result.data && result.data.twoFactorRedirect === true
-      return done(twoStep ? 'two-step' : 'signed-in')
+      const result = await signInToCloudWithEmail(discovery, input, captcha)
+      return result.ok ? done(result.value.status) : result
     },
 
-    async signUp(input: {
-      name: string
-      email: string
-      password: string
-      verifiedURL: string
-    }): Promise<CloudAuthResult> {
-      const result = await auth.signUp.email({
-        name: input.name,
-        email: input.email,
-        password: input.password,
-        callbackURL: input.verifiedURL
-      })
-      return result.error ? cloudAuthFailure(result.error) : done(undefined)
-    },
+    signUp: (input: { name: string; email: string; password: string; verifiedURL: string }) =>
+      signUpToCloudWithEmail(discovery, input, captcha),
 
-    async resendVerification(email: string, verifiedURL: string): Promise<CloudAuthResult> {
-      const result = await auth.sendVerificationEmail({ email, callbackURL: verifiedURL })
-      return result.error ? cloudAuthFailure(result.error) : done(undefined)
-    },
+    resendVerification: (email: string, verifiedURL: string) =>
+      resendCloudVerification(discovery, { email, verifiedURL }, captcha),
 
     async requestPasswordReset(email: string, resetURL: string): Promise<CloudAuthResult> {
       const result = await auth.requestPasswordReset({ email, redirectTo: resetURL })

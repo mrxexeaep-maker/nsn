@@ -1,28 +1,40 @@
 <script setup lang="ts">
-import { useNow } from '@vueuse/core'
+import { useDocumentVisibility, useNow } from '@vueuse/core'
 import { computed, watch } from 'vue'
 
 import { useCloudMessages, useI18n } from '@open-pencil/vue'
 
 import {
+  backCloudConnect,
   cancelCloudConnect,
-  changeCloudConnectServer,
   cloudConnectAddress,
+  cloudConnectBusy,
+  cloudConnectCanGoBack,
+  cloudConnectChoosing,
+  cloudConnectEmail,
   cloudConnectError,
+  cloudConnectFailure,
   cloudConnectKind,
   cloudConnectOpen,
+  cloudConnectResent,
   cloudConnectServer,
   cloudConnectStep,
   cloudDeviceSignIn,
+  cloudForgotPasswordURL,
   cloudSignedIn,
+  continueAfterCloudVerification,
   continueCloudConnect,
   reopenCloudSignInPage,
-  signInToCloudServer
+  resendCloudVerificationEmail,
+  showCloudSignUp,
+  signInToCloudServer,
+  signInWithCloudEmail,
+  signUpWithCloudEmail
 } from '@/app/cloud/connect/flow'
 import { cloudServerHost } from '@/app/cloud/servers/address'
 import { findCloudServer } from '@/app/cloud/servers/store'
 import { cloudConnection } from '@/app/cloud/sessions/connection'
-import { toast } from '@/app/shell/ui'
+import { openExternalLink, toast } from '@/app/shell/ui'
 import { OFFICIAL_CLOUD_URL } from '@/constants'
 
 import CloudConnectDialog from './CloudConnectDialog.vue'
@@ -61,6 +73,19 @@ watch(cloudSignedIn, (signedIn) => {
 function onOpenChange(open: boolean) {
   if (!open) cancelCloudConnect()
 }
+
+// Coming back from the email's link is the signal to finish signing in.
+const visibility = useDocumentVisibility()
+watch(visibility, (state) => {
+  if (state === 'visible' && cloudConnectStep.value === 'verify') {
+    void continueAfterCloudVerification()
+  }
+})
+
+function forgotPassword() {
+  const url = cloudForgotPasswordURL()
+  if (url) void openExternalLink(url)
+}
 </script>
 
 <template>
@@ -70,14 +95,26 @@ function onOpenChange(open: boolean) {
     v-model:address="cloudConnectAddress"
     :step="cloudConnectStep"
     :official="official"
+    :choosing="cloudConnectChoosing"
     :server="cloudConnectServer"
     :error="cloudConnectError"
+    :failure="cloudConnectFailure"
+    :busy="cloudConnectBusy"
+    :email="cloudConnectEmail"
+    :resent="cloudConnectResent"
     :device="device"
     :desktop="cloudConnectServer?.route === 'device'"
+    :can-go-back="cloudConnectCanGoBack"
     @update:open="onOpenChange"
     @continue="continueCloudConnect"
-    @change-server="changeCloudConnectServer"
+    @back="backCloudConnect"
     @sign-in="signInToCloudServer"
+    @sign-in-with-email="signInWithCloudEmail"
+    @sign-up="signUpWithCloudEmail"
+    @show-sign-up="showCloudSignUp"
+    @verified="continueAfterCloudVerification"
+    @resend="resendCloudVerificationEmail"
+    @forgot-password="forgotPassword"
     @reopen-browser="reopenCloudSignInPage"
     @cancel="cancelCloudConnect"
   />
