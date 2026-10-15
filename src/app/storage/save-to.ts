@@ -12,7 +12,8 @@ import type { EditorStore } from '@/app/editor/session'
 import {
   activeStorageProviderID,
   isStorageConfigured,
-  readStoragePreferences
+  readStoragePreferences,
+  type StorageLocation
 } from '@/app/integrations/storage'
 import { rememberRecentStorageDocument } from '@/app/recent-files'
 import { openSettingsDialog } from '@/app/settings/dialog'
@@ -135,8 +136,16 @@ function waitForFirstUpload(documentId: string, totalBytes: number): Promise<boo
   })
 }
 
+/**
+ * Writes the document to a storage location, false when it was not saved. Writing this device's
+ * copy or queueing the upload can throw, which the dialog shows like any other failure.
+ */
+function saveToLocation(store: EditorStore, location: StorageLocation): Promise<boolean> {
+  return store.saveFigFileToStorage(location).catch(() => false)
+}
+
 async function saveToStorageBucket(store: EditorStore, providerId: string): Promise<boolean> {
-  if (!(await store.saveFigFileToStorage({ providerId }))) return false
+  if (!(await saveToLocation(store, { providerId }))) return false
   const binding = store.getStorageBinding()
   if (binding) rememberRecentStorageDocument(binding, store.state.documentName)
   return true
@@ -178,7 +187,7 @@ export async function saveToChosenDestination(): Promise<boolean> {
     profileId: serverId,
     containerId: workspaceId
   }
-  if (!(await store.saveFigFileToStorage(location))) {
+  if (!(await saveToLocation(store, location))) {
     // Nothing was saved, so the tab keeps the name it had.
     store.state.documentName = previousName
     saveToState.value = { kind: 'error', reason: 'unavailable' }
