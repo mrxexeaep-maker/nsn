@@ -263,8 +263,7 @@ email and password.
 
 **2026-10 · Settings → Cloud is always there.** Before the hosted service opens, its card holds the
 waitlist, which used to sit under Storage, and a team's own server can be connected at any time.
-This supersedes hiding Settings until the official server's listing; Save to Cloud still waits for
-it.
+This supersedes hiding Settings and Save to Cloud until the official server's listing.
 
 **2026-10 · Every account starts with a workspace, and Save to asks only when there is a choice.**
 An active account with no workspace gets one of its own when it first asks for its status, under a

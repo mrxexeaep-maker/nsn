@@ -1,12 +1,15 @@
 import { computed, watch } from 'vue'
 
-import { cloudAvailable } from '@/app/cloud/availability'
+import { useEditorStore } from '@/app/editor/active-store'
 import { isTauri } from '@/app/tauri/env'
 
 import type { AppMenuFeature } from './schema'
 
+const store = useEditorStore()
+
 const available: Record<AppMenuFeature, () => boolean> = {
-  cloud: () => cloudAvailable.value
+  // Cloud and storage documents always save; auto-save is a choice only for a file on disk.
+  'local-file': () => store.hasWritableSource() && !store.getStorageBinding()
 }
 
 /** Whether a menu item that waits for a feature shows; items without one always do. */

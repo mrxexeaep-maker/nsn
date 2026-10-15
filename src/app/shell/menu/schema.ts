@@ -34,7 +34,8 @@ export interface AppMenuPaletteMetadata {
 export type AppMenuHandler = 'editor' | 'shell'
 
 /** A feature an item waits for: it shows only while the feature is available (`./features`). */
-export type AppMenuFeature = 'cloud'
+/** Items shown only for a document backed by a file on disk. */
+export type AppMenuFeature = 'local-file'
 
 export interface AppMenuActionItem {
   type?: 'item'
@@ -117,7 +118,7 @@ export const APP_MENU_SCHEMA = [
         ]
       },
       { type: 'separator' },
-      { id: 'autosave', label: 'Autosave', checkbox: true },
+      { id: 'autosave', label: 'Autosave', checkbox: true, feature: 'local-file' },
       { id: 'close', label: 'Close Tab', shortcut: 'MOD+W' },
       // Windows, Linux, and the browser menu; macOS shows it in the application menu instead.
       { type: 'separator' },

@@ -4,7 +4,6 @@ import { computed, ref } from 'vue'
 import { APP_VERSION } from '@/app/runtime/version'
 import { IS_BROWSER, OFFICIAL_CLOUD_URL } from '@/constants'
 
-import { cloudServers } from './servers/store'
 import { discoverCloudServer } from './sessions/connection'
 
 /** `?cloud=preview` shows Cloud on this device before it is listed; `?cloud=off` stops that. */
@@ -43,14 +42,6 @@ export function isVersionAtLeast(version: string, minimum: string): boolean {
 export const cloudOfficialListed = computed(
   () =>
     preview.value || (listedFrom.value !== null && isVersionAtLeast(APP_VERSION, listedFrom.value))
-)
-
-/**
- * Whether the editor offers Save to Cloud: once the official server lists itself for this editor
- * version, on a device that already uses a server, or for someone previewing Cloud before launch.
- */
-export const cloudAvailable = computed(
-  () => cloudServers.value.length > 0 || cloudOfficialListed.value
 )
 
 /** Reads the preview switch from the address and asks the official server whether it is listed. */

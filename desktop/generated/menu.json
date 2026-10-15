@@ -73,7 +73,8 @@
       {
         "id": "autosave",
         "label": "Autosave",
-        "checkbox": true
+        "checkbox": true,
+        "feature": "local-file"
       },
       {
         "id": "close",

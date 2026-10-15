@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, spyOn, test } from 'bun:test'
 
-import { cloudAvailable, checkCloudAvailability, isVersionAtLeast } from '@/app/cloud/availability'
+import {
+  cloudOfficialListed,
+  checkCloudAvailability,
+  isVersionAtLeast
+} from '@/app/cloud/availability'
 import { OFFICIAL_CLOUD_URL } from '@/constants'
 
 import { cloudDiscoveryFixture } from '#tests/helpers/cloud/discovery'
@@ -30,17 +34,17 @@ describe('Cloud availability', () => {
   test('stays hidden while the official server is unreachable or unlisted', async () => {
     officialServer(() => Response.error())
     await checkCloudAvailability(EDITOR)
-    expect(cloudAvailable.value).toBe(false)
+    expect(cloudOfficialListed.value).toBe(false)
   })
 
   test('a preview link shows Cloud on this device until it is turned off', async () => {
     officialServer(() => Response.error())
     await checkCloudAvailability(`${EDITOR}?cloud=preview`)
-    expect(cloudAvailable.value).toBe(true)
+    expect(cloudOfficialListed.value).toBe(true)
     await checkCloudAvailability(EDITOR)
-    expect(cloudAvailable.value).toBe(true)
+    expect(cloudOfficialListed.value).toBe(true)
     await checkCloudAvailability(`${EDITOR}?cloud=off`)
-    expect(cloudAvailable.value).toBe(false)
+    expect(cloudOfficialListed.value).toBe(false)
   })
 
   test('shows Cloud once the official server lists itself for this editor version', async () => {
@@ -53,6 +57,6 @@ describe('Cloud availability', () => {
       })
     )
     await checkCloudAvailability(EDITOR)
-    expect(cloudAvailable.value).toBe(true)
+    expect(cloudOfficialListed.value).toBe(true)
   })
 })
