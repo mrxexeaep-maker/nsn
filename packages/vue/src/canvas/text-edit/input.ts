@@ -1,5 +1,5 @@
 import { getNodeEditCapability, type Editor } from '@open-pencil/core/editor'
-import { generatedFrameOwner, stickySublayers, type SceneNode } from '@open-pencil/scene-graph'
+import { generatedFrameOwner, generatedFrameText, type SceneNode } from '@open-pencil/scene-graph'
 
 import type { CanvasLabelKind } from '#vue/canvas/labels/edit'
 import type { DragState } from '#vue/shared/input/types'
@@ -82,11 +82,14 @@ export function createTextEditInput(options: TextEditInputOptions) {
     }
   }
 
-  /** A sticky note keeps its selection while its body is edited, all of it selected, as in Figma. */
-  function startStickyEditing(sticky: SceneNode) {
-    const body = stickySublayers(editor.graph, sticky)?.body
+  /**
+   * A generated frame, such as a sticky note, keeps its selection while its text is edited, all of
+   * it selected, as in Figma.
+   */
+  function startGeneratedTextEditing(frame: SceneNode) {
+    const body = generatedFrameText(editor.graph, frame)
     if (!body) return
-    editor.select([sticky.id])
+    editor.select([frame.id])
     editor.startTextEditing(body.id)
     if (editor.state.editingTextId !== body.id) return
     editor.textEditor?.selectAll()
@@ -179,8 +182,8 @@ export function createTextEditInput(options: TextEditInputOptions) {
       return
     }
 
-    if (hit.type === 'STICKY') {
-      startStickyEditing(hit)
+    if (generatedFrameText(editor.graph, hit)) {
+      startGeneratedTextEditing(hit)
       return
     }
 

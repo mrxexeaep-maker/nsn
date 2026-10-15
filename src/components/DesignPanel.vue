@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 import { getNodeEditCapability } from '@open-pencil/core/editor'
-import { readIcon } from '@open-pencil/scene-graph'
+import { layerResizes, readIcon } from '@open-pencil/scene-graph'
 import { useI18n, useSceneComputed, useSelectionState, useEditorCommands } from '@open-pencil/vue'
 
 import { useEditorStore } from '@/app/editor/active-store'
@@ -215,7 +215,7 @@ const { panels } = useI18n()
       <PositionSection />
       <ConstraintsSection />
       <!-- A sticky note's size follows its text and its scale; Figma leaves W and H read-only. -->
-      <LayoutSection v-if="node.type !== 'STICKY'" />
+      <LayoutSection v-if="layerResizes(node)" />
       <AppearanceSection />
       <MaskSection />
       <TypographySection v-if="node.type === 'TEXT'" />

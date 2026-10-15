@@ -1,6 +1,6 @@
 import type { Canvas } from 'canvaskit-wasm'
 
-import { slotPropertyId } from '@open-pencil/scene-graph'
+import { layerRotates, slotPropertyId } from '@open-pencil/scene-graph'
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 import { computeBounds, rotatedCorners } from '@open-pencil/scene-graph/geometry'
 import Matrix from '@open-pencil/scene-graph/matrix'
@@ -355,8 +355,8 @@ export function drawNodeSelection(
         y1,
         x2,
         y2,
-        // FigJam keeps sticky notes upright.
-        node.type === 'STICKY'
+        // A generated frame such as a sticky note may stay upright.
+        !layerRotates(node)
           ? null
           : rotationHandleLayout(node, createSceneGeometry(graph, preview), r.zoom, {
               x: x1,
