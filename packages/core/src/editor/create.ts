@@ -48,6 +48,7 @@ import { createShaderActions } from './shaders/actions'
 import { createShaderFrames } from './shaders/frames'
 import { createShapeActions } from './shapes'
 import { createDefaultEditorState } from './state'
+import { createStatusActions } from './statuses'
 import { createStickyActions } from './stickies'
 import { createStructureActions } from './structure'
 import { createTextActions } from './text'
@@ -282,6 +283,7 @@ export function createEditor(options?: EditorOptions) {
   const vectorize = createVectorizeActions(ctx)
   const icons = createIconActions(ctx)
   const stickies = createStickyActions(ctx)
+  const statuses = createStatusActions(ctx)
   const shaders = createShaderActions(ctx, nodes)
   const alignment = createAlignmentActions(ctx)
   const preview = createPlayActions(ctx)
@@ -441,6 +443,10 @@ export function createEditor(options?: EditorOptions) {
     ...vectorize,
     ...icons,
     ...stickies,
+    statusWorkflow: statuses.statusWorkflow,
+    getShownStatus: statuses.getShownStatus,
+    setStatus: statuses.setStatus,
+    setStatusWorkflow: statuses.setStatusWorkflow,
     ...shaders,
     ...shaderFrames,
 
