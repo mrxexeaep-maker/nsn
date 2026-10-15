@@ -40,6 +40,7 @@ import PositionSection from './properties/PositionSection.vue'
 import SelectionColorsSection from './properties/selection/SelectionColorsSection.vue'
 import SelectionLayoutSection from './properties/selection/SelectionLayoutSection.vue'
 import SelectionActionsControl from './properties/SelectionActionsControl.vue'
+import StickySection from './properties/sticky/StickySection.vue'
 import StrokeSection from './properties/stroke/StrokeSection.vue'
 import TypographySection from './properties/TypographySection.vue'
 import VariablesSection from './properties/VariablesSection.vue'
@@ -206,9 +207,11 @@ const { panels } = useI18n()
       <FramePresetSelect v-if="node.type === 'FRAME' && !readIcon(node)" />
 
       <IconSection />
+      <StickySection />
       <PositionSection />
       <ConstraintsSection />
-      <LayoutSection />
+      <!-- A sticky note's size follows its text and its scale; Figma leaves W and H read-only. -->
+      <LayoutSection v-if="node.type !== 'STICKY'" />
       <AppearanceSection />
       <MaskSection />
       <TypographySection v-if="node.type === 'TEXT'" />

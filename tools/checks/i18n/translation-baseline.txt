@@ -50,6 +50,7 @@ de:panels.minHeightShort
 de:panels.position
 de:panels.radialGradient
 de:panels.radius
+de:panels.stickyColorOrange
 de:panels.textCaseOriginal
 de:panels.slots
 de:panels.behaviourTabs
@@ -99,6 +100,7 @@ es:panels.framePresetCategoryFigmaCommunity
 es:panels.kerning
 es:panels.localLibraries
 es:panels.radialGradient
+es:panels.stickyColor
 es:panels.textCaseOriginal
 es:panels.variables
 es:panels.slots
@@ -168,6 +170,8 @@ fr:panels.position
 fr:panels.radialGradient
 fr:panels.rotation
 fr:panels.saturation
+fr:panels.stickyColorOrange
+fr:panels.stickyColorViolet
 fr:panels.variables
 fr:panels.slots
 fr:panels.slotDescription

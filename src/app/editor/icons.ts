@@ -38,6 +38,7 @@ export const toolIcons: Record<Tool, Component> = {
   PEN: IconPenTool,
   PENCIL: IconPencil,
   TEXT: IconType,
+  STICKY: IconStickyNote,
   HAND: IconHand,
   COMMENT: IconMessageCircle
 }

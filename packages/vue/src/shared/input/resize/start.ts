@@ -8,7 +8,8 @@ import type { DragResize } from '#vue/shared/input/types'
 export function tryStartResize(cx: number, cy: number, editor: Editor): DragResize | null {
   for (const id of editor.state.selectedIds) {
     const node = editor.graph.getNode(id)
-    if (!node || node.locked) continue
+    // A sticky note only scales, from its corners; see `tryStartStickyScale`.
+    if (!node || node.locked || node.type === 'STICKY') continue
     const handleResult = getHitHandleByMatrix(
       cx,
       cy,

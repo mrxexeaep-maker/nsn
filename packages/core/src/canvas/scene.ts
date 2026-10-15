@@ -48,6 +48,7 @@ import {
   drawReflowedPathTextSilhouettes,
   isReflowedPathText
 } from './text/derived'
+import { stickyPlaceholderNode } from './text/sticky-placeholder'
 
 function drawVisibleFills(
   r: SkiaRenderer,
@@ -337,8 +338,9 @@ export function renderNode(
   parentAbsY = 0,
   hasTransformedAncestor = false
 ): void {
-  const node = graph.getNode(nodeId)
-  if (!node || !drawsNode(node, overlays)) return
+  const found = graph.getNode(nodeId)
+  if (!found || !drawsNode(found, overlays)) return
+  const node = stickyPlaceholderNode(graph, found) ?? found
 
   r._nodeCount++
 

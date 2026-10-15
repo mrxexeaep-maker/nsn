@@ -170,14 +170,16 @@ export function createStructureActions(ctx: EditorContext) {
   function renameNode(id: string, name: string) {
     const node = ctx.graph.getNode(id)
     if (!node) return
-    const previous = node.name
+    const previous = { name: node.name, autoRename: node.autoRename }
     const next = name.trim() || defaultNodeName(node.type)
-    if (next === previous) return
-    ctx.graph.updateNode(id, { name: next })
+    if (next === previous.name) return
+    // A sticky note named by hand no longer takes its name from its text, as in FigJam.
+    const renamed = { name: next, autoRename: node.type === 'STICKY' ? false : node.autoRename }
+    ctx.graph.updateNode(id, renamed)
     ctx.undo.push({
       label: 'Rename',
-      forward: () => ctx.graph.updateNode(id, { name: next }),
-      inverse: () => ctx.graph.updateNode(id, { name: previous })
+      forward: () => ctx.graph.updateNode(id, renamed),
+      inverse: () => ctx.graph.updateNode(id, previous)
     })
   }
 

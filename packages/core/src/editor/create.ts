@@ -48,6 +48,7 @@ import { createShaderActions } from './shaders/actions'
 import { createShaderFrames } from './shaders/frames'
 import { createShapeActions } from './shapes'
 import { createDefaultEditorState } from './state'
+import { createStickyActions } from './stickies'
 import { createStructureActions } from './structure'
 import { createTextActions } from './text'
 import { createPendingTextLayout } from './text/pending-layout'
@@ -241,6 +242,7 @@ export function createEditor(options?: EditorOptions) {
     loadFont: _loadFont,
     resolveFigmaClipboardImages: options?.resolveFigmaClipboardImages ?? null,
     getViewportSize: _getViewportSize,
+    getUserName: () => options?.getUserName?.() ?? '',
     icons: options?.icons ?? iconify,
     getCk: () => _ck,
     getRenderer: () => _renderer,
@@ -279,6 +281,7 @@ export function createEditor(options?: EditorOptions) {
   const designTokens = createDesignTokenActions(ctx, variables, nodes)
   const vectorize = createVectorizeActions(ctx)
   const icons = createIconActions(ctx)
+  const stickies = createStickyActions(ctx)
   const shaders = createShaderActions(ctx, nodes)
   const alignment = createAlignmentActions(ctx)
   const preview = createPlayActions(ctx)
@@ -437,6 +440,7 @@ export function createEditor(options?: EditorOptions) {
     // Bitmap-to-vector replacement
     ...vectorize,
     ...icons,
+    ...stickies,
     ...shaders,
     ...shaderFrames,
 

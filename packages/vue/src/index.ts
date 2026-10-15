@@ -125,6 +125,7 @@ export {
   type VariableModeOption
 } from '#vue/controls/variable-modes/helpers'
 export { useMask } from '#vue/controls/mask/use'
+export { useStickyNote } from '#vue/controls/sticky/use'
 export { useIcon } from '#vue/controls/icon/use'
 export { useIconSearch } from '#vue/controls/icon/search'
 export { useTypography } from '#vue/controls/typography/use'

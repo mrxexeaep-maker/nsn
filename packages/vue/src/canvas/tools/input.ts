@@ -9,6 +9,7 @@ import { startShapeDraw, startTextDraw } from '#vue/shared/input/draw'
 import { startPanDrag } from '#vue/shared/input/pan'
 import { handleSelectDown } from '#vue/shared/input/select'
 import type { HitTestFns } from '#vue/shared/input/select'
+import { startStickyPlace } from '#vue/shared/input/sticky'
 import type { DragState } from '#vue/shared/input/types'
 
 type ToolMouseDownOptions = {
@@ -79,6 +80,11 @@ export function handleToolMouseDown({
 
   if (tool === 'TEXT') {
     startTextDraw(cx, cy, editor, setDrag)
+    return
+  }
+
+  if (tool === 'STICKY') {
+    startStickyPlace(cx, cy, editor, setDrag)
     return
   }
 

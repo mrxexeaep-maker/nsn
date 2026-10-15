@@ -33,7 +33,7 @@ function getRotationCursorForSelection(cx: number, cy: number, editor: Editor): 
 
   const id = [...editor.state.selectedIds][0]
   const node = editor.graph.getNode(id)
-  if (!node) return null
+  if (!node || node.type === 'STICKY') return null
 
   const corner = hitTestCornerRotationByMatrix(
     cx,

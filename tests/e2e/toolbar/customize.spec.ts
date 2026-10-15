@@ -43,7 +43,7 @@ test('the toolbar hides, reorders and regroups tools from Settings and keeps the
     await expect(page.getByTestId(toolbarToolTestId('PEN'))).toHaveCount(0)
     await expect(page.getByTestId(toolbarToolTestId('PENCIL'))).toHaveCount(0)
     expect(await toolbarOrder(page)).toEqual(
-      (['SELECT', 'FRAME', 'RECTANGLE', 'TEXT', 'HAND'] as const).map((tool) =>
+      (['SELECT', 'FRAME', 'RECTANGLE', 'TEXT', 'STICKY', 'HAND'] as const).map((tool) =>
         toolbarToolTestId(tool)
       )
     )

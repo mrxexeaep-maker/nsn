@@ -1,6 +1,7 @@
 import type { Ref } from 'vue'
 
 import { opacityFromBuffer } from '@open-pencil/core/editor'
+import { stickySublayers } from '@open-pencil/scene-graph'
 import type { useEditorCommands, useViewportKind } from '@open-pencil/vue'
 
 import type { PropertiesTab } from '@/app/ai/chat/use'
@@ -54,9 +55,11 @@ export function createKeyboardActions({
       store.enterNodeEditMode(node.id)
       return
     }
-    if (node?.type === 'TEXT') {
+    // A sticky note opens its body, all of it selected, keeping the note selected.
+    const text = node?.type === 'STICKY' ? stickySublayers(store.graph, node)?.body : node
+    if (text?.type === 'TEXT') {
       requestAnimationFrame(() => {
-        store.startTextEditing(node.id)
+        store.startTextEditing(text.id)
         store.textEditor?.selectAll()
         store.requestRender()
       })

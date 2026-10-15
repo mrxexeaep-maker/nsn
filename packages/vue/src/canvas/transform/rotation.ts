@@ -23,7 +23,8 @@ export function tryStartRotation(
   if (editor.state.selectedIds.size !== 1) return false
   const id = [...editor.state.selectedIds][0]
   const node = editor.graph.getNode(id)
-  if (!node || node.locked) return false
+  // FigJam keeps sticky notes upright.
+  if (!node || node.locked || node.type === 'STICKY') return false
 
   const geometry = createSceneGeometry(editor.graph, editor.state.rotationPreview)
   const center = geometry.rotationOrigin(node)
