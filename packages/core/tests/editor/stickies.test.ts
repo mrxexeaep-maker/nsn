@@ -89,7 +89,7 @@ describe('sticky notes', () => {
     expect(editor.graph.getNode(sticky.id)).toMatchObject({ x: 0, width: 416 })
   })
 
-    test("typing in a note's body renames a note that was never renamed", () => {
+  test("typing in a note's body renames a note that was never renamed", () => {
     const { editor, pageId } = setup()
     const sticky = editor.createStickyNote(pageId, { x: 0, y: 0 })
     const { body, author } = sublayers(editor, sticky)

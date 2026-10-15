@@ -525,7 +525,12 @@ export function useCanvasInput(
     (event) =>
       editor.onEditorEvent(event, () => {
         const type = drag.value?.type
-        if (type === 'draw' || type === 'rotate' || type === 'shape-handle')
+        if (
+          type === 'draw' ||
+          type === 'rotate' ||
+          type === 'shape-handle' ||
+          type === 'sticky-scale'
+        )
           cancelPointerInteraction()
       })
   )

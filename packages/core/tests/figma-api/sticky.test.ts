@@ -31,6 +31,18 @@ describe('sticky notes in the Plugin API', () => {
     expect(api.currentPage.findAll().map((found) => found.type)).toEqual(['STICKY'])
   })
 
+  test('toJSON lists no children for a note, as children does', () => {
+    const { node } = stickyNote()
+    expect(node.toJSON()).not.toHaveProperty('children')
+  })
+
+  test('a layer cannot be added to a note', () => {
+    const { api, node } = stickyNote()
+    const rect = api.createRectangle()
+    expect(() => node.appendChild(rect)).toThrow('Cannot move node')
+    expect(() => node.insertChild(0, rect)).toThrow('Cannot move node')
+  })
+
   test('hiding the author and making the note wide', () => {
     const { node } = stickyNote()
     node.authorVisible = false
