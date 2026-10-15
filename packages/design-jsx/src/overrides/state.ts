@@ -1,21 +1,9 @@
+import { CONSTRAINT, MASK_TYPE } from '#design-jsx/enums'
+
 import type { ConstraintType, SceneNode } from '@open-pencil/scene-graph'
 
-const CONSTRAINT_VALUES: Record<string, ConstraintType> = {
-  min: 'MIN',
-  center: 'CENTER',
-  max: 'MAX',
-  stretch: 'STRETCH',
-  scale: 'SCALE'
-}
-
-const MASK_TYPES: Record<string, SceneNode['maskType']> = {
-  alpha: 'ALPHA',
-  luminance: 'LUMINANCE',
-  vector: 'VECTOR'
-}
-
 function constraintValue(value: unknown): ConstraintType | undefined {
-  return typeof value === 'string' ? CONSTRAINT_VALUES[value.toLowerCase()] : undefined
+  return CONSTRAINT.parse(value)
 }
 
 /** The `constraints` prop, shaped like Figma's `constraints` object. */
@@ -60,6 +48,6 @@ export function applyStateOverrides(props: Record<string, unknown>, o: Partial<S
 
   if (props.mask) {
     o.isMask = true
-    o.maskType = (typeof props.mask === 'string' && MASK_TYPES[props.mask]) || 'ALPHA'
+    o.maskType = MASK_TYPE.parse(props.mask) ?? 'ALPHA'
   }
 }
