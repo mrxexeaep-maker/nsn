@@ -1,4 +1,4 @@
-export { cloudEditorReturnURL, cloudSignInURL } from './auth-navigation'
+export { cloudEditorReturnURL, cloudSignInURL } from './auth/navigation'
 export { cloudRedirectPath, cloudShareURL } from './links'
 export {
   CloudAPIError,
@@ -7,7 +7,7 @@ export {
   type CloudRequestOptions,
   type CloudUpload
 } from './api'
-export { cloudAuthFailure, type CloudAuthFailure, type CloudAuthResult } from './auth-failure'
+export { cloudAuthFailure, type CloudAuthFailure, type CloudAuthResult } from './auth/failure'
 export {
   createCloudAuthClient,
   resendCloudVerification,
@@ -20,7 +20,7 @@ export {
   type CloudAuthClientOptions,
   type CloudSignInOptions,
   type CloudSocialProvider
-} from './auth'
+} from './auth/client'
 export {
   CloudDeviceAuthorizationError,
   type CloudDeviceErrorCode,

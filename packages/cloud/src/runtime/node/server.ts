@@ -22,7 +22,7 @@ import {
 import { getRequestListener } from '@hono/node-server'
 
 import { createMigratedNodeCloudDatabase } from './bootstrap'
-import { createNodeTransactionalEmailRuntime } from './email-runtime'
+import { createNodeTransactionalEmailRuntime } from './email/runtime'
 import { attachCollaborationRelay, defaultRelayURL } from './relay'
 
 export type NodeCloudServerOptions = {

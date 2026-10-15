@@ -3,8 +3,8 @@ import { passkeyClient } from '@better-auth/passkey/client'
 import { createAuthClient } from 'better-auth/client'
 import { deviceAuthorizationClient, twoFactorClient } from 'better-auth/client/plugins'
 
-import { cloudAuthFailure, type CloudAuthResult } from './auth-failure'
-import type { CloudFetch } from './discovery'
+import type { CloudFetch } from '../discovery'
+import { cloudAuthFailure, type CloudAuthResult } from './failure'
 
 export type CloudSocialProvider = CloudDiscovery['authentication']['socialProviders'][number]
 

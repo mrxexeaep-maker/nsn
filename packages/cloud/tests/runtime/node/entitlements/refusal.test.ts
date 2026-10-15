@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { entitlementWriteRefusal } from '#cloud/runtime/node/entitlements-command'
+import { entitlementWriteRefusal } from '#cloud/runtime/node/entitlements/refusal'
 
 const staticConfig = {
   staticEntitlements: { documents: {}, sharing: {}, storage: {}, collaboration: {} }

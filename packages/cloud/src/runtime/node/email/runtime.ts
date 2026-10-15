@@ -1,4 +1,3 @@
-import { createSMTPTransactionalEmailTransport } from '#cloud/runtime/node/email'
 import {
   createInvitationOutbox,
   createTransactionalEmailService,
@@ -8,6 +7,8 @@ import {
 } from '#cloud/server'
 import type { CloudDatabase } from '#cloud/server/db'
 import type { Kysely } from 'kysely'
+
+import { createSMTPTransactionalEmailTransport } from './transport'
 
 export type NodeTransactionalEmailRuntime = {
   email: TransactionalEmailService

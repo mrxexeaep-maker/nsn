@@ -3,8 +3,8 @@ import { readFile } from 'node:fs/promises'
 import { createWorkspaceEntitlementRepository, parseStaticEntitlementsTOML } from '#cloud/server'
 import { parse as parseTOML } from 'smol-toml'
 
-import { withNodeCloudDatabase } from './command'
-import { entitlementWriteRefusal } from './entitlements-command'
+import { withNodeCloudDatabase } from '../command'
+import { entitlementWriteRefusal } from './refusal'
 
 const operation = process.argv[2]
 const workspaceIndex = process.argv.indexOf('--workspace')
