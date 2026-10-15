@@ -92,6 +92,10 @@ export function cloudAuthFailureMessage(failure: CloudAuthFailure, words: Messag
     'password-too-long': words.failurePasswordTooLong,
     'invalid-link': words.failureInvalidLink,
     'invalid-code': words.failureInvalidCode,
+    'passkey-cancelled': words.failurePasskeyCancelled,
+    'passkey-exists': words.failurePasskeyExists,
+    'passkey-unavailable': words.failurePasskeyUnavailable,
+    'session-not-fresh': words.errorSessionNotFresh,
     'rate-limited': words.failureRateLimited,
     unavailable: words.failureUnavailable
   }

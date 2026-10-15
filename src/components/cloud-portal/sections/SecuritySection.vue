@@ -35,7 +35,12 @@ const mfa = computed(() => security.data.value?.mfa ?? null)
 const passkeys = computed(() => security.data.value?.passkeys ?? [])
 const notice = ref<string | null>(null)
 
-type PasswordStep = 'change' | 'enable-authenticator' | 'disable-authenticator' | 'recovery-codes'
+type PasswordStep =
+  | 'change'
+  | 'enable-authenticator'
+  | 'disable-authenticator'
+  | 'recovery-codes'
+  | 'add-passkey'
 const passwordStep = ref<PasswordStep | null>(null)
 const setupURI = ref<string | null>(null)
 const recoveryCodes = ref<string[] | null>(null)
@@ -77,9 +82,32 @@ const verifyAction = usePortalAction(async (code: string) => {
   await security.reload()
 })
 
+/**
+ * Adding a passkey needs a recent sign-in, so a stale session signs in again with the password
+ * first; an account that also asks for a second step has to sign in again in full.
+ */
+async function addPasskeyAfterSignIn(password: string): Promise<string | null> {
+  const email = portal.account.value?.user.email ?? ''
+  const signedIn = await portal.auth.withEmail({ email, password })
+  if (!signedIn.ok) return failures.failure(signedIn.failure)
+  if (signedIn.value === 'two-step') return failures.failure('session-not-fresh')
+  const added = await portal.auth.addPasskey()
+  return added.ok ? null : failures.failure(added.failure)
+}
+
 /** A step behind the password dialog; its failure shows in the dialog while it is open. */
 const passwordAction = usePortalAction(
   async (step: PasswordStep, password: string | undefined, next: string) => {
+    if (step === 'add-passkey') {
+      const failure = await addPasskeyAfterSignIn(password ?? '')
+      if (failure) {
+        passwordAction.fail(failure)
+        return
+      }
+      passwordStep.value = null
+      await security.reload()
+      return
+    }
     let setup: { totpURI: string; backupCodes: string[] } | null = null
     let codes: string[] | null = null
     if (step === 'change') await portal.api.changePassword(password ?? '', next)
@@ -161,7 +189,9 @@ function closeAuthenticatorSetup() {
 function addPasskey() {
   void change.run(async () => {
     const result = await portal.auth.addPasskey()
-    if (!result.ok) change.fail(failures.failure(result.failure))
+    if (result.ok) return
+    if (result.failure === 'session-not-fresh' && hasPassword.value) openPasswordStep('add-passkey')
+    else change.fail(failures.failure(result.failure))
   })
 }
 </script>
