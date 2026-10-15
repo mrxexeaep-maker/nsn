@@ -1,0 +1,31 @@
+# Folders that group files by a filename prefix next to a file of that name, from before
+# check:arch caught it. Move a group into its own folder, then delete its line here.
+packages/core/src/editor/history::snapshot
+packages/core/src/editor/structure::group
+packages/core/src/io/formats/design-tokens::plan
+packages/core/src/kiwi/fig/session::archive
+packages/core/src/tools::registry
+packages/core/tests/canvas/text::derived
+packages/core/tests/editor/graph::events
+packages/dom-css/src/runtime::headless
+packages/vue/src/shared/input::move
+packages/vue/src/shared/input::pan
+src/app/diagnostics/events::storage
+src/app/diagnostics/events::transport
+src/app/document/io::save
+src/app/document/io::source
+src/app/document/io::watch
+src/app/editor/clipboard::paste
+src/theme/collaboration::avatar
+src/theme/input::input
+src/theme/panel::field
+tests/app/libraries::update
+tests/e2e/canvas/shape-handles::handles
+tests/e2e/properties::panel
+tests/e2e/settings::mcp
+tests/engine/app/ai::model
+tests/engine/figma/api::grouping
+tests/engine/mcp::webmcp
+tests/engine/render/canvas/visual::boolean
+tests/engine/render/canvas::text
+tests/helpers/collab::agent

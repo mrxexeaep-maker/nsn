@@ -16,7 +16,10 @@ import {
   createImportRule,
   createTextRule,
   filePrefix,
+  FILE_PREFIX_BASELINE_PATH,
   FILE_PREFIX_GROUP_ALLOWLIST,
+  fileStem,
+  readFilePrefixBaseline,
   PACKAGE_ALIASES,
   PACKAGE_ALIAS_OWNERS,
   relativePath,
@@ -30,11 +33,15 @@ const preferDomainFoldersOverFilenamePrefixes: Rule = {
   name: 'open-pencil/prefer-domain-folders-over-filename-prefixes',
   check(root) {
     const diagnostics: Diagnostic[] = []
+    const baseline = readFilePrefixBaseline(root.path)
+    const seen = new Set<string>()
     for (const folder of collectFolders(root)) {
       const folderRel = relativePath(root.path, folder.path)
       const groups = new Map<string, string[]>()
+      const names = new Set<string>()
       for (const child of folder.children ?? []) {
         if (child.type !== 'file' || !TEXT_EXTENSIONS.has(path.extname(child.path))) continue
+        names.add(fileStem(child.path))
         const prefix = filePrefix(child.path)
         if (!prefix) continue
         const files = groups.get(prefix) ?? []
@@ -42,13 +49,26 @@ const preferDomainFoldersOverFilenamePrefixes: Rule = {
         groups.set(prefix, files)
       }
       for (const [prefix, files] of groups) {
-        if (files.length < 3) continue
-        if (FILE_PREFIX_GROUP_ALLOWLIST.has(`${folderRel}::${prefix}`)) continue
+        // `email.ts` beside `email-runtime.ts` is a domain as much as three `email-*` files are.
+        if (files.length < 3 && !names.has(prefix)) continue
+        const entry = `${folderRel}::${prefix}`
+        if (FILE_PREFIX_GROUP_ALLOWLIST.has(entry)) continue
+        if (baseline.has(entry)) {
+          seen.add(entry)
+          continue
+        }
         diagnostics.push({
-          message: `Use a ${prefix}/ domain folder instead of ${files.length} sibling files with the ${prefix}- filename prefix.`,
+          message: `Use a ${prefix}/ domain folder instead of sibling files named ${prefix} and ${prefix}-*.`,
           location: { path: folder.path }
         })
       }
+    }
+    for (const entry of baseline) {
+      if (seen.has(entry)) continue
+      diagnostics.push({
+        message: `${entry} no longer groups files by prefix; remove it from ${FILE_PREFIX_BASELINE_PATH}.`,
+        location: { path: path.join(root.path, FILE_PREFIX_BASELINE_PATH) }
+      })
     }
     return { diagnostics }
   }
