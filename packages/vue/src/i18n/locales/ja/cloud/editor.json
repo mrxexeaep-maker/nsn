@@ -160,15 +160,15 @@
   "settingsOptionsFor": "{host} のオプション",
   "settingsAccountAndSecurity": "アカウントとセキュリティ",
   "settingsShowOnHome": "ホームに表示",
-  "settingsRemoveFromApp": "このアプリから削除",
+  "settingsDisconnectServer": "サーバーとの接続を解除",
   "settingsSignOutFailed": "サインアウトできませんでした。接続を確認して、もう一度お試しください。",
-  "settingsRemoveHeading": "{host} を削除しますか？",
-  "settingsRemoveDescription": "サインアウトされ、このデバイスのホームからそのワークスペースが外れます。ドキュメントはサーバーに残ります。",
-  "settingsRemoveUnsavedDescription": {
-    "many": "サインアウトされ、このデバイスのホームからそのワークスペースが外れます。{count} 件のドキュメントにまだサーバーに届いていない変更があり、削除するとそれらは破棄されます。"
+  "settingsDisconnectHeading": "{host} との接続を解除しますか？",
+  "settingsDisconnectDescription": "サインアウトされ、このデバイスのホームからワークスペースが消えます。ドキュメントはサーバーに残り、いつでも再接続できます。",
+  "settingsDisconnectUnsavedDescription": {
+    "many": "サインアウトされ、このデバイスのホームからワークスペースが消えます。{count} 件のドキュメントにまだサーバーに届いていない変更があり、接続を解除すると破棄されます。"
   },
-  "settingsRemove": "削除",
-  "settingsRemoveAndDiscard": "削除して変更を破棄",
+  "settingsDisconnect": "接続を解除",
+  "settingsDisconnectAndDiscard": "接続を解除して変更を破棄",
   "homeLocations": "場所",
   "homeRecent": "最近",
   "homeAccount": "アカウント：{email}",

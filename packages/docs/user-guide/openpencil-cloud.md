@@ -23,7 +23,7 @@ Each server in **Settings → Cloud** shows who is signed in to it:
 - **Sign-in expired** keeps your account, so **Sign in** goes back to the same one.
 - **Account and security** in the server's **…** menu opens the server's own account page, where you change your password, two-step sign-in, and passkeys.
 - **Sign out** ends the session on the server. If the server can't be reached, you stay signed in so you can try again.
-- **Remove from this app** forgets the server on this device. It warns you when documents still have changes that haven't reached the server, because removing it discards them.
+- **Disconnect server** signs you out and forgets the server on this device; your documents stay on it, and you can connect again anytime. It warns you when documents still have changes that haven't reached the server, because disconnecting discards them.
 
 The desktop app keeps its sign-in in the system credential store. In the browser, a sign-in through the server's page lasts as long as the server's session; a sign-in with a code follows **Settings → General → Remember API keys on this device**.
 

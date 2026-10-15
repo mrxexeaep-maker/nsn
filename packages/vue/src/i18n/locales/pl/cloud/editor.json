@@ -162,17 +162,17 @@
   "settingsOptionsFor": "Opcje: {host}",
   "settingsAccountAndSecurity": "Konto i bezpieczeństwo",
   "settingsShowOnHome": "Pokaż na stronie głównej",
-  "settingsRemoveFromApp": "Usuń z tej aplikacji",
+  "settingsDisconnectServer": "Odłącz serwer",
   "settingsSignOutFailed": "Nie udało się wylogować. Sprawdź połączenie i spróbuj ponownie.",
-  "settingsRemoveHeading": "Usunąć {host}?",
-  "settingsRemoveDescription": "Nastąpi wylogowanie, a obszary robocze tego serwera znikną ze strony głównej na tym urządzeniu. Dokumenty pozostaną na serwerze.",
-  "settingsRemoveUnsavedDescription": {
-    "one": "Nastąpi wylogowanie, a obszary robocze tego serwera znikną ze strony głównej na tym urządzeniu. {count} dokument ma zmiany, które nie dotarły jeszcze na serwer; usunięcie serwera je odrzuci.",
-    "few": "Nastąpi wylogowanie, a obszary robocze tego serwera znikną ze strony głównej na tym urządzeniu. {count} dokumenty mają zmiany, które nie dotarły jeszcze na serwer; usunięcie serwera je odrzuci.",
-    "many": "Nastąpi wylogowanie, a obszary robocze tego serwera znikną ze strony głównej na tym urządzeniu. {count} dokumentów ma zmiany, które nie dotarły jeszcze na serwer; usunięcie serwera je odrzuci."
+  "settingsDisconnectHeading": "Odłączyć {host}?",
+  "settingsDisconnectDescription": "Zostaniesz wylogowany, a jego obszary robocze znikną z ekranu głównego na tym urządzeniu. Twoje dokumenty zostają na serwerze i możesz połączyć się ponownie w każdej chwili.",
+  "settingsDisconnectUnsavedDescription": {
+    "one": "Zostaniesz wylogowany, a jego obszary robocze znikną z ekranu głównego na tym urządzeniu. {count} dokument ma zmiany, które nie dotarły jeszcze na serwer; odłączenie je odrzuci.",
+    "few": "Zostaniesz wylogowany, a jego obszary robocze znikną z ekranu głównego na tym urządzeniu. {count} dokumenty mają zmiany, które nie dotarły jeszcze na serwer; odłączenie je odrzuci.",
+    "many": "Zostaniesz wylogowany, a jego obszary robocze znikną z ekranu głównego na tym urządzeniu. {count} dokumentów ma zmiany, które nie dotarły jeszcze na serwer; odłączenie je odrzuci."
   },
-  "settingsRemove": "Usuń",
-  "settingsRemoveAndDiscard": "Usuń i odrzuć zmiany",
+  "settingsDisconnect": "Odłącz",
+  "settingsDisconnectAndDiscard": "Odłącz i odrzuć zmiany",
   "homeLocations": "Lokalizacje",
   "homeRecent": "Ostatnie",
   "homeAccount": "Konto: {email}",

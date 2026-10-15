@@ -160,15 +160,15 @@
   "settingsOptionsFor": "{host} 的选项",
   "settingsAccountAndSecurity": "账号与安全",
   "settingsShowOnHome": "在主页显示",
-  "settingsRemoveFromApp": "从此应用中移除",
+  "settingsDisconnectServer": "断开服务器连接",
   "settingsSignOutFailed": "无法退出登录。请检查网络连接后重试。",
-  "settingsRemoveHeading": "移除 {host}？",
-  "settingsRemoveDescription": "你将退出登录，它的工作区也会从此设备的主页中移除。文档仍保留在服务器上。",
-  "settingsRemoveUnsavedDescription": {
-    "many": "你将退出登录，它的工作区也会从此设备的主页中移除。有 {count} 个文档的更改尚未上传到服务器，移除后这些更改将被丢弃。"
+  "settingsDisconnectHeading": "断开与 {host} 的连接？",
+  "settingsDisconnectDescription": "你将被登出，其工作区会从此设备的主页中移除。你的文档仍保留在服务器上，可以随时重新连接。",
+  "settingsDisconnectUnsavedDescription": {
+    "many": "你将被登出，其工作区会从此设备的主页中移除。{count} 个文档有尚未同步到服务器的更改；断开连接会丢弃这些更改。"
   },
-  "settingsRemove": "移除",
-  "settingsRemoveAndDiscard": "移除并丢弃更改",
+  "settingsDisconnect": "断开连接",
+  "settingsDisconnectAndDiscard": "断开连接并丢弃更改",
   "homeLocations": "位置",
   "homeRecent": "最近",
   "homeAccount": "账号：{email}",

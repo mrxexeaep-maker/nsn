@@ -175,8 +175,8 @@ const title = (server: CloudServerEntry) =>
                     :class="menuUI.item({ justify: 'start' })"
                     @select="emit('remove', server.id)"
                   >
-                    <icon-lucide-trash-2 :class="menuUI.icon()" />
-                    {{ t.settingsRemoveFromApp }}
+                    <icon-lucide-unplug :class="menuUI.icon()" />
+                    {{ t.settingsDisconnectServer }}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenuPortal>

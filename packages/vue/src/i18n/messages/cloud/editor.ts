@@ -259,17 +259,17 @@ export const cloudMessageDefaults = {
   settingsOptionsFor: params('Options for {host}'),
   settingsAccountAndSecurity: 'Account and security',
   settingsShowOnHome: 'Show on Home',
-  settingsRemoveFromApp: 'Remove from this app',
+  settingsDisconnectServer: 'Disconnect server',
   settingsSignOutFailed: 'Couldn’t sign out. Check your connection and try again.',
-  settingsRemoveHeading: params('Remove {host}?'),
-  settingsRemoveDescription:
-    'You’re signed out and its workspaces leave Home on this device. Documents stay on the server.',
-  settingsRemoveUnsavedDescription: count({
-    one: 'You’re signed out and its workspaces leave Home on this device. {count} document has changes that haven’t reached the server yet; removing it discards them.',
-    many: 'You’re signed out and its workspaces leave Home on this device. {count} documents have changes that haven’t reached the server yet; removing it discards them.'
+  settingsDisconnectHeading: params('Disconnect {host}?'),
+  settingsDisconnectDescription:
+    'You’re signed out and its workspaces leave Home on this device. Your documents stay on the server, and you can connect again anytime.',
+  settingsDisconnectUnsavedDescription: count({
+    one: 'You’re signed out and its workspaces leave Home on this device. {count} document has changes that haven’t reached the server yet; disconnecting discards them.',
+    many: 'You’re signed out and its workspaces leave Home on this device. {count} documents have changes that haven’t reached the server yet; disconnecting discards them.'
   }),
-  settingsRemove: 'Remove',
-  settingsRemoveAndDiscard: 'Remove and discard changes',
+  settingsDisconnect: 'Disconnect',
+  settingsDisconnectAndDiscard: 'Disconnect and discard changes',
 
   // Home
   homeLocations: 'Locations',

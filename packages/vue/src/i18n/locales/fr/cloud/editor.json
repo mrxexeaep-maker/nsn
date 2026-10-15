@@ -161,16 +161,16 @@
   "settingsOptionsFor": "Options pour {host}",
   "settingsAccountAndSecurity": "Compte et sécurité",
   "settingsShowOnHome": "Afficher sur l’accueil",
-  "settingsRemoveFromApp": "Retirer de cette app",
+  "settingsDisconnectServer": "Déconnecter le serveur",
   "settingsSignOutFailed": "Impossible de se déconnecter. Vérifiez votre connexion et réessayez.",
-  "settingsRemoveHeading": "Retirer {host} ?",
-  "settingsRemoveDescription": "Vous êtes déconnecté et ses espaces de travail disparaissent de l’accueil sur cet appareil. Les documents restent sur le serveur.",
-  "settingsRemoveUnsavedDescription": {
-    "one": "Vous êtes déconnecté et ses espaces de travail disparaissent de l’accueil sur cet appareil. {count} document contient des modifications qui n’ont pas encore atteint le serveur ; retirer le serveur les abandonne.",
-    "many": "Vous êtes déconnecté et ses espaces de travail disparaissent de l’accueil sur cet appareil. {count} documents contiennent des modifications qui n’ont pas encore atteint le serveur ; retirer le serveur les abandonne."
+  "settingsDisconnectHeading": "Déconnecter {host} ?",
+  "settingsDisconnectDescription": "Vous êtes déconnecté et ses espaces de travail quittent l’accueil sur cet appareil. Vos documents restent sur le serveur, et vous pouvez vous reconnecter à tout moment.",
+  "settingsDisconnectUnsavedDescription": {
+    "one": "Vous êtes déconnecté et ses espaces de travail quittent l’accueil sur cet appareil. {count} document a des modifications qui n’ont pas encore atteint le serveur ; la déconnexion les supprime.",
+    "many": "Vous êtes déconnecté et ses espaces de travail quittent l’accueil sur cet appareil. {count} documents ont des modifications qui n’ont pas encore atteint le serveur ; la déconnexion les supprime."
   },
-  "settingsRemove": "Retirer",
-  "settingsRemoveAndDiscard": "Retirer et abandonner les modifications",
+  "settingsDisconnect": "Déconnecter",
+  "settingsDisconnectAndDiscard": "Déconnecter et abandonner les modifications",
   "homeLocations": "Emplacements",
   "homeRecent": "Récents",
   "homeAccount": "Compte : {email}",

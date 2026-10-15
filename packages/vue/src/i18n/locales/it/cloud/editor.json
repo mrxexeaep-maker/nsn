@@ -161,16 +161,16 @@
   "settingsOptionsFor": "Opzioni per {host}",
   "settingsAccountAndSecurity": "Account e sicurezza",
   "settingsShowOnHome": "Mostra in Home",
-  "settingsRemoveFromApp": "Rimuovi da questa app",
+  "settingsDisconnectServer": "Disconnetti server",
   "settingsSignOutFailed": "Impossibile uscire. Controlla la connessione e riprova.",
-  "settingsRemoveHeading": "Rimuovere {host}?",
-  "settingsRemoveDescription": "Verrai disconnesso e le sue aree di lavoro spariranno da Home su questo dispositivo. I documenti restano sul server.",
-  "settingsRemoveUnsavedDescription": {
-    "one": "Verrai disconnesso e le sue aree di lavoro spariranno da Home su questo dispositivo. {count} documento ha modifiche che non hanno ancora raggiunto il server; rimuovendolo verranno scartate.",
-    "many": "Verrai disconnesso e le sue aree di lavoro spariranno da Home su questo dispositivo. {count} documenti hanno modifiche che non hanno ancora raggiunto il server; rimuovendolo verranno scartate."
+  "settingsDisconnectHeading": "Disconnettere {host}?",
+  "settingsDisconnectDescription": "Esci dall’account e le sue aree di lavoro spariscono dalla Home su questo dispositivo. I tuoi documenti restano sul server e puoi riconnetterti quando vuoi.",
+  "settingsDisconnectUnsavedDescription": {
+    "one": "Esci dall’account e le sue aree di lavoro spariscono dalla Home su questo dispositivo. {count} documento ha modifiche non ancora arrivate al server; disconnettendo vanno perse.",
+    "many": "Esci dall’account e le sue aree di lavoro spariscono dalla Home su questo dispositivo. {count} documenti hanno modifiche non ancora arrivate al server; disconnettendo vanno perse."
   },
-  "settingsRemove": "Rimuovi",
-  "settingsRemoveAndDiscard": "Rimuovi e scarta le modifiche",
+  "settingsDisconnect": "Disconnetti",
+  "settingsDisconnectAndDiscard": "Disconnetti e scarta le modifiche",
   "homeLocations": "Posizioni",
   "homeRecent": "Recenti",
   "homeAccount": "Account: {email}",

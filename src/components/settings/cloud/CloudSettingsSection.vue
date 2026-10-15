@@ -98,14 +98,14 @@ async function remove() {
     <AppConfirmationDialog
       :open="removing !== null"
       tone="danger"
-      :heading="t.settingsRemoveHeading({ host: removing?.host ?? '' })"
+      :heading="t.settingsDisconnectHeading({ host: removing?.host ?? '' })"
       :description="
         removing?.unsaved
-          ? t.settingsRemoveUnsavedDescription(removing.unsaved)
-          : t.settingsRemoveDescription
+          ? t.settingsDisconnectUnsavedDescription(removing.unsaved)
+          : t.settingsDisconnectDescription
       "
       :cancel-label="common.cancel"
-      :confirm-label="removing?.unsaved ? t.settingsRemoveAndDiscard : t.settingsRemove"
+      :confirm-label="removing?.unsaved ? t.settingsDisconnectAndDiscard : t.settingsDisconnect"
       @update:open="(open) => !open && (removing = null)"
       @confirm="remove"
     />

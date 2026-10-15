@@ -161,16 +161,16 @@
   "settingsOptionsFor": "Optionen für {host}",
   "settingsAccountAndSecurity": "Konto und Sicherheit",
   "settingsShowOnHome": "Auf der Startseite anzeigen",
-  "settingsRemoveFromApp": "Aus dieser App entfernen",
+  "settingsDisconnectServer": "Server trennen",
   "settingsSignOutFailed": "Abmelden fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.",
-  "settingsRemoveHeading": "{host} entfernen?",
-  "settingsRemoveDescription": "Du wirst abgemeldet, und seine Arbeitsbereiche verschwinden auf diesem Gerät von der Startseite. Dokumente bleiben auf dem Server.",
-  "settingsRemoveUnsavedDescription": {
-    "one": "Du wirst abgemeldet, und seine Arbeitsbereiche verschwinden auf diesem Gerät von der Startseite. {count} Dokument hat Änderungen, die den Server noch nicht erreicht haben; beim Entfernen werden sie verworfen.",
-    "many": "Du wirst abgemeldet, und seine Arbeitsbereiche verschwinden auf diesem Gerät von der Startseite. {count} Dokumente haben Änderungen, die den Server noch nicht erreicht haben; beim Entfernen werden sie verworfen."
+  "settingsDisconnectHeading": "{host} trennen?",
+  "settingsDisconnectDescription": "Du wirst abgemeldet, und seine Arbeitsbereiche verschwinden auf diesem Gerät von der Startseite. Deine Dokumente bleiben auf dem Server, und du kannst dich jederzeit wieder verbinden.",
+  "settingsDisconnectUnsavedDescription": {
+    "one": "Du wirst abgemeldet, und seine Arbeitsbereiche verschwinden auf diesem Gerät von der Startseite. {count} Dokument hat Änderungen, die den Server noch nicht erreicht haben; beim Trennen gehen sie verloren.",
+    "many": "Du wirst abgemeldet, und seine Arbeitsbereiche verschwinden auf diesem Gerät von der Startseite. {count} Dokumente haben Änderungen, die den Server noch nicht erreicht haben; beim Trennen gehen sie verloren."
   },
-  "settingsRemove": "Entfernen",
-  "settingsRemoveAndDiscard": "Entfernen und Änderungen verwerfen",
+  "settingsDisconnect": "Trennen",
+  "settingsDisconnectAndDiscard": "Trennen und Änderungen verwerfen",
   "homeLocations": "Orte",
   "homeRecent": "Zuletzt verwendet",
   "homeAccount": "Konto: {email}",

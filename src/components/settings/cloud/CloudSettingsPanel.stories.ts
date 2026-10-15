@@ -54,10 +54,10 @@ const meta = {
         <AppConfirmationDialog
           :open="args.confirmRemove"
           tone="danger"
-          heading="Remove design.acme.internal?"
-          description="You’re signed out and its workspaces leave Home on this device. 2 documents have changes that haven’t reached the server yet; removing it discards them."
+          heading="Disconnect design.acme.internal?"
+          description="You’re signed out and its workspaces leave Home on this device. 2 documents have changes that haven’t reached the server yet; disconnecting discards them."
           cancel-label="Cancel"
-          confirm-label="Remove and discard changes"
+          confirm-label="Disconnect and discard changes"
         />
       </div>`
   })

@@ -161,16 +161,16 @@
   "settingsOptionsFor": "Opciones de {host}",
   "settingsAccountAndSecurity": "Cuenta y seguridad",
   "settingsShowOnHome": "Mostrar en Inicio",
-  "settingsRemoveFromApp": "Quitar de esta app",
+  "settingsDisconnectServer": "Desconectar servidor",
   "settingsSignOutFailed": "No se pudo cerrar sesión. Comprueba tu conexión y vuelve a intentarlo.",
-  "settingsRemoveHeading": "¿Quitar {host}?",
-  "settingsRemoveDescription": "Se cerrará tu sesión y sus espacios de trabajo desaparecerán de Inicio en este dispositivo. Los documentos se quedan en el servidor.",
-  "settingsRemoveUnsavedDescription": {
-    "one": "Se cerrará tu sesión y sus espacios de trabajo desaparecerán de Inicio en este dispositivo. {count} documento tiene cambios que aún no han llegado al servidor; al quitarlo se descartarán.",
-    "many": "Se cerrará tu sesión y sus espacios de trabajo desaparecerán de Inicio en este dispositivo. {count} documentos tienen cambios que aún no han llegado al servidor; al quitarlo se descartarán."
+  "settingsDisconnectHeading": "¿Desconectar {host}?",
+  "settingsDisconnectDescription": "Se cerrará tu sesión y sus espacios de trabajo desaparecerán de Inicio en este dispositivo. Tus documentos se quedan en el servidor y puedes volver a conectarte cuando quieras.",
+  "settingsDisconnectUnsavedDescription": {
+    "one": "Se cerrará tu sesión y sus espacios de trabajo desaparecerán de Inicio en este dispositivo. {count} documento tiene cambios que aún no llegaron al servidor; al desconectar se descartan.",
+    "many": "Se cerrará tu sesión y sus espacios de trabajo desaparecerán de Inicio en este dispositivo. {count} documentos tienen cambios que aún no llegaron al servidor; al desconectar se descartan."
   },
-  "settingsRemove": "Quitar",
-  "settingsRemoveAndDiscard": "Quitar y descartar cambios",
+  "settingsDisconnect": "Desconectar",
+  "settingsDisconnectAndDiscard": "Desconectar y descartar cambios",
   "homeLocations": "Ubicaciones",
   "homeRecent": "Recientes",
   "homeAccount": "Cuenta: {email}",
