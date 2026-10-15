@@ -224,5 +224,6 @@
   "verifyDescription": "Enviamos un enlace a {email}.",
   "verifyNote": "Abre el enlace del correo y vuelve aquí. El inicio de sesión termina solo.",
   "verifyNotYet": "Tu correo aún no está confirmado. Abre el enlace del correo y vuelve a intentarlo.",
-  "verifyNoEmail": "¿No te llegó?"
+  "verifyNoEmail": "¿No te llegó?",
+  "settingsTitle": "Nube"
 }

@@ -221,5 +221,6 @@
   "verifyDescription": "我们已向 {email} 发送了链接。",
   "verifyNote": "打开邮件中的链接，然后回到这里。登录会自动完成。",
   "verifyNotYet": "你的邮箱尚未确认。打开邮件中的链接后再试一次。",
-  "verifyNoEmail": "没有收到邮件？"
+  "verifyNoEmail": "没有收到邮件？",
+  "settingsTitle": "云"
 }

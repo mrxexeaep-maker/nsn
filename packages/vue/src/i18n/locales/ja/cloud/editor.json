@@ -221,5 +221,6 @@
   "verifyDescription": "{email} にリンクを送信しました。",
   "verifyNote": "メールのリンクを開いてから、ここに戻ってください。サインインは自動で完了します。",
   "verifyNotYet": "メールアドレスはまだ確認されていません。メールのリンクを開いてから、もう一度お試しください。",
-  "verifyNoEmail": "メールが届かない場合"
+  "verifyNoEmail": "メールが届かない場合",
+  "settingsTitle": "クラウド"
 }

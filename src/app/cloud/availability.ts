@@ -37,15 +37,20 @@ export function isVersionAtLeast(version: string, minimum: string): boolean {
 }
 
 /**
- * Whether the editor shows its Cloud entry points: Settings → OpenPencil Cloud and Save to Cloud.
- * They appear once the official server lists itself for this editor version, on a device that
- * already uses a server, or for someone previewing Cloud before launch.
+ * Whether the official server is open to this editor, or being previewed here; until then
+ * Settings offers its waitlist.
+ */
+export const cloudOfficialListed = computed(
+  () =>
+    preview.value || (listedFrom.value !== null && isVersionAtLeast(APP_VERSION, listedFrom.value))
+)
+
+/**
+ * Whether the editor offers Save to Cloud: once the official server lists itself for this editor
+ * version, on a device that already uses a server, or for someone previewing Cloud before launch.
  */
 export const cloudAvailable = computed(
-  () =>
-    preview.value ||
-    cloudServers.value.length > 0 ||
-    (listedFrom.value !== null && isVersionAtLeast(APP_VERSION, listedFrom.value))
+  () => cloudServers.value.length > 0 || cloudOfficialListed.value
 )
 
 /** Reads the preview switch from the address and asks the official server whether it is listed. */

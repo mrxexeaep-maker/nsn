@@ -26,7 +26,11 @@ import type { CloudServerEntry } from './types'
  * The Cloud servers this app syncs with: who is signed in to each, which one Home shows, and
  * what can be done with it. Account settings live on the server's own pages, opened in a browser.
  */
-const { servers } = defineProps<{ servers: CloudServerEntry[] }>()
+const { servers, listed = true } = defineProps<{
+  servers: CloudServerEntry[]
+  /** Whether the hosted service takes sign-ins yet; until then the `hosted` slot stands in. */
+  listed?: boolean
+}>()
 const emit = defineEmits<{
   connect: [kind?: 'official' | 'self-hosted']
   signIn: [id: string]
@@ -49,19 +53,24 @@ const title = (server: CloudServerEntry) =>
 <template>
   <SettingsPage>
     <SettingsSection>
-      <template #title>{{ t.productName }}</template>
+      <template #title>{{ t.settingsTitle }}</template>
       <template #description>
         {{ servers.length ? t.settingsDescription : t.settingsEmptyDescription }}
       </template>
       <template v-if="servers.length" #actions>
-        <AppButton size="sm" variant="outline" @click="emit('connect')">
+        <AppButton
+          size="sm"
+          variant="outline"
+          @click="emit('connect', listed ? undefined : 'self-hosted')"
+        >
           <template #leading><icon-lucide-plus class="size-3.5" /></template>
           {{ t.settingsConnectServer }}
         </AppButton>
       </template>
 
       <div v-if="!servers.length" :class="ui.choices()">
-        <AppActionRow @click="emit('connect', 'official')">
+        <slot v-if="!listed" name="hosted" />
+        <AppActionRow v-else @click="emit('connect', 'official')">
           <template #leading>
             <span :class="ui.choiceIcon()"><icon-lucide-cloud class="size-4" /></span>
           </template>

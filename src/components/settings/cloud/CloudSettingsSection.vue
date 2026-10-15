@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 
 import { useCloudMessages, useCommonMessages } from '@open-pencil/vue'
 
+import { cloudOfficialListed } from '@/app/cloud/availability'
 import { openCloudConnect } from '@/app/cloud/connect/flow'
 import { cloudServerHost } from '@/app/cloud/servers/address'
 import {
@@ -19,6 +20,7 @@ import { openExternalLink, toast } from '@/app/shell/ui'
 import AppConfirmationDialog from '@/components/ui/dialog/AppConfirmationDialog.vue'
 
 import CloudSettingsPanel from './CloudSettingsPanel.vue'
+import CloudWaitlist from './CloudWaitlist.vue'
 import type { CloudServerEntry } from './types'
 
 /** The Cloud section of Settings: the saved servers with their live sessions, and their actions. */
@@ -83,13 +85,16 @@ async function remove() {
   <div class="flex min-h-0 min-w-0 flex-1 flex-col">
     <CloudSettingsPanel
       :servers="entries"
+      :listed="cloudOfficialListed"
       @connect="(kind) => openCloudConnect({ kind })"
       @sign-in="(id) => openCloudConnect({ serverId: id })"
       @manage-account="manageAccount"
       @show-on-home="showCloudServerOnHome"
       @sign-out="signOut"
       @remove="(id) => (removing = entries.find((entry) => entry.id === id) ?? null)"
-    />
+    >
+      <template #hosted><CloudWaitlist /></template>
+    </CloudSettingsPanel>
     <AppConfirmationDialog
       :open="removing !== null"
       tone="danger"

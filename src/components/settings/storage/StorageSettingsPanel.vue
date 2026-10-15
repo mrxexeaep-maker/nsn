@@ -20,7 +20,6 @@ import SettingsPage from '@/components/settings/layout/SettingsPage.vue'
 import SettingsSaveFeedback from '@/components/settings/layout/SettingsSaveFeedback.vue'
 import SettingsSection from '@/components/settings/layout/SettingsSection.vue'
 import ProviderSettingsField from '@/components/settings/provider/ProviderSettingsField.vue'
-import CloudWaitlistSection from '@/components/settings/storage/CloudWaitlistSection.vue'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 import AppInput from '@/components/ui/input/AppInput.vue'
@@ -134,7 +133,6 @@ async function testConnection() {
             {{ settings.configureStorageHint }}
           </p>
         </SettingsSection>
-        <CloudWaitlistSection />
       </div>
       <SettingsSection v-else>
         <template #title>{{ settings.storage }}</template>

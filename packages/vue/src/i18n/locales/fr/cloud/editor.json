@@ -224,5 +224,6 @@
   "verifyDescription": "Nous avons envoyé un lien à {email}.",
   "verifyNote": "Ouvrez le lien de l’e-mail, puis revenez ici. La connexion se termine d’elle-même.",
   "verifyNotYet": "Votre adresse n’est pas encore confirmée. Ouvrez le lien de l’e-mail, puis réessayez.",
-  "verifyNoEmail": "Pas d’e-mail ?"
+  "verifyNoEmail": "Pas d’e-mail ?",
+  "settingsTitle": "Cloud"
 }

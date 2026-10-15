@@ -6,7 +6,12 @@ import AppConfirmationDialog from '@/components/ui/dialog/AppConfirmationDialog.
 import CloudSettingsPanel from './CloudSettingsPanel.vue'
 import type { CloudServerEntry } from './types'
 
-type Args = { servers: CloudServerEntry[]; confirmRemove: boolean; onConnect: () => void }
+type Args = {
+  servers: CloudServerEntry[]
+  listed: boolean
+  confirmRemove: boolean
+  onConnect: () => void
+}
 
 const official: CloudServerEntry = {
   id: 'official',
@@ -31,14 +36,20 @@ const meta = {
   title: 'App/Settings/Cloud',
   tags: ['autodocs'],
   parameters: { layout: 'fullscreen' },
-  args: { servers: [official, team], confirmRemove: false, onConnect: fn() },
+  args: { servers: [official, team], listed: true, confirmRemove: false, onConnect: fn() },
   render: (args) => ({
     components: { CloudSettingsPanel, AppConfirmationDialog },
     setup: () => ({ args }),
     template: `
       <div class="flex h-[560px] bg-panel p-6">
         <div class="flex w-full max-w-2xl flex-col">
-          <CloudSettingsPanel :servers="args.servers" @connect="args.onConnect" />
+          <CloudSettingsPanel :servers="args.servers" :listed="args.listed" @connect="args.onConnect">
+            <template #hosted>
+              <div class="rounded border border-dashed border-border p-3 text-[11px] text-muted">
+                The OpenPencil Cloud waitlist
+              </div>
+            </template>
+          </CloudSettingsPanel>
         </div>
         <AppConfirmationDialog
           :open="args.confirmRemove"
@@ -60,4 +71,6 @@ export const SignInExpired: Story = {
   args: { servers: [official, { ...team, session: 'expired' }] }
 }
 export const NoServers: Story = { args: { servers: [] } }
+/** Before the hosted service opens, its waitlist takes the place of connecting to it. */
+export const BeforeLaunch: Story = { args: { servers: [], listed: false } }
 export const RemoveWithUnsavedChanges: Story = { args: { confirmRemove: true } }

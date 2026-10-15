@@ -73,7 +73,7 @@ export const settingsMessageDefaults = {
   keepEditing: 'Keep editing',
   discard: 'Discard',
   storage: 'Storage',
-  cloud: 'OpenPencil Cloud',
+  cloud: 'Cloud',
   mobilePanelNavigation: 'Mobile panel navigation',
   notifications: 'Notifications'
 } as const

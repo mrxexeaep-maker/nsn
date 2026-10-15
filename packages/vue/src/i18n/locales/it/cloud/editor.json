@@ -224,5 +224,6 @@
   "verifyDescription": "Abbiamo inviato un link a {email}.",
   "verifyNote": "Apri il link nell’email, poi torna qui. L’accesso si completa da solo.",
   "verifyNotYet": "La tua email non è ancora confermata. Apri il link nell’email, poi riprova.",
-  "verifyNoEmail": "Nessuna email?"
+  "verifyNoEmail": "Nessuna email?",
+  "settingsTitle": "Cloud"
 }

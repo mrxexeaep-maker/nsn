@@ -227,5 +227,6 @@
   "verifyDescription": "Wysłaliśmy link na adres {email}.",
   "verifyNote": "Otwórz link z e-maila i wróć tutaj. Logowanie zakończy się samo.",
   "verifyNotYet": "Adres e-mail nie jest jeszcze potwierdzony. Otwórz link z e-maila i spróbuj ponownie.",
-  "verifyNoEmail": "Brak e-maila?"
+  "verifyNoEmail": "Brak e-maila?",
+  "settingsTitle": "Chmura"
 }

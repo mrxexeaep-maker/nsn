@@ -190,6 +190,7 @@ export const cloudMessageDefaults = {
   statusOpenWorkspace: 'Open workspace',
 
   // Settings
+  settingsTitle: 'Cloud',
   settingsDescription:
     'Servers this app syncs documents with. Home shows one server’s workspaces at a time.',
   settingsEmptyDescription:

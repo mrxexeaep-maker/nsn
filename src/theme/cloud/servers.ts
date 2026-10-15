@@ -15,6 +15,9 @@ export const cloudServers = tv({
     expired: 'mt-0.5 flex items-center gap-1 text-[11px] text-warning',
     trailing: 'flex shrink-0 items-center gap-1',
     choices: 'flex flex-col gap-1.5',
-    choiceIcon: 'flex size-8 shrink-0 items-center justify-center rounded-md bg-panel text-muted'
+    choiceIcon: 'flex size-8 shrink-0 items-center justify-center rounded-md bg-panel text-muted',
+    waitlist: 'flex flex-col gap-3 rounded border border-border p-3',
+    waitlistHeader: 'flex items-start gap-3',
+    waitlistDescription: 'mt-0.5 text-[11px] text-muted'
   }
 })

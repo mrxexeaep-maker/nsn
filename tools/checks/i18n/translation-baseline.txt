@@ -441,13 +441,8 @@ ru:cloudPortal.deploymentOfficial
 ru:cloudPortal.emailTransportSMTP
 ru:cloudPortal.emailTransportCloudflare
 de:settings.cloud
-es:settings.cloud
 fr:settings.cloud
 it:settings.cloud
-ja:settings.cloud
-pl:settings.cloud
-ru:settings.cloud
-zh-cn:settings.cloud
 es:cloud.productName
 es:cloud.roleEditor
 es:cloud.homeCloudOnHost
@@ -456,6 +451,7 @@ it:cloud.server
 it:cloud.roleEditor
 it:cloud.homeAccount
 it:cloud.homeCloudOnHost
+it:cloud.settingsTitle
 ja:cloud.productName
 ja:cloud.homeCloudOnHost
 zh-cn:cloud.productName
@@ -464,8 +460,10 @@ de:cloud.productName
 de:cloud.server
 de:cloud.saveName
 de:cloud.homeCloudOnHost
+de:cloud.settingsTitle
 fr:cloud.productName
 fr:cloud.homeCloudOnHost
+fr:cloud.settingsTitle
 pl:cloud.productName
 pl:cloud.homeCloudOnHost
 ru:cloud.productName

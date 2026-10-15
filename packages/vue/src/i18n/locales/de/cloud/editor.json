@@ -224,5 +224,6 @@
   "verifyDescription": "Wir haben einen Link an {email} gesendet.",
   "verifyNote": "Öffne den Link in der E-Mail und komm dann hierher zurück. Die Anmeldung wird automatisch abgeschlossen.",
   "verifyNotYet": "Deine E-Mail-Adresse ist noch nicht bestätigt. Öffne den Link in der E-Mail und versuche es dann erneut.",
-  "verifyNoEmail": "Keine E-Mail?"
+  "verifyNoEmail": "Keine E-Mail?",
+  "settingsTitle": "Cloud"
 }
