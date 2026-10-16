@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { beforeEach, describe, expect, test } from 'bun:test'
 
 import { createCloudTestDatabase } from '#cloud-tests/helpers/database'
 import { createMemoryObjectStore } from '#cloud-tests/helpers/objects'
@@ -28,6 +28,8 @@ const config = parseCloudServerConfig({
   s3SecretAccessKey: 'openpencil-secret'
 })
 
+const mark = (step: string) =>
+  console.log(`[diagnostic] ${step} rss=${Math.round(process.memoryUsage().rss / 2 ** 20)}MiB`)
 const alice: CloudActor = { userId: 'alice', email: 'alice@example.com', name: 'Alice' }
 const DAY_MS = 24 * 60 * 60_000
 const FILE_BYTES = 128
@@ -159,6 +161,7 @@ async function testApp(options: { fullHistory?: boolean } = {}) {
 }
 
 describe('Cloud version history', () => {
+  beforeEach(() => mark('test'))
   test('keeps the first save, and the state each half hour of editing ends on', async () => {
     const context = await testApp()
     try {
@@ -354,6 +357,7 @@ describe('Cloud version history', () => {
 })
 
 describe('Cloud revision compaction', () => {
+  beforeEach(() => mark('test'))
   test('deletes the saves between versions once they are old, and returns their bytes', async () => {
     const context = await testApp()
     try {
@@ -459,22 +463,28 @@ describe('Cloud revision compaction', () => {
   })
 
   test('a workspace without full history keeps 30 days of versions', async () => {
+    mark('start')
     const context = await testApp({ fullHistory: false })
+    mark('app ready')
     try {
       await context.save()
+      mark('first save')
       await context.age(40 * DAY_MS)
       const recent = await context.save()
       await context.age(31 * 60_000)
       await context.save()
+      mark('saves done')
       expect((await context.history()).versions.map((version) => version.revisionId)).toEqual([
         recent
       ])
+      mark('history listed')
 
       const result = await createRevisionCompactionService(
         context.runtime.database,
         context.objects.store,
         { policy: context.policy }
       ).compactRevisions({ batchSize: 100, graceMs: DAY_MS })
+      mark('compacted')
       expect(result.versionsPruned).toBe(1)
       expect(result.revisionsDeleted).toBe(1)
     } finally {
