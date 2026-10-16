@@ -1,0 +1,1 @@
+- Pages with more vector paths than the path cache holds redraw faster: they keep the paths the cache holds and rebuild only the rest.
