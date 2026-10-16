@@ -1,5 +1,6 @@
 import { checkColumnIn } from '#cloud/server/db/expressions'
-import { sql, type Kysely } from 'kysely'
+import type { CloudDatabase } from '#cloud/server/db/schema'
+import type { Kysely } from 'kysely'
 
 import { addCurrentTimestampColumns } from './helpers'
 
@@ -36,14 +37,30 @@ export async function up(database: Kysely<unknown>): Promise<void> {
     .columns(['document_id', 'created_at desc', 'id desc'])
     .execute()
   // History starts with what each document holds now.
-  await sql`
-    insert into document_version (id, document_id, revision_id, kind, created_by, created_at)
-    select gen_random_uuid(), document.id, revision.id, 'checkpoint', revision.created_by, revision.created_at
-    from document
-    join document_revision as revision on revision.id = document.current_revision_id
-  `.execute(database)
+  await keepCurrentRevisions(database as Kysely<CloudDatabase>)
 }
 
 export async function down(database: Kysely<unknown>): Promise<void> {
   await database.schema.dropTable('document_version').execute()
+}
+
+/** Keeps each document's current revision as the first checkpoint of its history. */
+export async function keepCurrentRevisions(database: Kysely<CloudDatabase>): Promise<void> {
+  await database
+    .insertInto('documentVersion')
+    .columns(['id', 'documentId', 'revisionId', 'kind', 'createdBy', 'createdAt'])
+    .expression((expression) =>
+      expression
+        .selectFrom('document')
+        .innerJoin('documentRevision', 'documentRevision.id', 'document.currentRevisionId')
+        .select((select) => [
+          select.fn<string>('gen_random_uuid').as('id'),
+          'document.id as documentId',
+          'documentRevision.id as revisionId',
+          select.val('checkpoint').as('kind'),
+          'documentRevision.createdBy',
+          'documentRevision.createdAt'
+        ])
+    )
+    .execute()
 }
