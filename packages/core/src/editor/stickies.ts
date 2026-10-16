@@ -1,5 +1,3 @@
-import { isEqual } from 'es-toolkit'
-
 import {
   createSticky,
   DEFAULT_STICKY_COLOR,
@@ -51,21 +49,6 @@ export function applyStickyNameEdit(
 export function createStickyActions(ctx: EditorContext) {
   /** The colour the sticky tool places notes in: the one picked last, as in FigJam. */
   let stickyColor: Color = DEFAULT_STICKY_COLOR
-
-  /**
-   * Shows the note the sticky tool would place, centred on `center` in canvas coordinates, or
-   * hides it. FigJam follows the pointer with it while the tool hovers or drags.
-   */
-  function setStickyPreview(center: Vector | null) {
-    const preview = center ? { x: center.x, y: center.y, color: { ...stickyColor } } : null
-    if (isEqual(ctx.state.stickyPreview, preview)) return
-    ctx.state.stickyPreview = preview
-    ctx.requestRepaint()
-  }
-
-  ctx.onEditorEvent('tool:changed', (tool) => {
-    if (tool !== 'STICKY') setStickyPreview(null)
-  })
 
   function selectedStickies(ids: Iterable<string>): SceneNode[] {
     return [...ids].flatMap((id) => {
@@ -166,7 +149,6 @@ export function createStickyActions(ctx: EditorContext) {
   return {
     setStickyWide,
     createStickyNote,
-    setStickyPreview,
     setStickyColor,
     setStickyTextSize,
     setStickyAuthorVisible,

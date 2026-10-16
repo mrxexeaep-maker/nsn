@@ -147,8 +147,6 @@ export interface EditorViewState {
     side?: 'top' | 'right' | 'bottom' | 'left'
   } | null
   shapeHandleHover: ShapeHandleHover | null
-  /** The note the sticky tool would place, centred on the pointer, in its colour. */
-  stickyPreview: StickyPreview | null
   panX: number
   pageColor: Color
   panY: number
@@ -171,13 +169,6 @@ export interface NavigationState {
   phase: NavigationPhase
   generation: number
   lastInputAt: number
-}
-
-/** Where the sticky tool's ghost note follows the pointer, in canvas coordinates. */
-export interface StickyPreview {
-  x: number
-  y: number
-  color: Color
 }
 
 export interface EditorState extends EditorSharedState, EditorViewState {}

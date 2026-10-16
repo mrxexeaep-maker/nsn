@@ -1,6 +1,6 @@
 import type { Canvas } from 'canvaskit-wasm'
 
-import { STICKY_SIZE, type SceneGraph } from '@open-pencil/scene-graph'
+import type { SceneGraph } from '@open-pencil/scene-graph'
 import type { Rect } from '@open-pencil/scene-graph/primitives'
 import type { SnapGuide } from '@open-pencil/scene-graph/snap'
 
@@ -14,8 +14,7 @@ import {
   FLASH_OVERSHOOT,
   FLASH_RELEASE_MS,
   LAYOUT_INDICATOR_STROKE,
-  MARQUEE_FILL_ALPHA,
-  STICKY_PREVIEW_ALPHA
+  MARQUEE_FILL_ALPHA
 } from '#core/constants'
 import { createSceneGeometry, type RotationPreview } from '#core/geometry'
 
@@ -37,22 +36,6 @@ export function drawSnapGuides(r: SkiaRenderer, canvas: Canvas, guides?: SnapGui
       canvas.drawLine(x1, y, x2, y, r.snapPaint)
     }
   }
-}
-
-/** The note the sticky tool would place: a flat square in its colour, centred on the pointer. */
-export function drawStickyPreview(
-  r: SkiaRenderer,
-  canvas: Canvas,
-  preview?: RenderOverlays['stickyPreview']
-): void {
-  if (!preview) return
-  const half = STICKY_SIZE / 2
-  const x1 = (preview.x - half) * r.zoom + r.panX
-  const y1 = (preview.y - half) * r.zoom + r.panY
-  const size = STICKY_SIZE * r.zoom
-  const { r: red, g, b } = preview.color
-  r.auxFill.setColor(r.ck.Color4f(red, g, b, STICKY_PREVIEW_ALPHA))
-  canvas.drawRect(r.ck.XYWHRect(x1, y1, size, size), r.auxFill)
 }
 
 export function drawMarquee(r: SkiaRenderer, canvas: Canvas, marquee?: Rect | null): void {

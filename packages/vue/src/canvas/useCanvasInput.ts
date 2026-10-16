@@ -235,8 +235,6 @@ export function useCanvasInput(
     if (!drag.value) {
       const { cx, cy } = coords
       updatePenHover(cx, cy, editor)
-      // The sticky tool follows the pointer with the note it would place, as FigJam does.
-      if (editor.state.activeTool === 'STICKY') editor.setStickyPreview({ x: cx, y: cy })
     }
 
     if (!drag.value) {
@@ -332,10 +330,8 @@ export function useCanvasInput(
       return
     }
 
-    if (d.type === 'place') {
-      d.x = cx
-      d.y = cy
-      editor.setStickyPreview({ x: cx, y: cy })
+    if (d.type === 'sticky-draw') {
+      d.move(cx, cy)
       return
     }
 
@@ -398,7 +394,7 @@ export function useCanvasInput(
   /** Drops what a resize or pencil stroke showed without changing the document. */
   function discardDrawnPreview(d: DragState) {
     if (d.type === 'resize') cancelResizePreview(d, editor)
-    else if (d.type === 'sticky-scale') d.cancel()
+    else if (d.type === 'sticky-scale' || d.type === 'sticky-draw') d.cancel()
     else if (d.type === 'pencil-drag') editor.pencilCancel()
   }
 
@@ -504,7 +500,6 @@ export function useCanvasInput(
       editor.setHoveredNode(null)
       editor.setHoveredGuide(null)
       editor.setShapeHandleHover(null)
-      editor.setStickyPreview(null)
     }
   })
   useEventListener(
@@ -531,6 +526,7 @@ export function useCanvasInput(
         const type = drag.value?.type
         if (
           type === 'draw' ||
+          type === 'sticky-draw' ||
           type === 'rotate' ||
           type === 'shape-handle' ||
           type === 'sticky-scale'

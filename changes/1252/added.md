@@ -1,1 +1,1 @@
-- The sticky tool follows the pointer with a see-through note, as FigJam does, so you see where a note lands before releasing.
+- The sticky tool draws notes the way frames are drawn: a note appears at the press and grows with the drag, its text scaling with it, and a click places one with its corner there.

@@ -6,7 +6,7 @@ import { drawGuides } from '#core/canvas/guides/draw'
 import { drawIssueHighlight, drawIssueMarkers } from '#core/canvas/issues/draw'
 import { layoutIssueMarkers } from '#core/canvas/issues/layout'
 import { drawComponentSetBorders } from '#core/canvas/overlays/component-sets'
-import { drawDropTarget, drawEditingText, drawStickyPreview } from '#core/canvas/overlays/feedback'
+import { drawDropTarget, drawEditingText } from '#core/canvas/overlays/feedback'
 import { drawGradientHandles } from '#core/canvas/overlays/gradient-handles'
 import { drawLayoutOutlines } from '#core/canvas/overlays/layout-outlines'
 import { drawMeasurementSegment } from '#core/canvas/overlays/measurement'
@@ -139,7 +139,6 @@ export function drawOverlayPass(
   drawGuides(r, canvas, graph, overlays.guides)
   r.drawSnapGuides(canvas, overlays.snapGuides)
   r.drawMarquee(canvas, overlays.marquee)
-  drawStickyPreview(r, canvas, overlays.stickyPreview)
   r.drawLayoutInsertIndicator(canvas, overlays.layoutInsertIndicator)
   if (!measuring && !overlays.transforming) {
     r.drawAutoLayoutHover(canvas, graph, overlays.autoLayoutHover)
