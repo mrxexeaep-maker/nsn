@@ -97,7 +97,7 @@ describe('path cache', () => {
     paths.store(paths.vector, 'huge', [huge])
     expect(paths.vector.has('huge')).toBe(false)
     expect(huge.isDeleted()).toBe(false)
-    paths.releaseUncached()
+    paths.beginFrame()
     expect(huge.isDeleted()).toBe(true)
   })
 })
@@ -113,6 +113,21 @@ describe('renderer path caches', () => {
       expect(renderer.nodePaths.vector.size).toBeGreaterThan(0)
       expect(renderer.nodePaths.vector.weight).toBeLessThanOrEqual(400)
       expect(earliest.every((path) => path.isDeleted())).toBe(true)
+    })
+  })
+
+  test('a page larger than a cache keeps the paths it holds from one recording to the next', () => {
+    const { graph, pageId } = triangles(200)
+    withRenderer(pageId, (renderer) => {
+      renderer.nodePaths = new NodePathCaches({ maxPoints: 400 })
+      const held = () => [...renderer.nodePaths.vector.values()].flat()
+      render(renderer, graph, new Set(), {}, 1, 'scene', true)
+      const first = held()
+      renderer.invalidateAllPictures()
+      render(renderer, graph, new Set(), {}, 2, 'scene', true)
+      expect(first.length).toBeGreaterThan(0)
+      expect(held()).toEqual(first)
+      expect(first.some((path) => path.isDeleted())).toBe(false)
     })
   })
 

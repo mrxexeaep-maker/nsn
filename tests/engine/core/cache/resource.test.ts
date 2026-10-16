@@ -8,6 +8,34 @@ interface Resource {
 }
 
 describe('ResourceCache', () => {
+  test('protectFrames keeps what the current frame used and rejects what does not fit', () => {
+    const removed: string[] = []
+    const cache = new ResourceCache<string, Resource>({
+      maxEntries: 2,
+      protectFrames: true,
+      dispose: (_, key) => removed.push(key)
+    })
+    cache.beginFrame()
+    cache.set('a', { id: 1, units: 1 })
+    cache.set('b', { id: 2, units: 1 })
+    expect(cache.set('c', { id: 3, units: 1 })).toBe(false)
+    expect([...cache].map(([key]) => key)).toEqual(['a', 'b'])
+
+    cache.beginFrame()
+    cache.get('a')
+    expect(cache.set('c', { id: 3, units: 1 })).toBe(true)
+    expect([...cache].map(([key]) => key)).toEqual(['a', 'c'])
+    expect(removed).toEqual(['b'])
+  })
+
+  test('protectFrames lets a frame replace its own entry', () => {
+    const cache = new ResourceCache<string, Resource>({ maxEntries: 1, protectFrames: true })
+    cache.beginFrame()
+    cache.set('a', { id: 1, units: 1 })
+    expect(cache.set('a', { id: 2, units: 1 })).toBe(true)
+    expect(cache.get('a')?.id).toBe(2)
+  })
+
   test('deleteWhere disposes the selected entries as deletes and keeps the rest', () => {
     const removed: Array<[string, CacheRemovalReason]> = []
     const cache = new ResourceCache<string, Resource>({

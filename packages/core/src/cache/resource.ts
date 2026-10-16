@@ -5,12 +5,20 @@ export interface ResourceCacheOptions<K, V> {
   maxWeight?: number
   weight?: (value: V, key: K) => number
   dispose?: (value: V, key: K, reason: CacheRemovalReason) => void
+  /**
+   * Keep what the current frame used: when only such entries could make room, a new value is
+   * rejected instead. A frame that walks more than the budget then keeps hitting what the cache
+   * holds and rebuilds the rest, instead of evicting each entry just before it comes round again.
+   */
+  protectFrames?: boolean
 }
 
 interface Slot<K, V> {
   key: K
   value: V
   weight: number
+  /** The frame that last used the entry. */
+  frame: number
   previous: number
   next: number
 }
@@ -26,6 +34,7 @@ interface Removal<K, V> {
  * Disposed values must not share owned native handles across keys.
  * A successful set transfers ownership. A rejected set leaves ownership with the caller.
  * Returned values are borrowed until removal. Iteration does not touch recency.
+ * With `protectFrames`, `beginFrame` starts the frame whose entries are kept.
  */
 export class ResourceCache<K, V> {
   private readonly index = new Map<K, number>()
@@ -34,6 +43,7 @@ export class ResourceCache<K, V> {
   private oldest = -1
   private newest = -1
   private totalWeight = 0
+  private frame = 0
   private readonly maxEntries: number
   private readonly maxWeight: number
 
@@ -68,10 +78,16 @@ export class ResourceCache<K, V> {
     return index === undefined ? undefined : this.slot(index).value
   }
 
+  /** Starts a frame; with `protectFrames`, what earlier frames used becomes evictable. */
+  beginFrame(): void {
+    this.frame++
+  }
+
   get(key: K): V | undefined {
     const index = this.index.get(key)
     if (index === undefined) return undefined
     const slot = this.slot(index)
+    slot.frame = this.frame
     if (index !== this.newest) {
       this.unlink(slot)
       this.append(index, slot)
@@ -92,8 +108,9 @@ export class ResourceCache<K, V> {
     }
     if (this.maxEntries === 0 || weight > this.maxWeight) return false
 
-    const removed: Removal<K, V>[] = []
     const existing = this.index.get(key)
+    if (this.options.protectFrames && !this.canMakeRoom(weight, existing)) return false
+    const removed: Removal<K, V>[] = []
     if (existing !== undefined) {
       const old = this.remove(existing)
       if (old.value !== value) removed.push({ slot: old, reason: 'replace' })
@@ -103,7 +120,7 @@ export class ResourceCache<K, V> {
       removed.push({ slot: this.remove(this.oldest), reason: 'evict' })
     }
     const index = this.free.pop() ?? this.slots.length
-    const slot: Slot<K, V> = { key, value, weight, previous: -1, next: -1 }
+    const slot: Slot<K, V> = { key, value, weight, frame: this.frame, previous: -1, next: -1 }
     this.slots[index] = slot
     this.index.set(key, index)
     this.totalWeight += weight
@@ -148,6 +165,28 @@ export class ResourceCache<K, V> {
 
   [Symbol.iterator](): IterableIterator<[K, V]> {
     return this.entries()
+  }
+
+  /** Whether evicting entries the current frame has not used frees room for `weight`. */
+  private canMakeRoom(weight: number, existing: number | undefined): boolean {
+    let size = this.size
+    let total = this.totalWeight
+    if (existing !== undefined) {
+      size--
+      total -= this.slot(existing).weight
+    }
+    // Recency order: once an entry is protected, every newer one is too.
+    for (let index = this.oldest; size >= this.maxEntries || weight > this.maxWeight - total;) {
+      if (index === -1) return true
+      const slot = this.slot(index)
+      if (index !== existing) {
+        if (slot.frame === this.frame) return false
+        size--
+        total -= slot.weight
+      }
+      index = slot.next
+    }
+    return true
   }
 
   private slot(index: number): Slot<K, V> {
