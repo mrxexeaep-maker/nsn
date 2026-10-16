@@ -15,6 +15,7 @@ import { designCheckMessageDefaults, designCheckMessages } from '#vue/i18n/messa
 import { diagnosticsMessageDefaults, diagnosticsMessages } from '#vue/i18n/messages/diagnostics'
 import { editorMessageDefaults, editorMessages } from '#vue/i18n/messages/editor'
 import { filesMessageDefaults, filesMessages } from '#vue/i18n/messages/files'
+import { findMessageDefaults, findMessages } from '#vue/i18n/messages/find'
 import { fontsMessageDefaults, fontsMessages } from '#vue/i18n/messages/fonts'
 import { mediaMessageDefaults, mediaMessages } from '#vue/i18n/messages/media'
 import { menuMessageDefaults, menuMessages } from '#vue/i18n/messages/menu'
@@ -47,6 +48,7 @@ export {
   diagnosticsMessages,
   editorMessages,
   filesMessages,
+  findMessages,
   fontsMessages,
   mediaMessages,
   menuMessages,
@@ -79,6 +81,7 @@ export const messageDefaults = {
   diagnostics: diagnosticsMessageDefaults,
   editor: editorMessageDefaults,
   files: filesMessageDefaults,
+  find: findMessageDefaults,
   fonts: fontsMessageDefaults,
   media: mediaMessageDefaults,
   menu: menuMessageDefaults,

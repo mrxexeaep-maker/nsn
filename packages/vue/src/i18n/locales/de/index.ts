@@ -14,6 +14,7 @@ import designCheck from './design-check.json'
 import diagnostics from './diagnostics.json'
 import editor from './editor.json'
 import files from './files.json'
+import find from './find.json'
 import fonts from './fonts.json'
 import media from './media.json'
 import menu from './menu.json'
@@ -45,6 +46,7 @@ export default {
   diagnostics,
   editor,
   files,
+  find,
   fonts,
   media,
   menu,
