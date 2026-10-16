@@ -13,8 +13,9 @@ import { findDocument, insertDocument, workspaceRole } from '#cloud/server/docum
 import { DocumentForbiddenError, DocumentNotFoundError } from '#cloud/server/documents/service'
 import { documentSummary, getDocumentSummaryRow } from '#cloud/server/documents/summary'
 import type { ObjectStore } from '#cloud/server/objects'
+import type { CloudPolicyContext } from '#cloud/server/policy/keys'
 import type { CloudPolicy } from '#cloud/server/policy/policy'
-import type { Kysely } from 'kysely'
+import type { Kysely, Transaction } from 'kysely'
 
 import { keepRevision } from './checkpoint'
 import { historyStart } from './history'
@@ -57,8 +58,9 @@ function versionOf(row: VersionRow, currentRevisionId: string | null): DocumentV
 export function createDocumentVersionService(
   database: Kysely<CloudDatabase>,
   objects: ObjectStore,
-  options: { policy?: CloudPolicy } = {}
+  options: { policy?: CloudPolicy; deploymentMode?: CloudPolicyContext['deploymentMode'] } = {}
 ) {
+  const deploymentMode = options.deploymentMode ?? 'self-hosted'
   function versions() {
     return database
       .selectFrom('documentVersion')
@@ -91,7 +93,10 @@ export function createDocumentVersionService(
     if (edit && !canEditDocument(access)) throw new DocumentForbiddenError()
     const document = await getDocumentSummaryRow(database, documentId)
     if (!document) throw new DocumentNotFoundError()
-    return { document, start: await historyStart(options.policy, document.workspaceId, new Date()) }
+    return {
+      document,
+      start: await historyStart(options.policy, deploymentMode, document.workspaceId, new Date())
+    }
   }
 
   async function findVersion(documentId: string, versionId: string, start: Date | null) {
@@ -104,8 +109,12 @@ export function createDocumentVersionService(
     return row
   }
 
-  async function storedRevision(revisionId: string) {
-    const stored = await database
+  /** The stored file of a revision; read under the document's lock before reusing it. */
+  async function storedRevision(
+    source: Kysely<CloudDatabase> | Transaction<CloudDatabase>,
+    revisionId: string
+  ) {
+    const stored = await source
       .selectFrom('documentRevision')
       .innerJoin('storageObject', 'storageObject.id', 'documentRevision.storageObjectId')
       .select([
@@ -217,7 +226,7 @@ export function createDocumentVersionService(
     ): Promise<DocumentDownload> {
       const { document, start } = await openHistory(userId, documentId, false)
       const version = await findVersion(documentId, versionId, start)
-      const stored = await storedRevision(version.revisionId)
+      const stored = await storedRevision(database, version.revisionId)
       return {
         document: documentSummary(document),
         revisionId: version.revisionId,
@@ -243,7 +252,6 @@ export function createDocumentVersionService(
     ): Promise<{ document: DocumentSummary; version: DocumentVersion }> {
       const { start } = await openHistory(userId, documentId, true)
       const version = await findVersion(documentId, versionId, start)
-      const stored = await storedRevision(version.revisionId)
       const revisionId = crypto.randomUUID()
       const now = new Date()
       await database.transaction().execute(async (transaction) => {
@@ -254,6 +262,8 @@ export function createDocumentVersionService(
           .forUpdate()
           .executeTakeFirst()
         if (!locked || locked.deletedAt) throw new DocumentNotFoundError()
+        // Compaction locks the document too, so the version's file cannot go while it is reused.
+        const stored = await storedRevision(transaction, version.revisionId)
         if (locked.currentRevisionId) {
           const current = await transaction
             .selectFrom('documentRevision')
@@ -315,10 +325,19 @@ export function createDocumentVersionService(
       if (!role) throw new DocumentNotFoundError()
       if (!WRITABLE_ROLES.has(role)) throw new DocumentForbiddenError()
       const version = await findVersion(documentId, versionId, start)
-      const stored = await storedRevision(version.revisionId)
       const copyId = crypto.randomUUID()
       const revisionId = crypto.randomUUID()
       await database.transaction().execute(async (transaction) => {
+        // Deleted-document cleanup removes files its document alone uses; holding the source
+        // until the copy refers to the file means cleanup either finishes first or sees the copy.
+        const source = await transaction
+          .selectFrom('document')
+          .select(['deletedAt', 'cleanupClaimId'])
+          .where('id', '=', documentId)
+          .forUpdate()
+          .executeTakeFirst()
+        if (!source || source.deletedAt || source.cleanupClaimId) throw new DocumentNotFoundError()
+        const stored = await storedRevision(transaction, version.revisionId)
         await insertDocument(transaction, {
           id: copyId,
           workspaceId: document.workspaceId,

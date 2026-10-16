@@ -53,7 +53,10 @@ export async function startNodeCloudServer(options: NodeCloudServerOptions = {})
     ? startCleanupWorker(
         {
           documents: createDocumentCleanupService(database, objects),
-          revisions: createRevisionCompactionService(database, objects, { policy }),
+          revisions: createRevisionCompactionService(database, objects, {
+            policy,
+            deploymentMode: config.deployment
+          }),
           uploads: createUploadCleanupService(database, objects),
           rateLimits: createRateLimitCleanupService(database)
         },

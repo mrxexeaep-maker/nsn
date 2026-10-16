@@ -35,7 +35,8 @@ try {
     )
   )
   const revisions = await createRevisionCompactionService(database, objects, {
-    policy
+    policy,
+    deploymentMode: config.deployment
   }).compactRevisions({ batchSize: config.cleanupBatchSize, graceMs: REVISION_COMPACTION_GRACE_MS })
   console.log(JSON.stringify({ uploads, documents, revisions }))
 } finally {

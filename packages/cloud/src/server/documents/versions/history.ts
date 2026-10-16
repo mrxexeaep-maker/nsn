@@ -1,4 +1,4 @@
-import { CLOUD_FEATURE_KEYS } from '#cloud/server/policy/keys'
+import { CLOUD_FEATURE_KEYS, type CloudPolicyContext } from '#cloud/server/policy/keys'
 import type { CloudPolicy } from '#cloud/server/policy/policy'
 
 /** How far back a workspace without full revision history keeps its versions. */
@@ -10,6 +10,7 @@ export const LIMITED_HISTORY_DAYS = 30
  */
 export async function historyStart(
   policy: CloudPolicy | undefined,
+  deploymentMode: CloudPolicyContext['deploymentMode'],
   workspaceId: string,
   now: Date
 ): Promise<Date | null> {
@@ -17,7 +18,7 @@ export async function historyStart(
     ? await policy.boolean(CLOUD_FEATURE_KEYS.revisionHistory, true, {
         targetingKey: workspaceId,
         workspaceId,
-        deploymentMode: 'self-hosted'
+        deploymentMode
       })
     : true
   return full ? null : new Date(now.getTime() - LIMITED_HISTORY_DAYS * 24 * 60 * 60_000)

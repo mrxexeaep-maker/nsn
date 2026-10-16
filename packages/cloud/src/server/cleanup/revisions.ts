@@ -1,6 +1,7 @@
 import type { CloudDatabase } from '#cloud/server/db'
 import { historyStart, LIMITED_HISTORY_DAYS } from '#cloud/server/documents/versions/history'
 import type { ObjectStore } from '#cloud/server/objects'
+import type { CloudPolicyContext } from '#cloud/server/policy/keys'
 import type { CloudPolicy } from '#cloud/server/policy/policy'
 import { groupBy, sumBy, uniq } from 'es-toolkit'
 import type { Kysely, Transaction } from 'kysely'
@@ -36,8 +37,9 @@ export type RevisionCompactionService = {
 export function createRevisionCompactionService(
   database: Kysely<CloudDatabase>,
   objects: ObjectStore,
-  options: { policy?: CloudPolicy } = {}
+  options: { policy?: CloudPolicy; deploymentMode?: CloudPolicyContext['deploymentMode'] } = {}
 ): RevisionCompactionService {
+  const deploymentMode = options.deploymentMode ?? 'self-hosted'
   async function pruneVersions(now: Date, batchSize: number): Promise<number> {
     if (!options.policy) return 0
     const limitedBefore = new Date(now.getTime() - LIMITED_HISTORY_DAYS * 24 * 60 * 60_000)
@@ -50,7 +52,7 @@ export function createRevisionCompactionService(
       .execute()
     let pruned = 0
     for (const { workspaceId } of workspaces) {
-      const start = await historyStart(options.policy, workspaceId, now)
+      const start = await historyStart(options.policy, deploymentMode, workspaceId, now)
       if (!start) continue
       const deleted = await database
         .deleteFrom('documentVersion')

@@ -307,6 +307,23 @@ describe('Cloud version history', () => {
     }
   })
 
+  test('refuses to duplicate a version of a deleted document', async () => {
+    const context = await testApp()
+    try {
+      await context.save()
+      const [version] = (await context.history()).versions
+      if (!version) throw new Error('No version')
+      await context.request(`/documents/${context.documentId}`, { method: 'DELETE' })
+      const copy = await context.request(
+        `/documents/${context.documentId}/versions/${version.id}/duplicate`,
+        { method: 'POST', json: { name: 'Poster copy' } }
+      )
+      expect(copy.status).toBe(404)
+    } finally {
+      await context.runtime.close()
+    }
+  })
+
   test('pages through a long history, newest first', async () => {
     const context = await testApp()
     try {

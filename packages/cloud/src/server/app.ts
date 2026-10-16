@@ -199,7 +199,10 @@ export function createCloudApp(services: CloudServices) {
     policy,
     technicalMaximumUploadBytes: services.config.technicalLimits.maximumUploadBytes
   })
-  const versions = createDocumentVersionService(services.database, services.objects, { policy })
+  const versions = createDocumentVersionService(services.database, services.objects, {
+    policy,
+    deploymentMode: services.config.deployment
+  })
   const entitlements = createEntitlementService(
     services.database,
     policy,
