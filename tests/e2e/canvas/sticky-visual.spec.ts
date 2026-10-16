@@ -20,3 +20,16 @@ test('sticky notes draw their colour, shadows, body, author, and the empty place
   editor.canvas.assertNoErrors()
   expect(await editor.canvas.screenshotCanvasRegion()).toMatchSnapshot('sticky-notes.png')
 })
+
+test('the sticky tool shows the note it would place, see-through, under the pointer', async () => {
+  await sticky.add([{ x: 160, y: 160, author: 'Ada Lovelace' }])
+  await editor.page.evaluate(() => window.openPencil?.getStore?.().setTool('STICKY'))
+  // Over the note's corner, so the ghost shows what it covers.
+  await editor.canvas.hover(360, 360)
+  editor.canvas.assertNoErrors()
+  // The ghost is faint, so the default colour tolerance would pass a canvas without it.
+  expect(await editor.canvas.screenshotCanvasRegion()).toMatchSnapshot('sticky-tool-preview.png', {
+    threshold: 0.02
+  })
+  await editor.page.evaluate(() => window.openPencil?.getStore?.().setTool('SELECT'))
+})

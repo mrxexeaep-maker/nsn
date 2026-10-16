@@ -112,6 +112,16 @@ export function stickyDriver(page: () => Page) {
       })
     },
 
+    /** Where the sticky tool's ghost note is centred, to the pixel, if it shows. */
+    preview() {
+      return page().evaluate(() => {
+        const store = window.openPencil?.getStore?.()
+        if (!store) throw new Error('OpenPencil store not initialized')
+        const preview = store.state.stickyPreview
+        return preview ? { x: Math.round(preview.x), y: Math.round(preview.y) } : null
+      })
+    },
+
     /** Canvas coordinates of a page point, under `showOrigin`. */
     point(x: number, y: number) {
       return { x: ORIGIN + x, y: ORIGIN + y }

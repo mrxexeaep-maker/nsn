@@ -52,6 +52,30 @@ test('the sticky tool places a note centred on the click to type into', async ()
   })
 })
 
+test('the sticky tool follows the pointer with its note until it places one', async () => {
+  await sticky.showTool()
+  await sticky.pickTool()
+  const before = (await sticky.notes()).length
+  const hover = sticky.point(300, 200)
+  await editor.canvas.hover(hover.x, hover.y)
+  expect(await sticky.preview()).toEqual({ x: 300, y: 200 })
+
+  const box = await editor.canvas.canvas.boundingBox()
+  if (!box) throw new Error('Missing canvas')
+  await editor.page.mouse.down()
+  const to = sticky.point(420, 260)
+  await editor.page.mouse.move(box.x + to.x, box.y + to.y, { steps: 6 })
+  await editor.canvas.waitForRender()
+  expect(await sticky.preview()).toEqual({ x: 420, y: 260 })
+  expect(await sticky.notes()).toHaveLength(before)
+
+  await editor.page.mouse.up()
+  await editor.canvas.waitForRender()
+  expect(await lastNote()).toMatchObject({ x: 300, y: 140, width: 240, height: 240 })
+  expect(await sticky.preview()).toBeNull()
+  await editor.page.keyboard.press('Escape')
+})
+
 test('the Sticky note section recolours a note, sizes its text, and hides its author', async () => {
   await sticky.add([{ x: 300, y: 200, text: 'Panel', author: 'Ada' }])
   await clickNote(300, 200)

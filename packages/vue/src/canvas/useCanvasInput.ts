@@ -235,6 +235,8 @@ export function useCanvasInput(
     if (!drag.value) {
       const { cx, cy } = coords
       updatePenHover(cx, cy, editor)
+      // The sticky tool follows the pointer with the note it would place, as FigJam does.
+      if (editor.state.activeTool === 'STICKY') editor.setStickyPreview({ x: cx, y: cy })
     }
 
     if (!drag.value) {
@@ -333,6 +335,7 @@ export function useCanvasInput(
     if (d.type === 'place') {
       d.x = cx
       d.y = cy
+      editor.setStickyPreview({ x: cx, y: cy })
       return
     }
 
@@ -501,6 +504,7 @@ export function useCanvasInput(
       editor.setHoveredNode(null)
       editor.setHoveredGuide(null)
       editor.setShapeHandleHover(null)
+      editor.setStickyPreview(null)
     }
   })
   useEventListener(

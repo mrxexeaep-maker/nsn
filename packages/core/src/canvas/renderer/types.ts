@@ -4,7 +4,7 @@ import type { SnapGuide } from '@open-pencil/scene-graph/snap'
 
 import type { GuideOverlayState } from '#core/canvas/guides/types'
 import type { DesignIssueOverlay } from '#core/canvas/issues/types'
-import type { ShapeHandleHover, GradientEdit, PencilState } from '#core/editor/types'
+import type { ShapeHandleHover, GradientEdit, PencilState, StickyPreview } from '#core/editor/types'
 import type { RotationPreview } from '#core/geometry'
 import type { TextEditor } from '#core/text/editor'
 
@@ -72,6 +72,8 @@ export interface RenderOverlays {
   } | null
   /** The selected shape's handles and the label of the one in use. */
   shapeHandleHover?: ShapeHandleHover | null
+  /** The ghost note the sticky tool follows the pointer with. */
+  stickyPreview?: StickyPreview | null
   penState?: {
     vertices: Vector[]
     segments: Array<{

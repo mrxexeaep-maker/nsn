@@ -65,6 +65,8 @@ export const SIZE_PILL_HEIGHT = 18
 export const SIZE_PILL_RADIUS = 4
 export const SIZE_PILL_TEXT_OFFSET_Y = 13
 
+/** The sticky tool's ghost note, as FigJam draws it: the note's colour at this opacity. */
+export const STICKY_PREVIEW_ALPHA = 0.35
 export const MARQUEE_FILL_ALPHA = 0.08
 export const SELECTION_DASH_ALPHA = 0.6
 /** Tint inside the layer of the code element around the cursor, under its hover outline. */
