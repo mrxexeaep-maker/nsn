@@ -389,6 +389,59 @@ describe('Cloud revision compaction', () => {
     }
   })
 
+  test('deletes no more saves in one pass than its batch allows', async () => {
+    const context = await testApp()
+    try {
+      for (let index = 0; index < 7; index++) await context.save()
+      await context.age(2 * DAY_MS)
+      const compaction = createRevisionCompactionService(
+        context.runtime.database,
+        context.objects.store
+      )
+      const passes = []
+      for (let index = 0; index < 3; index++) {
+        passes.push(
+          (await compaction.compactRevisions({ batchSize: 2, graceMs: DAY_MS })).revisionsDeleted
+        )
+      }
+      expect(passes).toEqual([2, 2, 1])
+    } finally {
+      await context.runtime.close()
+    }
+  })
+
+  test('tries a file again when the object store failed to delete it', async () => {
+    const context = await testApp()
+    try {
+      await context.save()
+      await context.save()
+      await context.save()
+      await context.age(2 * DAY_MS)
+      const failing = {
+        ...context.objects.store,
+        delete: async () => {
+          throw new Error('The object store is unavailable')
+        }
+      }
+      const first = await createRevisionCompactionService(
+        context.runtime.database,
+        failing
+      ).compactRevisions({ batchSize: 100, graceMs: DAY_MS })
+      expect(first).toMatchObject({ revisionsDeleted: 1, objectsDeleted: 0, failed: 1 })
+      expect(first.bytesReclaimed).toBe(FILE_BYTES)
+
+      const second = await createRevisionCompactionService(
+        context.runtime.database,
+        context.objects.store
+      ).compactRevisions({ batchSize: 100, graceMs: DAY_MS })
+      expect(second).toMatchObject({ revisionsDeleted: 0, objectsDeleted: 1, failed: 0 })
+      const rows = await context.runtime.database.selectFrom('storageObject').select('id').execute()
+      expect(rows).toHaveLength(2)
+    } finally {
+      await context.runtime.close()
+    }
+  })
+
   test('leaves recent saves alone', async () => {
     const context = await testApp()
     try {

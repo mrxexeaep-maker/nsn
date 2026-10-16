@@ -62,7 +62,8 @@ keeps on its own, and versions someone named (`document_version`, one per revisi
   Duplicating makes a new document in the same workspace from the same file. Neither uploads
   anything or uses more storage.
 - The cleanup worker compacts saves that are neither current nor a version once they are a day old,
-  deleting the file when nothing else uses it and returning its bytes to the workspace's usage. With
+  a batch at a time, and returns the bytes of files nothing else uses to the workspace's usage. A
+  freed file's row stays until the object store deletes it, so a failed delete is retried. With
   the `revision_history` entitlement off, a workspace keeps 30 days of versions, as on a free plan.
 
 ## Authentication and authorization

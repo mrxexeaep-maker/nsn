@@ -98,7 +98,33 @@ export function createRevisionCompactionService(
       )
   }
 
-  async function compactDocument(documentId: string, workspaceId: string, before: Date) {
+  /** A file no revision refers to: freed by compaction, waiting for the object store. */
+  function unreferencedObjects(source: Kysely<CloudDatabase> | Transaction<CloudDatabase>) {
+    return source
+      .selectFrom('storageObject')
+      .where((expression) =>
+        expression.not(
+          expression.exists(
+            expression
+              .selectFrom('documentRevision')
+              .select('documentRevision.id')
+              .whereRef('documentRevision.storageObjectId', '=', 'storageObject.id')
+          )
+        )
+      )
+  }
+
+  /**
+   * Deletes up to `limit` compactable saves of one document and returns the bytes of files nothing
+   * refers to any more to the workspace's usage. Their rows stay until the files are gone, so a
+   * delete that fails is tried again on the next pass.
+   */
+  async function compactDocument(
+    documentId: string,
+    workspaceId: string,
+    before: Date,
+    limit: number
+  ) {
     return database.transaction().execute(async (transaction) => {
       // Saves and restores lock the document too, so none can keep a revision deleted here.
       await transaction
@@ -110,8 +136,9 @@ export function createRevisionCompactionService(
       const revisions = await compactable(transaction, before)
         .select(['documentRevision.id', 'documentRevision.storageObjectId'])
         .where('documentRevision.documentId', '=', documentId)
+        .limit(limit)
         .execute()
-      if (revisions.length === 0) return { revisions: 0, keys: [], bytes: 0 }
+      if (revisions.length === 0) return { revisions: 0, bytes: 0 }
       await transaction
         .deleteFrom('documentRevision')
         .where(
@@ -120,20 +147,9 @@ export function createRevisionCompactionService(
           revisions.map((revision) => revision.id)
         )
         .execute()
-      const freed = await transaction
-        .deleteFrom('storageObject')
+      const freed = await unreferencedObjects(transaction)
+        .select('byteSize')
         .where('id', 'in', uniq(revisions.map((revision) => revision.storageObjectId)))
-        .where((expression) =>
-          expression.not(
-            expression.exists(
-              expression
-                .selectFrom('documentRevision')
-                .select('documentRevision.id')
-                .whereRef('documentRevision.storageObjectId', '=', 'storageObject.id')
-            )
-          )
-        )
-        .returning(['objectKey', 'byteSize'])
         .execute()
       const bytes = sumBy(freed, (object) => Number(object.byteSize))
       if (bytes > 0) {
@@ -146,8 +162,38 @@ export function createRevisionCompactionService(
           .where('workspaceId', '=', workspaceId)
           .execute()
       }
-      return { revisions: revisions.length, keys: freed.map((object) => object.objectKey), bytes }
+      return { revisions: revisions.length, bytes }
     })
+  }
+
+  /** Deletes freed files from the object store, then their rows; a failure stays for next time. */
+  async function sweepObjects(batchSize: number, result: RevisionCompactionResult) {
+    const freed = await unreferencedObjects(database)
+      .select(['id', 'objectKey'])
+      .limit(batchSize)
+      .execute()
+    for (const object of freed) {
+      try {
+        await objects.delete(object.objectKey)
+        await database
+          .deleteFrom('storageObject')
+          .where('id', '=', object.id)
+          .where((expression) =>
+            expression.not(
+              expression.exists(
+                expression
+                  .selectFrom('documentRevision')
+                  .select('documentRevision.id')
+                  .whereRef('documentRevision.storageObjectId', '=', 'storageObject.id')
+              )
+            )
+          )
+          .execute()
+        result.objectsDeleted++
+      } catch {
+        result.failed++
+      }
+    }
   }
 
   return {
@@ -165,28 +211,22 @@ export function createRevisionCompactionService(
         .select(['documentRevision.documentId', 'document.workspaceId'])
         .limit(input.batchSize)
         .execute()
+      let capacity = input.batchSize
       for (const [documentId, rows] of Object.entries(
         groupBy(candidates, (row) => row.documentId)
       )) {
         const workspaceId = rows[0]?.workspaceId
-        if (!workspaceId) continue
+        if (!workspaceId || capacity <= 0) continue
         try {
-          const compacted = await compactDocument(documentId, workspaceId, before)
+          const compacted = await compactDocument(documentId, workspaceId, before, capacity)
+          capacity -= compacted.revisions
           result.revisionsDeleted += compacted.revisions
           result.bytesReclaimed += compacted.bytes
-          // Files go once nothing refers to them; one that fails to go is only unused space.
-          for (const key of compacted.keys) {
-            try {
-              await objects.delete(key)
-              result.objectsDeleted++
-            } catch {
-              result.failed++
-            }
-          }
         } catch {
           result.failed++
         }
       }
+      await sweepObjects(input.batchSize, result)
       return result
     }
   }
