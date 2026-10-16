@@ -1,29 +1,3 @@
-import { REKA_ELEMENTS, rekaRole } from './behaviours'
-
-function rekaDescription(namespace: string, part: string): string {
-  const role = rekaRole(`${namespace}.${part}`)
-  if (role?.role === 'root')
-    return `A main component that behaves as Reka UI's ${namespace} ${part}.`
-  if (role?.role === 'input') return `The text layer of a ${namespace}'s text property.`
-  return `The ${namespace} ${part}, drawn by a slot of its component.`
-}
-
-/** A Reka UI element as the element list describes it. */
-function rekaElementDefinitions(): DesignJSXElementDefinition[] {
-  return Object.entries(REKA_ELEMENTS).flatMap(([namespace, parts]) =>
-    Object.keys(parts).map((part) => {
-      const type = `${namespace}.${part}`
-      return { name: type, runtimeType: type, description: rekaDescription(namespace, part) }
-    })
-  )
-}
-
-export type DesignJSXElementDefinition = {
-  name: string
-  runtimeType: string
-  description: string
-}
-
 export type DesignJSXNamedDefinition = {
   name: string
   description: string
@@ -32,41 +6,6 @@ export type DesignJSXNamedDefinition = {
 export type DesignJSXPropertyDefinition = DesignJSXNamedDefinition
 export type DesignJSXHelperDefinition = DesignJSXNamedDefinition
 
-export const DESIGN_JSX_ELEMENTS: DesignJSXElementDefinition[] = [
-  { name: 'Frame', runtimeType: 'frame', description: 'A frame or auto-layout container.' },
-  { name: 'Text', runtimeType: 'text', description: 'A text layer.' },
-  {
-    name: 'Span',
-    runtimeType: 'text-span',
-    description: 'Characters inside a Text, styled apart from the rest.'
-  },
-  {
-    name: 'Paragraph',
-    runtimeType: 'text-paragraph',
-    description: 'One paragraph of a Text, plain or a list item.'
-  },
-  { name: 'Rectangle', runtimeType: 'rectangle', description: 'A rectangle layer.' },
-  { name: 'Ellipse', runtimeType: 'ellipse', description: 'An ellipse layer.' },
-  { name: 'Line', runtimeType: 'line', description: 'A line layer.' },
-  { name: 'Star', runtimeType: 'star', description: 'A star layer.' },
-  { name: 'Polygon', runtimeType: 'polygon', description: 'A polygon layer.' },
-  { name: 'Vector', runtimeType: 'vector', description: 'A vector layer.' },
-  { name: 'Group', runtimeType: 'group', description: 'A group of layers.' },
-  { name: 'Section', runtimeType: 'section', description: 'A canvas section.' },
-  { name: 'Component', runtimeType: 'component', description: 'A reusable component.' },
-  { name: 'ComponentSet', runtimeType: 'component-set', description: 'A component variant set.' },
-  { name: 'Instance', runtimeType: 'instance', description: 'An instance of a component.' },
-  { name: 'View', runtimeType: 'frame', description: 'An alias for Frame.' },
-  { name: 'Rect', runtimeType: 'rectangle', description: 'An alias for Rectangle.' },
-  { name: 'Icon', runtimeType: 'icon', description: 'An Iconify icon.' },
-  {
-    name: 'Sticky',
-    runtimeType: 'sticky',
-    description: 'A FigJam sticky note; its text is the body.'
-  },
-  ...rekaElementDefinitions()
-]
-
 /** Props only `<Paragraph>` takes; like every element, it also takes `key`. */
 export const DESIGN_JSX_PARAGRAPH_PROPERTY_NAMES = [
   'list',
@@ -74,6 +13,27 @@ export const DESIGN_JSX_PARAGRAPH_PROPERTY_NAMES = [
   'spacing',
   'listSpacing',
   'indent'
+] as const
+
+/** Props only `<Sticky>` takes. */
+export const DESIGN_JSX_STICKY_PROPERTY_NAMES = [
+  'color',
+  'author',
+  'authorVisible',
+  'wide',
+  'textSize',
+  'scale'
+] as const
+
+/** Layer props a sticky note takes too. */
+export const DESIGN_JSX_STICKY_LAYER_PROPERTY_NAMES = [
+  'name',
+  'key',
+  'x',
+  'y',
+  'position',
+  'visible',
+  'opacity'
 ] as const
 
 /** Props `<Span>` takes: `<Text>`'s character styles, under the same names, and a link. */

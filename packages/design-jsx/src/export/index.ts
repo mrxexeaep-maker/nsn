@@ -1,14 +1,15 @@
 import { compact } from 'es-toolkit/array'
 
 import { jsx, type SyntaxNode } from '@open-pencil/emit'
-import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import type { NodeType, SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 
+import { elementTag } from '../elements'
 import { stickyBody, stickyName, stickyProps } from '../stickies'
 import { rekaExport, type RekaExport } from './behaviours'
 import { iconProps } from './icons'
-import { collectProps, NODE_TYPE_TO_TAG, positionProps } from './props'
+import { collectProps, positionProps } from './props'
 import { textChildren } from './text'
-import { plainValue, propAttribute } from './value'
+import { plainValue, propAttribute, type JSXProp } from './value'
 
 /** Design JSX with the layer behind each element, in the order elements open. */
 export interface DesignJSXWithLayers {
@@ -46,6 +47,28 @@ function elementCount(nodes: readonly SyntaxNode[]): number {
  * A layer and the layers below it as JSX elements. A component with a behaviour is written as
  * Reka UI elements; a container JSX leaves implicit is written as its children alone.
  */
+/** What an element written its own way holds: its props, and the text it writes as children. */
+interface OwnElement {
+  props: JSXProp[]
+  text: string
+}
+
+/** The layers whose elements take props of their own rather than the layer props. */
+const OWN_ELEMENTS: Partial<Record<NodeType, (graph: SceneGraph, node: SceneNode) => OwnElement>> =
+  {
+    STICKY: (graph, node) => {
+      const name = stickyName(graph, node)
+      return {
+        props: [
+          ...(name ? [['name', name] satisfies JSXProp] : []),
+          ...positionProps(node, graph),
+          ...stickyProps(graph, node).map(([key, value]): JSXProp => [key, plainValue(value)])
+        ],
+        text: stickyBody(graph, node)
+      }
+    }
+  }
+
 function nodeToJSX(
   node: SceneNode,
   graph: SceneGraph,
@@ -66,20 +89,14 @@ function nodeToJSX(
     layerIds?.push(node.id)
     return [jsx.element('Icon', icon.map(propAttribute), [], depth)]
   }
-  if (node.type === 'STICKY') {
-    layerIds?.push(node.id)
-    const body = stickyBody(graph, node)
-    const name = stickyName(graph, node)
-    const attributes = [
-      ...(name ? [propAttribute(['name', name])] : []),
-      ...positionProps(node, graph).map(propAttribute),
-      ...stickyProps(graph, node).map(([key, value]) => propAttribute([key, plainValue(value)]))
-    ]
-    return [jsx.element('Sticky', attributes, body ? [jsx.text(body)] : [], depth, true)]
-  }
-  const tag = reka.tags.get(node.id) ?? NODE_TYPE_TO_TAG[node.type]
+  const tag = reka.tags.get(node.id) ?? elementTag(node.type)
   if (!tag) return []
   layerIds?.push(node.id)
+  const own = OWN_ELEMENTS[node.type]?.(graph, node)
+  if (own) {
+    const children = own.text ? [jsx.text(own.text)] : []
+    return [jsx.element(tag, own.props.map(propAttribute), children, depth, true)]
+  }
   const ownProps = reka.props.get(node.id)
   // An item names its component; the instance's own layers are the component's to write.
   if (ownProps?.some(([name]) => name === 'of'))
@@ -113,7 +130,7 @@ export function sceneNodeAttributes(
   graph: SceneGraph
 ): JSXAttributeSource[] | null {
   const node = graph.getNode(nodeId)
-  if (!node || !NODE_TYPE_TO_TAG[node.type]) return null
+  if (!node || !elementTag(node.type)) return null
   const props = collectProps(node, graph)
   if (node.type === 'TEXT') props.push(['text', node.text])
   return props.map((prop) => ({
@@ -149,7 +166,7 @@ function textContent(node: SceneNode, tag: string): string | null {
 
 export function designJSXElement(nodeId: string, graph: SceneGraph): DesignJSXElement | null {
   const node = graph.getNode(nodeId)
-  const tag = node && NODE_TYPE_TO_TAG[node.type]
+  const tag = node && elementTag(node.type)
   const printed = sceneNodeAttributes(nodeId, graph)
   if (!node || !tag || !printed) return null
   // A text layer's content is written as its children, not as the `text` attribute.
@@ -162,7 +179,7 @@ export function designJSXElement(nodeId: string, graph: SceneGraph): DesignJSXEl
   if (isText) return { tag, attributes, text: textContent(node, tag), childIds: [] }
   const childIds = graph
     .getChildren(node.id)
-    .filter((child) => NODE_TYPE_TO_TAG[child.type])
+    .filter((child) => elementTag(child.type))
     .map((child) => child.id)
   return { tag, attributes, text: null, childIds }
 }

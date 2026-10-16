@@ -8,7 +8,7 @@ Private tooling lives under `tools/<role>/<domain>/{src,tests}`; Steiger enforce
 | `generate/` | Write generated files or artifacts, idempotently                                                                       | `brand`, `demo`, `tauri-menu`, `authoring-reference`, `visual-oracles`, `landing-posters`             |
 | `release/`  | Build, verify, and publish packages and native artifacts                                                               | `package-artifacts`, `release-packages`                                                               |
 | `ci/`       | Consumed by workflows: path classification and gate policy, container images, the review-guidance bot                  | `policy`, `images`, `pr-review-guidance`                                                              |
-| `dev/`      | Test running and benchmarks for humans                                                                                 | `unit-tests`, `navigation-benchmark`, `dev-server`                                                    |
+| `dev/`      | Test running, benchmarks, and local services for humans                                                                | `unit-tests`, `navigation-benchmark`, `dev-server`, `cloud`                                           |
 
 - Nothing under `generate/` or `release/` runs from `bun run check` except through a check entrypoint; `generate/authoring-reference` keeps its `check.ts` beside `generate.ts` until it splits.
 - Resolve the workspace with `resolveWorkspaceRoot` from `@open-pencil/package-artifacts-tools`, not parent-directory traversal. Keep sibling imports relative.
@@ -18,7 +18,10 @@ Private tooling lives under `tools/<role>/<domain>/{src,tests}`; Steiger enforce
 ## CI
 
 - `.github/workflows/ci.yml` and `heavy-tests.yml` define validation gates. PR CI always classifies changed paths through `tools/ci/policy/src/policy.ts`: root docs, package READMEs, every `AGENTS.md`, `packages/docs` Markdown and assets, and skill Markdown are docs-only; runtime prompt Markdown, executable examples, configuration, and unknown paths require code validation.
-- Docs-only changes run documentation integrity and the docs build; everything else runs the full suites. The aggregate `CI result` gate requires successful classification and every applicable job; failures, cancellations, and unexpected skips cannot pass. Do not restore workflow-level path filtering on required CI.
+- Docs-only changes run documentation integrity and the docs build; everything else runs the full suites (`tools/ci/policy/src/policy.ts`).
+- The Cloud suites run when a change touches what `packages/cloud` is built from, derived from its workspace dependencies (`tools/ci/policy/src/cloud-inputs.ts`).
+- The aggregate `CI result` gate requires successful classification and every applicable job; failures, cancellations, and unexpected skips cannot pass (`tools/ci/policy/src/gate.ts`).
+- Do not restore workflow-level path filtering on required CI: a required check whose workflow never runs stays pending and blocks the merge (`.github/workflows/ci.yml`).
 - `commitlint.config.ts` enforces commit structure in the **Commit messages** job; the separate **PR title** workflow validates titles. Preserve the `Release vX.Y.Z` and `Release vX.Y.Z-beta.N` exception, including the ` (#N)` the merge queue appends, and product casing when changing rules; the known AI co-author check does not rewrite base history. Gate policy lives in `tools/ci/policy/src/policy.ts`.
 - `tools/ci/policy` runs right after Bun is set up, before any install, so it imports only Node built-ins; `oxlint.json` switches `open-pencil/prefer-es-toolkit` off there. Other CI tools install their workspace first, as `pr-review-guidance.yml` does through `.github/actions/setup-bun`.
 - Required checks must also run on `merge_group`, the merge queue's event; read base and head from `merge_group.base_sha`/`head_sha` there (`ci.yml`, `pr-title.yml`).

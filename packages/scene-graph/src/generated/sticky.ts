@@ -2,6 +2,7 @@ import { BLACK } from '../constants'
 import type { SceneGraph } from '../index'
 import type { Color } from '../primitives'
 import type { Effect, Fill, SceneNode } from '../types'
+import type { GeneratedFrameKind } from './kind'
 
 /**
  * A FigJam sticky note as Figma lays it out: a fixed-width card that grows to fit its body, with
@@ -163,6 +164,15 @@ export function stickySublayers(graph: SceneGraph, sticky: SceneNode): StickySub
   const [body, author] = children
   if (body.type !== 'TEXT' || author.type !== 'TEXT') return null
   return { body, author }
+}
+
+/** A sticky note scales as a whole from its own handles and stays upright, as in FigJam. */
+export const STICKY_KIND: GeneratedFrameKind = {
+  complete: (graph, frame) => stickySublayers(graph, frame) !== null,
+  text: (graph, frame) => stickySublayers(graph, frame)?.body,
+  rotates: false,
+  resizes: false,
+  namedByText: true
 }
 
 export interface StickyContent {

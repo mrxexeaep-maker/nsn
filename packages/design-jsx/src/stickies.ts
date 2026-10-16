@@ -2,18 +2,17 @@ import {
   createSticky,
   isWideSticky,
   STICKY_COLORS,
-  STICKY_TEXT_SIZES,
   stickyBodySizeFields,
   stickyScale,
   stickySublayers,
   stickyTextSize,
   type SceneGraph,
-  type SceneNode,
-  type StickyTextSize
+  type SceneNode
 } from '@open-pencil/scene-graph'
 import { colorToHex, parseColor } from '@open-pencil/scene-graph/color'
 import type { Color } from '@open-pencil/scene-graph/primitives'
 
+import { STICKY_TEXT_SIZE } from './enums'
 import type { TreeNode } from './tree'
 
 /**
@@ -22,35 +21,10 @@ import type { TreeNode } from './tree'
  */
 export const STICKY_ELEMENT = 'sticky'
 
-/** Props only `<Sticky>` takes. */
-export const DESIGN_JSX_STICKY_PROPERTY_NAMES = [
-  'color',
-  'author',
-  'authorVisible',
-  'wide',
-  'textSize',
-  'scale'
-] as const
-
-/** Layer props a sticky note takes too. */
-export const DESIGN_JSX_STICKY_LAYER_PROPERTY_NAMES = [
-  'name',
-  'key',
-  'x',
-  'y',
-  'position',
-  'visible',
-  'opacity'
-] as const
-
 type StickyColorName = keyof typeof STICKY_COLORS
 
 function isStickyColorName(value: string): value is StickyColorName {
   return value in STICKY_COLORS
-}
-
-function isTextSize(value: unknown): value is StickyTextSize {
-  return typeof value === 'string' && value in STICKY_TEXT_SIZES
 }
 
 /** A palette name such as `"yellow"`, or any colour. */
@@ -93,8 +67,8 @@ export function renderStickyNode(graph: SceneGraph, tree: TreeNode, parentId: st
     }
   )
   const body = stickySublayers(graph, sticky)?.body
-  if (body && isTextSize(props.textSize))
-    graph.updateNode(body.id, stickyBodySizeFields(props.textSize))
+  const textSize = STICKY_TEXT_SIZE.parse(props.textSize)
+  if (body && textSize) graph.updateNode(body.id, stickyBodySizeFields(textSize))
   return sticky
 }
 

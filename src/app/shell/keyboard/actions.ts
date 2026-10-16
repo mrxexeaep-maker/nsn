@@ -1,7 +1,7 @@
 import type { Ref } from 'vue'
 
 import { opacityFromBuffer } from '@open-pencil/core/editor'
-import { stickySublayers } from '@open-pencil/scene-graph'
+import { generatedFrameText } from '@open-pencil/scene-graph'
 import type { useEditorCommands, useViewportKind } from '@open-pencil/vue'
 
 import type { PropertiesTab } from '@/app/ai/chat/use'
@@ -55,8 +55,9 @@ export function createKeyboardActions({
       store.enterNodeEditMode(node.id)
       return
     }
-    // A sticky note opens its body, all of it selected, keeping the note selected.
-    const text = node?.type === 'STICKY' ? stickySublayers(store.graph, node)?.body : node
+    // A generated frame opens its text, such as a sticky note's body, all of it selected,
+    // keeping the frame selected.
+    const text = (node && generatedFrameText(store.graph, node)) ?? node
     if (text?.type === 'TEXT') {
       requestAnimationFrame(() => {
         store.startTextEditing(text.id)

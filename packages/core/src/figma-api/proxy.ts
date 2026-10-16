@@ -45,6 +45,7 @@ import {
   type FigmaPaint
 } from './accessors/visual'
 import { installComponentPropertyAccessors } from './components'
+import { installDevStatusAccessors, type FigmaDevStatusValue } from './dev-status'
 import type { FigmaFontName } from './fonts'
 import type { FigmaFrameNode, FigmaInstanceNode } from './node-types'
 import { installInstanceOverrideAccessors, type FigmaInstanceOverride } from './overrides'
@@ -115,6 +116,7 @@ export class FigmaNodeProxy {
   declare opacity: number
   declare visible: boolean
   declare locked: boolean
+  declare devStatus: FigmaDevStatusValue | undefined
   declare blendMode: string
   declare clipsContent: boolean
   declare cornerRadius: number | typeof MIXED
@@ -584,3 +586,4 @@ installVariableModeNodeProxyAccessors(FigmaNodeProxy.prototype, proxyInternals)
 installComponentPropertyAccessors(FigmaNodeProxy.prototype, proxyInternals)
 installInstanceOverrideAccessors(FigmaNodeProxy.prototype, proxyInternals)
 installSlotAccessors(FigmaNodeProxy.prototype, proxyInternals)
+installDevStatusAccessors(FigmaNodeProxy.prototype, proxyInternals)

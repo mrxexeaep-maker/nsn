@@ -32,6 +32,7 @@ import {
   mergePluginData,
   serializePluginRelaunchData
 } from '../plugin-data'
+import { serializeNodeStatus } from '../status'
 import {
   applyColorVariableBinding,
   createFillPaints,
@@ -1046,6 +1047,7 @@ export function sceneNodeToKiwiWithContext(
 
   applyExportSettingsPluginData(node)
   applyLibrarySourcePluginData(node)
+  serializeNodeStatus(node, nc)
   applyTextPathBoxPluginData(node)
   const pluginData = mergePluginData(node.pluginData)
   if (pluginData.length > 0) nc.pluginData = pluginData

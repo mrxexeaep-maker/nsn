@@ -81,6 +81,7 @@ export interface PendingFontNode {
 }
 
 import type { PlacedIssueMarker } from './issues/types'
+import type { PlacedStatusLabel } from './labels/status'
 import { EffectRasterCache } from './renderer/effect-raster-cache'
 import { TiledSceneController } from './renderer/tiles'
 import type { TransientCanvasPreview } from './renderer/transient-previews'
@@ -221,6 +222,8 @@ export class SkiaRenderer {
   pageId: string | null = null
   /** Issue markers placed in the last overlay pass; hit testing reads the same layout. */
   issueMarkers: PlacedIssueMarker[] = []
+  /** Status labels drawn in the last label pass; clicks on them open the status menu. */
+  statusLabels: PlacedStatusLabel[] = []
   /** Screen rectangles of UI floating over this canvas, which overlays such as edge pins avoid. */
   overlayObstacles: readonly Rect[] = []
 

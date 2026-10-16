@@ -1,9 +1,14 @@
 import { pick } from 'es-toolkit'
 
-import { createsComponentCycle, TRANSFORM_FIELDS, type SceneNode } from '@open-pencil/scene-graph'
+import {
+  createsComponentCycle,
+  generatedFrameKind,
+  TRANSFORM_FIELDS,
+  type SceneNode
+} from '@open-pencil/scene-graph'
 
 import { acceptingParent, acceptsChildren, prepareSlotEdits } from '#core/editor/components/slots'
-import { fitEnclosingGroupsWithUndo } from '#core/editor/structure/group-bounds'
+import { fitEnclosingGroupsWithUndo } from '#core/editor/structure/group/bounds'
 
 import { wrapInAutoLayout as wrapInAutoLayoutImpl } from './structure/auto-layout-wrap'
 import {
@@ -15,7 +20,7 @@ import {
   flattenSelected as flattenSelectedImpl,
   outlineStrokeSelected as outlineStrokeSelectedImpl
 } from './structure/flatten'
-import { ungroupSelected as ungroupImpl } from './structure/group'
+import { ungroupSelected as ungroupImpl } from './structure/group/ungroup'
 import { createLayerTypeActions } from './structure/layer-type'
 import {
   defaultNodeName,
@@ -173,8 +178,9 @@ export function createStructureActions(ctx: EditorContext) {
     const previous = { name: node.name, autoRename: node.autoRename }
     const next = name.trim() || defaultNodeName(node.type)
     if (next === previous.name) return
-    // A sticky note named by hand no longer takes its name from its text, as in FigJam.
-    const renamed = { name: next, autoRename: node.type === 'STICKY' ? false : node.autoRename }
+    // A layer named by its text, as a sticky note is, keeps the name it is given, as in FigJam.
+    const namedByText = generatedFrameKind(node)?.namedByText ?? false
+    const renamed = { name: next, autoRename: namedByText ? false : node.autoRename }
     ctx.graph.updateNode(id, renamed)
     ctx.undo.push({
       label: 'Rename',
