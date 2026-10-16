@@ -6,6 +6,8 @@ import type { CloudPolicy } from '#cloud/server/policy/policy'
 import { groupBy, sumBy, uniq } from 'es-toolkit'
 import type { Kysely, Transaction } from 'kysely'
 
+import { unreferencedObject } from './objects'
+
 /** How long a save between versions is kept before compaction may delete it. */
 export const REVISION_COMPACTION_GRACE_MS = 24 * 60 * 60_000
 
@@ -100,18 +102,7 @@ export function createRevisionCompactionService(
 
   /** A file no revision refers to: freed by compaction, waiting for the object store. */
   function unreferencedObjects(source: Kysely<CloudDatabase> | Transaction<CloudDatabase>) {
-    return source
-      .selectFrom('storageObject')
-      .where((expression) =>
-        expression.not(
-          expression.exists(
-            expression
-              .selectFrom('documentRevision')
-              .select('documentRevision.id')
-              .whereRef('documentRevision.storageObjectId', '=', 'storageObject.id')
-          )
-        )
-      )
+    return source.selectFrom('storageObject').where(unreferencedObject)
   }
 
   /**
@@ -178,16 +169,7 @@ export function createRevisionCompactionService(
         await database
           .deleteFrom('storageObject')
           .where('id', '=', object.id)
-          .where((expression) =>
-            expression.not(
-              expression.exists(
-                expression
-                  .selectFrom('documentRevision')
-                  .select('documentRevision.id')
-                  .whereRef('documentRevision.storageObjectId', '=', 'storageObject.id')
-              )
-            )
-          )
+          .where(unreferencedObject)
           .execute()
         result.objectsDeleted++
       } catch {
