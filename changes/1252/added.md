@@ -1,0 +1,1 @@
+- The sticky tool follows the pointer with a see-through note, as FigJam does, so you see where a note lands before releasing.
