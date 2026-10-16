@@ -185,6 +185,9 @@ export function useCanvasInput(
       e.preventDefault()
       return
     }
+    // Safari treats an unprevented press as the start of a text selection drag and freezes the
+    // cursor until the pointer leaves the canvas; the canvas handles its own drags.
+    if (e.button === 0) e.preventDefault()
     editor.setMeasurementMode('off')
     const openValueEdit = valueEdit.edit.value
     if (openValueEdit) valueEdit.commit(openValueEdit.value)
