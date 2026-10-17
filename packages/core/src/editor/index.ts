@@ -4,6 +4,12 @@ export {
   ReadOnlyLibraryDefinitionError
 } from './capabilities'
 export type { NodeEditCapability } from './capabilities'
+export {
+  READ_ONLY_ACTIONS,
+  READ_ONLY_TOOLS,
+  ReadOnlyDocumentError,
+  withoutDocumentWrites
+} from './read-only'
 export { DEFAULT_SNAPPING_PREFERENCES } from './preferences'
 export type { SnappingPreferences } from './preferences'
 export { createDefaultEditorSharedState } from './state/shared'

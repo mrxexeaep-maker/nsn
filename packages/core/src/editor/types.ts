@@ -71,6 +71,11 @@ export interface ShapeHandleHover {
 
 export interface EditorSharedState {
   activeTool: Tool
+  /**
+   * The document can be looked at, selected in, and copied from but not changed, as for a viewer
+   * or an earlier version; set with `setReadOnly`.
+   */
+  readOnly: boolean
   snappingPreferences: SnappingPreferences
   /** Draw the pixel grid once zoomed in far enough, as Figma's View › Pixel grid; shown unless false. */
   showPixelGrid?: boolean
@@ -189,6 +194,7 @@ export interface EditorEvents extends SceneGraphEvents {
   'repaint:requested': (versions: { renderVersion: number; sceneVersion: number }) => void
   'graph:replaced': (graph: SceneGraph) => void
   'document:color-space-changed': (colorSpace: DocumentColorSpace) => void
+  'document:read-only-changed': (readOnly: boolean) => void
   'history:changed': () => void
   'selection:changed': (selectedIds: string[], previousIds: string[]) => void
   'rotation:preview-changed': (preview: RotationPreview | null) => void
