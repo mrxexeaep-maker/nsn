@@ -169,7 +169,7 @@ export function useCanvasInput(
   function onDblClick(e: MouseEvent) {
     if (editor.state.play) return
     const { cx, cy } = getCoords(e)
-    if (valueEdit.start(cx, cy)) {
+    if (!editor.state.readOnly && valueEdit.start(cx, cy)) {
       e.preventDefault()
       e.stopPropagation()
       return
@@ -194,11 +194,13 @@ export function useCanvasInput(
     if (!editor.state.editingTextId) canvasRef.value?.focus()
     editor.setHoveredNode(null)
     const { sx, sy, cx, cy } = getCoords(e)
-    if (e.button === 0 && guideInput.tryStartExisting(sx, sy, e.altKey)) {
+    // Guides belong to the document, so a read-only one neither moves nor gains them.
+    const guidesEditable = e.button === 0 && !editor.state.readOnly
+    if (guidesEditable && guideInput.tryStartExisting(sx, sy, e.altKey)) {
       e.preventDefault()
       return
     }
-    if (e.button === 0 && guideInput.tryStartFromRuler(sx, sy, cx, cy)) {
+    if (guidesEditable && guideInput.tryStartFromRuler(sx, sy, cx, cy)) {
       e.preventDefault()
       return
     }
@@ -243,12 +245,14 @@ export function useCanvasInput(
     if (!drag.value) {
       const { cx, cy, sx, sy } = coords
       updateNodeEditHover(editor, cx, cy)
-      editor.setShapeHandleHover(resolveShapeHandleHover(editor, sx, sy, e.altKey))
+      editor.setShapeHandleHover(
+        editor.state.readOnly ? null : resolveShapeHandleHover(editor, sx, sy, e.altKey)
+      )
     }
 
     if (!drag.value && editor.state.activeTool === 'SELECT') {
       const { sx, sy, cx, cy } = coords
-      const guideCursor = guideInput.updateHover(sx, sy)
+      const guideCursor = editor.state.readOnly ? null : guideInput.updateHover(sx, sy)
       cursorOverride.value =
         guideCursor ??
         updateHoverCursor(
@@ -259,7 +263,9 @@ export function useCanvasInput(
           editor.state.measurementMode === 'deep' || hoverDeep(e)
         )
       editor.setAutoLayoutHover(
-        editor.state.measurementMode === 'off' ? resolveAutoLayoutHover(cx, cy, editor) : null
+        editor.state.measurementMode === 'off' && !editor.state.readOnly
+          ? resolveAutoLayoutHover(cx, cy, editor)
+          : null
       )
     }
 

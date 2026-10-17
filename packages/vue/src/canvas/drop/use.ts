@@ -49,15 +49,16 @@ export function useCanvasDrop(
 ) {
   const isDraggingOver = ref(false)
 
+  // A read-only document takes no drops, so the pointer shows none.
   useEventListener(canvasRef, 'dragover', (e: DragEvent) => {
-    if (!hasComponentData(e) && !hasFileData(e)) return
+    if (editor.state.readOnly || (!hasComponentData(e) && !hasFileData(e))) return
     e.preventDefault()
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
     isDraggingOver.value = true
   })
 
   useEventListener(canvasRef, 'dragenter', (e: DragEvent) => {
-    if (!hasComponentData(e) && !hasFileData(e)) return
+    if (editor.state.readOnly || (!hasComponentData(e) && !hasFileData(e))) return
     onActivate?.()
     e.preventDefault()
     isDraggingOver.value = true
@@ -71,6 +72,7 @@ export function useCanvasDrop(
     onActivate?.()
     e.preventDefault()
     isDraggingOver.value = false
+    if (editor.state.readOnly) return
 
     const canvas = canvasRef.value
     if (!canvas) return
