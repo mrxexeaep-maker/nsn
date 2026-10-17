@@ -50,6 +50,8 @@ import VariablesSection from './properties/VariablesSection.vue'
 const store = useEditorStore()
 const libraryService = useLibraryService()
 const activeTool = computed(() => store.state.activeTool)
+// A read-only document's properties show but take no edits; the panel still scrolls.
+const readOnly = computed(() => store.state.readOnly)
 const { selectedNode: node, selectedCount: multiCount } = useSelectionState()
 const swapBinding = usePropertyBinding('INSTANCE_SWAP')
 const swapLinked = computed(() => !!swapBinding.definition.value)
@@ -103,30 +105,32 @@ const { panels } = useI18n()
     data-test-id="design-panel-multi"
     class="scrollbar-thin flex-1 overflow-x-hidden overflow-y-auto pb-4"
   >
-    <PanelHeader>
-      <template #icon>
-        <icon-lucide-layers-3 class="size-3.5" aria-hidden="true" />
-      </template>
-      <span role="heading" aria-level="2">
-        {{ panels.selectedCount({ count: String(multiCount) }) }}
-      </span>
-      <template #actions>
-        <SelectionActionsControl :show-boolean-operations="showBooleanOperations" />
-      </template>
-    </PanelHeader>
-    <StatusSection />
-    <ComponentPropertiesSection />
-    <PositionSection />
-    <ConstraintsSection />
-    <SelectionLayoutSection />
-    <AppearanceSection />
-    <TypographySection />
-    <FillSection />
-    <StrokeSection />
-    <EffectsSection />
-    <SelectionColorsSection />
-    <LayoutGridSection v-if="supportsLayoutGuides" />
-    <ExportSection />
+    <div class="contents" :inert="readOnly">
+      <PanelHeader>
+        <template #icon>
+          <icon-lucide-layers-3 class="size-3.5" aria-hidden="true" />
+        </template>
+        <span role="heading" aria-level="2">
+          {{ panels.selectedCount({ count: String(multiCount) }) }}
+        </span>
+        <template #actions>
+          <SelectionActionsControl :show-boolean-operations="showBooleanOperations" />
+        </template>
+      </PanelHeader>
+      <StatusSection />
+      <ComponentPropertiesSection />
+      <PositionSection />
+      <ConstraintsSection />
+      <SelectionLayoutSection />
+      <AppearanceSection />
+      <TypographySection />
+      <FillSection />
+      <StrokeSection />
+      <EffectsSection />
+      <SelectionColorsSection />
+      <LayoutGridSection v-if="supportsLayoutGuides" />
+      <ExportSection />
+    </div>
   </div>
 
   <!-- Single selection: retain one paused subtree while frame presets are shown. -->
@@ -136,96 +140,98 @@ const { panels } = useI18n()
       data-test-id="design-panel-single"
       class="scrollbar-thin flex-1 overflow-x-hidden overflow-y-auto pb-4"
     >
-      <PanelHeader :component="isComponentType">
-        <template #icon>
-          <LayerTypeMenu
-            v-if="node.type === 'FRAME' || node.type === 'GROUP' || node.type === 'SECTION'"
-            :node="node"
-            :icon="selectedIcon"
-          />
-          <Tip v-else :label="node.type">
-            <span role="img" :aria-label="node.type" class="contents">
-              <component :is="selectedIcon" class="size-3.5" />
-            </span>
-          </Tip>
-        </template>
-        <span role="heading" aria-level="2" class="min-w-0">
-          <!-- A swap linked to a property shows the property in place of the layer, as Figma does. -->
-          <PropertyBoundField v-if="swapLinked" field="INSTANCE_SWAP" compact />
-          <template v-else>{{ node.name }}</template>
-        </span>
-        <template #actions>
-          <IconButton
-            v-if="node.type === 'COMPONENT' || node.type === 'COMPONENT_SET'"
-            :label="panels.addVariant"
-            data-test-id="add-variant"
-            :disabled="!canAddVariant"
-            @click="store.addVariant(node.id)"
-          >
-            <icon-lucide-diamond-plus class="size-3.5" />
-          </IconButton>
-          <PropertyBindButton v-if="node.type === 'INSTANCE'" field="INSTANCE_SWAP" />
-          <InstanceUpdateAction
-            v-if="node.type === 'INSTANCE'"
-            :node="node"
-            :editor="store"
-            :service="libraryService"
-            @review="openSelectedInstanceReview"
-          />
-          <SelectionActionsControl />
-          <template v-if="node.type === 'INSTANCE'">
-            <IconButton
-              :label="goToMainComponent.label"
-              data-test-id="instance-go-to-main"
-              @click="goToMainComponent.run()"
-            >
-              <icon-lucide-crosshair class="size-3.5" />
-            </IconButton>
-            <IconButton
-              :label="detachInstance.label"
-              data-test-id="instance-detach"
-              @click="detachInstance.run()"
-            >
-              <icon-lucide-unlink class="size-3.5" />
-            </IconButton>
+      <div class="contents" :inert="readOnly">
+        <PanelHeader :component="isComponentType">
+          <template #icon>
+            <LayerTypeMenu
+              v-if="node.type === 'FRAME' || node.type === 'GROUP' || node.type === 'SECTION'"
+              :node="node"
+              :icon="selectedIcon"
+            />
+            <Tip v-else :label="node.type">
+              <span role="img" :aria-label="node.type" class="contents">
+                <component :is="selectedIcon" class="size-3.5" />
+              </span>
+            </Tip>
           </template>
-        </template>
-      </PanelHeader>
+          <span role="heading" aria-level="2" class="min-w-0">
+            <!-- A swap linked to a property shows the property in place of the layer, as Figma does. -->
+            <PropertyBoundField v-if="swapLinked" field="INSTANCE_SWAP" compact />
+            <template v-else>{{ node.name }}</template>
+          </span>
+          <template #actions>
+            <IconButton
+              v-if="node.type === 'COMPONENT' || node.type === 'COMPONENT_SET'"
+              :label="panels.addVariant"
+              data-test-id="add-variant"
+              :disabled="!canAddVariant"
+              @click="store.addVariant(node.id)"
+            >
+              <icon-lucide-diamond-plus class="size-3.5" />
+            </IconButton>
+            <PropertyBindButton v-if="node.type === 'INSTANCE'" field="INSTANCE_SWAP" />
+            <InstanceUpdateAction
+              v-if="node.type === 'INSTANCE'"
+              :node="node"
+              :editor="store"
+              :service="libraryService"
+              @review="openSelectedInstanceReview"
+            />
+            <SelectionActionsControl />
+            <template v-if="node.type === 'INSTANCE'">
+              <IconButton
+                :label="goToMainComponent.label"
+                data-test-id="instance-go-to-main"
+                @click="goToMainComponent.run()"
+              >
+                <icon-lucide-crosshair class="size-3.5" />
+              </IconButton>
+              <IconButton
+                :label="detachInstance.label"
+                data-test-id="instance-detach"
+                @click="detachInstance.run()"
+              >
+                <icon-lucide-unlink class="size-3.5" />
+              </IconButton>
+            </template>
+          </template>
+        </PanelHeader>
 
-      <StatusSection />
-      <ComponentPropertiesSection v-if="node.type === 'INSTANCE'" />
-      <VariantAuthoringSection
-        v-if="
-          node.type === 'COMPONENT_SET' ||
-          (node.type === 'COMPONENT' &&
-            node.parentId &&
-            store.graph.getNode(node.parentId)?.type === 'COMPONENT_SET')
-        "
-      />
+        <StatusSection />
+        <ComponentPropertiesSection v-if="node.type === 'INSTANCE'" />
+        <VariantAuthoringSection
+          v-if="
+            node.type === 'COMPONENT_SET' ||
+            (node.type === 'COMPONENT' &&
+              node.parentId &&
+              store.graph.getNode(node.parentId)?.type === 'COMPONENT_SET')
+          "
+        />
 
-      <ComponentPropertyListSection />
-      <SlotAuthoringSection />
-      <BehaviourPanel v-if="node.type === 'COMPONENT' || node.type === 'COMPONENT_SET'" />
+        <ComponentPropertyListSection />
+        <SlotAuthoringSection />
+        <BehaviourPanel v-if="node.type === 'COMPONENT' || node.type === 'COMPONENT_SET'" />
 
-      <!-- Presets size artboards; an icon is a glyph. -->
-      <FramePresetSelect v-if="node.type === 'FRAME' && !readIcon(node)" />
+        <!-- Presets size artboards; an icon is a glyph. -->
+        <FramePresetSelect v-if="node.type === 'FRAME' && !readIcon(node)" />
 
-      <IconSection />
-      <StickySection />
-      <PositionSection />
-      <ConstraintsSection />
-      <!-- A sticky note's size follows its text and its scale; Figma leaves W and H read-only. -->
-      <LayoutSection v-if="layerResizes(node)" />
-      <AppearanceSection />
-      <MaskSection />
-      <TypographySection v-if="node.type === 'TEXT'" />
-      <FillSection />
-      <StrokeSection />
-      <EffectsSection />
-      <SelectionColorsSection />
-      <LayoutGridSection v-if="supportsLayoutGuides" />
+        <IconSection />
+        <StickySection />
+        <PositionSection />
+        <ConstraintsSection />
+        <!-- A sticky note's size follows its text and its scale; Figma leaves W and H read-only. -->
+        <LayoutSection v-if="layerResizes(node)" />
+        <AppearanceSection />
+        <MaskSection />
+        <TypographySection v-if="node.type === 'TEXT'" />
+        <FillSection />
+        <StrokeSection />
+        <EffectsSection />
+        <SelectionColorsSection />
+        <LayoutGridSection v-if="supportsLayoutGuides" />
 
-      <ExportSection />
+        <ExportSection />
+      </div>
     </div>
   </RetainedPanel>
 
@@ -234,9 +240,11 @@ const { panels } = useI18n()
     data-test-id="design-panel-empty"
     class="scrollbar-thin flex-1 overflow-x-hidden overflow-y-auto pb-4"
   >
-    <PageSection />
-    <VariablesSection @open-dialog="openVariablesDialog(store)" />
-    <StatusesSection />
-    <ExportSection />
+    <div class="contents" :inert="readOnly">
+      <PageSection />
+      <VariablesSection @open-dialog="openVariablesDialog(store)" />
+      <StatusesSection />
+      <ExportSection />
+    </div>
   </div>
 </template>

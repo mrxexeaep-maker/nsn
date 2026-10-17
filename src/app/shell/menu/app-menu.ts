@@ -274,6 +274,7 @@ export function useAppMenu() {
   }
 
   function disabled(item: AppMenuActionItem): boolean | undefined {
+    if (item.edits && store.state.readOnly) return true
     switch (item.id) {
       case 'view-split-right':
       case 'view-split-down':

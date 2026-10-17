@@ -79,7 +79,7 @@ const styles = computed(() =>
         : undefined
     "
     :class="styles.row({ class: ui?.row })"
-    @dblclick="emit('renameStart', node.id, node.name)"
+    @dblclick="!store.state.readOnly && emit('renameStart', node.id, node.name)"
   >
     <LayerTreeDisclosure
       :expanded="expanded"
@@ -107,6 +107,7 @@ const styles = computed(() =>
     <LayerIssueMark v-if="issue && (issue.own || !expanded)" :mark="issue" />
 
     <LayerTreeActions
+      v-if="!store.state.readOnly"
       :node="node"
       :ui="{
         actions: styles.actions({ class: ui?.actions }),

@@ -1,7 +1,11 @@
 import { tool } from 'ai'
 import { isPlainObject } from 'es-toolkit'
 
-import { graphFromPageSnapshot, isEmptyDocumentChange } from '@open-pencil/core/editor'
+import {
+  graphFromPageSnapshot,
+  isEmptyDocumentChange,
+  withoutDocumentWrites
+} from '@open-pencil/core/editor'
 import type { FigmaAPI } from '@open-pencil/core/figma-api'
 import {
   registerComponentCatalog,
@@ -89,6 +93,12 @@ export function createAITools(store: EditorStore, diagnosticContext?: AIDiagnost
     { toolCallId }: { toolCallId: string }
   ): Promise<unknown> {
     const pageId = figma.currentPageId
+    // A read-only document answers questions and moves the view, and takes no edits.
+    if (store.state.readOnly) {
+      if (toolChangesDocument(def))
+        return { error: 'The document is read-only; nothing was changed.' }
+      return withoutDocumentWrites(store.graph, () => def.execute(figma, args))
+    }
     if (!def.mutates) return def.execute(figma, args)
     // The call belongs to the reply that made it, even if a later one starts meanwhile.
     const run = currentRun(store)

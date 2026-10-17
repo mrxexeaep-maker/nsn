@@ -11,7 +11,7 @@ import {
 
 import { useEditorStore } from '@/app/editor/active-store'
 import { toolIcons } from '@/app/editor/icons'
-import { toolbarItems } from '@/app/editor/toolbar/layout'
+import { readOnlyToolbarLayout, toolbarItems } from '@/app/editor/toolbar/layout'
 import { toolShortcutLabels } from '@/app/editor/toolbar/shortcuts'
 import { appPreferences } from '@/app/settings/preferences/store'
 import { useActionToast } from '@/app/shell/toast/action'
@@ -33,9 +33,14 @@ const { menu } = useI18n()
 const toolLabels = useToolLabels()
 
 const toolShortcuts = toolShortcutLabels()
-const items = computed(() =>
-  toolbarItems(appPreferences.value.toolbar, toolLabels.value, toolShortcuts)
-)
+const items = computed(() => {
+  const layout = appPreferences.value.toolbar
+  return toolbarItems(
+    store.state.readOnly ? readOnlyToolbarLayout(layout) : layout,
+    toolLabels.value,
+    toolShortcuts
+  )
+})
 const tools = computed(() =>
   items.value.flatMap((item) => (item.kind === 'tool' ? [item.tool] : []))
 )

@@ -18,7 +18,7 @@ export function bindNudgeKeys(store: EditorStore) {
     if (e.metaKey || e.ctrlKey || e.altKey) return
 
     const delta = NUDGE_DELTAS[e.code]
-    if (!delta || store.state.selectedIds.size === 0) return
+    if (!delta || store.state.selectedIds.size === 0 || store.state.readOnly) return
 
     const step = e.shiftKey ? 10 : 1
     store.nudgeSelected(delta[0] * step, delta[1] * step)

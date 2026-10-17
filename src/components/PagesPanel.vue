@@ -54,12 +54,17 @@ function pageIssues(pageId: string) {
   return storeRef.value?.designCheck.pages.counts.value.get(pageId) ?? null
 }
 
+/** A read-only document's pages are visited, not added, renamed, moved, or deleted. */
+const readOnly = computed(() => storeRef.value?.state.readOnly ?? false)
+
 const pageActions = ref<Pick<PageActions, 'rename'> | null>(null)
 const currentPages = ref<readonly PageItem[]>([])
 const currentMovePage = ref<PageActions['move'] | null>(null)
 const pageReorder = useFlatReorderDrag<PageItem>({
   items: () => currentPages.value,
-  onMove: (pageId, index) => currentMovePage.value?.(pageId, index)
+  onMove: (pageId, index) => {
+    if (!readOnly.value) currentMovePage.value?.(pageId, index)
+  }
 })
 
 function setPageActions(renamePage: (pageId: string, name: string) => void) {
@@ -71,6 +76,7 @@ watch(pageInput, (input) => {
 })
 
 function startRename(pg: PageItem, renamePage: (pageId: string, name: string) => void) {
+  if (readOnly.value) return
   setPageActions(renamePage)
   rename.start(pg.id, pg.name)
 }
@@ -107,14 +113,19 @@ function setupPageRowRef(
     <div data-test-id="pages-panel" :class="baseStyles.panel()">
       <div :class="baseStyles.header()">
         <span data-test-id="pages-header" :class="baseStyles.title()">{{ panels.pages }}</span>
-        <IconButton :label="panels.addPage" data-test-id="pages-add" @click="actions.add()">
+        <IconButton
+          v-if="!readOnly"
+          :label="panels.addPage"
+          data-test-id="pages-add"
+          @click="actions.add()"
+        >
           <icon-lucide-plus class="size-3.5" />
         </IconButton>
       </div>
       <div :class="baseStyles.body()">
         <div data-test-id="pages-scroll" :class="baseStyles.viewport()">
           <ContextMenuRoot v-for="pg in pages" :key="pg.id" :modal="false">
-            <ContextMenuTrigger as-child>
+            <ContextMenuTrigger as-child :disabled="readOnly">
               <div
                 data-test-id="pages-row"
                 :ref="(value) => setupPageRowRef(value, pg, pages, actions.move)"

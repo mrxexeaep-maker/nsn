@@ -50,6 +50,8 @@ export interface AppMenuActionItem {
   feature?: AppMenuFeature
   palette?: AppMenuPaletteMetadata
   sub?: AppMenuEntry[]
+  /** Changes the document without a command to answer for it, so a read-only one disables it. */
+  edits?: boolean
 }
 
 export interface AppMenuSeparatorItem {
@@ -85,7 +87,7 @@ export const APP_MENU_SCHEMA = [
       { id: 'browse-files', label: 'Browse Files…', handler: 'shell' },
       { id: 'open-tour', label: 'Open the Tour', handler: 'shell' },
       { type: 'separator' },
-      { id: 'save', label: 'Save', shortcut: 'MOD+S' },
+      { id: 'save', label: 'Save', shortcut: 'MOD+S', edits: true },
       { id: 'save-as', label: 'Save As…', shortcut: 'MOD+SHIFT+S' },
       { id: 'save-to', label: 'Save To…' },
       { type: 'separator' },
@@ -118,7 +120,7 @@ export const APP_MENU_SCHEMA = [
         ]
       },
       { type: 'separator' },
-      { id: 'autosave', label: 'Autosave', checkbox: true, feature: 'local-file' },
+      { id: 'autosave', label: 'Autosave', checkbox: true, feature: 'local-file', edits: true },
       { id: 'close', label: 'Close Tab', shortcut: 'MOD+W' },
       // Windows, Linux, and the browser menu; macOS shows it in the application menu instead.
       { type: 'separator' },
@@ -141,9 +143,9 @@ export const APP_MENU_SCHEMA = [
       },
       { type: 'separator' },
       { id: 'copy', label: 'Copy', shortcut: 'MOD+C' },
-      { id: 'cut', label: 'Cut', shortcut: 'MOD+X' },
-      { id: 'paste', label: 'Paste', shortcut: 'MOD+V' },
-      { id: 'paste-to-replace', label: 'Paste to replace', shortcut: 'MOD+SHIFT+R' },
+      { id: 'cut', label: 'Cut', shortcut: 'MOD+X', edits: true },
+      { id: 'paste', label: 'Paste', shortcut: 'MOD+V', edits: true },
+      { id: 'paste-to-replace', label: 'Paste to replace', shortcut: 'MOD+SHIFT+R', edits: true },
       {
         id: 'selection.duplicate',
         label: 'Duplicate',
@@ -154,7 +156,7 @@ export const APP_MENU_SCHEMA = [
         label: 'Delete',
         command: 'selection.delete'
       },
-      { id: 'selection.rename', label: 'Rename Selection…', shortcut: 'MOD+R' },
+      { id: 'selection.rename', label: 'Rename Selection…', shortcut: 'MOD+R', edits: true },
       { type: 'separator' },
       {
         id: 'selection.selectAll',
@@ -295,7 +297,8 @@ export const APP_MENU_SCHEMA = [
       {
         id: 'insert-icon',
         label: 'Insert Icon…',
-        palette: { keywords: ['iconify', 'symbol', 'glyph', 'lucide'] }
+        palette: { keywords: ['iconify', 'symbol', 'glyph', 'lucide'] },
+        edits: true
       },
       { type: 'separator' },
       {
@@ -429,9 +432,9 @@ export const APP_MENU_SCHEMA = [
     label: 'Text',
     paletteIcon: 'type',
     items: [
-      { id: 'text.bold', label: 'Bold', shortcut: 'MOD+B' },
-      { id: 'text.italic', label: 'Italic', shortcut: 'MOD+I' },
-      { id: 'text.underline', label: 'Underline', shortcut: 'MOD+U' }
+      { id: 'text.bold', label: 'Bold', shortcut: 'MOD+B', edits: true },
+      { id: 'text.italic', label: 'Italic', shortcut: 'MOD+I', edits: true },
+      { id: 'text.underline', label: 'Underline', shortcut: 'MOD+U', edits: true }
     ]
   },
   {
@@ -444,13 +447,13 @@ export const APP_MENU_SCHEMA = [
         command: 'selection.wrapInAutoLayout'
       },
       { type: 'separator' },
-      { id: 'arrange.align-left', label: 'Align Left', shortcut: 'ALT+A' },
-      { id: 'arrange.align-center', label: 'Align Center', shortcut: 'ALT+H' },
-      { id: 'arrange.align-right', label: 'Align Right', shortcut: 'ALT+D' },
+      { id: 'arrange.align-left', label: 'Align Left', shortcut: 'ALT+A', edits: true },
+      { id: 'arrange.align-center', label: 'Align Center', shortcut: 'ALT+H', edits: true },
+      { id: 'arrange.align-right', label: 'Align Right', shortcut: 'ALT+D', edits: true },
       { type: 'separator' },
-      { id: 'arrange.align-top', label: 'Align Top', shortcut: 'ALT+W' },
-      { id: 'arrange.align-middle', label: 'Align Middle', shortcut: 'ALT+V' },
-      { id: 'arrange.align-bottom', label: 'Align Bottom', shortcut: 'ALT+S' },
+      { id: 'arrange.align-top', label: 'Align Top', shortcut: 'ALT+W', edits: true },
+      { id: 'arrange.align-middle', label: 'Align Middle', shortcut: 'ALT+V', edits: true },
+      { id: 'arrange.align-bottom', label: 'Align Bottom', shortcut: 'ALT+S', edits: true },
       { type: 'separator' },
       {
         id: 'selection.distributeHorizontal',
@@ -478,3 +481,16 @@ export const APP_MENU_APP_ITEMS = [
   SETTINGS_MENU_ITEM,
   { id: 'quit', label: 'Quit OpenPencil', shortcut: 'MOD+Q' }
 ] satisfies AppMenuActionItem[]
+
+function editingItemIds(entries: readonly AppMenuEntry[]): string[] {
+  return entries.flatMap((entry) =>
+    entry.type === 'separator'
+      ? []
+      : [...(entry.edits ? [entry.id] : []), ...editingItemIds(entry.sub ?? [])]
+  )
+}
+
+/** Items a read-only document disables, which the native menu cannot grey out itself. */
+export const EDITING_MENU_IDS: ReadonlySet<string> = new Set(
+  APP_MENU_SCHEMA.flatMap((group) => editingItemIds(group.items))
+)

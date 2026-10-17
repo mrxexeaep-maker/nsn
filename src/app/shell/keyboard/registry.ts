@@ -32,13 +32,17 @@ type ShortcutDefinition = {
   global?: boolean
   /** Whether the shortcut also works while a canvas previews. */
   preview?: boolean
+  /** Whether the shortcut also works in a read-only document; commands answer for themselves. */
+  readOnly?: boolean
 }
 
 function commandShortcut(
   command: EditorCommandId,
   keys = editorCommandMetadata(command).keybinding
 ): ShortcutDefinition | null {
-  return keys ? { id: command, keys, run: ({ runCommand }) => runCommand(command) } : null
+  return keys
+    ? { id: command, keys, run: ({ runCommand }) => runCommand(command), readOnly: true }
+    : null
 }
 
 function commandShortcuts(...commands: EditorCommandId[]): ShortcutDefinition[] {
@@ -85,6 +89,7 @@ function siblingShortcut(
     run: ({ keyEvent, runCommand }) => {
       if (isCanvasFocus(keyEvent)) runCommand(command)
     },
+    readOnly: true,
     shouldPreventDefault: isCanvasFocus
   }
 }
@@ -173,7 +178,8 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
     {
       id: 'copy-properties',
       keys: '$mod+Alt+KeyC',
-      run: ({ store }) => void copySelectionProperties(store)
+      run: ({ store }) => void copySelectionProperties(store),
+      readOnly: true
     },
     {
       id: 'paste-properties',
@@ -183,19 +189,22 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
     {
       id: 'export-selection-png',
       keys: appMenuTinykeysShortcut('export-selection') ?? '$mod+Shift+KeyE',
-      run: ({ actions }) => actions.exportSelectionPNG()
+      run: ({ actions }) => actions.exportSelectionPNG(),
+      readOnly: true
     },
     {
       id: 'save-as',
       keys: appMenuTinykeysShortcut('save-as') ?? '$mod+Shift+KeyS',
-      run: ({ store }) => void store.saveFigFileAs()
+      run: ({ store }) => void store.saveFigFileAs(),
+      readOnly: true
     },
     ...commandShortcuts('selection.ungroup', 'edit.redo'),
     {
       id: 'toggle-preview',
       keys: appMenuTinykeysShortcut('toggle-preview') ?? '$mod+Alt+Enter',
       run: ({ actions }) => actions.togglePlay(),
-      preview: true
+      preview: true,
+      readOnly: true
     },
     {
       id: 'toggle-rulers',
@@ -203,7 +212,8 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
       run: ({ store }) => {
         store.state.showRulers = !store.state.showRulers
         store.requestRepaint()
-      }
+      },
+      readOnly: true
     },
     {
       id: 'toggle-multiplayer-cursors',
@@ -211,7 +221,8 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
       run: ({ store }) => {
         store.state.showRemoteCursors = !store.state.showRemoteCursors
         store.requestRepaint()
-      }
+      },
+      readOnly: true
     },
     // Figma's keys, matched by key position since Shift turns ' into ".
     {
@@ -220,59 +231,79 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
       run: ({ store }) => {
         store.state.showPixelGrid = store.state.showPixelGrid === false
         store.requestRepaint()
-      }
+      },
+      readOnly: true
     },
     {
       id: 'toggle-pixel-grid-snap',
       keys: '$mod+Shift+Quote',
       run: ({ store }) =>
-        setSnappingPreference('pixelGrid', !store.state.snappingPreferences.pixelGrid)
+        setSnappingPreference('pixelGrid', !store.state.snappingPreferences.pixelGrid),
+      readOnly: true
     },
     {
       id: 'toggle-ui',
       keys: appMenuTinykeysShortcut('toggle-ui') ?? '$mod+Backslash',
-      run: ({ actions }) => actions.toggleUI()
+      run: ({ actions }) => actions.toggleUI(),
+      readOnly: true
     },
-    { id: 'toggle-ai', keys: '$mod+KeyJ', run: ({ actions }) => actions.toggleAI() },
+    {
+      id: 'toggle-ai',
+      keys: '$mod+KeyJ',
+      run: ({ actions }) => actions.toggleAI(),
+      readOnly: true
+    },
     {
       id: 'toggle-comments',
       keys: appMenuTinykeysShortcut('view-comments') ?? 'Shift+KeyC',
-      run: () => useComments().toggleOnCanvas()
+      run: () => useComments().toggleOnCanvas(),
+      readOnly: true
     },
     {
       id: 'open-settings',
       keys: appMenuTinykeysShortcut('settings') ?? '$mod+Comma',
       run: () => openSettingsDialog(),
-      global: true
+      global: true,
+      readOnly: true
     },
     {
       id: 'zoom-in',
       keys: [appMenuTinykeysShortcut('zoom-in') ?? '$mod+Equal', '$mod+Shift+Equal'],
       run: zoomAtViewportCenter(-100),
-      global: true
+      global: true,
+      readOnly: true
     },
     {
       id: 'zoom-out',
       keys: appMenuTinykeysShortcut('zoom-out') ?? '$mod+Minus',
       run: zoomAtViewportCenter(100),
-      global: true
+      global: true,
+      readOnly: true
     },
     {
       id: 'zoom-in-unmodified',
       keys: 'Shift+Equal',
-      run: zoomAtViewportCenter(-100)
+      run: zoomAtViewportCenter(-100),
+      readOnly: true
     },
     {
       id: 'zoom-out-unmodified',
       keys: 'Minus',
-      run: zoomAtViewportCenter(100)
+      run: zoomAtViewportCenter(100),
+      readOnly: true
     },
     {
       id: 'close-tab',
       keys: appMenuTinykeysShortcut('close') ?? '$mod+KeyW',
-      run: ({ closeActiveTab }) => closeActiveTab()
+      run: ({ closeActiveTab }) => closeActiveTab(),
+      readOnly: true
     },
-    { id: 'new-tab', keys: ['$mod+KeyN', '$mod+KeyT'], run: ({ createTab }) => createTab() },
+    {
+      id: 'new-tab',
+      keys: ['$mod+KeyN', '$mod+KeyT'],
+      run: ({ createTab }) => createTab(),
+      readOnly: true
+    },
     {
       id: 'rename-selection',
       keys: appMenuTinykeysShortcut('selection.rename') ?? '$mod+KeyR',
@@ -300,7 +331,8 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
     {
       id: 'open-file',
       keys: appMenuTinykeysShortcut('open') ?? '$mod+KeyO',
-      run: ({ openFileDialog }) => openFileDialog()
+      run: ({ openFileDialog }) => openFileDialog(),
+      readOnly: true
     },
     ...commandShortcuts('selection.group'),
     {
@@ -322,7 +354,8 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
       id: 'escape',
       keys: 'Escape',
       run: ({ actions }) => actions.escapeOrDeselect(),
-      preview: true
+      preview: true,
+      readOnly: true
     },
     siblingShortcut('selection.selectNextSibling'),
     siblingShortcut('selection.selectPreviousSibling'),
@@ -335,6 +368,13 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
   const previewKeys = new Set(
     shortcuts.filter((shortcut) => shortcut.preview).flatMap((shortcut) => [shortcut.keys].flat())
   )
+  /** Keys that keep working in a read-only document: looking, copying, and moving around. */
+  const readOnlyKeys = new Set([
+    ...Object.keys(TOOL_SHORTCUTS),
+    ...shortcuts
+      .filter((shortcut) => shortcut.readOnly)
+      .flatMap((shortcut) => [shortcut.keys].flat())
+  ])
   const historyKeys = new Set(
     shortcuts
       .filter((shortcut) => shortcut.id === 'edit.undo' || shortcut.id === 'edit.redo')
@@ -357,6 +397,7 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
         (event: KeyboardEvent) => {
           if (shouldIgnoreShortcut(event, options, historyKeys.has(keys))) return
           if (options.store.state.play && !previewKeys.has(keys)) return
+          if (options.store.state.readOnly && !readOnlyKeys.has(keys)) return
           handler(event)
         }
       ])

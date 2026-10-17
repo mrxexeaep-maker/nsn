@@ -65,7 +65,7 @@ export function useDocumentDrop() {
     // Token files are imported into the open document's variables, as its Import button does.
     const tokens = dropped.filter(({ file }) => isDesignTokenFileName(file.name))
     const store = getActiveEditorStoreOrNull()
-    if (tokens.length > 0 && store)
+    if (tokens.length > 0 && store && !store.state.readOnly)
       importTokenFiles(
         store,
         tokens.map(({ file }) => file)

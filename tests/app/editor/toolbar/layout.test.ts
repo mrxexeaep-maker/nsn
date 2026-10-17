@@ -8,6 +8,7 @@ import {
   moveToolbarEntry,
   normalizeToolbarLayout,
   placeToolbarEntry,
+  readOnlyToolbarLayout,
   setToolbarEntryHidden,
   toolbarDropOperations,
   toolbarItems,
@@ -233,5 +234,26 @@ describe('dragging', () => {
     ])
     expect(combineToolbarEntry(base, 'LINE', 'STAR')).toBe(base)
     expect(combineToolbarEntry(base, 'PEN', 'insert-icon')).toBe(base)
+  })
+})
+
+describe('readOnlyToolbarLayout', () => {
+  test('keeps Move and Hand, as Figma does while a version is viewed', () => {
+    const items = toolbarItems(
+      readOnlyToolbarLayout(layout([['SELECT', 'HAND'], ['FRAME'], ['insert-icon']])),
+      LABELS,
+      SHORTCUTS
+    )
+    expect(items).toEqual([
+      {
+        kind: 'tool',
+        tool: { key: 'SELECT', label: 'V', shortcut: 'V', flyout: ['SELECT', 'HAND'] }
+      }
+    ])
+    expect(
+      toolbarItems(readOnlyToolbarLayout(DEFAULT_TOOLBAR_LAYOUT), LABELS, SHORTCUTS).map(
+        (item) => item.kind === 'tool' && item.tool.key
+      )
+    ).toEqual(['SELECT', 'HAND'])
   })
 })

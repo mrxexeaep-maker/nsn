@@ -131,6 +131,8 @@ export function openCloudDocumentRoom(
   const canSave = canEdit && !options.guest
   const session = openDocumentRoom(store, options.roomId, options.transport)
   setPermission(store, options.permission)
+  // A viewer sees the room's edits and makes none, as Figma's view-only files do.
+  store.setReadOnly(!canEdit)
   if (!canSave) store.state.autosaveEnabled = false
   const stopSynced = session.onSynced((peerId) => {
     if (peerId !== RELAY_SERVER_PEER) return
@@ -144,6 +146,7 @@ export function openCloudDocumentRoom(
       stopSynced()
       stopSaver()
       setPermission(store, null)
+      store.setReadOnly(false)
     }
   }
 }
@@ -180,7 +183,7 @@ export function stopWithTab(store: EditorStore, room: { stop(): void }): void {
 /**
  * Joins a Cloud document's room on its server's relay, when the server runs one. Edits reach
  * everyone in the room as they happen; an empty room takes this tab's document once the relay
- * has answered; viewers' edits never leave the tab.
+ * has answered; a viewer's tab is read-only.
  */
 export async function startCloudRoom(store: EditorStore): Promise<void> {
   const binding = store.getStorageBinding()
