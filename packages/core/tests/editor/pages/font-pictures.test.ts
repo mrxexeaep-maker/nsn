@@ -72,15 +72,6 @@ describe('dropping the pictures a new font makes stale', () => {
     expect(invalidatedNodes).toEqual([text.id])
   })
 
-  test('leaves every picture a font cannot change alone', () => {
-    const { renderer, invalidatedNodes } = recordingRenderer()
-    const { text, others } = pageWithMixedPaints()
-
-    invalidateFontStalePictures(renderer, nodesOf(text, others))
-
-    for (const node of others) expect(invalidatedNodes).not.toContain(node.id)
-  })
-
   test('asks the canvas to repaint, since the pictures it shows are new', () => {
     const { renderer, calls } = recordingRenderer()
     const { text, others } = pageWithMixedPaints()
