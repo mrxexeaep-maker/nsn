@@ -27,6 +27,9 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
       `  OPENPENCIL_MCP_AUTH_TOKEN    Bearer token for MCP and RPC auth\n` +
       `  OPENPENCIL_MCP_ROOT          Allowed directory for file-scoped tools (default: home directory on Windows, current working directory elsewhere)\n` +
       `  OPENPENCIL_MCP_EVAL           Set to 1 to enable the eval tool\n` +
+      `  OPENPENCIL_MCP_SESSION_IDLE_TIMEOUT_MS  Session idle lifetime in ms (default: 900000).\n` +
+      `                               0 disables expiration. Pending requests are protected;\n` +
+      `                               an idle GET/SSE stream alone does not prevent expiration.\n` +
       `  OPENPENCIL_MCP_DISABLED_TOOLS Comma-separated tool names to omit\n` +
       `  OPENPENCIL_MCP_SCOPE         "selection" to let clients read only the selected layers\n` +
       `                               (default: "document")\n` +
@@ -81,6 +84,20 @@ if (rawAppTimeoutText) {
 
 const toolPolicy = readToolPolicyFromEnv()
 
+const rawSessionTimeout = process.env.OPENPENCIL_MCP_SESSION_IDLE_TIMEOUT_MS?.trim()
+const sessionIdleTimeoutMs = rawSessionTimeout === undefined ? undefined : Number(rawSessionTimeout)
+if (
+  rawSessionTimeout !== undefined &&
+  (!/^\d+$/.test(rawSessionTimeout) ||
+    !Number.isSafeInteger(sessionIdleTimeoutMs) ||
+    Number(rawSessionTimeout) > MAX_APP_TIMEOUT_MS)
+) {
+  process.stderr.write(
+    'Error: OPENPENCIL_MCP_SESSION_IDLE_TIMEOUT_MS must be an integer in 0–2147483647\n'
+  )
+  process.exit(1)
+}
+
 const handle = await startServer({
   httpPort: withTcp ? port : 0,
   withTcp,
@@ -107,7 +124,8 @@ const handle = await startServer({
     return trimmed
   })(),
   corsOrigin: resolveCORSOrigins(process.env.OPENPENCIL_MCP_CORS_ORIGIN),
-  appAttachTimeoutMs
+  appAttachTimeoutMs,
+  sessionIdleTimeoutMs
 })
 
 const readyMarker = process.env.OPENPENCIL_MCP_READY_MARKER

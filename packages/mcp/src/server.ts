@@ -105,6 +105,8 @@ export interface ServerOptions {
    * app opts in when it spawns the server.
    */
   appAttachTimeoutMs?: number
+  /** MCP session idle lifetime in ms (default 15 minutes). 0 disables expiration. Pending requests are protected; an idle GET/SSE stream may expire. */
+  sessionIdleTimeoutMs?: number
   /**
    * How long a tool call waits for the app to register before it fails with
    * APP_NOT_CONNECTED. Defaults to 10 s so a stdio bridge started slightly
@@ -200,6 +202,15 @@ function createHonoApp(options: {
         return c.json({ error: 'Unauthorized' }, 401)
       }
     }
+    if (!['GET', 'POST', 'DELETE'].includes(c.req.method)) {
+      return c.json(
+        { error: 'Method not allowed' },
+        {
+          status: 405,
+          headers: { Allow: 'GET, POST, DELETE' }
+        }
+      )
+    }
     const sessionId = c.req.header('mcp-session-id') ?? undefined
     // Reject anonymous DELETE requests before they allocate a session.
     // Without this guard, a DELETE without a session ID would call
@@ -222,7 +233,7 @@ function createHonoApp(options: {
       try {
         return await existing.handleRequest(c.req.raw)
       } finally {
-        mcpSessions.deleteSession(sessionId)
+        await mcpSessions.deleteSession(sessionId)
       }
     }
     if (sessionId) {
@@ -233,8 +244,10 @@ function createHonoApp(options: {
         }
         return c.json({ error: 'MCP session not found' }, 404)
       }
-      mcpSessions.touch(sessionId, existing)
       return existing.handleRequest(c.req.raw)
+    }
+    if (c.req.method !== 'POST') {
+      return c.json({ error: 'Missing MCP session id' }, 400)
     }
     const transport = await mcpSessions.resolveTransport(
       undefined,
@@ -249,7 +262,6 @@ function createHonoApp(options: {
         { status: 503, headers: { 'Retry-After': '5' } }
       )
     }
-    mcpSessions.touch(undefined, transport)
     return transport.handleRequest(c.req.raw)
   })
 
@@ -338,12 +350,14 @@ function buildServerContext(options: ServerOptions) {
 
   const mcpSessions = createMCPSessionManager({
     serverVersion: MCP_VERSION,
-    registerTools: (mcpServer: McpServer, agentSession: MCPAgentSession) =>
+    sessionIdleTimeoutMs: options.sessionIdleTimeoutMs,
+    registerTools: (mcpServer: McpServer, agentSession: MCPAgentSession, onToolSettled) =>
       registerTools(mcpServer, {
         policy: toolPolicy,
         mcpRoot,
         sendRPC: sendToBrowser,
-        agentSession
+        agentSession,
+        onToolSettled
       }),
     onSessionClosed: (sessionId) => {
       // Best-effort: the app may be gone already, and then it shows no agents anyway.

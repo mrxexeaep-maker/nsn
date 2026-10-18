@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto'
 
 import { McpServer, WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/server'
+import * as v from 'valibot'
 
-import type { MCPAgentKind, MCPAgentSession } from '#mcp/tool/registration'
+import type { MCPAgentKind, MCPAgentSession, MCPToolSettled } from '#mcp/tool/registration'
 
 export type MCPTransport = {
   handleRequest: (request: Request) => Promise<Response>
@@ -13,22 +14,32 @@ type MCPSession = {
   transport: MCPTransport
   server: McpServer
   lastSeen: number
+  activeRequests: number
+  initialized: boolean
 }
 
 type MCPSessionManagerOptions = {
   serverVersion: string
-  registerTools: (server: McpServer, session: MCPAgentSession) => void
+  registerTools: (
+    server: McpServer,
+    session: MCPAgentSession,
+    onToolSettled: MCPToolSettled
+  ) => void
   /** Told when a session ends, so the app stops showing its agent. */
   onSessionClosed?: (sessionId: string) => void
+  /** Idle lifetime in ms; 0 disables expiration. Defaults to 15 minutes. */
+  sessionIdleTimeoutMs?: number
 }
 
 const MAX_MCP_SESSIONS = 10
 const MCP_SESSION_TTL_MS = 15 * 60_000
 const SESSION_CLOSE_TIMEOUT_MS = 5_000
 
-function describeError(e: unknown): string {
-  return e instanceof Error ? e.message : String(e)
-}
+const InitializeResponse = v.pipe(
+  v.string(),
+  v.parseJson(),
+  v.object({ result: v.object({ protocolVersion: v.string() }) })
+)
 
 /**
  * Wraps a promise with a timeout. Resolves with undefined if the timeout
@@ -48,33 +59,46 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | undefined>
   ])
 }
 
-async function closeSession(session: MCPSession): Promise<void> {
+async function closeSession(session: Pick<MCPSession, 'transport' | 'server'>): Promise<void> {
   try {
     await withTimeout(session.transport.close(), SESSION_CLOSE_TIMEOUT_MS)
-  } catch (e) {
+  } catch {
     // Best-effort: the transport may already be closed or in a bad state
-    process.stderr.write(`  MCP session: transport close warning (${describeError(e)})\n`)
+    process.stderr.write('  MCP session: transport close failed\n')
   }
   try {
     await withTimeout(session.server.close(), SESSION_CLOSE_TIMEOUT_MS)
-  } catch (e) {
+  } catch {
     // Best-effort
-    process.stderr.write(`  MCP session: server close warning (${describeError(e)})\n`)
+    process.stderr.write('  MCP session: server close failed\n')
   }
 }
 
 export function createMCPSessionManager({
   serverVersion,
   registerTools,
-  onSessionClosed
+  onSessionClosed,
+  sessionIdleTimeoutMs = MCP_SESSION_TTL_MS
 }: MCPSessionManagerOptions) {
+  if (
+    !Number.isSafeInteger(sessionIdleTimeoutMs) ||
+    sessionIdleTimeoutMs < 0 ||
+    sessionIdleTimeoutMs > 2_147_483_647
+  ) {
+    throw new Error('MCP session idle timeout must be an integer in 0–2147483647 ms')
+  }
   const sessions = new Map<string, MCPSession>()
-  const closing = new Set<Promise<void>>()
+  const closing = new Map<string, Promise<void>>()
 
-  function scheduleClose(session: MCPSession, id?: string): Promise<void> {
-    if (id) onSessionClosed?.(id)
-    const task = closeSession(session).finally(() => closing.delete(task))
-    closing.add(task)
+  function scheduleClose(session: MCPSession, id: string): Promise<void> {
+    try {
+      if (session.initialized) onSessionClosed?.(id)
+    } catch {
+      // Application notification must not prevent resource cleanup.
+      process.stderr.write('  MCP session: close notification failed\n')
+    }
+    const task = closeSession(session).finally(() => closing.delete(id))
+    closing.set(id, task)
     return task
   }
 
@@ -89,14 +113,20 @@ export function createMCPSessionManager({
   }
 
   function cleanupExpired() {
+    if (sessionIdleTimeoutMs === 0) return
     const now = Date.now()
     for (const [id, session] of sessions) {
-      if (now - session.lastSeen > MCP_SESSION_TTL_MS) {
+      if (session.activeRequests === 0 && now - session.lastSeen >= sessionIdleTimeoutMs) {
         sessions.delete(id)
         void scheduleClose(session, id)
       }
     }
   }
+
+  const sweep =
+    sessionIdleTimeoutMs > 0
+      ? setInterval(cleanupExpired, Math.min(sessionIdleTimeoutMs, 60_000)).unref()
+      : undefined
 
   const creating = new Map<string, Promise<MCPTransport>>()
   let closed = false
@@ -108,22 +138,38 @@ export function createMCPSessionManager({
 
     const promise = (async () => {
       const server = new McpServer({ name: 'open-pencil', version: serverVersion })
-      registerTools(server, { id, kind })
 
       const transport = new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: () => id,
         enableJsonResponse: true
       })
-      // Await the MCP handshake before storing/returning the transport so
-      // handleRequest cannot race the SDK's initialization on a fresh
-      // session. Without this, the /mcp route calls resolveTransport() and
-      // immediately awaits handleRequest(), which can fail if connect() has
-      // not completed yet.
+      const sessionClosed = new AbortController()
+      const pendingResponses = new WeakMap<Request, (response: Response) => void>()
+      const onToolSettled: MCPToolSettled = async (context) => {
+        const request = context.http?.req
+        if (!request || !context.mcpReq.signal.aborted || sessionClosed.signal.aborted) return
+        const respond = pendingResponses.get(request)
+        if (!respond) return
+        // The SDK suppresses cancelled results but leaves JSON HTTP promises
+        // pending. End HTTP without a JSON-RPC response, then settle the SDK's
+        // internal response to release its stream and request bookkeeping.
+        respond(new Response(null, { status: 202 }))
+        await transport
+          .send({
+            jsonrpc: '2.0',
+            id: context.mcpReq.id,
+            error: { code: -32800, message: 'Request cancelled' }
+          })
+          .catch(() => undefined)
+      }
+      // Connect the SDK before exposing its transport. The client's HTTP
+      // InitializeRequest is processed later by handleRequest; connect() alone
+      // does not establish a valid MCP session.
       try {
+        registerTools(server, { id, kind }, onToolSettled)
         await server.connect(transport)
       } catch (e) {
-        await transport.close().catch(() => undefined)
-        await server.close().catch(() => undefined)
+        await closeSession({ transport, server })
         throw e
       }
       // `closed` is mutated by clear() which can run concurrently — TypeScript's
@@ -131,12 +177,72 @@ export function createMCPSessionManager({
       // oxlint-disable-next-line no-unnecessary-condition
       if (closed) {
         // Manager was closed while we were connecting — clean up immediately.
-        await transport.close().catch(() => undefined)
-        await server.close().catch(() => undefined)
+        await closeSession({ transport, server })
         throw new Error('Session manager closed during session creation')
       }
-      sessions.set(id, { transport, server, lastSeen: Date.now() })
-      return transport
+      const session: MCPSession = {
+        server,
+        lastSeen: Date.now(),
+        activeRequests: 0,
+        initialized: false,
+        transport: {
+          close: () => transport.close(),
+          async handleRequest(request) {
+            session.activeRequests++
+            session.lastSeen = Date.now()
+            let onClosed: (() => void) | undefined
+            try {
+              // SDK JSON response promises are not settled by close(). Do not
+              // leave HTTP handlers waiting forever after DELETE or shutdown.
+              const handling = transport.handleRequest(request)
+              const response = await (request.method === 'POST'
+                ? Promise.race([
+                    handling,
+                    new Promise<Response>((resolve) => {
+                      pendingResponses.set(request, resolve)
+                      onClosed = () =>
+                        resolve(Response.json({ error: 'MCP session not found' }, { status: 404 }))
+                      if (sessionClosed.signal.aborted) onClosed()
+                      else sessionClosed.signal.addEventListener('abort', onClosed, { once: true })
+                    })
+                  ])
+                : handling)
+              if (!session.initialized) {
+                // The SDK assigns an ID before validating InitializeRequest params.
+                // HTTP 200 + a session header can therefore still be a JSON-RPC error.
+                session.initialized =
+                  response.ok &&
+                  response.headers.get('mcp-session-id') === id &&
+                  v.safeParse(InitializeResponse, await response.clone().text()).success
+                if (!session.initialized) await deleteSession(id)
+              }
+              return response
+            } catch (error) {
+              if (!session.initialized) await deleteSession(id)
+              throw error
+            } finally {
+              pendingResponses.delete(request)
+              if (onClosed) sessionClosed.signal.removeEventListener('abort', onClosed)
+              session.activeRequests--
+              session.lastSeen = Date.now()
+            }
+          }
+        }
+      }
+      // Preserve the SDK's protocol cleanup; only full transport closure ends
+      // the session. Closing a GET/SSE connection does not invoke this callback.
+      const onclose = transport.onclose
+      transport.onclose = () => {
+        sessionClosed.abort()
+        try {
+          onclose?.()
+        } finally {
+          void deleteSession(id)
+        }
+      }
+      sessions.set(id, session)
+      creating.delete(id)
+      return session.transport
     })()
 
     creating.set(id, promise)
@@ -178,14 +284,6 @@ export function createMCPSessionManager({
     })
   }
 
-  function touch(sessionId: string | undefined, transport: MCPTransport) {
-    const resolvedSessionId =
-      sessionId ?? [...sessions.entries()].find(([, entry]) => entry.transport === transport)?.[0]
-    if (!resolvedSessionId) return
-    const session = sessions.get(resolvedSessionId)
-    if (session) session.lastSeen = Date.now()
-  }
-
   /**
    * Look up an existing session's transport without creating a new session.
    * Used for DELETE requests where creating a session just to delete it
@@ -195,23 +293,25 @@ export function createMCPSessionManager({
     sessionId: string | undefined
   ): MCPTransport | { error: 'not_found' | 'closed' } {
     if (closed) return { error: 'closed' }
+    cleanupExpired()
     if (!sessionId) return { error: 'not_found' }
     const existing = sessions.get(sessionId)
     if (existing) return existing.transport
     return { error: 'not_found' }
   }
 
-  function deleteSession(sessionId: string | undefined) {
+  async function deleteSession(sessionId: string | undefined): Promise<void> {
     if (closed) return
     if (!sessionId) return
     const session = sessions.get(sessionId)
-    if (!session) return
+    if (!session) return closing.get(sessionId)
     sessions.delete(sessionId)
-    void scheduleClose(session, sessionId)
+    await scheduleClose(session, sessionId)
   }
 
   async function clear() {
     closed = true
+    clearInterval(sweep)
     // Collect sessions before awaiting in-flight creations so new sessions
     // can't be added during shutdown.
     const all = [...sessions]
@@ -224,10 +324,10 @@ export function createMCPSessionManager({
     // Await both previously-scheduled closes (from cleanupExpired/deleteSession)
     // and closes for sessions still alive at clear() time.
     await Promise.allSettled([
-      ...closing,
+      ...closing.values(),
       ...all.map(([id, session]) => scheduleClose(session, id))
     ])
   }
 
-  return { clear, deleteSession, getExistingTransport, notifyToolsChanged, resolveTransport, touch }
+  return { clear, deleteSession, getExistingTransport, notifyToolsChanged, resolveTransport }
 }

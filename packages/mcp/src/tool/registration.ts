@@ -1,7 +1,12 @@
 import { Buffer } from 'node:buffer'
 import { resolve } from 'node:path'
 
-import type { McpServer, ToolCallback, ToolAnnotations } from '@modelcontextprotocol/server'
+import type {
+  McpServer,
+  ToolCallback,
+  ToolAnnotations,
+  ServerContext
+} from '@modelcontextprotocol/server'
 // eslint-disable-next-line open-pencil/no-mixed-case-acronym-identifiers -- Upstream export spelling.
 import { toStandardJsonSchema as toStandardJSONSchema } from '@valibot/to-json-schema'
 import * as v from 'valibot'
@@ -17,6 +22,7 @@ import { isToolEnabled } from '#mcp/tool/policy'
 import { SELECTION_SCOPE_FILE_OUTPUT_ERROR } from '#mcp/tool/scope'
 
 export type RPCSender = (body: Record<string, unknown>) => Promise<unknown>
+export type MCPToolSettled = (context: ServerContext) => Promise<void>
 
 const automationTargetSchema = {
   document_id: v.optional(
@@ -69,6 +75,8 @@ export interface RegisterToolsOptions {
   mcpRoot?: string | null
   sendRPC: RPCSender
   agentSession?: MCPAgentSession
+  /** Transport lifecycle cleanup after tool execution, including cancellation. */
+  onToolSettled?: MCPToolSettled
 }
 
 function toolAnnotations(effect: ToolEffect): ToolAnnotations {
@@ -111,7 +119,13 @@ export function registerTools(mcpServer: McpServer, options: RegisterToolsOption
         annotations: toolAnnotations(descriptor.effect),
         _meta: { 'openpencil/capabilities': descriptor.capabilities }
       },
-      handler
+      async (args, context) => {
+        try {
+          return await handler(args, context)
+        } finally {
+          await options.onToolSettled?.(context)
+        }
+      }
     )
   }
 
