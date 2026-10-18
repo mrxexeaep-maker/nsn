@@ -109,25 +109,33 @@ export function useDesignCheckPanel(options: {
     }
   }
 
-  const groups = computed<IssueGroupView[]>(() =>
-    groupIssuesByRule(
+  /**
+   * Rows are built only while the panel is shown, and only for open groups: each one reads its
+   * layer, and a large page's thousands of issues cost more than the rest of a page switch.
+   */
+  const groups = computed<IssueGroupView[]>(() => {
+    if (!options.active()) return []
+    return groupIssuesByRule(
       scopedIssues.value.filter((issue) => visibleSeverities.value.includes(issue.severity))
     ).map((group) => {
-      const rows = group.issues.map(rowView)
-      const fixes = rows.flatMap(({ issue, missing }) =>
-        issue.fix && !missing ? [{ nodeId: issue.nodeId, fix: issue.fix }] : []
+      const rows = groupOpen(group.ruleId, group.severity) ? group.issues.map(rowView) : []
+      const fixes = group.issues.flatMap((issue) =>
+        issue.fix && store.graph.getNode(issue.nodeId)
+          ? [{ nodeId: issue.nodeId, fix: issue.fix }]
+          : []
       )
       return {
         ruleId: group.ruleId,
         severity: group.severity,
         title: ruleTitle(group.ruleId, messages.value),
         help: ruleHelp(group.ruleId, messages.value),
+        count: group.issues.length,
         rows,
         fixes,
         bindsOnly: fixes.every(({ fix }) => fix.kind === 'bind-variable')
       }
     })
-  )
+  })
 
   /** Pages still waiting for their background check, while the document is listed. */
   const checkingDocument = computed(
@@ -170,8 +178,12 @@ export function useDesignCheckPanel(options: {
     }
   })
 
+  function groupOpen(ruleId: string, severity: DesignIssueSeverity): boolean {
+    return openGroups.get(ruleId) ?? severity !== 'info'
+  }
+
   function isGroupOpen(group: IssueGroupView): boolean {
-    return openGroups.get(group.ruleId) ?? group.severity !== 'info'
+    return groupOpen(group.ruleId, group.severity)
   }
 
   function setGroupOpen(ruleId: string, open: boolean) {
@@ -213,9 +225,10 @@ export function useDesignCheckPanel(options: {
 
   /** Shows the focused issue's row, e.g. after a canvas marker click: unfiltered, open, in view. */
   watch(
-    [check.focusedIssueId, groups],
-    async ([issueId], [previousId]) => {
-      if (!issueId || issueId === previousId) return
+    [check.focusedIssueId, groups, options.active],
+    async ([issueId, , active], [previousId, , wasActive]) => {
+      // A hidden panel has no rows yet, so an issue focused then is shown once the panel opens.
+      if (!issueId || !active || (issueId === previousId && wasActive)) return
       const issue = check.snapshot.value?.issues.find((candidate) => candidate.id === issueId)
       if (!issue) return
       if (!visibleSeverities.value.includes(issue.severity)) {

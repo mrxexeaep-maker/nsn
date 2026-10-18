@@ -65,7 +65,7 @@ const hiddenCount = computed(() => group.rows.length - visibleRows.value.length)
       <Tip :label="group.help ?? undefined" side="left">
         <span :class="styles.groupTitle()">{{ group.title }}</span>
       </Tip>
-      <span :class="styles.groupCount()">{{ group.rows.length }}</span>
+      <span :class="styles.groupCount()">{{ group.count }}</span>
     </template>
     <template #actions>
       <AppButton v-if="group.fixes.length > 1" color="primary" size="xs" @click="emit('fixAll')">
