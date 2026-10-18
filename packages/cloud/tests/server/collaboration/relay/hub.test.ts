@@ -275,6 +275,31 @@ describe('collaboration relay', () => {
     await second.close()
   })
 
+  test('ends a restored document’s room without saving the replaced state', async () => {
+    const { relay: hub, states } = relay({ persistDelayMs: 60_000 })
+    const alice = await join(hub)
+    alice.send({
+      type: 'message',
+      namespace: COLLAB_ACTIONS.yjsUpdate,
+      target: null,
+      payload: edit('replaced')
+    })
+
+    hub.startOver(documentId)
+    expect(alice.closed?.code).toBe(RELAY_CLOSE.restored)
+    expect(states.size).toBe(0)
+  })
+
+  test('turns away a ticket for a room the document has moved on from', async () => {
+    const { relay: hub } = relay({ currentRoomEpoch: async () => 1 })
+    const stale = await join(hub, { roomEpoch: 0 })
+    expect(stale.closed?.code).toBe(RELAY_CLOSE.restored)
+
+    const current = await join(hub, { roomEpoch: 1 })
+    expect(current.closed).toBeNull()
+    expect(current.peerId()).toBeDefined()
+  })
+
   test('admits a newcomer to the live room when the last peer leaves while it is checked', async () => {
     let releaseLimit: (() => void) | undefined
     let checks = 0

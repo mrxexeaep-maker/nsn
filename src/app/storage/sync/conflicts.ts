@@ -37,7 +37,17 @@ export async function dropCanvasUploads(canvasId: string): Promise<void> {
 
 /** Discards this device's edits and takes the provider's newer revision. */
 export async function takeStoredVersion(canvasId: string): Promise<void> {
-  const { meta } = await conflictedCanvas(canvasId)
+  await conflictedCanvas(canvasId)
+  await adoptStoredVersion(canvasId)
+}
+
+/**
+ * Makes the provider's current revision this device's copy, dropping queued uploads, as after
+ * the document was restored to a version elsewhere.
+ */
+export async function adoptStoredVersion(canvasId: string): Promise<void> {
+  const meta = await getLocalCanvasStore().getMeta(canvasId)
+  if (!meta) throw new Error('This device has no copy of the document')
   const location = storageLocationOf(meta)
   const content = await createStorageAdapter(location).getDocument(canvasId)
   await dropCanvasUploads(canvasId)

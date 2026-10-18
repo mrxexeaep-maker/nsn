@@ -58,7 +58,12 @@ function versionOf(row: VersionRow, currentRevisionId: string | null): DocumentV
 export function createDocumentVersionService(
   database: Kysely<CloudDatabase>,
   objects: ObjectStore,
-  options: { policy?: CloudPolicy; deploymentMode?: CloudPolicyContext['deploymentMode'] } = {}
+  options: {
+    policy?: CloudPolicy
+    deploymentMode?: CloudPolicyContext['deploymentMode']
+    /** Called once a restore lands, so the document's live room starts over. */
+    onRestored?: (documentId: string) => void
+  } = {}
 ) {
   const deploymentMode = options.deploymentMode ?? 'self-hosted'
   function versions() {
@@ -305,6 +310,7 @@ export function createDocumentVersionService(
           restoredFromVersionId: versionId
         })
       })
+      options.onRestored?.(documentId)
       const document = await findDocument(database, userId, documentId)
       if (!document) throw new DocumentNotFoundError()
       const restored = await versions()
