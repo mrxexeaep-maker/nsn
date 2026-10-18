@@ -115,6 +115,8 @@ export function useDesignCheckPanel(options: {
    */
   const groups = computed<IssueGroupView[]>(() => {
     if (!options.active()) return []
+    // Collapsed groups build no rows, but their fixes still skip layers deleted since the check.
+    void store.state.sceneVersion
     return groupIssuesByRule(
       scopedIssues.value.filter((issue) => visibleSeverities.value.includes(issue.severity))
     ).map((group) => {
