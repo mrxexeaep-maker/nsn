@@ -39,11 +39,7 @@ describe('the design check across a page switch', () => {
     jest.useFakeTimers()
     const { store, first, second, firstText, secondText, checkedPages, markedNodes } =
       twoPagesWithIssues()
-    // An edit settles into a check of the page, which marks its small text.
-    store.updateNode(firstText.id, { fontSize: 9 })
-    jest.advanceTimersByTime(1000)
-    await nextTick()
-    expect(checkedPages).toEqual([first.id])
+    expect(store.designCheck.snapshot.value?.pageId).toBe(first.id)
     expect(markedNodes()).toEqual([firstText.id])
 
     // The editor's own switch; the app's adds a progress overlay with timers of its own.
@@ -53,11 +49,11 @@ describe('the design check across a page switch', () => {
     await nextTick()
     // The previous page's markers would point at layers that are no longer shown.
     expect(markedNodes()).toEqual([])
-    expect(checkedPages).toEqual([first.id])
+    expect(checkedPages).toEqual([])
 
     jest.advanceTimersByTime(1000)
     await nextTick()
-    expect(checkedPages).toEqual([first.id, second.id])
+    expect(checkedPages).toEqual([second.id])
     expect(markedNodes()).toEqual([secondText.id])
   })
 

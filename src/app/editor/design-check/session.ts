@@ -159,7 +159,8 @@ export function createDesignCheck(editor: Editor, state: AppEditorState) {
       () => state.sceneVersion,
       () => enabled.value && schedule()
     )
-    watch([snapshot, () => preferences.value.showOnCanvas], publishMarkers)
+    // Immediate: the first check runs before this watcher exists, while `enabled` starts up.
+    watch([snapshot, () => preferences.value.showOnCanvas], publishMarkers, { immediate: true })
   })
 
   const unsubscribeGraph = editor.onEditorEvent('graph:replaced', () => {
