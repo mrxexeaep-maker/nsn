@@ -416,45 +416,44 @@ test('Canvas markers and Layers panel marks can be turned off from the View menu
   await expect.poll(markerCount).toBeGreaterThan(0)
 })
 
-test('An issue past the rows its group shows comes into view when focused', async () => {
-  const lastNoteId = await editor.page.evaluate(() => {
+/** Sixty small notes in a grid, far enough apart that each one's marker can be clicked. */
+const NOTE = { columns: 6, gapX: 100, gapY: 50, width: 40, height: 10, left: 40, top: 60 }
+
+test('A marker opens an issue past the rows its group shows at first', async () => {
+  const lastNoteId = await editor.page.evaluate((note) => {
     const store = window.openPencil?.getStore?.()
     if (!store) throw new Error('OpenPencil store not initialized')
-    const pageId = store.state.currentPageId
+    store.state.zoom = 1
+    store.state.panX = 0
+    store.state.panY = 0
     let last = ''
     for (let index = 0; index < 60; index++) {
-      last = store.graph.createNode('TEXT', pageId, {
+      last = store.graph.createNode('TEXT', store.state.currentPageId, {
         name: `Note ${index + 1}`,
         text: 'Note',
         fontSize: 8,
-        x: 0,
-        y: index * 12,
-        width: 40,
-        height: 10
+        x: note.left + (index % note.columns) * note.gapX,
+        y: note.top + Math.floor(index / note.columns) * note.gapY,
+        width: note.width,
+        height: note.height
       }).id
     }
     return last
-  })
-  await editor.page.getByRole('tab', { name: /^Lint/ }).click()
-  await expect(lintPanel(editor.page).getByText('Small text')).toBeVisible()
-  const issueId = () =>
-    editor.page.evaluate(
-      (nodeId) =>
-        window.openPencil
-          ?.getStore?.()
-          .designCheck.snapshot.value?.issues.find(
-            (issue) => issue.nodeId === nodeId && issue.ruleId === 'min-text-size'
-          )?.id ?? null,
-      lastNoteId
-    )
-  await expect.poll(issueId).not.toBeNull()
-  const id = await issueId()
+  }, NOTE)
+  await waitForMarkers(editor.page)
 
-  // The sixtieth row is past the fifty a group shows at first, as a canvas marker can lead to.
-  await editor.page.evaluate((focused) => {
-    const store = window.openPencil?.getStore?.()
-    if (store) store.designCheck.focusedIssueId.value = focused
-  }, id)
+  // The sixtieth note's row is past the fifty its group lists at first.
+  const last = 59
+  const marker = {
+    x: NOTE.left + (last % NOTE.columns) * NOTE.gapX + NOTE.width + 12,
+    y: NOTE.top + Math.floor(last / NOTE.columns) * NOTE.gapY - 12
+  }
+  await hoverMarker(marker)
+  await editor.canvas.click(marker.x, marker.y)
 
-  await expect(lintPanel(editor.page).locator(`[data-issue-id="${id}"]`)).toBeInViewport()
+  await expect(editor.page.getByRole('tab', { name: /^Lint/ })).toHaveAttribute(
+    'aria-selected',
+    'true'
+  )
+  await expect(lintPanel(editor.page).locator(`[data-node-id="${lastNoteId}"]`)).toBeInViewport()
 })
