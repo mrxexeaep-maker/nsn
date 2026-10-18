@@ -433,7 +433,8 @@ export function createCollaborationRelay(options: CollaborationRelayOptions) {
      * their edits to the replaced state are dropped rather than saved.
      */
     startOver(documentId: string) {
-      for (const room of [...rooms.values()]) {
+      // A map's iteration carries on past entries deleted during it.
+      for (const room of rooms.values()) {
         if (room.identity.documentId !== documentId) continue
         rooms.delete(room.id)
         if (room.persistTimer) clearTimeout(room.persistTimer)

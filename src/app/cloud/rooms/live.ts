@@ -260,8 +260,8 @@ export async function restartCloudRoom(store: EditorStore): Promise<void> {
     liveRooms.delete(store)
     const session = roomForStore(store)
     if (session) leaveRoom(session)
-    await adoptStoredVersion(binding.documentId)
-    await reloadStorageDocumentInTab(store)
+    // The tab shows what it downloaded: another tab of the document may still write the local copy.
+    await reloadStorageDocumentInTab(store, await adoptStoredVersion(binding.documentId))
     await startCloudRoom(store)
   } finally {
     restarting.delete(store)
