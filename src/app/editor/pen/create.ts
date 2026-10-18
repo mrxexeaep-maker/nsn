@@ -1,11 +1,12 @@
 import type { Editor, Tool } from '@open-pencil/core/editor'
-import { transformVectorNetwork } from '@open-pencil/scene-graph'
+import { transformVectorNetwork, type VectorNetwork } from '@open-pencil/scene-graph'
 import { getWorldMatrix } from '@open-pencil/scene-graph/coordinate'
 
 import {
   chainEndingAt,
   createResumedPenState,
   wholeChain,
+  type PenChain,
   type PenState
 } from '@/app/editor/pen/resume'
 
@@ -23,7 +24,8 @@ export function createPenActions(editor: Editor, state: PenState) {
     editor.setTool(tool)
   }
 
-  function penResumeOnPath(nodeId: string) {
+  /** Continues `nodeId`'s path with the pen, on the chain `pick` takes from its page-space network. */
+  function resumeOn(nodeId: string, pick: (network: VectorNetwork) => PenChain) {
     const node = editor.graph.getNode(nodeId)
     if (node?.type !== 'VECTOR' || !node.vectorNetwork) return
 
@@ -31,25 +33,18 @@ export function createPenActions(editor: Editor, state: PenState) {
       getWorldMatrix(node, editor.graph),
       node.vectorNetwork
     )
-    state.penState = createResumedPenState(node, wholeChain(absNetwork))
-
+    state.penState = createResumedPenState(node, pick(absNetwork))
     editor.clearSelection()
     editor.setTool('PEN')
     editor.requestRender()
   }
 
-  function penResumeFromEndpoint(nodeId: string, endpointVertexIndex: number) {
-    const node = editor.graph.getNode(nodeId)
-    if (node?.type !== 'VECTOR' || !node.vectorNetwork) return
+  function penResumeOnPath(nodeId: string) {
+    resumeOn(nodeId, wholeChain)
+  }
 
-    const absNetwork = transformVectorNetwork(
-      getWorldMatrix(node, editor.graph),
-      node.vectorNetwork
-    )
-    state.penState = createResumedPenState(node, chainEndingAt(absNetwork, endpointVertexIndex))
-    editor.clearSelection()
-    editor.setTool('PEN')
-    editor.requestRender()
+  function penResumeFromEndpoint(nodeId: string, endpointVertexIndex: number) {
+    resumeOn(nodeId, (network) => chainEndingAt(network, endpointVertexIndex))
   }
 
   return { setTool, penResumeOnPath, penResumeFromEndpoint }
