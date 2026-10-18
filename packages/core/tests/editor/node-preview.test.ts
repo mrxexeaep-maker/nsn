@@ -1,7 +1,36 @@
 import { describe, expect, test } from 'bun:test'
 
 import { createEditor } from '@open-pencil/core/editor'
+import { exportFigFile, parseFigFile } from '@open-pencil/core/io'
+import { initCodec } from '@open-pencil/core/kiwi'
 import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
+
+function layerNamed(graph: SceneGraph, name: string) {
+  const found = [...graph.getAllNodes()].find((node) => node.name === name)
+  if (!found) throw new Error(`Missing ${name}`)
+  return found
+}
+
+async function openRectangles() {
+  await initCodec()
+  const source = new SceneGraph()
+  const page = source.getPages()[0]
+  for (const name of ['Moved', 'Other']) {
+    source.createNode('RECTANGLE', page.id, { name, x: 10, y: 10, width: 40, height: 40 })
+  }
+  const bytes = await exportFigFile(source)
+  const graph = await parseFigFile(bytes.slice().buffer, { populate: 'first-page' })
+  return {
+    graph,
+    editor: createEditor({ graph }),
+    layer: (name: string) => layerNamed(graph, name)
+  }
+}
+
+async function savedLayerX(graph: SceneGraph, name: string) {
+  const saved = await parseFigFile((await exportFigFile(graph)).slice().buffer)
+  return layerNamed(saved, name).x
+}
 
 describe('owned node previews', () => {
   test('publishes layout children with their layout provenance and preserves one-step undo', () => {
@@ -207,6 +236,44 @@ describe('owned node previews', () => {
       expect(preview.closed).toBe(true)
       expect(editor.undo.canUndo).toBe(false)
       expect(editor.isInteractiveEditing()).toBe(false)
+    } finally {
+      editor.dispose()
+    }
+  })
+
+  test('an edit committed from a preview reaches the saved copy of an opened .fig', async () => {
+    const { graph, editor, layer } = await openRectangles()
+    try {
+      const preview = editor.beginNodePreview('Move')
+      preview.update(layer('Moved').id, { x: 300 })
+      preview.commit()
+      expect(await savedLayerX(graph, 'Moved')).toBe(300)
+    } finally {
+      editor.dispose()
+    }
+  })
+
+  test('an edit committed from a preview is saved next to an edit of another layer', async () => {
+    const { graph, editor, layer } = await openRectangles()
+    try {
+      const preview = editor.beginNodePreview('Move')
+      preview.update(layer('Moved').id, { x: 300 })
+      preview.commit()
+      editor.updateNodeWithUndo(layer('Other').id, { name: 'Renamed' }, 'Rename')
+      expect(await savedLayerX(graph, 'Moved')).toBe(300)
+    } finally {
+      editor.dispose()
+    }
+  })
+
+  test('a cancelled preview leaves the saved position of an opened .fig as it was', async () => {
+    const { graph, editor, layer } = await openRectangles()
+    try {
+      const preview = editor.beginNodePreview('Move')
+      preview.update(layer('Moved').id, { x: 300 })
+      preview.cancel()
+      editor.updateNodeWithUndo(layer('Moved').id, { name: 'Renamed' }, 'Rename')
+      expect(await savedLayerX(graph, 'Renamed')).toBe(10)
     } finally {
       editor.dispose()
     }
