@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { SceneGraph } from '@open-pencil/scene-graph'
-import type { SceneNode, VectorNetwork } from '@open-pencil/scene-graph'
+import type { SceneNode, TextPathData, VectorNetwork } from '@open-pencil/scene-graph'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
 
 import {
@@ -12,7 +12,8 @@ import {
   pathTextSelectionBand,
   pointAtArc,
   reflowPathTextGlyphs,
-  sampleTextPath
+  sampleTextPath,
+  textPathStartArc
 } from '#core/text/path'
 
 import { expectDefined } from '#tests/helpers/assert'
@@ -123,12 +124,10 @@ describe('path-text reflow — real fixture (optional local)', () => {
     const path = expectDefined(sampleTextPath(data, fitted), 'fitted overlay path')
     expect(maxGlyphToPath(path, glyphs)).toBeLessThan(12)
 
-    // Start marker (overlay uses pointAtArc at tValue * length) lands on the
-    // fitted curve near the first glyph.
-    const start = pointAtArc(path, Math.min(Math.max(data.tValue, 0), 1) * path.length)
-    expect(Math.hypot(start.x - glyphs[0].x, start.y - glyphs[0].y)).toBeLessThan(
-      glyphs[0].fontSize
-    )
+    // The start marker sits on the segment Figma marks, near arc 595 of 1540, not at
+    // tValue × length (845.7), where this centered run's first glyph happens to be.
+    expect(data.startSegment).toBe(1)
+    expect(textPathStartArc(data, box, rawPath)).toBeCloseTo(595, 0)
   })
 
   test('fitTextPathBoxToGlyphs returns null with no glyphs to fit', async () => {
@@ -304,6 +303,33 @@ describe('selection overlay — path helpers', () => {
     expect(Math.hypot(mid.x - 128, mid.y - 128)).toBeCloseTo(100, 0)
     // Moved along the arc from the start.
     expect(Math.hypot(mid.x - start.x, mid.y - start.y)).toBeGreaterThan(1)
+  })
+
+  test('the start marker sits on the marked start segment, or at tValue along an unmarked path', () => {
+    const zero = { x: 0, y: 0 }
+    const data: TextPathData = {
+      network: {
+        vertices: [
+          { x: 0, y: 50 },
+          { x: 200, y: 50 },
+          { x: 400, y: 50 }
+        ],
+        segments: [
+          { start: 0, end: 1, tangentStart: zero, tangentEnd: zero },
+          { start: 1, end: 2, tangentStart: zero, tangentEnd: zero }
+        ],
+        regions: []
+      },
+      normalizedSize: { x: 400, y: 100 },
+      tValue: 0.5,
+      forward: true,
+      startSegment: 1
+    }
+    const box = { x: 0, y: 0, width: 400, height: 100 }
+    const path = expectDefined(sampleTextPath(data, box), 'path')
+
+    expect(textPathStartArc(data, box, path)).toBeCloseTo(300, 0)
+    expect(textPathStartArc({ ...data, startSegment: undefined }, box, path)).toBeCloseTo(200, 0)
   })
 
   test('eligible node samples the curve (not a rectangle); dataless node falls back', () => {

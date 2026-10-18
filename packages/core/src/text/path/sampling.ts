@@ -1,3 +1,4 @@
+import { clamp } from 'es-toolkit'
 import { svgPathProperties } from 'svg-path-properties'
 
 import type { TextPathData } from '@open-pencil/scene-graph'
@@ -148,4 +149,13 @@ export function textPathStartDistance(data: TextPathData, box: Rect): number | n
     return distance + cubicLength(p0, a, ab, lerp(ab, bc, t))
   }
   return null
+}
+
+/**
+ * How far along `path`, sampled in `box`, the text path start sits: the marked start segment when
+ * the import read one, else `tValue` as a fraction of the whole path.
+ */
+export function textPathStartArc(data: TextPathData, box: Rect, path: SampledPath): number {
+  const start = data.startSegment === undefined ? null : textPathStartDistance(data, box)
+  return clamp(start ?? data.tValue * path.length, 0, path.length)
 }

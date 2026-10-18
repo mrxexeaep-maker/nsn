@@ -23,7 +23,7 @@ import {
   type RotationHandleLayout,
   type RotationPreview
 } from '#core/geometry'
-import { pathTextSelectionBand, pointAtArc } from '#core/text/path'
+import { pathTextSelectionBand, pointAtArc, textPathStartArc } from '#core/text/path'
 
 import { inNodeSpace, outlineNode, withScreenStroke } from './outline'
 
@@ -277,10 +277,9 @@ function drawTextPathSelection(
       canvas.drawLine(cx - arm, cy, cx + arm, cy, r.selectionPaint)
       canvas.drawLine(cx, cy - arm, cx, cy + arm, r.selectionPaint)
 
-      // Start-point marker on the curve at textPathStart.tValue (arc fraction).
+      // Start-point marker where aligned text is laid out from.
       // forward only flips travel direction, which the display-only marker ignores.
-      const s = Math.min(Math.max(data.tValue, 0), 1) * sampled.length
-      const start = pointAtArc(sampled, s)
+      const start = pointAtArc(sampled, textPathStartArc(data, box, sampled))
       drawHandle(r, canvas, start.x, start.y)
     },
     preview
