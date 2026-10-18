@@ -196,5 +196,9 @@ describe('the text path start segment', () => {
     // Header 12 bytes and three 12-byte vertices come before the 28-byte segments.
     new DataView(blob.buffer).setUint32(12 + 3 * 12 + 28, 0x1ffffff, true)
     expect(textPathStartSegment(blob)).toBe(1)
+    // The marker is a style word, so the network itself decodes unchanged.
+    expect(decodeVectorNetworkBlob(blob)).toEqual(
+      decodeVectorNetworkBlob(encodeVectorNetworkBlob(network))
+    )
   })
 })
