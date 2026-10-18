@@ -67,6 +67,15 @@ describe('read-only documents', () => {
     expect(editor.getNode(rect.id)?.name).toBe('Rect')
   })
 
+  test('clears a rotation preview, which only shows on the canvas', () => {
+    const { editor, rect } = setup()
+    editor.setRotationPreview({ nodeId: rect.id, angle: 30 })
+    editor.setReadOnly(true)
+
+    editor.setRotationPreview(null)
+    expect(editor.state.rotationPreview).toBeNull()
+  })
+
   test('keeps only the tools that do not edit', () => {
     const { editor } = setup()
     editor.setTool('RECTANGLE')
