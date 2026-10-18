@@ -1,0 +1,1 @@
+- Pages of a `.fig` file opened after the first load faster, about a quarter faster on a large design kit page.
