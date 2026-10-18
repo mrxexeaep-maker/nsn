@@ -74,3 +74,29 @@ test('keeps the branches the pen did not walk when it adds a point', () => {
   editor.undo.undo()
   expect(editor.graph.getNode(id)?.vectorNetwork).toEqual(T)
 })
+
+// Figma desktop 126: a pen click off the path in vector edit mode starts a new piece of the same
+// layer, and the points drawn from it join the network unconnected to the rest.
+test('a new piece adds its points and segments beside the path', () => {
+  const { pen, id } = setup()
+  pen.penStartPiece(id, { x: 0, y: 120 })
+  editor.penAddVertex(100, 120)
+  editor.penCommit(false)
+
+  const network = editor.graph.getNode(id)?.vectorNetwork
+  expect(points(network)).toEqual([...points(T), { x: 0, y: 120 }, { x: 100, y: 120 }])
+  expect(lines(network)).toEqual([...lines(T), [4, 5]])
+  expect(editor.graph.getChildren(editor.state.currentPageId)).toHaveLength(1)
+
+  editor.undo.undo()
+  expect(editor.graph.getNode(id)?.vectorNetwork).toEqual(T)
+})
+
+test('a new piece with one point leaves the path as it was', () => {
+  const { pen, id } = setup()
+  pen.penStartPiece(id, { x: 0, y: 120 })
+  editor.penCommit(false)
+
+  expect(editor.graph.getNode(id)?.vectorNetwork).toEqual(T)
+  expect(editor.undo.canUndo).toBe(false)
+})

@@ -40,9 +40,10 @@ export function startPenInput(
   editor.state.penCursorX = null
   editor.state.penCursorY = null
 
-  const nodeEditState = editor.state.nodeEditState
-  if (nodeEditState) {
-    handlePenNodeEditDown(e, cx, cy, editor)
+  const { point } = resolveVertexSnap({ x: cx, y: cy }, penSnapVertices(editor), editor)
+  editor.setSnapGuides([])
+  if (editor.state.nodeEditState) {
+    handlePenNodeEditDown(e, cx, cy, editor, point)
     return true
   }
 
@@ -59,8 +60,6 @@ export function startPenInput(
   }
 
   editor.penSetPendingClose(false)
-  const { point } = resolveVertexSnap({ x: cx, y: cy }, penSnapVertices(editor), editor)
-  editor.setSnapGuides([])
   editor.penAddVertex(point.x, point.y)
   setDrag(createPenDrag(point.x, point.y))
   cursorOverride.value = PEN_CURSOR

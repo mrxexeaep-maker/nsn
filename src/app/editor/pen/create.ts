@@ -1,10 +1,12 @@
 import type { Editor, Tool } from '@open-pencil/core/editor'
 import { transformVectorNetwork, type VectorNetwork } from '@open-pencil/scene-graph'
 import { getWorldMatrix } from '@open-pencil/scene-graph/coordinate'
+import type { Vector } from '@open-pencil/scene-graph/primitives'
 
 import {
   chainEndingAt,
   createResumedPenState,
+  newPieceAt,
   wholeChain,
   type PenChain,
   type PenState
@@ -47,5 +49,10 @@ export function createPenActions(editor: Editor, state: PenState) {
     resumeOn(nodeId, (network) => chainEndingAt(network, endpointVertexIndex))
   }
 
-  return { setTool, penResumeOnPath, penResumeFromEndpoint }
+  /** Starts a new piece of `nodeId`'s path at a page point, as a pen click off the path does in Figma. */
+  function penStartPiece(nodeId: string, point: Vector) {
+    resumeOn(nodeId, (network) => newPieceAt(network, point))
+  }
+
+  return { setTool, penResumeOnPath, penResumeFromEndpoint, penStartPiece }
 }

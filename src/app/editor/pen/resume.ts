@@ -6,6 +6,7 @@ import {
   type VectorSegment,
   type VectorVertex
 } from '@open-pencil/scene-graph'
+import type { Vector } from '@open-pencil/scene-graph/primitives'
 
 export type PenState = EditorState
 type PenStateInit = NonNullable<EditorState['penState']>
@@ -43,6 +44,18 @@ export function wholeChain(network: VectorNetwork): PenChain {
       vertices: network.vertices.map((_, index) => index),
       segments: network.segments.map((_, index) => ({ index, reversed: false }))
     }
+  }
+}
+
+/**
+ * A chain that starts a new piece of `network` at `point`: it walks none of the network, so
+ * committing adds everything the pen draws beside the pieces already there.
+ */
+export function newPieceAt(network: VectorNetwork, point: Vector): PenChain {
+  return {
+    vertices: [{ ...point }],
+    segments: [],
+    path: { network, vertices: [], segments: [] }
   }
 }
 
