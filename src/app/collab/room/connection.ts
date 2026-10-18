@@ -2,6 +2,13 @@ import * as decoding from 'lib0/decoding'
 import * as awarenessProtocol from 'y-protocols/awareness'
 import * as Y from 'yjs'
 
+import {
+  COLLAB_ACTIONS,
+  encodeSyncReply,
+  decodeRoomUpdate,
+  MAX_COLLAB_MESSAGE_BYTES
+} from '@open-pencil/cloud/contract'
+
 import { joinCollabRoom, type JoinCollabRoom } from '@/app/collab/transport'
 import type { CollabAction } from '@/app/collab/transport/types'
 
@@ -11,6 +18,8 @@ export type CollabRoomOptions = {
   awareness: awarenessProtocol.Awareness
   updatePeersList: () => void
   joinRoom?: JoinCollabRoom
+  /** The most a peer's update may decode to; `MAX_COLLAB_MESSAGE_BYTES` unless a test lowers it. */
+  maxMessageBytes?: number
 }
 
 export type CollabRoomConnection = {
@@ -24,9 +33,35 @@ export type CollabRoomConnection = {
   onPeerLeave: (handler: (peerId: string) => void) => () => void
   /** The peer whose awareness carries a presence client, so media reaches the right person. */
   peerForClient: (clientId: number) => string | undefined
+  /** Follow peers answering this tab's state with theirs; returns the unsubscribe. */
+  onSynced: (handler: (peerId: string) => void) => () => void
 }
 
 type AwarenessEntry = { clientId: number; removed: boolean }
+
+/**
+ * Applies what a peer sent, inflated first when `compressed`, as a sync reply is. An update past
+ * `limit` is dropped with a warning; data that does not inflate or decode came from a build that
+ * does not share this room's format, or from a broken peer, and is dropped rather than thrown
+ * from the transport's handler. Returns whether it applied.
+ */
+function applyRemote(
+  ydoc: Y.Doc,
+  data: Uint8Array,
+  { limit, peerId, compressed = false }: { limit: number; peerId: string; compressed?: boolean }
+): boolean {
+  try {
+    const update = decodeRoomUpdate(data, { limit, compressed })
+    if (!update) {
+      console.warn(`[Collab] Dropped an update from peer ${peerId} past ${limit} bytes`)
+      return false
+    }
+    Y.applyUpdateV2(ydoc, update, 'remote')
+    return true
+  } catch {
+    return false
+  }
+}
 
 function awarenessEntries(data: Uint8Array): AwarenessEntry[] {
   try {
@@ -49,21 +84,23 @@ export function connectCollabRoom({
   ydoc,
   awareness,
   updatePeersList,
-  joinRoom = joinCollabRoom
+  joinRoom = joinCollabRoom,
+  maxMessageBytes = MAX_COLLAB_MESSAGE_BYTES
 }: CollabRoomOptions): CollabRoomConnection {
   const room = joinRoom(roomId)
-  const [sendYjsUpdate, getUpdate] = room.makeAction('yjs-update')
-  const [sendAwareness, getAwareness] = room.makeAction('awareness')
-  const [sendSyncStep1, getSyncStep1] = room.makeAction('sync-step1')
-  const [sendSyncReply, getSyncReply] = room.makeAction('sync-reply')
-  const agentPreview = room.makeAction('agent-preview')
+  const [sendYjsUpdate, getUpdate] = room.makeAction(COLLAB_ACTIONS.yjsUpdate)
+  const [sendAwareness, getAwareness] = room.makeAction(COLLAB_ACTIONS.awareness)
+  const [sendSyncStep1, getSyncStep1] = room.makeAction(COLLAB_ACTIONS.syncStep1)
+  const [sendSyncReply, getSyncReply] = room.makeAction(COLLAB_ACTIONS.syncReply)
+  const agentPreview = room.makeAction(COLLAB_ACTIONS.agentPreview)
   // A transport keeps one leave handler, so the connection shares it with its users.
   const leaveHandlers = new Set<(peerId: string) => void>()
+  const syncedHandlers = new Set<(peerId: string) => void>()
 
   const awarenessClientsByPeer = new Map<string, Set<number>>()
 
-  getUpdate((data) => {
-    Y.applyUpdate(ydoc, data, 'remote')
+  getUpdate((data, peerId) => {
+    applyRemote(ydoc, data, { limit: maxMessageBytes, peerId })
   })
 
   getAwareness((data, peerId) => {
@@ -78,15 +115,15 @@ export function connectCollabRoom({
   })
 
   getSyncStep1((stateVector, peerId) => {
-    const update = Y.encodeStateAsUpdate(ydoc, stateVector)
-    sendSyncReply(update, peerId)
+    sendSyncReply(encodeSyncReply(ydoc, stateVector), peerId)
   })
 
-  getSyncReply((data) => {
-    Y.applyUpdate(ydoc, data, 'remote')
+  getSyncReply((data, peerId) => {
+    if (!applyRemote(ydoc, data, { limit: maxMessageBytes, peerId, compressed: true })) return
+    for (const handler of syncedHandlers) handler(peerId)
   })
 
-  ydoc.on('update', (update: Uint8Array, origin: unknown) => {
+  ydoc.on('updateV2', (update: Uint8Array, origin: unknown) => {
     if (origin === 'remote') return
     sendYjsUpdate(update)
   })
@@ -126,6 +163,10 @@ export function connectCollabRoom({
     onPeerLeave(handler) {
       leaveHandlers.add(handler)
       return () => leaveHandlers.delete(handler)
+    },
+    onSynced(handler) {
+      syncedHandlers.add(handler)
+      return () => syncedHandlers.delete(handler)
     },
     peerForClient(clientId) {
       for (const [peerId, clients] of awarenessClientsByPeer) {

@@ -9,9 +9,19 @@ export * from './plugin-data/fields'
 export { rescaleNodeTree, scaleNodeChanges } from './scaling'
 import { TRANSFORM_FIELDS, SIZE_FIELDS } from './fields/geometry'
 export { TRANSFORM_FIELDS, SIZE_FIELDS } from './fields/geometry'
-export { TEXT_METRIC_FIELDS, TEXT_SHAPING_FIELDS, TEXT_LAYOUT_FIELDS } from './fields/text'
+import { AUTO_LAYOUT_FIELDS, SIZE_CONSTRAINT_FIELDS } from './fields/layout'
+export { AUTO_LAYOUT_FIELDS, SIZE_CONSTRAINT_FIELDS } from './fields/layout'
+export { CORNER_FIELDS, PAINT_FIELDS, STROKE_FIELDS } from './fields/appearance'
+export {
+  TEXT_METRIC_FIELDS,
+  TEXT_SHAPING_FIELDS,
+  TEXT_LAYOUT_FIELDS,
+  TEXT_DECORATION_FIELDS,
+  TEXT_STYLE_FIELDS
+} from './fields/text'
 export * from './transfer'
 export * from './instance-overrides'
+export * from './asset-keys'
 export * from './images'
 export * from './components/properties'
 export * from './components/variants'
@@ -27,6 +37,7 @@ export {
 export * from './slots/content'
 export * from './slots/authoring'
 export * from './slots/limits'
+export * from './generated'
 export * from './behaviours/kinds'
 export * from './icons/schema'
 export * from './icons/model'
@@ -41,6 +52,10 @@ export * from './comments/document'
 export * from './comments/list'
 export * from './comments/merge'
 export * from './comments/threads'
+export * from './statuses/impact'
+export * from './statuses/node'
+export * from './statuses/schema'
+export * from './statuses/workflow'
 export * from './copy'
 export {
   createDefaultNode,
@@ -555,36 +570,14 @@ export class SceneGraph {
   static LAYOUT_AFFECTING_KEYS: ReadonlySet<string> = new Set([
     ...TRANSFORM_FIELDS,
     ...SIZE_FIELDS,
-    'layoutMode',
-    'layoutDirection',
-    'itemSpacing',
-    'counterAxisSpacing',
-    'paddingLeft',
-    'paddingRight',
-    'paddingTop',
-    'paddingBottom',
-    'primaryAxisAlign',
-    'counterAxisAlign',
-    'counterAxisAlignContent',
-    'layoutWrap',
-    'primaryAxisSizing',
-    'counterAxisSizing',
+    ...AUTO_LAYOUT_FIELDS,
     'layoutPositioning',
     'layoutGrow',
     'layoutAlignSelf',
-    'strokesIncludedInLayout',
     'horizontalConstraint',
     'verticalConstraint',
-    'gridTemplateColumns',
-    'gridTemplateRows',
-    'gridColumnGap',
-    'gridRowGap',
     'gridPosition',
-    'minWidth',
-    'maxWidth',
-    'minHeight',
-    'maxHeight',
-    'targetAspectRatio'
+    ...SIZE_CONSTRAINT_FIELDS
   ])
 
   runPreviewUpdates(fn: () => void, beforeUpdate?: NodePreviewObserver): void {
@@ -904,7 +897,10 @@ export class SceneGraph {
     // `as SourceMetadata` required: cloneNodeProps returns Partial<SceneNode>,
     // so props.source is SourceMetadata | undefined, but we know it's always set.
     props.source = { ...(props.source as SourceMetadata), id: null, orderKey: null }
+    // A copy is a new design nobody has reviewed: Figma's duplicate and clone() drop the status.
+    props.status = null
     const clone = this.createNode(src.type, parentId, { ...props, ...overrides })
+    if (src.status) markSourceFieldsEdited(clone, ['status'])
 
     for (const childId of src.childIds) {
       this.cloneTree(childId, clone.id)

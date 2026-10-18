@@ -8,7 +8,9 @@
   "polygon": "Poligono",
   "star": "Stella",
   "pen": "Penna",
+  "pencil": "Matita",
   "text": "Testo",
+  "sticky": "Nota adesiva",
   "hand": "Mano",
   "comment": "Commento"
 }
