@@ -154,6 +154,11 @@ function joinCloudRelayRoom(roomId: string, options: CloudRelayOptions): CollabR
     ended = true
     clearTimeout(refreshTimer)
     clearTimeout(reconnectTimer)
+    // Nothing more goes to the old room, whoever moves on to the new one.
+    const current = socket
+    socket = null
+    current?.close(1000, 'The document was restored')
+    forgetPeers()
     options.onRestored?.()
   }
 
