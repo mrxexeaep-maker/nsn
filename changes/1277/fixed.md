@@ -1,2 +1,3 @@
 - Emoji in text from Figma draw as emoji instead of squares in the text's colour, and keep drawing in Figma after a save; the browser and desktop app use the system's emoji font, and the CLI uses Noto Color Emoji.
+- The text caret, arrow keys, Backspace, and Delete treat an emoji as one character, and emoji in edited or typed text take the same width as in Figma and draw as emoji instead of missing-glyph boxes.
 - Gradient-filled text from Figma spreads its gradient across the layer as Figma does, instead of showing little more than its first colour.
