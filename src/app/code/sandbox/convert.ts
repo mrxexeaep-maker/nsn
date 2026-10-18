@@ -14,7 +14,6 @@ import {
   linearGradient,
   radialGradient,
   solid,
-  type DesignJSXProgram,
   type TreeNode
 } from '@open-pencil/design-jsx'
 
@@ -44,18 +43,13 @@ type SerializedDesignJSXElement = {
   type: string
   props: PlainRecord
   children: unknown[]
-  /** `[chunk, line]` from the transform, when the element's source line is known. */
+  /** The line the transform reports, when the element's source line is known. */
   source?: unknown
 }
 
-type LineOffsets = DesignJSXProgram['lineOffsets']
-
-function sourceLine(value: unknown, lineOffsets: LineOffsets | undefined): number | undefined {
-  if (!lineOffsets || !Array.isArray(value) || value.length !== 2) return undefined
-  const [chunk, line] = value as unknown[]
-  if ((chunk !== 'statements' && chunk !== 'expression') || typeof line !== 'number')
-    return undefined
-  return lineOffsets[chunk] + line
+function sourceLine(value: unknown, lineOffset: number | undefined): number | undefined {
+  if (lineOffset === undefined || typeof value !== 'number') return undefined
+  return lineOffset + value
 }
 
 function isRecord(value: unknown): value is PlainRecord {
@@ -93,26 +87,26 @@ function convertValue(value: unknown): unknown {
   return value
 }
 
-function convertTree(value: unknown, lineOffsets?: LineOffsets): TreeNode {
+function convertTree(value: unknown, lineOffset?: number): TreeNode {
   if (!isSerializedElement(value)) {
     throw new Error('Design JSX must return an OpenPencil element.')
   }
   const children = value.children.map((child): TreeNode | string => {
     if (typeof child === 'string') return child
     if (typeof child === 'number') return String(child)
-    return convertTree(child, lineOffsets)
+    return convertTree(child, lineOffset)
   })
   const tree: TreeNode = {
     type: value.type,
     props: convertValue(value.props) as PlainRecord,
     children
   }
-  const line = sourceLine(value.source, lineOffsets)
+  const line = sourceLine(value.source, lineOffset)
   if (line !== undefined) tree.source = { line }
   return tree
 }
 
-export function convertDesignJSXRoots(values: unknown[], lineOffsets?: LineOffsets): TreeNode[] {
+export function convertDesignJSXRoots(values: unknown[], lineOffset?: number): TreeNode[] {
   // Call validateDesignJSXOutput first; it enforces the depth bound used by this recursion.
-  return values.map((value) => convertTree(value, lineOffsets))
+  return values.map((value) => convertTree(value, lineOffset))
 }

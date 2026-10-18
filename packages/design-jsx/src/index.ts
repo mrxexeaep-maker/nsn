@@ -108,7 +108,6 @@ export {
 export {
   transformDesignJSXExpression,
   transformDesignJSXProgram,
-  type DesignJSXChunk,
   type DesignJSXProgram
 } from './transform'
 

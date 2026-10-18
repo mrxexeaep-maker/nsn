@@ -18,7 +18,7 @@ self.onmessage = ({ data }) => {
     if (typeof type === 'function') return type({ ...normalizedProps, children: normalizedChildren })
     if (type === __fragment) return normalizedChildren
     const element = { type, props: normalizedProps, children: normalizedChildren }
-    if (__source && typeof __source.lineNumber === 'number') element.source = [String(__source.fileName), __source.lineNumber]
+    if (__source && typeof __source.lineNumber === 'number') element.source = __source.lineNumber
     return element
   }
   const helper = (name) => (...args) => ({ __openPencilHelper: name, args })
