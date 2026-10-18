@@ -33,3 +33,10 @@ export interface IssueGroupView {
   /** Whether every safe fix binds a variable, which the group button names. */
   bindsOnly: boolean
 }
+
+export type DesignCheckScope = 'page' | 'selection' | 'document'
+
+export type DesignCheckEmptyState =
+  | { kind: 'no-selection'; label: string; description: string }
+  | { kind: 'filtered'; label: string }
+  | { kind: 'clean'; label: string; description: string }

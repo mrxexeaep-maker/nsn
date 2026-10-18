@@ -12,7 +12,8 @@ import { designCheck } from '@/theme/design-check'
 import DesignCheckRulesMenu from './DesignCheckRulesMenu.vue'
 import IssueGroup from './IssueGroup.vue'
 import SeverityFilters from './SeverityFilters.vue'
-import { useDesignCheckPanel, type DesignCheckScope } from './useDesignCheckPanel'
+import type { DesignCheckScope } from './types'
+import { useDesignCheckPanel } from './useDesignCheckPanel'
 
 const { active, initialScope = 'page' } = defineProps<{
   active: boolean
