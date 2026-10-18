@@ -16,6 +16,20 @@ export function isEditing(event: Event) {
   return event.composedPath().some(isEditableTarget)
 }
 
+const OVERLAY_SELECTOR = '[data-picker-content], [role="dialog"], [role="listbox"], [role="menu"]'
+export const PICKER_SELECTOR = '[data-picker-content]'
+
+export function originatedInOverlay(event: KeyboardEvent, allowPickers = false) {
+  return event
+    .composedPath()
+    .some(
+      (target) =>
+        target instanceof Element &&
+        target.matches(OVERLAY_SELECTOR) &&
+        !(allowPickers && target.closest(PICKER_SELECTOR))
+    )
+}
+
 export function hasDocumentTextSelection(): boolean {
   const selection = window.getSelection()
   return selection !== null && !selection.isCollapsed && selection.toString().length > 0
