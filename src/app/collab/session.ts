@@ -19,6 +19,7 @@ import {
 } from '@/app/collab/shared-tree/fields'
 import type { JoinCollabRoom } from '@/app/collab/transport'
 import type { RemotePeer } from '@/app/collab/types'
+import { bindVariableSync, type YRecords } from '@/app/collab/variables'
 import { attachRoomVoice, type RoomVoice } from '@/app/collab/voice/room'
 import {
   bindCollabGraphEvents,
@@ -46,6 +47,14 @@ export interface RoomSession {
   updateSelection(ids: string[]): void
   /** Writes the tab's whole document into the room and makes its root the room's. */
   shareDocument(): void
+  /** Whether the room holds a document yet, from any peer. */
+  roomHasDocument(): boolean
+  /** Follow peers answering this tab's state with theirs; returns the unsubscribe. */
+  onSynced(handler: (peerId: string) => void): () => void
+  /** The awareness states of everyone in the room, this tab included. */
+  presence(): ReadonlyMap<number, Record<string, unknown>>
+  /** This tab's awareness client. */
+  readonly clientId: number
   /** Leaves the room and releases its connection, presence, and saved-copy handle. */
   dispose(): void
 }
@@ -61,11 +70,18 @@ export interface RoomSessionOptions {
   store: EditorStore
   origin: RoomOrigin
   joinRoom?: JoinCollabRoom
+  /** Who this tab is in the room; the device's own identity unless a host stands in for one. */
+  identity?: Pick<ReturnType<typeof useCollabIdentity>, 'name' | 'color'>
   openSavedCopy?: (roomId: string, ydoc: Y.Doc) => RoomSavedCopy
   /** How long the tab tries to reach the service that introduces peers before saying it cannot. */
   unreachableMs?: number
   /** How often the tab rechecks its connection while it waits for the file. */
   tickMs?: number
+  /**
+   * The tab already shows the room's document, as a stored document opened before its room was:
+   * it counts as having the document until the room says it holds another.
+   */
+  holdsDocument?: boolean
 }
 
 function openIndexedDBCopy(roomId: string, ydoc: Y.Doc): RoomSavedCopy {
@@ -79,16 +95,19 @@ export function openRoomSession({
   store,
   origin,
   joinRoom,
+  identity = useCollabIdentity(),
   openSavedCopy = openIndexedDBCopy,
   unreachableMs = ROOM_UNREACHABLE_MS,
-  tickMs = ROOM_STATUS_TICK_MS
+  tickMs = ROOM_STATUS_TICK_MS,
+  holdsDocument = false
 }: RoomSessionOptions): RoomSession {
-  const identity = useCollabIdentity()
   const ydoc = new Y.Doc()
   const awareness = new awarenessProtocol.Awareness(ydoc)
   const ynodes: YNodes = ydoc.getMap('nodes')
   const yimages = ydoc.getMap<Uint8Array>('images')
   const meta = ydoc.getMap<unknown>('meta')
+  const yvariables: YRecords = ydoc.getMap('variables')
+  const ycollections: YRecords = ydoc.getMap('collections')
   const persistence = openSavedCopy(roomId, ydoc)
 
   const peers = shallowRef<RemotePeer[]>([])
@@ -128,7 +147,7 @@ export function openRoomSession({
   function refreshDocument() {
     if (disposed) return
     const rootId = readRoot(meta)
-    hasDocument.value = rootId !== undefined && store.graph.rootId === rootId
+    hasDocument.value = rootId === undefined ? holdsDocument : store.graph.rootId === rootId
     // Newcomers wait for someone who has the file, so peers say whether they do.
     if (awareness.getLocalState()?.hasFile !== hasDocument.value) {
       awareness.setLocalStateField('hasFile', hasDocument.value)
@@ -201,6 +220,7 @@ export function openRoomSession({
   const stopAgentSync = publishLocalAgents(store, () => awareness, identity.color)
   const stopAgentPreviews = shareAgentPreviews(store, connection)
   const voice = attachRoomVoice({ awareness, peers, connection })
+  const variableSync = bindVariableSync({ store, ydoc, yvariables, ycollections })
   const unbindGraphEvents = bindCollabGraphEvents({
     store,
     getYdoc: () => (disposed ? null : ydoc),
@@ -225,13 +245,19 @@ export function openRoomSession({
     },
     shareDocument() {
       sync.syncAllNodesToYjs()
+      variableSync.share()
       writeRoomName(meta, store.state.documentName)
       refreshDocument()
     },
+    roomHasDocument: () => readRoot(meta) !== undefined,
+    onSynced: (handler) => connection.onSynced(handler),
+    presence: () => awareness.getStates() as Map<number, Record<string, unknown>>,
+    clientId: awareness.clientID,
     dispose() {
       if (disposed) return
       // Unbinding writes an edit still waiting to be sent, so it runs while the room is open.
       unbindGraphEvents()
+      variableSync.dispose()
       disposed = true
       connectionTimer.pause()
       stopNameWatch()

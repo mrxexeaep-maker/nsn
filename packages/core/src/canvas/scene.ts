@@ -15,7 +15,7 @@ import type { Color } from '@open-pencil/scene-graph/primitives'
 import { createSceneGeometry, nodeOrientationMatrix, projectedNode } from '#core/geometry'
 import { shownText } from '#core/text/case'
 import { fontManager } from '#core/text/fonts'
-import { vectorNetworkToCenterlinePath } from '#core/vector'
+import { addStrokeRunToPath, strokeRuns, vectorNetworkToCenterlinePath } from '#core/vector'
 
 import { figmaBlendModeToSkia, needsIsolatedBlendLayer } from './blend'
 import { renderBooleanOperation } from './boolean'
@@ -48,6 +48,7 @@ import {
   drawReflowedPathTextSilhouettes,
   isReflowedPathText
 } from './text/derived'
+import { stickyPlaceholderNode } from './text/sticky-placeholder'
 
 function drawVisibleFills(
   r: SkiaRenderer,
@@ -337,8 +338,9 @@ export function renderNode(
   parentAbsY = 0,
   hasTransformedAncestor = false
 ): void {
-  const node = graph.getNode(nodeId)
-  if (!node || !drawsNode(node, overlays)) return
+  const found = graph.getNode(nodeId)
+  if (!found || !drawsNode(found, overlays)) return
+  const node = stickyPlaceholderNode(graph, found, r.stickyPlaceholder) ?? found
 
   r._nodeCount++
 
@@ -653,39 +655,29 @@ function drawVectorStrokeGeometry(
 
 function vectorStrokePaths(r: SkiaRenderer, node: SceneNode): Path[] | null {
   if (!node.vectorNetwork) return null
-  const cached = r.vectorStrokePathCache.get(node.id)
+  const cached = r.nodePaths.vectorStroke.get(node.id)
   if (cached) return cached
 
-  const paths: Path[] = []
-  for (const segment of node.vectorNetwork.segments) {
-    const start = node.vectorNetwork.vertices[segment.start]
-    const end = node.vectorNetwork.vertices[segment.end]
-
+  // A path per run, so the corners inside a run join and only its open ends take caps.
+  const { segments, vertices } = node.vectorNetwork
+  const paths = strokeRuns(segments).map((run) => {
     const path = new r.ck.PathBuilder()
-    path.moveTo(start.x, start.y)
-    const isStraight =
-      Math.abs(segment.tangentStart.x) < 0.001 &&
-      Math.abs(segment.tangentStart.y) < 0.001 &&
-      Math.abs(segment.tangentEnd.x) < 0.001 &&
-      Math.abs(segment.tangentEnd.y) < 0.001
-    if (isStraight) {
-      path.lineTo(end.x, end.y)
-    } else {
-      path.cubicTo(
-        start.x + segment.tangentStart.x,
-        start.y + segment.tangentStart.y,
-        end.x + segment.tangentEnd.x,
-        end.y + segment.tangentEnd.y,
-        end.x,
-        end.y
-      )
-    }
-    paths.push(path.detachAndDelete())
-  }
+    addStrokeRunToPath(path, run, segments, vertices)
+    return path.detachAndDelete()
+  })
 
   if (paths.length === 0) return null
-  r.vectorStrokePathCache.set(node.id, paths)
+  r.nodePaths.store(r.nodePaths.vectorStroke, node.id, paths)
   return paths
+}
+
+/** Stroke outlines are cached under `<nodeId>|…`, which `NodePathCaches.invalidate` removes. */
+function strokeOutlineKey(
+  node: SceneNode,
+  stroke: SceneNode['strokes'][0],
+  source: 'runs' | 'regions'
+): string {
+  return `${node.id}|${source}|${stroke.weight}|${stroke.cap ?? node.strokeCap}|${stroke.join ?? node.strokeJoin}|${node.strokeMiterLimit}`
 }
 
 function drawVectorPathStrokes(
@@ -721,16 +713,20 @@ function drawVectorPathStrokes(
   r.fillPaint.setColor(r.ck.Color4f(sc.r, sc.g, sc.b, sc.a))
   r.fillPaint.setAlphaf(stroke.opacity)
 
-  let outlines = outlineCacheKey ? r.vectorStrokeOutlineCache.get(outlineCacheKey) : undefined
-  if (!outlines) {
-    outlines = []
-    for (const vp of vectorPaths) {
-      const outline = vp.makeStroked(strokeOpts)
-      if (outline) outlines.push(outline)
-    }
-    if (outlineCacheKey) r.vectorStrokeOutlineCache.set(outlineCacheKey, outlines)
+  const cached = outlineCacheKey ? r.nodePaths.strokeOutline.get(outlineCacheKey) : undefined
+  if (cached) {
+    for (const outline of cached) canvas.drawPath(outline, r.fillPaint)
+    return
+  }
+  const outlines: Path[] = []
+  for (const vp of vectorPaths) {
+    const outline = vp.makeStroked(strokeOpts)
+    if (outline) outlines.push(outline)
   }
   for (const outline of outlines) canvas.drawPath(outline, r.fillPaint)
+  // Drawing copies the outline, so one without a cache key is done with here.
+  if (outlineCacheKey) r.nodePaths.store(r.nodePaths.strokeOutline, outlineCacheKey, outlines)
+  else for (const outline of outlines) outline.delete()
 }
 
 function drawRegularStroke(
@@ -775,13 +771,14 @@ function drawNodeStroke(
     node.type === 'VECTOR' &&
     !node.fills.some((fill) => fill.visible)
   if (shouldStrokeVectorCenterline) {
-    const outlineKey = `${node.id}|${stroke.weight}|${stroke.cap ?? node.strokeCap}|${stroke.join ?? node.strokeJoin}|${node.strokeMiterLimit}`
+    const outlineKey = strokeOutlineKey(node, stroke, 'runs')
     drawVectorPathStrokes(r, canvas, vectorStroke, stroke, sc, node.strokeMiterLimit, outlineKey)
     return
   }
   if (!sg) {
     if (vectorPaths) {
-      drawVectorPathStrokes(r, canvas, vectorPaths, stroke, sc, node.strokeMiterLimit)
+      const outlineKey = strokeOutlineKey(node, stroke, 'regions')
+      drawVectorPathStrokes(r, canvas, vectorPaths, stroke, sc, node.strokeMiterLimit, outlineKey)
     } else drawRegularStroke(r, canvas, node, rect, hasRadius, stroke, sc)
     return
   }

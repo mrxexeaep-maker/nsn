@@ -8,7 +8,9 @@
   "polygon": "Polygone",
   "star": "Étoile",
   "pen": "Plume",
+  "pencil": "Crayon",
   "text": "Texte",
+  "sticky": "Note autocollante",
   "hand": "Main",
   "comment": "Commentaire"
 }

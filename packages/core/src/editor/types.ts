@@ -41,7 +41,9 @@ export type Tool =
   | 'POLYGON'
   | 'STAR'
   | 'TEXT'
+  | 'STICKY'
   | 'PEN'
+  | 'PENCIL'
   | 'HAND'
   | 'COMMENT'
 
@@ -94,6 +96,14 @@ export interface EditorSharedState {
   canvasVersion: number
 }
 
+export interface PencilState {
+  points: Vector[]
+  /** The point Shift was pressed at; the stroke runs straight from it while Shift is held. */
+  straightFrom: number | null
+  /** How the stroke shows while it is drawn. */
+  preview: { color: Color; weight: number }
+}
+
 export interface EditorViewState {
   currentPageId: string
   selectedIds: Set<string>
@@ -128,6 +138,8 @@ export interface EditorViewState {
   } | null
   penCursorX: number | null
   penCursorY: number | null
+  /** The freehand stroke being drawn with the pencil, in canvas coordinates. */
+  pencilState: PencilState | null
   autoLayoutHover: {
     nodeId: string
     kind: 'frame' | 'children' | 'spacing' | 'spacing-value' | 'padding' | 'padding-value'
@@ -205,6 +217,8 @@ export interface EditorOptions {
   ) => Promise<ArrayBuffer | null>
   resolveFigmaClipboardImages?: FigmaClipboardImageResolver
   getViewportSize?: () => { width: number; height: number }
+  /** The name of whoever is editing, which a sticky note they place is signed with. */
+  getUserName?: () => string
   /** Where icons are searched and fetched; defaults to Iconify. */
   icons?: IconProvider
   /** What draws shader frames, which needs a GPU; without one, saved frames stay. */
@@ -225,6 +239,7 @@ export interface EditorContext {
   ) => Promise<ArrayBuffer | null>
   resolveFigmaClipboardImages: FigmaClipboardImageResolver | null
   getViewportSize: () => { width: number; height: number }
+  getUserName: () => string
   icons: IconProvider
   getCk: () => CanvasKit | null
   getRenderer: () => SkiaRenderer | null

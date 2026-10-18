@@ -1,22 +1,36 @@
-import { embedClipboardImages, encodeFigmaClipboard } from '@open-pencil/fig/clipboard'
+import {
+  embedClipboardImages,
+  encodeFigmaClipboard,
+  type FigmaClipboardAssetType
+} from '@open-pencil/fig/clipboard'
 import { randomInt } from '@open-pencil/scene-graph/random'
-export { parseFigmaClipboard, figmaNodesBounds } from '@open-pencil/fig/clipboard'
+export {
+  parseFigmaClipboard,
+  figmaNodesBounds,
+  type FigmaClipboardAssetType
+} from '@open-pencil/fig/clipboard'
 import { placeSlotContent, type FigNodeChangeExportRuntime } from '@open-pencil/fig/node-change'
 import { initCodec } from '@open-pencil/kiwi/fig/codec'
 import type { GUID, NodeChange as KiwiNodeChange } from '@open-pencil/kiwi/fig/codec'
-import { ownsSlotContent, type SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
+import {
+  derivedAssetKey,
+  derivedAssetVersion,
+  ownsSlotContent,
+  type SceneGraph,
+  type SceneNode
+} from '@open-pencil/scene-graph'
 import { fractionalPosition } from '@open-pencil/scene-graph/order-keys'
 
 import {
   collectComponentPropertyIds,
   firstUnclaimedLocalId,
   layerSourceGuids
-} from '#core/io/formats/fig/export-setup'
+} from '#core/io/formats/fig/export/setup'
 import {
   appendVariableNodeChanges,
   assignSharedStyleGuids,
   assignVariableGuids
-} from '#core/io/formats/fig/variable-export'
+} from '#core/io/formats/fig/export/variables'
 
 import { withFigExportRuntime } from './canvas/text/shape'
 import { prepareClipboardImport } from './clipboard/fig-import'
@@ -26,6 +40,7 @@ import {
   makeCanvasNodeChange,
   buildFontDigestMap
 } from './kiwi/fig/node-change/serialize'
+import { cloneSceneGraphForFigExport } from './kiwi/fig/parse/transfer'
 
 export async function prefetchFigmaSchema(): Promise<void> {
   await initCodec()
@@ -51,19 +66,62 @@ export function importClipboardNodes(
   return operation.plan.rootIds
 }
 
+/**
+ * The document as the clipboard writes it. Figma names the variables and collections a paste
+ * uses by key, and keeps a binding to one it knows only by key as a remote variable, as it does
+ * for its own clipboard; variables made in OpenPencil have no key, so they take one derived from
+ * their ID here, for this copy only. Figma keeps the first value it pasted for a key and version,
+ * so the version follows their content and an edited variable pastes with its new value.
+ */
+function clipboardGraph(graph: SceneGraph): SceneGraph {
+  const unkeyed =
+    [...graph.variables.values()].some((variable) => !variable.key) ||
+    [...graph.variableCollections.values()].some((collection) => !collection.key)
+  if (!unkeyed) return graph
+  const copy = cloneSceneGraphForFigExport(graph)
+  copy.variableCollections = new Map(
+    [...graph.variableCollections].map(([id, collection]) => [
+      id,
+      collection.key
+        ? collection
+        : {
+            ...collection,
+            key: derivedAssetKey(`collection:${id}`),
+            version: derivedAssetVersion(JSON.stringify(collection))
+          }
+    ])
+  )
+  copy.variables = new Map(
+    [...graph.variables].map(([id, variable]) => [
+      id,
+      variable.key
+        ? variable
+        : {
+            ...variable,
+            key: derivedAssetKey(`variable:${id}`),
+            version: derivedAssetVersion(JSON.stringify(variable))
+          }
+    ])
+  )
+  return copy
+}
+
 export function buildFigmaClipboardHTML(
   nodes: SceneNode[],
-  graph: SceneGraph
+  graph: SceneGraph,
+  assetType: FigmaClipboardAssetType = 'UNKNOWN'
 ): Promise<string | null> {
-  return withFigExportRuntime(graph, undefined, (runtime) =>
-    writeFigmaClipboardHTML(nodes, graph, runtime)
+  const written = clipboardGraph(graph)
+  return withFigExportRuntime(written, undefined, (runtime) =>
+    writeFigmaClipboardHTML(nodes, written, runtime, assetType)
   )
 }
 
 async function writeFigmaClipboardHTML(
   nodes: SceneNode[],
   graph: SceneGraph,
-  runtime: FigNodeChangeExportRuntime
+  runtime: FigNodeChangeExportRuntime,
+  assetType: FigmaClipboardAssetType
 ): Promise<string | null> {
   const fontDigestMap = await buildFontDigestMap(graph)
 
@@ -198,7 +256,7 @@ async function writeFigmaClipboardHTML(
     }
   }
   embedClipboardImages(nodeChanges, blobs, graph.images)
-  return encodeFigmaClipboard(nodeChanges, blobs, randomInt())
+  return encodeFigmaClipboard(nodeChanges, blobs, randomInt(), assetType)
 }
 
 export {

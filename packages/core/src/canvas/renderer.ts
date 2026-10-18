@@ -30,6 +30,7 @@ import { LabelCache } from './labels/cache'
 import * as LabelHitTest from './labels/hit-test'
 import { LabelParagraphCache } from './labels/paragraph-cache'
 import { labelHitOptions } from './labels/style'
+import { NodePathCaches } from './paths/cache'
 import * as RenderColors from './renderer/colors'
 import * as RendererFonts from './renderer/fonts'
 import { destroyRenderer, releaseLiveImages } from './renderer/lifecycle'
@@ -80,6 +81,7 @@ export interface PendingFontNode {
 }
 
 import type { PlacedIssueMarker } from './issues/types'
+import type { PlacedStatusLabel } from './labels/status'
 import { EffectRasterCache } from './renderer/effect-raster-cache'
 import { TiledSceneController } from './renderer/tiles'
 import type { TransientCanvasPreview } from './renderer/transient-previews'
@@ -142,11 +144,7 @@ export class SkiaRenderer {
   imageMemoryPage: string | null = null
   onImagePreviewReady: (() => void) | null = null
   readonly imagePreviews = new ImagePreviewCache(() => this.onImagePreviewReady?.())
-  vectorPathCache = new Map<string, Path[]>()
-  vectorStrokePathCache = new Map<string, Path[]>()
-  vectorStrokeOutlineCache = new Map<string, Path[]>()
-  fillGeometryCache = new Map<string, Path[]>()
-  strokeGeometryCache = new Map<string, Path[]>()
+  nodePaths = new NodePathCaches()
   /** Path-text glyph silhouettes (stroke-and-union, font units) keyed by blob hash + relative weight. */
   glyphSilhouetteCache = createGlyphSilhouetteCache()
   derivedGlyphPathCache = createDerivedGlyphPathCache()
@@ -168,6 +166,11 @@ export class SkiaRenderer {
   navigationPhase: EditorState['navigation']['phase'] = 'idle'
   navigationGeneration = 0
   tiledSceneEnabled = false
+  /**
+   * What an empty sticky note shows while it is edited on this canvas, in the interface language;
+   * null for a canvas that draws only the document, such as an export.
+   */
+  stickyPlaceholder: string | null = null
   tracksSceneSettlement = true
   /** Colour space this renderer's surface presents; colours convert into it when painting. */
   presentationColorSpace: RenderColorSpace = 'srgb'
@@ -199,6 +202,8 @@ export class SkiaRenderer {
   declare rulerLabelPaint: Paint
   declare penPathPaint: Paint
   declare penLiveStrokePaint: Paint
+  /** The pencil stroke being drawn; its colour and width are set per frame. */
+  declare pencilStrokePaint: Paint
   declare penHandlePaint: Paint
   declare penVertexFill: Paint
   declare penVertexStroke: Paint
@@ -217,6 +222,8 @@ export class SkiaRenderer {
   pageId: string | null = null
   /** Issue markers placed in the last overlay pass; hit testing reads the same layout. */
   issueMarkers: PlacedIssueMarker[] = []
+  /** Status labels drawn in the last label pass; clicks on them open the status menu. */
+  statusLabels: PlacedStatusLabel[] = []
   /** Screen rectangles of UI floating over this canvas, which overlays such as edge pins avoid. */
   overlayObstacles: readonly Rect[] = []
 
@@ -311,6 +318,7 @@ export class SkiaRenderer {
     editState?: RenderOverlays['nodeEditState']
   ) => void
   declare drawPenOverlay: (canvas: Canvas, penState: RenderOverlays['penState']) => void
+  declare drawPencilOverlay: (canvas: Canvas, pencilState: RenderOverlays['pencilState']) => void
   declare drawPresenceCursors: (
     canvas: Canvas,
     graph: SceneGraph,
@@ -751,24 +759,7 @@ export class SkiaRenderer {
   }
 
   invalidateVectorPath(nodeId: string): void {
-    for (const cache of [this.vectorPathCache, this.vectorStrokePathCache]) {
-      const old = cache.get(nodeId)
-      if (!old) continue
-      for (const p of old) p.delete()
-      cache.delete(nodeId)
-    }
-    for (const [key, paths] of this.vectorStrokeOutlineCache) {
-      if (!key.startsWith(`${nodeId}|`)) continue
-      for (const p of paths) p.delete()
-      this.vectorStrokeOutlineCache.delete(key)
-    }
-    for (const cache of [this.fillGeometryCache, this.strokeGeometryCache]) {
-      const oldGeom = cache.get(nodeId)
-      if (oldGeom) {
-        for (const p of oldGeom) p.delete()
-        cache.delete(nodeId)
-      }
-    }
+    this.nodePaths.invalidate(nodeId)
   }
 
   measureTextNode(node: SceneNode, maxWidth?: number): { width: number; height: number } | null {
