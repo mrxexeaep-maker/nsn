@@ -1,3 +1,5 @@
+import { uniq } from 'es-toolkit'
+
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 import { colorToHex } from '@open-pencil/scene-graph/color'
 
@@ -70,7 +72,7 @@ export class Linter {
     this.variables = describeVariables(graph)
     this.checks = this.ruleChecks()
     const roots = rootIds && rootIds.length > 0 ? rootIds : graph.getPages().map((p) => p.id)
-    for (const id of roots) this.lintNode(id, undefined)
+    for (const id of outermostRoots(graph, roots)) this.lintNode(id, undefined)
     this.graph = null
     this.checks = []
     return {
@@ -204,6 +206,21 @@ export class Linter {
     if (node.type === 'INSTANCE') return
     for (const childId of node.childIds) this.lintNode(childId, node)
   }
+}
+
+/**
+ * The roots no other root contains, each once. A layer inside another root is linted with it,
+ * so it has its real parents and reports once.
+ */
+function outermostRoots(graph: SceneGraph, ids: readonly string[]): string[] {
+  const requested = new Set(ids)
+  return uniq(ids).filter((id) => {
+    for (let parentId = graph.getNode(id)?.parentId; parentId;) {
+      if (requested.has(parentId)) return false
+      parentId = graph.getNode(parentId)?.parentId
+    }
+    return true
+  })
 }
 
 function describeVariables(graph: SceneGraph): LintVariables {
