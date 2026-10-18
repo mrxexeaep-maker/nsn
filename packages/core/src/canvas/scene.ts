@@ -941,11 +941,14 @@ function drawResolvedPathText(
   r: SkiaRenderer,
   canvas: Canvas,
   node: SceneNode,
-  fontReadiness: ReturnType<SkiaRenderer['nodeFontReadiness']>
+  fontReadiness: ReturnType<SkiaRenderer['nodeFontReadiness']>,
+  fill?: Fill
 ): boolean {
   return (
     // Resolving the exact face must not replace curved glyph placement with a straight paragraph.
-    fontReadiness !== 'exhausted' && node.textPathData !== null && drawDerivedText(r, canvas, node)
+    fontReadiness !== 'exhausted' &&
+    node.textPathData !== null &&
+    drawDerivedText(r, canvas, node, fill)
   )
 }
 
@@ -960,7 +963,7 @@ function drawTextEmoji(r: SkiaRenderer, canvas: Canvas, node: SceneNode): void {
 }
 
 function drawSavedText(r: SkiaRenderer, canvas: Canvas, node: SceneNode, fill?: Fill): boolean {
-  return canDrawSavedText(node, fill) && drawDerivedText(r, canvas, node)
+  return canDrawSavedText(node, fill) && drawDerivedText(r, canvas, node, fill)
 }
 
 export function renderText(r: SkiaRenderer, canvas: Canvas, node: SceneNode, fill?: Fill): void {
@@ -981,7 +984,7 @@ export function renderText(r: SkiaRenderer, canvas: Canvas, node: SceneNode, fil
     canvas.restore()
     return
   }
-  if (drawResolvedPathText(r, canvas, node, fontReadiness)) {
+  if (drawResolvedPathText(r, canvas, node, fontReadiness, fill)) {
     canvas.restore()
     return
   }
@@ -995,7 +998,7 @@ export function renderText(r: SkiaRenderer, canvas: Canvas, node: SceneNode, fil
         return
       }
     }
-    if (drawDerivedText(r, canvas, node)) {
+    if (drawDerivedText(r, canvas, node, fill)) {
       canvas.restore()
       return
     }

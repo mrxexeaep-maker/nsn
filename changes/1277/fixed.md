@@ -1,1 +1,2 @@
 - Emoji in text from Figma draw as emoji instead of squares in the text's colour, and keep drawing in Figma after a save; the browser and desktop app use the system's emoji font, and the CLI uses Noto Color Emoji.
+- Gradient-filled text from Figma spreads its gradient across the layer as Figma does, instead of showing little more than its first colour.

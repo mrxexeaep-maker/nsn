@@ -105,8 +105,9 @@ test('saved glyphs remain authoritative with an available font and invalidate on
 /**
  * Figma saves an emoji as a placeholder square 1 em wide, from 0.07 em below the baseline, with
  * the emoji's code points, and draws the emoji's image over it in its own colours: the text's
- * fill, here a half-transparent red, colours the letters and never the emoji. Measured in
- * Figma desktop; the square was drawn in the fill colour before.
+ * fill, here a half-transparent red or a gradient, colours the letters and never the emoji. A
+ * gradient spans the layer as on a shape. Measured in Figma desktop; the square was drawn in the
+ * fill colour before, and gradient text lost its emoji and stretched its gradient by the font size.
  */
 test('saved emoji glyphs draw the emoji, not their placeholder, in their own colours', async () => {
   await editor.page.evaluate(() => {
@@ -173,6 +174,48 @@ test('saved emoji glyphs draw the emoji, not their placeholder, in their own col
         }
       ]
     })
+    store.graph.createNode('TEXT', store.state.currentPageId, {
+      x: 40,
+      y: 200,
+      width: 240,
+      height: 80,
+      text: 'HH🖥️',
+      fontFamily: 'Inter',
+      fontSize: 64,
+      fills: [
+        {
+          type: 'GRADIENT_LINEAR',
+          color: { r: 0, g: 0, b: 0, a: 1 },
+          opacity: 1,
+          visible: true,
+          gradientStops: [
+            { position: 0, color: { r: 0.49, g: 0.23, b: 0.93, a: 1 } },
+            { position: 1, color: { r: 0.98, g: 0.45, b: 0.09, a: 1 } }
+          ],
+          gradientTransform: { m00: 1, m01: 0, m02: 0, m10: 0, m11: 1, m12: 0 }
+        }
+      ],
+      derivedTextGlyphs: [
+        { commandsBlob: letter.slice(), x: 0, y: 62, fontSize: 64, firstCharacter: 0, advance: 47 },
+        {
+          commandsBlob: letter.slice(),
+          x: 64,
+          y: 62,
+          fontSize: 64,
+          firstCharacter: 1,
+          advance: 47
+        },
+        {
+          commandsBlob: placeholder.slice(),
+          x: 128,
+          y: 62,
+          fontSize: 64,
+          firstCharacter: 2,
+          advance: 64,
+          emojiCodePoints: [0x1f5a5, 0xfe0f]
+        }
+      ]
+    })
     store.requestRender()
   })
   await editor.page.evaluate(
@@ -181,5 +224,8 @@ test('saved emoji glyphs draw the emoji, not their placeholder, in their own col
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
       })
   )
-  expect(await editor.canvas.screenshotCanvasRegion()).toMatchSnapshot('saved-emoji-glyphs.png')
+  // A missing emoji covers less than the default 1% of the region, so allow only edge noise.
+  expect(await editor.canvas.screenshotCanvasRegion()).toMatchSnapshot('saved-emoji-glyphs.png', {
+    maxDiffPixels: 500
+  })
 })
