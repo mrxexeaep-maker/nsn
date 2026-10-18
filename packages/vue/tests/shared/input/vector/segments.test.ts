@@ -1,13 +1,18 @@
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 
+import { ref } from 'vue'
+
 import { createEditor, type Editor } from '@open-pencil/core/editor'
+
+import { handleNodeEditPointerUp } from '#vue/canvas/vector-input/input'
 
 import type { DragState } from '#vue/shared/input/types'
 import {
   finishNodeEditMarquee,
   getNodeEditState,
   handleNodeEditDown,
-  handleNodeEditMarqueeMove
+  handleNodeEditMarqueeMove,
+  handleNodeEditMove
 } from '#vue/shared/input/vector'
 
 let editor: Editor
@@ -166,5 +171,35 @@ describe('editing a path: regions and segments', () => {
     press(100, 50)
     expect([...(es.selectedRegions ?? [])]).toEqual([])
     expect(selectedSegments()).toEqual([1])
+  })
+})
+
+describe('editing a path: pressing a selected segment', () => {
+  function release(drag: DragState | null) {
+    handleNodeEditPointerUp(ref(drag), editor)
+  }
+
+  test('releasing without a drag selects only that segment, as in Figma', () => {
+    setup()
+    press(50, 0)
+    press(100, 50, true)
+    const drag = press(50, 0)
+    // The press keeps both, so a drag would move them together.
+    expect(selectedSegments()).toEqual([0, 1])
+    release(drag)
+    expect(selectedSegments()).toEqual([0])
+    expect(selected()).toEqual([])
+  })
+
+  test('a drag moves the whole selection and keeps it', () => {
+    setup()
+    press(50, 0)
+    press(100, 50, true)
+    const drag = press(50, 0)
+    if (drag?.type !== 'edit-node') throw new Error('expected a point drag')
+    handleNodeEditMove(drag, 50, -20, editor, false, false, false, true)
+    release(drag)
+    expect(selectedSegments()).toEqual([0, 1])
+    expect(getNodeEditState(editor)?.vertices.map((vertex) => vertex.y)).toEqual([-20, -20, 80])
   })
 })

@@ -136,10 +136,19 @@ export function handleNodeEditDown(
   // its two points with the rest of the selection.
   const si = hitTestEditSegment(editor, cx, cy)
   if (si !== null) {
+    const keepsSelection = !e.shiftKey && es.selectedSegmentIndices.has(si)
     selectPressedSegment(es, si, e.shiftKey)
     editor.requestRepaint()
     const { start, end } = es.segments[si]
-    startPointsDrag(es, [start, end], cx, cy, nodeEditEditor, setDrag)
+    startPointsDrag(
+      es,
+      [start, end],
+      cx,
+      cy,
+      nodeEditEditor,
+      setDrag,
+      keepsSelection ? si : undefined
+    )
     return
   }
 
@@ -183,14 +192,19 @@ function pickRegion(es: NodeEditState, regionIndex: number, add: boolean): numbe
   return points
 }
 
-/** Drags the selected points and segments, and `pressed` with them, from where the pointer went down. */
+/**
+ * Drags the selected points and segments, and `pressed` with them, from where the pointer went
+ * down. Pressing a segment that is already selected keeps the selection so it all drags; as in
+ * Figma, releasing it without a drag then selects only that segment (`narrowToSegment`).
+ */
 function startPointsDrag(
   es: NodeEditState,
   pressed: number[],
   cx: number,
   cy: number,
   nodeEditEditor: NodeEditEditor,
-  setDrag: (d: DragState) => void
+  setDrag: (d: DragState) => void,
+  narrowToSegment?: number
 ) {
   const segmentEnds = [...es.selectedSegmentIndices].flatMap((index) => {
     const segment = es.segments.at(index)
@@ -201,7 +215,21 @@ function startPointsDrag(
     origPositions.set(index, { x: es.vertices[index].x, y: es.vertices[index].y })
   }
   nodeEditEditor.nodeEditPushHistory?.()
-  setDrag({ type: 'edit-node', startX: cx, startY: cy, origPositions })
+  setDrag({ type: 'edit-node', startX: cx, startY: cy, origPositions, narrowToSegment })
+}
+
+/** A press on a selected segment that ends without moving anything selects only that segment. */
+export function narrowAfterSegmentClick(d: DragEditNode, editor: Editor) {
+  const es = getNodeEditState(editor)
+  if (!es || d.narrowToSegment === undefined) return
+  const moved = [...d.origPositions].some(([index, orig]) => {
+    const vertex = es.vertices.at(index)
+    return vertex !== undefined && (vertex.x !== orig.x || vertex.y !== orig.y)
+  })
+  if (moved) return
+  es.selectedVertexIndices = new Set()
+  es.selectedSegmentIndices = new Set([d.narrowToSegment])
+  editor.requestRepaint()
 }
 
 /** Selects the points inside the marquee and the segments between them, with what it started with. */
