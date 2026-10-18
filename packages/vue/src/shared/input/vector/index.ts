@@ -123,7 +123,12 @@ export function handleNodeEditDown(
   nodeEditEditor.exitNodeEditMode?.(true)
 }
 
-export function handlePenNodeEditDown(e: MouseEvent, cx: number, cy: number, editor: Editor) {
+export function handlePenNodeEditDown(
+  e: Pick<MouseEvent, 'altKey'>,
+  cx: number,
+  cy: number,
+  editor: Editor
+) {
   const es = getNodeEditState(editor)
   if (!es) return
   const nodeEditEditor = editor as Editor & NodeEditEditor

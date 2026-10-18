@@ -200,7 +200,10 @@ export function createEditor(options?: EditorOptions) {
     const previous = state.activeTool
     state.activeTool = tool
     if (tool !== 'SELECT') state.measurementMode = 'off'
-    if (previous !== tool) emitEditorEvent('tool:changed', tool, previous)
+    if (previous === tool) return
+    // Guides the pen showed for its next point do not belong to the next tool.
+    if (previous === 'PEN') state.snapGuides = []
+    emitEditorEvent('tool:changed', tool, previous)
   }
 
   const graphReads = createGraphReadActions(() => _graph)
