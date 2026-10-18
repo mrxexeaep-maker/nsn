@@ -46,8 +46,10 @@ import {
   canDrawSavedText,
   drawDerivedText,
   drawReflowedPathTextSilhouettes,
+  drawsSavedText,
   isReflowedPathText
 } from './text/derived'
+import { drawSavedEmoji } from './text/emoji'
 import { stickyPlaceholderNode } from './text/sticky-placeholder'
 
 function drawVisibleFills(
@@ -897,6 +899,7 @@ export function renderShapeUncached(
   if (!drawVectorMultiStyleFills(r, canvas, node, graph)) {
     drawVisibleFills(r, node, graph, (fill) => r.drawNodeFill(canvas, node, rect, hasRadius, fill))
   }
+  if (node.type === 'TEXT' && drawsSavedText(node)) drawTextEmoji(r, canvas, node)
 
   if (!pathTextStrokeFirst && !reflowedPathText) {
     paintNodeStrokes(r, canvas, node, graph, rect, hasRadius, sg, vectorPaths, vectorStroke)
@@ -944,6 +947,16 @@ function drawResolvedPathText(
     // Resolving the exact face must not replace curved glyph placement with a straight paragraph.
     fontReadiness !== 'exhausted' && node.textPathData !== null && drawDerivedText(r, canvas, node)
   )
+}
+
+/** The emoji among saved glyphs, once whatever fills the text has, clipped as its glyphs are. */
+function drawTextEmoji(r: SkiaRenderer, canvas: Canvas, node: SceneNode): void {
+  canvas.save()
+  if (shouldClipTextToLayoutBox(node)) {
+    canvas.clipRect(r.ck.LTRBRect(0, 0, node.width, node.height), r.ck.ClipOp.Intersect, false)
+  }
+  drawSavedEmoji(r, canvas, node)
+  canvas.restore()
 }
 
 function drawSavedText(r: SkiaRenderer, canvas: Canvas, node: SceneNode, fill?: Fill): boolean {

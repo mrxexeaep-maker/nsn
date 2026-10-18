@@ -138,13 +138,18 @@ function getGlyphSilhouette(
  * font-units→px (Y-flipped). The fill and silhouette passes share it so they
  * stay registered; see drawDerivedText for the order rationale.
  */
-function applyGlyphEmTransform(canvas: Canvas, glyph: DerivedTextGlyph, glyphY: number): void {
+/** Moves to a saved glyph's pen position, in pixels: its baseline, resize scale, and rotation. */
+export function applyGlyphTransform(canvas: Canvas, glyph: DerivedTextGlyph, glyphY: number): void {
   canvas.translate(glyph.x, glyphY)
   const scaleX = glyph.scaleX ?? 1
   const scaleY = glyph.scaleY ?? 1
   if (scaleX !== 1 || scaleY !== 1) canvas.scale(scaleX, scaleY)
   const rotation = glyph.rotation ?? 0
   if (rotation !== 0) canvas.rotate((-rotation * 180) / Math.PI, 0, 0)
+}
+
+function applyGlyphEmTransform(canvas: Canvas, glyph: DerivedTextGlyph, glyphY: number): void {
+  applyGlyphTransform(canvas, glyph, glyphY)
   canvas.scale(glyph.fontSize, -glyph.fontSize)
 }
 
@@ -171,7 +176,7 @@ export function drawReflowedPathTextSilhouettes(
   paint.setAlphaf(stroke.opacity)
   try {
     for (const glyph of glyphs) {
-      if (glyph.fontSize <= 0) continue
+      if (glyph.fontSize <= 0 || glyph.emojiCodePoints) continue
       const silhouette = getGlyphSilhouette(r, glyph, stroke)
       canvas.save()
       applyGlyphEmTransform(
@@ -265,6 +270,18 @@ export function canDrawSavedText(node: SceneNode, fill?: Fill): boolean {
   return savedTextEligibility(node)
 }
 
+/**
+ * Whether the text is drawn from its saved glyphs whatever fills it has: every visible fill
+ * draws them, or it has none. The emoji among them are then drawn once, apart from the fills.
+ */
+export function drawsSavedText(node: SceneNode): boolean {
+  return (
+    (node.derivedTextGlyphs?.length ?? 0) > 0 &&
+    node.fills.every((fill) => !fill.visible || fill.type === 'SOLID') &&
+    savedTextEligibility(node)
+  )
+}
+
 export function drawDerivedText(r: SkiaRenderer, canvas: Canvas, node: SceneNode): boolean {
   if (!node.derivedTextGlyphs?.length) return false
 
@@ -274,6 +291,8 @@ export function drawDerivedText(r: SkiaRenderer, canvas: Canvas, node: SceneNode
   const savedTextEligible = savedTextEligibility(node)
   const markerCharacters = markerStyleCharacters(node)
   for (const [index, glyph] of node.derivedTextGlyphs.entries()) {
+    // An emoji's outline is a placeholder square; its image is drawn apart from the fills.
+    if (glyph.emojiCodePoints) continue
     const glyphY = snapBaselines ? snapDerivedGlyphBaseline(glyph.y) : glyph.y
     const path = derivedGlyphPath(r, glyph.commandsBlob)
     canvas.save()

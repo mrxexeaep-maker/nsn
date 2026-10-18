@@ -1,5 +1,10 @@
 import type { SceneGraph } from '@open-pencil/scene-graph'
 
+import {
+  canDrawPlatformEmoji,
+  NOTO_COLOR_EMOJI_FAMILY,
+  savedEmojiCharacters
+} from '#core/text/emoji'
 import { fontManager } from '#core/text/fonts'
 import { collectGraphFontRequirements, collectNodeFontFaces } from '#core/text/requirements'
 import { missingGraphFontScripts } from '#core/text/resolved-requirements'
@@ -19,5 +24,9 @@ export async function prepareGraphFonts(
     missingGraphFontScripts(requirements),
     requirements.characters
   )
+  // Without a platform that draws emoji, saved emoji are drawn with Noto, loaded for just these.
+  const emoji = requirements.nodes.map(savedEmojiCharacters).join('')
+  if (emoji && !canDrawPlatformEmoji())
+    await fontManager.loadRemoteFont(NOTO_COLOR_EMOJI_FAMILY, 'Regular', emoji)
   return documentFontStatus(graph, nodeIds)
 }

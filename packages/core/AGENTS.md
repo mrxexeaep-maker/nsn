@@ -83,6 +83,7 @@ Canvas is CanvasKit (Skia WASM) on a WebGL surface, not DOM.
 - Set fill types on the detached `Path`, never on a `PathBuilder`: in CanvasKit 0.41 `PathBuilder.setFillType` returns an undeleted copy of the builder (`packages/core/src/vector/index.ts`).
 - Paragraph construction is typed against `packages/core/src/canvas/text/paragraph/inputs.ts`; the same inputs drive preparation-cache invalidation. Add a mutation case when extending that contract. Drawing borrows native paragraphs; the renderer owns their bounded cache and destruction.
 - Text lays out through `buildParagraph` into a `TextLayout` (`packages/core/src/canvas/text/layout/`): one native paragraph for plain text, or one per paragraph with its list indent, marker, and spacing, since Skia has no hanging indent. Drawing, measurement, the text editor, saved glyphs (`shapeText`), and text outlines all read that layout rather than laying text out again (`packages/core/tests/canvas/text/lists.test.ts`).
+- A saved glyph with `emojiCodePoints` is Figma's placeholder square; `drawSavedEmoji` (`packages/core/src/canvas/text/emoji/`) draws the emoji's image over it once per text, apart from the fills, as Figma does. The image comes from the browser's own emoji font through a 2D canvas, or from Noto Color Emoji that `prepareGraphFonts` loads where nothing draws platform emoji (`tests/e2e/canvas/saved-glyph-visual.spec.ts`).
 
 ### Text decorations
 

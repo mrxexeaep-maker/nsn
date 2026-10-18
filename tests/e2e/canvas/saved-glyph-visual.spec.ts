@@ -101,3 +101,85 @@ test('saved glyphs remain authoritative with an available font and invalidate on
   )
   expect(await editor.canvas.screenshotCanvasRegion()).toMatchSnapshot('saved-glyph-authority.png')
 })
+
+/**
+ * Figma saves an emoji as a placeholder square 1 em wide, from 0.07 em below the baseline, with
+ * the emoji's code points, and draws the emoji's image over it in its own colours: the text's
+ * fill, here a half-transparent red, colours the letters and never the emoji. Measured in
+ * Figma desktop; the square was drawn in the fill colour before.
+ */
+test('saved emoji glyphs draw the emoji, not their placeholder, in their own colours', async () => {
+  await editor.page.evaluate(() => {
+    const store = window.openPencil?.getStore?.()
+    if (!store) throw new Error('Missing editor')
+    const outline = (points: [number, number, number][]) => {
+      const bytes = new Uint8Array(points.length * 9 + 1)
+      const view = new DataView(bytes.buffer)
+      for (const [index, [command, x, y]] of points.entries()) {
+        bytes[index * 9] = command
+        view.setFloat32(index * 9 + 1, x, true)
+        view.setFloat32(index * 9 + 5, y, true)
+      }
+      return bytes
+    }
+    const letter = outline([
+      [1, 0.1, 0],
+      [2, 0.6, 0],
+      [2, 0.6, 0.7],
+      [2, 0.1, 0.7]
+    ])
+    const placeholder = outline([
+      [1, 0, -0.07],
+      [2, 1, -0.07],
+      [2, 1, 0.93],
+      [2, 0, 0.93]
+    ])
+    store.graph.createNode('TEXT', store.state.currentPageId, {
+      x: 40,
+      y: 100,
+      width: 300,
+      height: 80,
+      text: 'H🖥️H👍🏽',
+      fontFamily: 'Inter',
+      fontSize: 64,
+      fills: [{ type: 'SOLID', color: { r: 1, g: 0, b: 0, a: 1 }, opacity: 0.5, visible: true }],
+      derivedTextGlyphs: [
+        { commandsBlob: letter.slice(), x: 0, y: 62, fontSize: 64, firstCharacter: 0, advance: 47 },
+        {
+          commandsBlob: placeholder.slice(),
+          x: 47,
+          y: 62,
+          fontSize: 64,
+          firstCharacter: 1,
+          advance: 64,
+          emojiCodePoints: [0x1f5a5, 0xfe0f]
+        },
+        {
+          commandsBlob: letter.slice(),
+          x: 111,
+          y: 62,
+          fontSize: 64,
+          firstCharacter: 4,
+          advance: 47
+        },
+        {
+          commandsBlob: placeholder.slice(),
+          x: 158,
+          y: 62,
+          fontSize: 64,
+          firstCharacter: 5,
+          advance: 64,
+          emojiCodePoints: [0x1f44d, 0x1f3fd]
+        }
+      ]
+    })
+    store.requestRender()
+  })
+  await editor.page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
+  )
+  expect(await editor.canvas.screenshotCanvasRegion()).toMatchSnapshot('saved-emoji-glyphs.png')
+})
