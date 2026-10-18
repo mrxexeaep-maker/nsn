@@ -229,3 +229,36 @@ test('saved emoji glyphs draw the emoji, not their placeholder, in their own col
     maxDiffPixels: 500
   })
 })
+
+/**
+ * Emoji typed in OpenPencil have no saved glyphs: the layout gives each Figma's 1 em square
+ * through the emoji metrics font, and the emoji's image is drawn there in its own colours.
+ * A character a text font has, such as ©, stays text.
+ */
+test('typed emoji take a 1 em square and draw their image', async () => {
+  await editor.page.evaluate(() => {
+    const store = window.openPencil?.getStore?.()
+    if (!store) throw new Error('Missing editor')
+    store.graph.createNode('TEXT', store.state.currentPageId, {
+      x: 40,
+      y: 100,
+      width: 600,
+      height: 80,
+      text: 'Hi 😀👨‍👩‍👧‍👦🇺🇸 © ok',
+      fontFamily: 'Inter',
+      fontSize: 48,
+      fills: [{ type: 'SOLID', color: { r: 1, g: 0, b: 0, a: 1 }, opacity: 0.5, visible: true }]
+    })
+    store.requestRender()
+  })
+  await editor.page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
+  )
+  // A missing emoji covers less than the default 1% of the region, so allow only edge noise.
+  expect(await editor.canvas.screenshotCanvasRegion()).toMatchSnapshot('typed-emoji.png', {
+    maxDiffPixels: 500
+  })
+})
