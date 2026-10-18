@@ -177,6 +177,8 @@ export interface DragEditNode {
   startX: number
   startY: number
   origPositions: Map<number, Vector>
+  /** A selected segment pressed without Shift: releasing without a drag selects only it. */
+  narrowToSegment?: number
 }
 
 export interface DragEditHandle {
