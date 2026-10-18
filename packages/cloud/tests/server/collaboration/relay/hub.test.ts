@@ -300,6 +300,31 @@ describe('collaboration relay', () => {
     expect(current.peerId()).toBeDefined()
   })
 
+  test('turns away a peer whose room was still opening when the document was restored', async () => {
+    const state = memoryStateStore()
+    let epoch = 0
+    let releaseLoad: (() => void) | undefined
+    const { relay: hub } = relay({
+      store: {
+        ...state.store,
+        async load(identity) {
+          await new Promise<void>((resolve) => {
+            releaseLoad = resolve
+          })
+          return state.store.load(identity)
+        }
+      },
+      currentRoomEpoch: async () => epoch
+    })
+    const joining = join(hub, { roomEpoch: 0 })
+    await until(() => releaseLoad !== undefined)
+    epoch = 1
+    hub.startOver(documentId)
+    releaseLoad?.()
+
+    expect((await joining).closed?.code).toBe(RELAY_CLOSE.restored)
+  })
+
   test('admits a newcomer to the live room when the last peer leaves while it is checked', async () => {
     let releaseLimit: (() => void) | undefined
     let checks = 0

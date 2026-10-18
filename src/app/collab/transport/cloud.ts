@@ -69,6 +69,8 @@ function joinCloudRelayRoom(roomId: string, options: CloudRelayOptions): CollabR
   let socket: WebSocket | null = null
   let welcomed = false
   let left = false
+  /** Set once the relay or a ticket says the document was restored, which ends the room once. */
+  let ended = false
   let attempt = 0
   let refreshTimer: ReturnType<typeof setTimeout> | undefined
   let ticketExpiresAt = 0
@@ -148,6 +150,8 @@ function joinCloudRelayRoom(roomId: string, options: CloudRelayOptions): CollabR
 
   /** The room this transport serves is over; whoever opened it moves to the new one. */
   function restored() {
+    if (ended) return
+    ended = true
     clearTimeout(refreshTimer)
     clearTimeout(reconnectTimer)
     options.onRestored?.()

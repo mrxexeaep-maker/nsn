@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from 'reka-ui'
-import { computed } from 'vue'
+import { computed, onMounted, useTemplateRef } from 'vue'
 
 import type { DocumentVersion } from '@open-pencil/cloud/contract'
 import { useCloudMessages, useI18n } from '@open-pencil/vue'
@@ -48,7 +48,15 @@ const ui = cloudVersions()
 const menuCls = useMenuUI({ content: 'min-w-52', item: 'justify-start gap-2' })
 const filterItem = menuItem({ justify: 'start', class: 'relative pl-7' })
 
-const list = useVersionList(computed(() => shown))
+const list = useVersionList(shown)
+const listElement = useTemplateRef<HTMLUListElement>('listElement')
+// Choosing a version remounts the panel; it opens where the list was scrolled.
+onMounted(() => {
+  if (listElement.value) listElement.value.scrollTop = list.scrollTop.value
+})
+function rememberScroll() {
+  list.scrollTop.value = listElement.value?.scrollTop ?? 0
+}
 const history = computed(() => versionHistoryOf(shown))
 const selectedId = computed(() => history.value?.preview?.version.id ?? null)
 
@@ -104,7 +112,7 @@ const duplicate = (version: DocumentVersion) =>
     duplicateVersion(
       shown,
       version,
-      t.value.versionCopyName({ name: list.document.value.state.documentName })
+      t.value.versionCopyName({ name: list.document.state.documentName })
     )
   )
 const deleteInfo = (version: DocumentVersion) =>
@@ -174,7 +182,12 @@ function setScope(value: unknown) {
       </template>
     </PanelHeader>
 
-    <ul :class="ui.list()" :aria-label="t.versionHistory">
+    <ul
+      ref="listElement"
+      :class="ui.list()"
+      :aria-label="t.versionHistory"
+      @scroll="rememberScroll"
+    >
       <CloudVersionListItem
         :label="t.currentVersion"
         current

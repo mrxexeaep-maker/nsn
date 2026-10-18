@@ -197,6 +197,22 @@ describe('Cloud relay transport', () => {
     expect(sockets).toHaveLength(1)
   })
 
+  test('moves on once when the relay and a refreshed ticket both say so', async () => {
+    jest.useFakeTimers()
+    try {
+      const { sockets, restored } = room({ movedAt: 2 })
+      await settle()
+      sockets[0]?.open()
+      // The refresh is waiting on its ticket as the relay closes the room.
+      jest.advanceTimersByTime(240_000)
+      sockets[0]?.close(RELAY_CLOSE.restored, 'The document was restored')
+      await settle()
+      expect(restored()).toBe(1)
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
   test('leaving closes the socket and never reconnects', async () => {
     const { transport, sockets } = room()
     await settle()

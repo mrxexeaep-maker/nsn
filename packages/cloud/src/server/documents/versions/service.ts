@@ -310,7 +310,12 @@ export function createDocumentVersionService(
           restoredFromVersionId: versionId
         })
       })
-      options.onRestored?.(documentId)
+      // The restore stands whatever the hook does; a stale ticket is still turned away by its epoch.
+      try {
+        options.onRestored?.(documentId)
+      } catch (error) {
+        console.error('[Cloud] Ending the rooms of a restored document failed:', error)
+      }
       const document = await findDocument(database, userId, documentId)
       if (!document) throw new DocumentNotFoundError()
       const restored = await versions()

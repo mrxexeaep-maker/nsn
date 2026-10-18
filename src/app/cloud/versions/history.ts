@@ -35,7 +35,8 @@ export const versionDialog = shallowRef<VersionDialog | null>(null)
 
 /** Bumped when this window changes the history, so an open list loads it again. */
 export const versionListRevision = shallowRef(0)
-let previewLoad: AbortController | null = null
+/** Each tab's preview download in flight, keyed by its document. */
+const previewLoads = new Map<EditorStore, AbortController>()
 
 function update(store: EditorStore, next: VersionHistory | null) {
   const map = new Map(histories.value)
@@ -77,8 +78,8 @@ export function shownEditorStore(store: EditorStore): EditorStore {
 }
 
 function endPreview(history: VersionHistory) {
-  previewLoad?.abort()
-  previewLoad = null
+  previewLoads.get(history.store)?.abort()
+  previewLoads.delete(history.store)
   const preview = history.preview
   if (!preview) return
   preview.store.preparationController.dispose()
@@ -126,9 +127,9 @@ export async function previewVersion(store: EditorStore, version: DocumentVersio
     showCurrentVersion(store)
     return
   }
-  previewLoad?.abort()
+  previewLoads.get(history.store)?.abort()
   const load = new AbortController()
-  previewLoad = load
+  previewLoads.set(history.store, load)
   update(history.store, { ...history, opening: version.id, failed: false })
   const document = history.store
   let preview: EditorStore
@@ -149,7 +150,7 @@ export async function previewVersion(store: EditorStore, version: DocumentVersio
     preview.dispose()
     return
   }
-  previewLoad = null
+  previewLoads.delete(document)
   const current = versionHistoryOf(document)
   if (!current) {
     preview.dispose()
