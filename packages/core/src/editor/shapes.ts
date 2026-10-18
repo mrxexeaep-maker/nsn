@@ -5,6 +5,7 @@ import { adoptCoveredLayers } from './shapes/adopt'
 import { newLayerDefaults } from './shapes/defaults'
 import { createFramePresetActions } from './shapes/frame-presets'
 import { createPenActions } from './shapes/pen'
+import { createPencilActions } from './shapes/pencil'
 import { defaultNodeName, nextNumberedName } from './structure/rename'
 import type { EditorContext } from './types'
 export type { PenDragOptions } from './shapes/pen'
@@ -71,6 +72,7 @@ export function createShapeActions(ctx: EditorContext) {
   }
 
   const penActions = createPenActions(ctx, createShape)
+  const pencilActions = createPencilActions(ctx, createShape)
   const framePresetActions = createFramePresetActions(ctx, createShape)
 
   function setTool(tool: typeof ctx.state.activeTool) {
@@ -80,6 +82,7 @@ export function createShapeActions(ctx: EditorContext) {
   return {
     createShape,
     ...penActions,
+    ...pencilActions,
     ...framePresetActions,
     adoptCoveredLayers: (containerId: string) => adoptCoveredLayers(ctx, containerId),
     setTool

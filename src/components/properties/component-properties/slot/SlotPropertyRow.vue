@@ -12,8 +12,9 @@ import type { SlotInstanceOption, SlotLimit } from '@open-pencil/vue'
 
 import IconButton from '@/components/ui/button/IconButton.vue'
 import { menuItem, useMenuUI } from '@/components/ui/menu/menu'
+import MenuScrollArea from '@/components/ui/menu/MenuScrollArea.vue'
 import PanelFieldGroup from '@/components/ui/panel/PanelFieldGroup.vue'
-import { panelFieldBase } from '@/theme/panel/field'
+import { panelFieldBase } from '@/theme/panel/field/base'
 
 import AddInstancesPopover from './AddInstancesPopover.vue'
 import SlotLimitsPopover from './SlotLimitsPopover.vue'
@@ -79,18 +80,20 @@ const item = menuItem({ justify: 'start' })
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
           <DropdownMenuContent side="bottom" align="end" :side-offset="4" :class="menu.content">
-            <DropdownMenuItem :class="item" :disabled="!modified" @select="emit('reset')">
-              <icon-lucide-rotate-ccw :class="menu.icon" />
-              {{ panels.resetSlot }}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              :class="item"
-              :disabled="itemCount === 0"
-              @select="emit('deleteContents')"
-            >
-              <icon-lucide-trash-2 :class="menu.icon" />
-              {{ panels.deleteSlotContents }}
-            </DropdownMenuItem>
+            <MenuScrollArea>
+              <DropdownMenuItem :class="item" :disabled="!modified" @select="emit('reset')">
+                <icon-lucide-rotate-ccw :class="menu.icon" />
+                {{ panels.resetSlot }}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                :class="item"
+                :disabled="itemCount === 0"
+                @select="emit('deleteContents')"
+              >
+                <icon-lucide-trash-2 :class="menu.icon" />
+                {{ panels.deleteSlotContents }}
+              </DropdownMenuItem>
+            </MenuScrollArea>
           </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>

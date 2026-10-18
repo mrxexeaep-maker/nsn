@@ -9,6 +9,7 @@ export type NodeEditState = {
   segments: VectorSegment[]
   regions: VectorRegion[]
   selectedVertexIndices: Set<number>
+  selectedSegmentIndices: Set<number>
   selectedHandles: Set<number>
   hoveredHandleInfo: {
     segmentIndex: number

@@ -4,6 +4,7 @@ import type { Font, Paint, Surface } from 'canvaskit-wasm'
 
 import { createImageCache } from '#core/canvas/images/cache'
 import { ImagePreviewCache } from '#core/canvas/images/previews'
+import { NodePathCaches } from '#core/canvas/paths/cache'
 import type { SkiaRenderer } from '#core/canvas/renderer'
 import { EffectRasterCache } from '#core/canvas/renderer/effect-raster-cache'
 import { destroyRenderer } from '#core/canvas/renderer/lifecycle'
@@ -25,11 +26,7 @@ function createRenderer() {
     liveImages: new Map(),
     imagePreviews: new ImagePreviewCache(() => undefined),
     onImagePreviewReady: null,
-    vectorPathCache: new Map(),
-    vectorStrokePathCache: new Map(),
-    vectorStrokeOutlineCache: new Map(),
-    fillGeometryCache: new Map(),
-    strokeGeometryCache: new Map(),
+    nodePaths: new NodePathCaches(),
     glyphSilhouetteCache: createGlyphSilhouetteCache(),
     derivedGlyphPathCache: createDerivedGlyphPathCache(),
     fillPaint: deletable<Paint>(),
@@ -57,6 +54,7 @@ function createRenderer() {
     rulerLabelPaint: deletable<Paint>(),
     penPathPaint: deletable<Paint>(),
     penLiveStrokePaint: deletable<Paint>(),
+    pencilStrokePaint: deletable<Paint>(),
     penHandlePaint: deletable<Paint>(),
     penVertexFill: deletable<Paint>(),
     penVertexStroke: deletable<Paint>(),
@@ -98,10 +96,12 @@ test('destroyRenderer deletes all renderer-owned paints and label fonts', () => 
   const parentOutlinePaint = renderer.parentOutlinePaint
   const sectionTitleFont = renderer.sectionTitleFont
   const componentLabelFont = renderer.componentLabelFont
+  const pencilStrokePaint = renderer.pencilStrokePaint
 
   destroyRenderer(renderer)
 
   expect(parentOutlinePaint.delete).toHaveBeenCalled()
+  expect(pencilStrokePaint.delete).toHaveBeenCalled()
   expect(sectionTitleFont?.delete).toHaveBeenCalled()
   expect(componentLabelFont?.delete).toHaveBeenCalled()
 })

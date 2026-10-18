@@ -10,6 +10,7 @@ Open and save native Figma files directly. The import/export pipeline uses the s
 
 - **Shapes** — Rectangle (<kbd>R</kbd>), Ellipse (<kbd>O</kbd>), Line (<kbd>L</kbd>), Polygon, Star
 - **Pen tool** — vector networks (not simple paths), bezier curves with tangent handles
+- **Pencil** (<kbd>⇧</kbd><kbd>P</kbd>) — freehand strokes smoothed into editable curves
 - **Text** — canvas-native editing with IME support, double-click to enter edit mode
 - **Rich text** — per-character bold (<kbd>⌘</kbd><kbd>B</kbd>), italic (<kbd>⌘</kbd><kbd>I</kbd>), underline (<kbd>⌘</kbd><kbd>U</kbd>), strikethrough
 - **Auto-layout** — flexbox and CSS Grid via Yoga WASM: direction, gap, padding, justify, align, child sizing, grid tracks. <kbd>⇧</kbd><kbd>A</kbd> to toggle

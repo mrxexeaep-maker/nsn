@@ -4,7 +4,7 @@ import type { SnapGuide } from '@open-pencil/scene-graph/snap'
 
 import type { GuideOverlayState } from '#core/canvas/guides/types'
 import type { DesignIssueOverlay } from '#core/canvas/issues/types'
-import type { ShapeHandleHover, GradientEdit } from '#core/editor/types'
+import type { ShapeHandleHover, GradientEdit, PencilState } from '#core/editor/types'
 import type { RotationPreview } from '#core/geometry'
 import type { TextEditor } from '#core/text/editor'
 
@@ -87,6 +87,7 @@ export interface RenderOverlays {
     cursorX?: number
     cursorY?: number
   } | null
+  pencilState?: PencilState | null
   nodeEditState?: {
     nodeId: string
     vertices: VectorVertex[]
@@ -98,6 +99,7 @@ export interface RenderOverlays {
     }>
     regions: VectorRegion[]
     selectedVertexIndices: Set<number>
+    selectedSegmentIndices?: Set<number>
     selectedHandles?: Set<number>
     hoveredHandleInfo?: { segmentIndex: number; tangentField: 'tangentStart' | 'tangentEnd' } | null
     /** The region under the pointer, hatched as in Figma. */
