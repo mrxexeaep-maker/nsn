@@ -362,3 +362,147 @@ describe('aligned path text is laid out from the text path start, as in Figma', 
     expect((await edited('JUSTIFIED')).first).toBeCloseTo(0, 0)
   })
 })
+
+describe('path text that overflows its alignment’s part of the path, as in Figma', () => {
+  const text = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+  /** A straight 400-wide line in two segments; the text starts at x = 300. */
+  async function overflowing(align: 'LEFT' | 'CENTER' | 'RIGHT', tValue = 0.5) {
+    const font = await fontManager.fetchBundledFont('/Inter-Regular.ttf')
+    if (!font) throw new Error('bundled font missing')
+    fontManager.markLoaded('Inter', 'Regular', font)
+    const graph = new SceneGraph()
+    const page = expectDefined(graph.getPages()[0])
+    const node = graph.createNode('TEXT', page.id, {
+      width: 400,
+      height: 100,
+      text: 'AB',
+      fontFamily: 'Inter',
+      fontWeight: 400,
+      italic: false,
+      fontSize: 40,
+      textAlignHorizontal: align,
+      textPathBox: { x: 0, y: 0, width: 400, height: 100 },
+      derivedTextGlyphs: [
+        { commandsBlob: new Uint8Array(4), x: 10, y: 50, fontSize: 40, rotation: 0 },
+        { commandsBlob: new Uint8Array(4), x: 40, y: 50, fontSize: 40, rotation: 0 }
+      ]
+    })
+    const zero = { x: 0, y: 0 }
+    node.textPathData = {
+      network: {
+        vertices: [
+          { x: 0, y: 50 },
+          { x: 200, y: 50 },
+          { x: 400, y: 50 }
+        ],
+        segments: [
+          { start: 0, end: 1, tangentStart: zero, tangentEnd: zero },
+          { start: 1, end: 2, tangentStart: zero, tangentEnd: zero }
+        ],
+        regions: []
+      },
+      normalizedSize: { x: 400, y: 100 },
+      tValue,
+      forward: true,
+      startSegment: 1
+    }
+    const metrics = expectDefined(getGlyphOutlineMetricsSync('Inter', 'Regular', text, 40))
+    const glyphs = expectDefined(pathTextEditChanges(node, { text }).derivedTextGlyphs)
+    const kept = metrics.slice(0, glyphs.length)
+    const width = kept.reduce((sum, glyph) => sum + glyph.advance, 0)
+    const next = metrics.at(glyphs.length)?.advance ?? 0
+    return { glyphs, width, next, first: expectDefined(glyphs[0]).x }
+  }
+
+  // Each run keeps the leading glyphs that fit its part of the path and is aligned within it, so
+  // one more glyph would not fit. Positions are compared to the nearest pixel, as above.
+  test('left-aligned text keeps what fits between the start and the path’s end', async () => {
+    const { glyphs, width, next, first } = await overflowing('LEFT')
+    expect(glyphs.length).toBeLessThan(text.length)
+    expect(first).toBeCloseTo(300, 0)
+    expect(width).toBeLessThanOrEqual(100 + 0.5)
+    expect(width + next).toBeGreaterThan(100)
+  })
+
+  test('right-aligned text keeps what fits before the start and ends at it', async () => {
+    const { glyphs, width, next, first } = await overflowing('RIGHT')
+    expect(glyphs.length).toBeLessThan(text.length)
+    expect(first).toBeCloseTo(300 - width, 0)
+    expect(width + next).toBeGreaterThan(300)
+  })
+
+  test('centered text keeps what fits the widest span centered on the start', async () => {
+    // The start is 100 px from the end, so the span is x = 200…400.
+    const { glyphs, width, next, first } = await overflowing('CENTER')
+    expect(glyphs.length).toBeLessThan(text.length)
+    expect(first).toBeCloseTo(300 - width / 2, 0)
+    expect(width + next).toBeGreaterThan(200)
+  })
+
+  test('a lone first glyph stays even with no room, from where its part starts', async () => {
+    // At the path's end, centered text has no room either side.
+    const { glyphs, first } = await overflowing('CENTER', 1)
+    expect(glyphs.length).toBe(1)
+    expect(first).toBeCloseTo(400, 0)
+  })
+})
+
+test('overflowing text on a closed path keeps what fits one loop', async () => {
+  const font = await fontManager.fetchBundledFont('/Inter-Regular.ttf')
+  if (!font) throw new Error('bundled font missing')
+  fontManager.markLoaded('Inter', 'Regular', font)
+  const graph = new SceneGraph()
+  const page = expectDefined(graph.getPages()[0])
+  const node = graph.createNode('TEXT', page.id, {
+    width: 100,
+    height: 100,
+    text: 'AB',
+    fontFamily: 'Inter',
+    fontWeight: 400,
+    italic: false,
+    fontSize: 40,
+    textAlignHorizontal: 'CENTER',
+    textPathBox: { x: 0, y: 0, width: 100, height: 100 },
+    derivedTextGlyphs: [
+      { commandsBlob: new Uint8Array(4), x: 50, y: 0, fontSize: 40, rotation: 0 },
+      { commandsBlob: new Uint8Array(4), x: 80, y: 0, fontSize: 40, rotation: 0 }
+    ]
+  })
+  const zero = { x: 0, y: 0 }
+  const corners = [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+    { x: 100, y: 100 },
+    { x: 0, y: 100 }
+  ]
+  node.textPathData = {
+    network: {
+      vertices: corners,
+      segments: corners.map((_, index) => ({
+        start: index,
+        end: (index + 1) % corners.length,
+        tangentStart: zero,
+        tangentEnd: zero
+      })),
+      regions: []
+    },
+    normalizedSize: { x: 100, y: 100 },
+    tValue: 0.5,
+    forward: true,
+    startSegment: 0
+  }
+  const text = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const metrics = expectDefined(getGlyphOutlineMetricsSync('Inter', 'Regular', text, 40))
+  const glyphs = expectDefined(pathTextEditChanges(node, { text }).derivedTextGlyphs)
+  const width = metrics.slice(0, glyphs.length).reduce((sum, glyph) => sum + glyph.advance, 0)
+  const next = expectDefined(metrics.at(glyphs.length)).advance
+  // The loop is 400 long; the kept run is centered on the start at (50, 0) and doesn't lap.
+  expect(width).toBeLessThanOrEqual(400 + 0.5)
+  expect(width + next).toBeGreaterThan(400)
+  const path = expectDefined(
+    sampleTextPath(expectDefined(node.textPathData), expectDefined(node.textPathBox))
+  )
+  const firstArc = nearestArcPoint(path, glyphs[0].x, glyphs[0].y).s
+  expect(firstArc).toBeCloseTo((50 - width / 2 + 400) % 400, 0)
+})
