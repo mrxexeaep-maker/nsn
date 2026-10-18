@@ -364,6 +364,7 @@ function interpretRoot(
     rank: number
   ): InstanceOccurrence => {
     if (expanding.has(id)) throw new Error(`Cyclic component expansion at ${id}`)
+    options.onProgress?.()
     const raw = sources.get(id)
     if (!raw) throw new Error(`Missing source node ${id}`)
     const record = bindRecord(raw, bindings)

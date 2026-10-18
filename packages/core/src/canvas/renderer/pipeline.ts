@@ -77,6 +77,7 @@ export function renderFromEditorState(
   r.pageId = state.currentPageId
   r.navigationPhase = state.navigation.phase
   r.navigationGeneration = state.navigation.generation
+  r.readOnly = state.readOnly
   // A previewing canvas shows the design as it runs: no selection, hover, or edit chrome.
   const previewing = state.play !== null
   render(

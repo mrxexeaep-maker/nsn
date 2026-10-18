@@ -289,7 +289,7 @@ function drawTextPathSelection(
 
 /**
  * Figma's corner handles and our rotation stalk, absent for a layer that does not turn; a layer
- * too small for handles shows none.
+ * too small for handles, or in a read-only document, shows none.
  */
 function drawBoundsHandles(
   r: SkiaRenderer,
@@ -300,7 +300,7 @@ function drawBoundsHandles(
   maxY: number,
   stalk: RotationHandleLayout | null
 ): void {
-  if (!hasTransformHandles((maxX - minX) * r.zoom, (maxY - minY) * r.zoom)) return
+  if (r.readOnly || !hasTransformHandles((maxX - minX) * r.zoom, (maxY - minY) * r.zoom)) return
   r.drawHandle(canvas, minX, minY)
   r.drawHandle(canvas, maxX, minY)
   r.drawHandle(canvas, minX, maxY)
