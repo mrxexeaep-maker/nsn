@@ -37,7 +37,7 @@ function workerClient() {
     if (!request) throw new Error('Missing request')
     return request
   }
-  return { client, page, send, sent, terminated: () => terminated }
+  return { client, graph, page, send, sent, terminated: () => terminated }
 }
 
 /**
@@ -75,4 +75,19 @@ test('a page load that stops reporting progress falls back once the stall window
   jest.advanceTimersByTime(1)
   expect(terminated()).toBe(true)
   expect(await pending).toBeNull()
+})
+
+/**
+ * An edit makes the worker's result unusable, so progress no longer keeps the load waiting: the
+ * page loads on the main thread at once instead of after the worker finishes for nothing.
+ */
+test('an edit during a page load that keeps reporting progress ends the wait at once', async () => {
+  jest.useFakeTimers()
+  const { client, graph, page, send, sent } = workerClient()
+  const pending = client.populate(page.id)
+  send({ type: 'population-progress', requestId: sent().requestId })
+  graph.createNode('RECTANGLE', page.id)
+  send({ type: 'population-progress', requestId: sent().requestId })
+  expect(await pending).toBeNull()
+  client.terminate()
 })

@@ -177,6 +177,15 @@ export function createPopulationWorkerClient(
   let stale = false
   let disposed = false
   let applyingDelta = false
+  /** Answer every load in flight with null, so its page loads on the main thread instead. */
+  const settlePending = () => {
+    for (const request of pending.values()) {
+      clearTimeout(request.timeout)
+      request.abort?.()
+      request.resolve(null)
+    }
+    pending.clear()
+  }
   const invalidate = () => {
     // Layout recomputation (import-time or after a switch) is derived from the
     // same scene graph the worker deltas were built from; it must not count as
@@ -185,6 +194,8 @@ export function createPopulationWorkerClient(
     revision++
     stale = true
     emitTelemetry({ event: 'stale', reason: 'graph-mutation' })
+    // A load in flight can no longer apply, however long the worker keeps reporting progress.
+    settlePending()
   }
   let unbind: (() => void) | undefined
   const releaseSubscription = () => {
@@ -198,12 +209,7 @@ export function createPopulationWorkerClient(
   const fail = (emit = true, stop = true) => {
     stale = true
     if (emit) emitTelemetry({ event: 'fallback', reason: 'worker-error' })
-    for (const request of pending.values()) {
-      clearTimeout(request.timeout)
-      request.abort?.()
-      request.resolve(null)
-    }
-    pending.clear()
+    settlePending()
     releaseSubscription()
     if (stop || !sharedWorker) stopWorkerNow()
     else port?.postMessage({ type: 'retire' })
