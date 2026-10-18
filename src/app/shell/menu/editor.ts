@@ -11,7 +11,7 @@ import { openFileDialog, openFileFromPath } from '@/app/shell/menu/files'
 import { useNativeMenuEvents } from '@/app/shell/menu/native-events'
 import { OPEN_RECENT_EVENT_PREFIX, watchRecentFilesMenu } from '@/app/shell/menu/recent-files'
 import { createSaveMenuActions } from '@/app/shell/menu/save-actions'
-import { APP_MENU_SCHEMA, EDITING_MENU_IDS, type AppMenuEntry } from '@/app/shell/menu/schema'
+import { APP_MENU_SCHEMA, type AppMenuEntry } from '@/app/shell/menu/schema'
 import { SHELL_MENU_IDS } from '@/app/shell/menu/shell'
 import { useAppTheme } from '@/app/shell/theme'
 import { createTab, closeTab, activeTab } from '@/app/tabs'
@@ -88,7 +88,6 @@ export function useEditorMenu() {
       runFocusedCommand(store, runCommand, id as EditorCommandId)
       return
     }
-    if (store.state.readOnly && EDITING_MENU_IDS.has(id)) return
     actions[id]?.()
   })
 }

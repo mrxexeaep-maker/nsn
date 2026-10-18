@@ -51,9 +51,8 @@ export function bindEditorClipboard(store: EditorStore) {
     void browserSystemClipboard.copy(store)
   })
 
-  // A read-only document copies but neither cuts nor takes a paste.
   useEventListener(window, 'cut', (e: ClipboardEvent) => {
-    if (isEditing(e) || store.state.readOnly) return
+    if (isEditing(e)) return
     e.preventDefault()
     if (isTauri()) {
       const selectedIds = new Set(store.state.selectedIds)
@@ -67,7 +66,7 @@ export function bindEditorClipboard(store: EditorStore) {
   })
 
   useEventListener(window, 'paste', (e: ClipboardEvent) => {
-    if (isEditing(e) || store.state.readOnly) return
+    if (isEditing(e)) return
     e.preventDefault()
 
     const cursorPos = cursorPosition(store)

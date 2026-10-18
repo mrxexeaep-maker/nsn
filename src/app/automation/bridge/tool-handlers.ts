@@ -1,4 +1,3 @@
-import { ReadOnlyDocumentError, withoutDocumentWrites } from '@open-pencil/core/editor'
 import type { FigmaAPI } from '@open-pencil/core/figma-api'
 import {
   ALL_TOOLS,
@@ -67,11 +66,7 @@ export function createAutomationToolHandler(makeFigma: FigmaFactory) {
     registerComponentCatalog(store.graph, libraryService)
     const figma = makeFigma(store, target.pageId)
     let result: unknown
-    if (store.state.readOnly) {
-      // A read-only document answers questions and moves the view, and takes no edits.
-      if (toolChangesDocument(def)) throw new ReadOnlyDocumentError()
-      result = await withoutDocumentWrites(store.graph, () => def.execute(figma, toolArgs))
-    } else if (isAtomicTool(def)) {
+    if (isAtomicTool(def)) {
       result = await executeAtomicEditorTool(store, figma, def, toolArgs, {
         label: AUTOMATION_UNDO_LABEL
       })

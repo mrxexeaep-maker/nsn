@@ -74,7 +74,7 @@ watch(
     if (!id) return
     const node = store.graph.getNode(id)
     store.state.renameNodeId = null
-    if (node && !store.state.readOnly) rename.start(node.id, node.name)
+    if (node) rename.start(node.id, node.name)
   },
   { immediate: true }
 )
