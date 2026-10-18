@@ -8,7 +8,7 @@ import { createEditorStore } from '@/app/editor/session'
 
 const stores: ReturnType<typeof createEditorStore>[] = []
 afterEach(() => {
-  for (const store of stores.splice(0)) store.preparationController.dispose()
+  for (const store of stores.splice(0)) store.dispose()
   jest.useRealTimers()
 })
 
@@ -75,5 +75,7 @@ describe('the design check across a page switch', () => {
 
     // The Lint panel focuses the issue's row, which needs the new page's issues already.
     expect(checkedPages).toEqual([second.id])
+    expect(store.designCheck.snapshot.value?.issues.map(({ id }) => id)).toContain(issue.id)
+    expect(store.designCheck.focusedIssueId.value).toBe(issue.id)
   })
 })
