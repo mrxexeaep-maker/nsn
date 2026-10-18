@@ -25,6 +25,7 @@ export function createVectorEditSelectionActions(
     } else {
       es.selectedVertexIndices = new Set([vertexIndex])
       es.selectedSegmentIndices = new Set()
+      es.selectedRegions = new Set()
     }
     editor.requestRepaint()
   }
@@ -87,6 +88,7 @@ export function createVectorEditSelectionActions(
     setNodeEditNetwork(es, live)
     es.selectedVertexIndices = new Set()
     es.selectedSegmentIndices = new Set()
+    es.selectedRegions = new Set()
     es.selectedHandles = new Set()
     editor.requestRender()
   }
@@ -101,6 +103,7 @@ export function createVectorEditSelectionActions(
     setNodeEditNetwork(es, next)
     es.selectedHandles = new Set()
     es.selectedSegmentIndices = new Set()
+    es.selectedRegions = new Set()
     es.selectedVertexIndices = new Set([vertexIndex])
     editor.requestRender()
   }

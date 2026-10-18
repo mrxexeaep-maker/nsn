@@ -137,3 +137,34 @@ describe('editing a path: marquee', () => {
     expect(exitNodeEditMode).toHaveBeenCalledWith(true)
   })
 })
+
+describe('editing a path: regions and segments', () => {
+  /** The same path closed back to (0,0), filled as one region. */
+  function setupFilled() {
+    setup()
+    const es = getNodeEditState(editor)
+    if (!es) throw new Error('expected edit state')
+    es.segments = [...es.segments, { start: 2, end: 0, tangentStart: zero, tangentEnd: zero }]
+    es.regions = [{ windingRule: 'NONZERO', loops: [[0, 1, 2]] }]
+    es.selectedRegions = new Set()
+    return es
+  }
+
+  test('picking a region replaces selected segments with the region and its points', () => {
+    const es = setupFilled()
+    press(50, 0)
+    expect(selectedSegments()).toEqual([0])
+    press(70, 30)
+    expect([...(es.selectedRegions ?? [])]).toEqual([0])
+    expect(selected()).toEqual([0, 1, 2])
+    expect(selectedSegments()).toEqual([])
+  })
+
+  test('a press on a segment drops the picked region', () => {
+    const es = setupFilled()
+    press(70, 30)
+    press(100, 50)
+    expect([...(es.selectedRegions ?? [])]).toEqual([])
+    expect(selectedSegments()).toEqual([1])
+  })
+})

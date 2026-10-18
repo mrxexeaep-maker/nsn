@@ -178,6 +178,7 @@ function pickRegion(es: NodeEditState, regionIndex: number, add: boolean): numbe
   } else {
     es.selectedRegions = new Set([regionIndex])
     es.selectedVertexIndices = new Set(points)
+    es.selectedSegmentIndices = new Set()
   }
   return points
 }

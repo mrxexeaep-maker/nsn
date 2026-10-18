@@ -19,8 +19,8 @@ import {
   vectorHandleParts,
   vectorNetworkToPath
 } from '#core/vector'
-import { addLoopToPath } from '#core/vector/path-helpers'
 import { evalCubic, segmentToAbsolute } from '#core/vector/curve-math'
+import { addLoopToPath } from '#core/vector/path-helpers'
 
 import type { SkiaRenderer, RenderOverlays } from './renderer'
 
