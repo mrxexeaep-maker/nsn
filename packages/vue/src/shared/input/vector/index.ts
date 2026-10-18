@@ -136,19 +136,10 @@ export function handleNodeEditDown(
   // its two points with the rest of the selection.
   const si = hitTestEditSegment(editor, cx, cy)
   if (si !== null) {
-    const keepsSelection = !e.shiftKey && es.selectedSegmentIndices.has(si)
-    selectPressedSegment(es, si, e.shiftKey)
+    const narrowTo = selectPressedSegment(es, si, e.shiftKey)
     editor.requestRepaint()
     const { start, end } = es.segments[si]
-    startPointsDrag(
-      es,
-      [start, end],
-      cx,
-      cy,
-      nodeEditEditor,
-      setDrag,
-      keepsSelection ? si : undefined
-    )
+    startPointsDrag(es, [start, end], cx, cy, nodeEditEditor, setDrag, narrowTo)
     return
   }
 
@@ -162,18 +153,28 @@ export function handleNodeEditDown(
   })
 }
 
-/** Shift toggles the pressed segment; otherwise it replaces the selection unless already in it. */
-function selectPressedSegment(es: NodeEditState, segmentIndex: number, toggle: boolean) {
+/**
+ * Shift toggles the pressed segment; otherwise it replaces the selection unless already in it.
+ * Returns the segment to select alone if the press ends without a drag.
+ */
+function selectPressedSegment(
+  es: NodeEditState,
+  segmentIndex: number,
+  toggle: boolean
+): number | undefined {
   es.selectedHandles = new Set()
   if (toggle) {
     const next = new Set(es.selectedSegmentIndices)
     if (next.has(segmentIndex)) next.delete(segmentIndex)
     else next.add(segmentIndex)
     es.selectedSegmentIndices = next
-  } else if (!es.selectedSegmentIndices.has(segmentIndex)) {
+  } else if (es.selectedSegmentIndices.has(segmentIndex)) {
+    return segmentIndex
+  } else {
     es.selectedVertexIndices = new Set()
     es.selectedSegmentIndices = new Set([segmentIndex])
   }
+  return undefined
 }
 
 /** Selects a region and its points, adding to the selection with Shift; returns its points. */
