@@ -1,3 +1,5 @@
+import { mean } from 'es-toolkit'
+
 import { encodePathCommandsBlob } from '@open-pencil/fig/node-change'
 import type { SceneNode, TextPathData } from '@open-pencil/scene-graph'
 
@@ -50,7 +52,7 @@ export function pathTextEditChanges(
 
   const layout = calibratePathTextLayout(node.derivedTextGlyphs, data, node.textPathBox)
   if (!layout) return {}
-  const offset = layout.offsets.reduce((sum, o) => sum + o, 0) / layout.offsets.length
+  const offset = mean(layout.offsets)
   const anchor = alignedAnchor(node, data, layout.anchor, metrics, letterSpacing)
 
   const glyphs = layoutPathTextFromAdvances(

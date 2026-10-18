@@ -11,18 +11,7 @@ function clearRetainedSceneState(r: SkiaRenderer): void {
 }
 
 function disposePathCaches(r: SkiaRenderer): void {
-  for (const cache of [
-    r.vectorPathCache,
-    r.vectorStrokePathCache,
-    r.vectorStrokeOutlineCache,
-    r.fillGeometryCache,
-    r.strokeGeometryCache
-  ]) {
-    for (const paths of cache.values()) {
-      for (const p of paths) p.delete()
-    }
-    cache.clear()
-  }
+  r.nodePaths.clear()
   r.glyphSilhouetteCache.clear()
   r.derivedGlyphPathCache.clear()
 }
@@ -77,6 +66,7 @@ export function destroyRenderer(r: SkiaRenderer): void {
   r.rulerLabelPaint.delete()
   r.penPathPaint.delete()
   r.penLiveStrokePaint.delete()
+  r.pencilStrokePaint.delete()
   r.penHandlePaint.delete()
   r.penVertexFill.delete()
   r.penVertexStroke.delete()

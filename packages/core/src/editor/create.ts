@@ -26,10 +26,12 @@ import { fontResolver } from '#core/text/resolver'
 import { createAlignmentActions } from './alignment'
 import { createClipboardBridge } from './bridges/clipboard'
 import { createComponentBridge } from './bridges/components'
+import { createFrameNavigationBridge } from './bridges/frames'
 import { createLintFixBridge } from './bridges/lint'
 import { createStructureBridge } from './bridges/structure'
 import { createUndoBridge } from './bridges/undo'
 import { createClipboardActions } from './clipboard'
+import { createClipboardPropertiesActions } from './clipboard/paste/properties'
 import { createColorSpaceActions } from './color-space'
 import { createComponentSyncScheduler } from './component-sync'
 import { createComponentActions } from './components'
@@ -47,6 +49,8 @@ import { createShaderActions } from './shaders/actions'
 import { createShaderFrames } from './shaders/frames'
 import { createShapeActions } from './shapes'
 import { createDefaultEditorState } from './state'
+import { createStatusActions } from './statuses'
+import { createStickyActions } from './stickies'
 import { createStructureActions } from './structure'
 import { createTextActions } from './text'
 import { createPendingTextLayout } from './text/pending-layout'
@@ -240,6 +244,7 @@ export function createEditor(options?: EditorOptions) {
     loadFont: _loadFont,
     resolveFigmaClipboardImages: options?.resolveFigmaClipboardImages ?? null,
     getViewportSize: _getViewportSize,
+    getUserName: () => options?.getUserName?.() ?? '',
     icons: options?.icons ?? iconify,
     getCk: () => _ck,
     getRenderer: () => _renderer,
@@ -274,16 +279,24 @@ export function createEditor(options?: EditorOptions) {
   const undoActions = createUndoActions(ctx)
   const text = createTextActions(ctx)
   const nodes = createNodeActions(ctx)
+  const clipboardProperties = createClipboardPropertiesActions(
+    ctx,
+    nodes.updateNodeWithUndo,
+    clipboard.loadFontsForNodes
+  )
   const variables = createVariableActions(ctx)
   const designTokens = createDesignTokenActions(ctx, variables, nodes)
   const vectorize = createVectorizeActions(ctx)
   const icons = createIconActions(ctx)
+  const stickies = createStickyActions(ctx)
+  const statuses = createStatusActions(ctx)
   const shaders = createShaderActions(ctx, nodes)
   const alignment = createAlignmentActions(ctx)
   const preview = createPlayActions(ctx)
   const clipboardBridge = createClipboardBridge(clipboard, selection)
   const componentBridge = createComponentBridge(components, selection, structure, pages)
   const structureBridge = createStructureBridge(structure, selection)
+  const frameNavigation = createFrameNavigationBridge(ctx, selection, viewport)
   const undoBridge = createUndoBridge(undoActions, selection, nodes.flushNudge)
   const lintFixBridge = createLintFixBridge(ctx, nodes, structure, clipboard)
   const textSelectionStyle = createTextSelectionStyle(ctx, text.runTextEditStep)
@@ -435,6 +448,11 @@ export function createEditor(options?: EditorOptions) {
     // Bitmap-to-vector replacement
     ...vectorize,
     ...icons,
+    ...stickies,
+    statusWorkflow: statuses.statusWorkflow,
+    getShownStatus: statuses.getShownStatus,
+    setStatus: statuses.setStatus,
+    setStatusWorkflow: statuses.setStatusWorkflow,
     ...shaders,
     ...shaderFrames,
 
@@ -447,6 +465,7 @@ export function createEditor(options?: EditorOptions) {
 
     // Viewport
     ...viewport,
+    ...frameNavigation,
 
     // Undo — bridge functions that need cross-module refs
     ...undoBridge,
@@ -465,6 +484,9 @@ export function createEditor(options?: EditorOptions) {
 
     // Clipboard — bridge functions that need selectedNodes
     ...clipboardBridge,
+
+    // Paste properties: the look of a copied layer, onto the selection
+    ...clipboardProperties,
 
     // Components — bridge functions
     ...componentBridge,

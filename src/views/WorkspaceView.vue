@@ -88,9 +88,10 @@ function openFirstTab(): Tab {
   }
 }
 
+// A first visit to the demo link is a first run too; the welcome there skips the tour offer.
 const welcomeShown =
-  createdInitialTab && route.path === '/' && !appRuntimeConfig.test && !route.meta.demo
-    ? offerAISetupOnFirstRun()
+  createdInitialTab && (route.path === '/' || route.meta.demo) && !appRuntimeConfig.test
+    ? offerAISetupOnFirstRun({ inTour: route.meta.demo === true })
     : false
 const sharingStarted = startSharing()
 // One question per surface: a first run is asked about usage stats once the welcome closes.

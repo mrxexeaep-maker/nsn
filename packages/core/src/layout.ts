@@ -35,13 +35,14 @@ export {
   type TextMeasurer
 } from './layout/text-measurement'
 import {
+  isGeneratedFrame,
   layoutSizing,
   type LayoutSizing,
   type SceneGraph,
   type SceneNode
 } from '@open-pencil/scene-graph'
 
-import { estimateTextSize, getTextMeasurer } from './layout/text-measurement'
+import { estimateTextSize, getTextMeasurer, measureTextForLayout } from './layout/text-measurement'
 import {
   applyMinMaxConstraints,
   applyLockedAspectRatio,
@@ -208,7 +209,10 @@ function configureFlexContainer(
   yogaNode.setPadding(Edge.Bottom, node.paddingBottom)
   yogaNode.setPadding(Edge.Left, node.paddingLeft)
 
-  const primaryGap = node.primaryAxisAlign === 'SPACE_BETWEEN' ? 0 : node.itemSpacing
+  // Space between takes the place of the gap in Figma's auto layout. A generated frame keeps it
+  // as the least space between its sublayers, as a sticky note keeps its author clear of a long body.
+  const primaryGap =
+    node.primaryAxisAlign === 'SPACE_BETWEEN' && !isGeneratedFrame(node) ? 0 : node.itemSpacing
   yogaNode.setGap(
     Gutter.Column,
     node.layoutMode === 'HORIZONTAL' ? primaryGap : node.counterAxisSpacing
@@ -554,8 +558,7 @@ function configureTextLeaf(
       const cached = cache.get(cacheKey)
       if (cached) return cached
 
-      const measured = getTextMeasurer()?.(child, maxW)
-      const result = measured ?? estimateTextSize(child, maxW)
+      const result = measureTextForLayout(child, maxW)
       cache.set(cacheKey, result)
       return result
     })
@@ -585,11 +588,7 @@ function configureTextLeaf(
       if (constraintW === child.width && (child.derivedTextGlyphs?.length ?? 0) > 0) {
         return { width: constraintW, height: child.height }
       }
-      const measured = getTextMeasurer()?.(child, constraintW)
-      const result = {
-        width: constraintW,
-        height: measured?.height ?? estimateTextSize(child, constraintW).height
-      }
+      const result = { width: constraintW, height: measureTextForLayout(child, constraintW).height }
       cache.set(cacheKey, result)
       return result
     })

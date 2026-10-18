@@ -10,7 +10,9 @@ export const toolMessageDefaults = {
   polygon: 'Polygon',
   star: 'Star',
   pen: 'Pen',
+  pencil: 'Pencil',
   text: 'Text',
+  sticky: 'Sticky note',
   hand: 'Hand',
   comment: 'Comment'
 } as const
