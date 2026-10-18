@@ -4,8 +4,6 @@ import type { EditorContext, Tool } from '#core/editor/types'
 
 import { READ_ONLY_ACTIONS } from './actions'
 
-export { READ_ONLY_ACTIONS }
-
 /** Raised by an edit to a document that is open read-only, in Figma's words for its own. */
 export class ReadOnlyDocumentError extends Error {
   constructor() {

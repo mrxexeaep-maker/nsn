@@ -2,14 +2,11 @@ import { describe, expect, test } from 'bun:test'
 
 import { getNodeOrThrow } from '#core-tests/helpers/assert'
 
-import {
-  createEditor,
-  executeAtomicTool,
-  READ_ONLY_ACTIONS,
-  ReadOnlyDocumentError
-} from '@open-pencil/core/editor'
+import { createEditor, executeAtomicTool, ReadOnlyDocumentError } from '@open-pencil/core/editor'
 import { FigmaAPI } from '@open-pencil/core/figma-api'
 import { ALL_TOOLS } from '@open-pencil/core/tools'
+
+import { READ_ONLY_ACTIONS } from '#core/editor/read-only/actions'
 
 function setup() {
   const editor = createEditor()
