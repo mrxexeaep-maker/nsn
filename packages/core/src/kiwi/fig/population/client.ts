@@ -8,11 +8,18 @@ import type { FigSessionResponse } from '#core/kiwi/fig/session/protocol'
 
 import { applyFigPopulationDelta } from './delta'
 
-/** The two responses this client acts on, taken from the session protocol itself. */
-type WorkerResult = Extract<FigSessionResponse, { type: 'population-result' | 'population-error' }>
+/** The responses this client acts on, taken from the session protocol itself. */
+type WorkerResult = Extract<
+  FigSessionResponse,
+  { type: 'population-result' | 'population-error' | 'population-progress' }
+>
 
 const MAX_FIG_POPULATION_WORKER_NODES = 200_000
-const FIG_POPULATION_WORKER_TIMEOUT_MS = 30_000
+/**
+ * How long a page load may go without reporting progress before the worker counts as stuck. A
+ * large page legitimately takes longer than this; it reports progress as it goes.
+ */
+const FIG_POPULATION_WORKER_STALL_MS = 30_000
 const populationWorkers = new WeakMap<SceneGraph, FigPopulationWorker>()
 interface OriginalArchiveRequest {
   request: () => Promise<Uint8Array>
@@ -209,8 +216,16 @@ export function createPopulationWorkerClient(
     reparented: invalidate,
     reordered: invalidate
   })
+  const watchForStall = () => setTimeout(() => fail(), FIG_POPULATION_WORKER_STALL_MS)
   const receive = (result: WorkerResult) => {
     if (result.type === 'population-error') return fail(true, false)
+    if (result.type === 'population-progress') {
+      const request = pending.get(result.requestId)
+      if (!request) return
+      clearTimeout(request.timeout)
+      request.timeout = watchForStall()
+      return
+    }
     const request = pending.get(result.requestId)
     if (!request) return
     clearTimeout(request.timeout)
@@ -265,13 +280,12 @@ export function createPopulationWorkerClient(
           reject(new DOMException('Aborted', 'AbortError'))
         }
         signal?.addEventListener('abort', abort, { once: true })
-        const timeout = setTimeout(() => fail(), FIG_POPULATION_WORKER_TIMEOUT_MS)
         pending.set(requestId, {
           resolve,
           abort: () => signal?.removeEventListener('abort', abort),
           revision: baseRevision,
           startedAt: performance.now(),
-          timeout
+          timeout: watchForStall()
         })
         if (port) port.postMessage({ type: 'populate', requestId, baseRevision, pageId })
         else worker.postMessage({ type: 'populate', requestId, baseRevision, pageId }, [])
