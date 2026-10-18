@@ -10,8 +10,9 @@ import {
   lineArrowEndpoints,
   trimArrowShafts
 } from '@open-pencil/scene-graph/arrow-caps'
-import { computeDescendantVisualBounds } from '@open-pencil/scene-graph/geometry'
-import Matrix from '@open-pencil/scene-graph/matrix'
+import { getParentWorldMatrix } from '@open-pencil/scene-graph/coordinate'
+import type { VisualBounds } from '@open-pencil/scene-graph/geometry'
+import Matrix, { type Mat3 } from '@open-pencil/scene-graph/matrix'
 import type { Color } from '@open-pencil/scene-graph/primitives'
 
 import { createSceneGeometry, nodeOrientationMatrix, projectedNode } from '#core/geometry'
@@ -37,6 +38,7 @@ import {
   effectRasterScale,
   effectRasterScaleMatches
 } from './renderer/effect-raster-cache'
+import { computeRetainedSubtreeBounds } from './renderer/retained-backing'
 import { renderLayerShadows } from './shadows'
 import { isLayerContainer } from './shadows/silhouette'
 import { makeSmoothRRectPath, nodeHasRadius, nodeHasSmoothCorners } from './shapes'
@@ -280,26 +282,21 @@ export function renderNodeSelf(
   canvas.restore()
 }
 
-function viewportLayerBounds(
+function mappedRect(
   r: SkiaRenderer,
-  graph: SceneGraph,
-  node: SceneNode,
-  padding: number,
-  preview?: RenderOverlays['rotationPreview']
-): Float32Array | null {
-  if (!r.boundEffectLayersToViewport) return null
-  const inverse = Matrix.invert(createSceneGeometry(graph, preview).worldMatrix(node))
-  if (!inverse) return null
-  const viewport = r.worldViewport
-  const points = Matrix.mapPoints(inverse, [
-    viewport.x,
-    viewport.y,
-    viewport.x + viewport.w,
-    viewport.y,
-    viewport.x + viewport.w,
-    viewport.y + viewport.h,
-    viewport.x,
-    viewport.y + viewport.h
+  matrix: Mat3,
+  bounds: VisualBounds,
+  padding: number
+): Float32Array {
+  const points = Matrix.mapPoints(matrix, [
+    bounds.minX,
+    bounds.minY,
+    bounds.maxX,
+    bounds.minY,
+    bounds.maxX,
+    bounds.maxY,
+    bounds.minX,
+    bounds.maxY
   ])
   const xs = [points[0], points[2], points[4], points[6]]
   const ys = [points[1], points[3], points[5], points[7]]
@@ -311,24 +308,47 @@ function viewportLayerBounds(
   )
 }
 
+function viewportLayerBounds(
+  r: SkiaRenderer,
+  graph: SceneGraph,
+  node: SceneNode,
+  padding: number,
+  preview?: RenderOverlays['rotationPreview']
+): Float32Array | null {
+  if (!r.boundEffectLayersToViewport) return null
+  const inverse = Matrix.invert(createSceneGeometry(graph, preview).worldMatrix(node))
+  if (!inverse) return null
+  const viewport = r.worldViewport
+  return mappedRect(
+    r,
+    inverse,
+    {
+      minX: viewport.x,
+      minY: viewport.y,
+      maxX: viewport.x + viewport.w,
+      maxY: viewport.y + viewport.h
+    },
+    padding
+  )
+}
+
 function nodeIsolationLayerBounds(
   r: SkiaRenderer,
   graph: SceneGraph,
   node: SceneNode,
-  nodeId: string,
-  absX: number,
-  absY: number,
   preview?: RenderOverlays['rotationPreview']
 ): Float32Array {
   const viewportBounds = viewportLayerBounds(r, graph, node, 0, preview)
   if (viewportBounds) return viewportBounds
-  const bounds = computeDescendantVisualBounds(
-    [nodeId],
-    (id) => graph.getNode(id) ?? undefined,
-    (id) => graph.getAbsolutePosition(id)
+  const bounds = computeRetainedSubtreeBounds(graph, node.id)
+  const parent = node.parentId ? graph.getNode(node.parentId) : undefined
+  const positionedBeforeOrientation = Matrix.multiply(
+    getParentWorldMatrix(parent, graph),
+    Matrix.translated(node.x, node.y)
   )
-  return bounds
-    ? r.ck.LTRBRect(bounds.minX - absX, bounds.minY - absY, bounds.maxX - absX, bounds.maxY - absY)
+  const toLayer = Matrix.invert(positionedBeforeOrientation)
+  return bounds && toLayer
+    ? mappedRect(r, toLayer, bounds, 0)
     : r.ck.LTRBRect(0, 0, node.width, node.height)
 }
 
@@ -371,15 +391,7 @@ export function renderNode(
 
   const needsNodeLayer = node.opacity < 1 || needsIsolatedBlendLayer(node.blendMode)
   if (needsNodeLayer) {
-    const layerBounds = nodeIsolationLayerBounds(
-      r,
-      graph,
-      node,
-      nodeId,
-      absX,
-      absY,
-      overlays.rotationPreview
-    )
+    const layerBounds = nodeIsolationLayerBounds(r, graph, node, overlays.rotationPreview)
     r.opacityPaint.setAlphaf(node.opacity)
     r.opacityPaint.setBlendMode(figmaBlendModeToSkia(r.ck, node.blendMode))
     canvas.saveLayer(r.opacityPaint, layerBounds)
