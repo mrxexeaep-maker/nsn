@@ -127,4 +127,24 @@ describe('read-only documents', () => {
     ).toThrow(ReadOnlyDocumentError)
     expect(getNodeOrThrow(editor.graph, rect.id).opacity).toBe(1)
   })
+
+  test('keeps the undo history but refuses to step through it', () => {
+    const { editor, rect } = setup()
+    editor.setOpacity(0.5)
+    editor.setReadOnly(true)
+
+    expect(editor.undo.canUndo).toBe(true)
+    expect(() => editor.undo.undo()).toThrow(ReadOnlyDocumentError)
+    expect(getNodeOrThrow(editor.graph, rect.id).opacity).toBe(0.5)
+  })
+
+  test('scripts that change variables fail and leave them as they were', async () => {
+    const { editor } = setup()
+    const figma = new FigmaAPI(editor.graph)
+
+    await expect(
+      withoutDocumentWrites(editor.graph, () => figma.createVariableCollection('Theme'))
+    ).rejects.toThrow(ReadOnlyDocumentError)
+    expect(editor.graph.variableCollections.size).toBe(0)
+  })
 })

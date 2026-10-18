@@ -107,10 +107,17 @@ export function useCanvasInput(
       hitFns,
       mode === 'deep' || hoverDeep()
     )
-    editor.setAutoLayoutHover(
-      mode === 'off' ? resolveAutoLayoutHover(pointer.cx, pointer.cy, editor) : null
-    )
-    editor.setShapeHandleHover(resolveShapeHandleHover(editor, pointer.sx, pointer.sy, altHeld))
+    editor.setAutoLayoutHover(autoLayoutHoverAt(pointer.cx, pointer.cy, mode))
+    editor.setShapeHandleHover(shapeHandleHoverAt(pointer.sx, pointer.sy, altHeld))
+  }
+
+  // Handles that edit, which a read-only document does not offer.
+  function autoLayoutHoverAt(cx: number, cy: number, mode: typeof editor.state.measurementMode) {
+    return mode === 'off' && !editor.state.readOnly ? resolveAutoLayoutHover(cx, cy, editor) : null
+  }
+
+  function shapeHandleHoverAt(sx: number, sy: number, altKey: boolean) {
+    return editor.state.readOnly ? null : resolveShapeHandleHover(editor, sx, sy, altKey)
   }
 
   function updateModifier(code: string, held: boolean) {
@@ -245,9 +252,7 @@ export function useCanvasInput(
     if (!drag.value) {
       const { cx, cy, sx, sy } = coords
       updateNodeEditHover(editor, cx, cy)
-      editor.setShapeHandleHover(
-        editor.state.readOnly ? null : resolveShapeHandleHover(editor, sx, sy, e.altKey)
-      )
+      editor.setShapeHandleHover(shapeHandleHoverAt(sx, sy, e.altKey))
     }
 
     if (!drag.value && editor.state.activeTool === 'SELECT') {
@@ -262,11 +267,7 @@ export function useCanvasInput(
           hitFns,
           editor.state.measurementMode === 'deep' || hoverDeep(e)
         )
-      editor.setAutoLayoutHover(
-        editor.state.measurementMode === 'off' && !editor.state.readOnly
-          ? resolveAutoLayoutHover(cx, cy, editor)
-          : null
-      )
+      editor.setAutoLayoutHover(autoLayoutHoverAt(cx, cy, editor.state.measurementMode))
     }
 
     if (!drag.value) return
@@ -529,6 +530,13 @@ export function useCanvasInput(
     editor.setMeasurementMode('off')
     cancelPointerInteraction()
   })
+  // A document that turns read-only mid-gesture drops the gesture and any open inline edit.
+  const stopReadOnlyListener = editor.onEditorEvent('document:read-only-changed', (readOnly) => {
+    if (!readOnly) return
+    valueEdit.cancel()
+    canvasLabelEdit.cancel()
+    cancelPointerInteraction()
+  })
   const stopPlayListeners = (['selection:changed', 'page:changed', 'graph:replaced'] as const).map(
     (event) =>
       editor.onEditorEvent(event, () => {
@@ -546,6 +554,7 @@ export function useCanvasInput(
   onScopeDispose(() => {
     stopRotationListener()
     stopToolListener()
+    stopReadOnlyListener()
     for (const stop of stopPlayListeners) stop()
     cancelPointerInteraction()
   })

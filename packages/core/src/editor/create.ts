@@ -44,7 +44,7 @@ import { createDesignIssueActions } from './issues'
 import { createNodeActions } from './nodes'
 import { createPageActions } from './pages'
 import { createPlayActions } from './play/actions'
-import { createReadOnlyActions, guardReadOnly, READ_ONLY_TOOLS } from './read-only'
+import { createReadOnlyActions, guardReadOnly, guardUndo, READ_ONLY_TOOLS } from './read-only'
 import { createSelectionActions } from './selection'
 import { createShaderActions } from './shaders/actions'
 import { createShaderFrames } from './shaders/frames'
@@ -399,7 +399,7 @@ export function createEditor(options?: EditorOptions) {
     get textEditor() {
       return _textEditor
     },
-    undo,
+    undo: guardUndo(undo, () => state.readOnly),
     state,
 
     // Graph reads

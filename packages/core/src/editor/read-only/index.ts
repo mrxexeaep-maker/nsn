@@ -1,4 +1,7 @@
+import { isEqual } from 'es-toolkit'
+
 import type { SceneGraph } from '@open-pencil/scene-graph'
+import type { UndoManager } from '@open-pencil/scene-graph/undo'
 
 import type { EditorContext, Tool } from '#core/editor/types'
 
@@ -35,9 +38,28 @@ export function guardReadOnly<T extends object>(editor: T, isReadOnly: () => boo
 }
 
 /**
+ * Returns the editor's undo history with undo and redo refused while `isReadOnly` holds, since
+ * they change the document; batches and reads pass through for the gestures that open them.
+ */
+export function guardUndo(undo: UndoManager, isReadOnly: () => boolean): UndoManager {
+  return new Proxy(undo, {
+    get(target, key) {
+      const value: unknown = Reflect.get(target, key)
+      if ((key === 'undo' || key === 'redo') && isReadOnly()) {
+        return () => {
+          throw new ReadOnlyDocumentError()
+        }
+      }
+      return typeof value === 'function' ? value.bind(target) : value
+    }
+  })
+}
+
+/**
  * Runs `run` so that its first change to a layer of `graph` throws `ReadOnlyDocumentError` before it lands,
- * as Figma's scripts fail on a read-only document; reads go through. Covers what writes the graph
- * directly, such as scripts and tools, which the editor's guard does not see.
+ * as Figma's scripts fail on a read-only document; reads go through. Variables change without
+ * notice, so a run that changed them fails once it ends and they are put back. Covers what writes
+ * the graph directly, such as scripts and tools, which the editor's guard does not see.
  */
 export async function withoutDocumentWrites<T>(
   graph: SceneGraph,
@@ -47,11 +69,26 @@ export async function withoutDocumentWrites<T>(
     throw new ReadOnlyDocumentError()
   }
   const stop = graph.observeNodeChanges({ before: refuse, created: refuse })
+  const variables = structuredClone(graph.variables)
+  const collections = structuredClone(graph.variableCollections)
+  const variablesChanged = () =>
+    !isEqual(variables, graph.variables) || !isEqual(collections, graph.variableCollections)
   try {
-    return await run()
+    const result = await run()
+    if (variablesChanged()) throw new ReadOnlyDocumentError()
+    return result
   } finally {
     stop()
+    if (variablesChanged()) {
+      replaceEntries(graph.variables, variables)
+      replaceEntries(graph.variableCollections, collections)
+    }
   }
+}
+
+function replaceEntries<K, V>(target: Map<K, V>, source: Map<K, V>) {
+  target.clear()
+  for (const [key, value] of source) target.set(key, value)
 }
 
 export function createReadOnlyActions(ctx: EditorContext, endEdits: () => void) {

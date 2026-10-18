@@ -239,21 +239,13 @@ describe('dragging', () => {
 
 describe('readOnlyToolbarLayout', () => {
   test('keeps Move and Hand, as Figma does while a version is viewed', () => {
-    const items = toolbarItems(
-      readOnlyToolbarLayout(layout([['SELECT', 'HAND'], ['FRAME'], ['insert-icon']])),
-      LABELS,
-      SHORTCUTS
-    )
-    expect(items).toEqual([
-      {
-        kind: 'tool',
-        tool: { key: 'SELECT', label: 'V', shortcut: 'V', flyout: ['SELECT', 'HAND'] }
-      }
-    ])
-    expect(
-      toolbarItems(readOnlyToolbarLayout(DEFAULT_TOOLBAR_LAYOUT), LABELS, SHORTCUTS).map(
-        (item) => item.kind === 'tool' && item.tool.key
+    const keys = (groups: ToolbarEntry[][]) =>
+      toolbarItems(readOnlyToolbarLayout(layout(groups)), LABELS, SHORTCUTS).map((item) =>
+        item.kind === 'tool' ? [item.tool.key, ...(item.tool.flyout ?? [])] : item.action
       )
-    ).toEqual(['SELECT', 'HAND'])
+    expect(keys([['SELECT', 'HAND'], ['FRAME'], ['insert-icon']])).toEqual([
+      ['SELECT', 'SELECT', 'HAND']
+    ])
+    expect(keys(DEFAULT_TOOLBAR_LAYOUT.groups)).toEqual([['SELECT'], ['HAND']])
   })
 })
