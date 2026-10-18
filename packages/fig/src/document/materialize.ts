@@ -332,14 +332,11 @@ function materializeReader(
       throw new Error(`Unresolved binding ${diagnostic.sourceId}: ${diagnostic.field}`)
     options.onUnresolvedBinding(diagnostic)
   }
-  const pages = reader.pages.map((page) => {
-    const occurrence = reader.readPage(page.id, options)
-    load.onProgress?.()
-    return occurrence
-  })
+  // Reading a large page and the components it places takes a while on its own.
+  const readOptions = load.onProgress ? { ...options, onProgress: load.onProgress } : options
+  const pages = reader.pages.map((page) => reader.readPage(page.id, readOptions))
   const state = previous ?? createAssemblyState(reader, options)
-  const plan = reader.planComponents(pages, options, (id) => state.components.has(id))
-  load.onProgress?.()
+  const plan = reader.planComponents(pages, readOptions, (id) => state.components.has(id))
   return state.graph.applyImportedStateDuring(
     () => materializeReaderInto(pages, plan, blobs, state, load),
     () => `0:${state.nextImportedId++}`
