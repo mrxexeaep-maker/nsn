@@ -231,18 +231,28 @@ function seedDefinitionTypes(graph: SceneGraph): Map<string, string> {
   return types
 }
 
+/**
+ * A graph whose own root and first page take imported ids, and every later entity the production
+ * allocator's. The graph keeps its generator for life, and a closure keeps every variable its
+ * scope shares with other closures, so the generator lives here, away from the archive reader.
+ */
+function createImportedGraph(): { graph: SceneGraph; nextImportedId: number } {
+  let initializing = true
+  let nextImportedId = 1
+  const graph = new SceneGraph(() => (initializing ? `0:${nextImportedId++}` : generateId()))
+  initializing = false
+  return { graph, nextImportedId }
+}
+
 function createAssemblyState(
   reader: ReturnType<typeof createDocumentReader>,
   options: DocumentAssemblyOptions
 ): AssemblyState {
   // Imported runtime handles remain reproducible for CLI inspection and patches. Authored
   // entities use the production allocator even when created in a previously imported graph.
-  let initializing = true
-  let nextImportedId = 1
-  const graph: SceneGraph = new SceneGraph(() =>
-    initializing ? `0:${nextImportedId++}` : generateId()
-  )
-  initializing = false
+  const imported = createImportedGraph()
+  const { graph } = imported
+  let { nextImportedId } = imported
   applyDocumentMetadata(graph, reader.documentRecord)
   for (const [hash, bytes] of options.images ?? []) graph.images.set(hash, bytes.slice())
   graph.applyImportedStateDuring(
