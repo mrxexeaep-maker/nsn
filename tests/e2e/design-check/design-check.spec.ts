@@ -415,3 +415,46 @@ test('Canvas markers and Layers panel marks can be turned off from the View menu
   await editor.page.getByRole('menuitemcheckbox', { name: 'Design issues' }).click()
   await expect.poll(markerCount).toBeGreaterThan(0)
 })
+
+test('An issue past the rows its group shows comes into view when focused', async () => {
+  const lastNoteId = await editor.page.evaluate(() => {
+    const store = window.openPencil?.getStore?.()
+    if (!store) throw new Error('OpenPencil store not initialized')
+    const pageId = store.state.currentPageId
+    let last = ''
+    for (let index = 0; index < 60; index++) {
+      last = store.graph.createNode('TEXT', pageId, {
+        name: `Note ${index + 1}`,
+        text: 'Note',
+        fontSize: 8,
+        x: 0,
+        y: index * 12,
+        width: 40,
+        height: 10
+      }).id
+    }
+    return last
+  })
+  await editor.page.getByRole('tab', { name: /^Lint/ }).click()
+  await expect(lintPanel(editor.page).getByText('Small text')).toBeVisible()
+  const issueId = () =>
+    editor.page.evaluate(
+      (nodeId) =>
+        window.openPencil
+          ?.getStore?.()
+          .designCheck.snapshot.value?.issues.find(
+            (issue) => issue.nodeId === nodeId && issue.ruleId === 'min-text-size'
+          )?.id ?? null,
+      lastNoteId
+    )
+  await expect.poll(issueId).not.toBeNull()
+  const id = await issueId()
+
+  // The sixtieth row is past the fifty a group shows at first, as a canvas marker can lead to.
+  await editor.page.evaluate((focused) => {
+    const store = window.openPencil?.getStore?.()
+    if (store) store.designCheck.focusedIssueId.value = focused
+  }, id)
+
+  await expect(lintPanel(editor.page).locator(`[data-issue-id="${id}"]`)).toBeInViewport()
+})

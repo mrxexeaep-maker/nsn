@@ -93,6 +93,7 @@ const scopeModel = computed({
         v-for="group in groups"
         :key="group.ruleId"
         :group="group"
+        :focused-issue-id="check.focusedIssueId.value"
         :open="isGroupOpen(group)"
         @update:open="(open) => setGroupOpen(group.ruleId, open)"
         @open-row="(row) => void check.openIssue(row.issue)"
