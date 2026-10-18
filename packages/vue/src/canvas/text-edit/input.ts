@@ -145,7 +145,7 @@ export function createTextEditInput(options: TextEditInputOptions) {
     }
     const hit = getContainerDescendantHit(selectedId, cx, cy)
     editor.enterContainer(selectedId)
-    if (hit?.type === 'TEXT') startTextEditingAt(hit, cx, cy)
+    if (hit?.type === 'TEXT' && !editor.state.readOnly) startTextEditingAt(hit, cx, cy)
     else if (hit) editor.select([hit.id])
     else editor.clearSelection()
     return true
@@ -156,7 +156,8 @@ export function createTextEditInput(options: TextEditInputOptions) {
     if (editor.state.editingTextId) return
 
     const { cx, cy } = getCoords(e)
-    if (startLabelRename(cx, cy)) return
+    const { readOnly } = editor.state
+    if (!readOnly && startLabelRename(cx, cy)) return
 
     const selectedId =
       editor.state.selectedIds.size === 1 ? [...editor.state.selectedIds][0] : undefined
@@ -166,6 +167,11 @@ export function createTextEditInput(options: TextEditInputOptions) {
     if (!found) return
     // A generated frame's sublayers are edited through the frame.
     const hit = generatedFrameOwner(editor.graph, found) ?? found
+    // A read-only document selects what a double-click would edit, as Figma does.
+    if (readOnly) {
+      editor.select([hit.id])
+      return
+    }
 
     if (hit.type === 'TEXT') {
       const isTopLevelText = hit.parentId === editor.state.currentPageId

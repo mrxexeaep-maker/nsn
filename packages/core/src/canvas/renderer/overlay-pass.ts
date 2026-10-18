@@ -121,7 +121,7 @@ export function drawOverlayPass(
     drawGradientHandles(r, canvas, graph, overlays.gradientEdit, overlays.rotationPreview)
   else {
     r.drawSelection(canvas, graph, selectedIds, overlays)
-    if (!overlays.transforming)
+    if (!overlays.transforming && !r.readOnly)
       drawShapeHandles(
         r,
         canvas,
@@ -140,7 +140,7 @@ export function drawOverlayPass(
   r.drawSnapGuides(canvas, overlays.snapGuides)
   r.drawMarquee(canvas, overlays.marquee)
   r.drawLayoutInsertIndicator(canvas, overlays.layoutInsertIndicator)
-  if (!measuring && !overlays.transforming) {
+  if (!measuring && !overlays.transforming && !r.readOnly) {
     r.drawAutoLayoutHover(canvas, graph, overlays.autoLayoutHover)
   }
   r.drawNodeEditOverlay(canvas, graph, overlays.nodeEditState)

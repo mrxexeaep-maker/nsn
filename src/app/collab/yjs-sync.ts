@@ -74,7 +74,8 @@ export function bindCollabGraphEvents({
   let bound = true
 
   function record(update: (pending: LocalEdit) => void) {
-    if (getSuppressGraphSync() || !getYdoc() || !getYnodes()) return
+    // A read-only document makes no edits of its own; what changes it is the room's.
+    if (store.state.readOnly || getSuppressGraphSync() || !getYdoc() || !getYnodes()) return
     if (isLocalEditEmpty(edit)) queueMicrotask(flush)
     update(edit)
   }
