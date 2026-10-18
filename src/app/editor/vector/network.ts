@@ -66,6 +66,7 @@ export function createVectorEditNetworkActions(
 
     setNodeEditNetwork(es, { vertices: nextVertices, segments: nextSegments, regions: [] })
     es.selectedVertexIndices = new Set([keepIndex])
+    es.selectedSegmentIndices = new Set()
     es.selectedHandles = new Set()
     editor.requestRender()
   }
@@ -80,6 +81,7 @@ export function createVectorEditNetworkActions(
     const split = splitSegmentAt(live, nearest.segmentIndex, nearest.t)
     setNodeEditNetwork(es, split.network)
     es.selectedVertexIndices = new Set([split.newVertexIndex])
+    es.selectedSegmentIndices = new Set()
     es.selectedHandles = new Set()
     editor.requestRender()
   }
@@ -93,6 +95,7 @@ export function createVectorEditNetworkActions(
     pushNodeEditHistory(es)
     setNodeEditNetwork(es, next)
     es.selectedVertexIndices = new Set()
+    es.selectedSegmentIndices = new Set()
     es.selectedHandles = new Set()
     editor.requestRender()
   }

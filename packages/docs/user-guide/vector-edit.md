@@ -39,16 +39,24 @@ This activates geometry editing for the selected vector.
 - Drag a handle on the anchor.
 - By default, behavior follows the anchor's current handle composition.
 
-### Move a Segment
+### Select and Move a Segment
 
-- Press a segment to select the two anchors it joins, then drag to move them.
-- <kbd>Shift</kbd> + press adds the segment's anchors to the selection.
+- Click a segment to select it. The segment turns blue and shows a knob at its midpoint; its anchors stay unselected.
+- <kbd>Shift</kbd> + click adds a segment to the selection, or removes a selected one.
+- Drag a segment to move the two anchors it joins, along with the rest of the selection.
 
-### Select Anchors with a Marquee
+### Select with a Marquee
 
-- Drag over empty space to select the anchors inside the rectangle.
+- Drag over empty space to select the anchors inside the rectangle and the segments between them.
 - <kbd>Shift</kbd> + drag adds them to the selection.
 - Press <kbd>Escape</kbd> during the drag to cancel it.
+
+### Delete Anchors and Segments
+
+- Press <kbd>Delete</kbd> or <kbd>Backspace</kbd> to delete the selection.
+- A deleted anchor takes its segments with it.
+- A deleted segment takes only the anchors it leaves unconnected, so deleting the middle segment of a path splits it in two.
+- Deleting everything deletes the layer.
 
 ## Handle Drag Modifiers
 

@@ -1,1 +1,1 @@
-- In vector edit mode, pressing a segment selects its two points so you can drag it, and Shift adds them to the selection. Dragging over empty space selects the points inside the marquee.
+- In vector edit mode, clicking a segment selects it, Shift-click adds or removes it, and dragging it moves its two points. Dragging over empty space selects the points inside the marquee and the segments between them. Delete removes the selected segments and the points they leave unconnected, so deleting the middle segment of a path splits it in two.

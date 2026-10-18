@@ -68,6 +68,7 @@ export function handleNodeEditDown(
       es.selectedHandles = next
     } else {
       es.selectedVertexIndices = new Set()
+      es.selectedSegmentIndices = new Set()
       es.selectedHandles = new Set([key])
     }
     nodeEditEditor.nodeEditPushHistory?.()
@@ -116,29 +117,42 @@ export function handleNodeEditDown(
     return
   }
 
-  // As in Figma, a press on a segment selects its two points and drags them with it.
+  // As in Figma, a press on a segment selects the segment itself, not its endpoints, and drags
+  // its two points with the rest of the selection.
   const si = hitTestEditSegment(editor, cx, cy)
   if (si !== null) {
-    const { start, end } = es.segments[si]
-    es.selectedHandles = new Set()
-    if (e.shiftKey) es.selectedVertexIndices = new Set([...es.selectedVertexIndices, start, end])
-    else if (!es.selectedVertexIndices.has(start) || !es.selectedVertexIndices.has(end))
-      es.selectedVertexIndices = new Set([start, end])
+    selectPressedSegment(es, si, e.shiftKey)
     editor.requestRepaint()
+    const { start, end } = es.segments[si]
     startPointsDrag(es, [start, end], cx, cy, nodeEditEditor, setDrag)
     return
   }
 
-  // Empty space: a drag selects the points it encloses; a click leaves the path, on release.
+  // Empty space: a drag selects what it encloses; a click leaves the path, on release.
   setDrag({
     type: 'edit-marquee',
     startX: cx,
     startY: cy,
-    baseSelection: e.shiftKey ? new Set(es.selectedVertexIndices) : new Set()
+    baseSelection: e.shiftKey ? new Set(es.selectedVertexIndices) : new Set(),
+    baseSegments: e.shiftKey ? new Set(es.selectedSegmentIndices) : new Set()
   })
 }
 
-/** Drags the selected points, and `pressed` with them, from where the pointer went down. */
+/** Shift toggles the pressed segment; otherwise it replaces the selection unless already in it. */
+function selectPressedSegment(es: NodeEditState, segmentIndex: number, toggle: boolean) {
+  es.selectedHandles = new Set()
+  if (toggle) {
+    const next = new Set(es.selectedSegmentIndices)
+    if (next.has(segmentIndex)) next.delete(segmentIndex)
+    else next.add(segmentIndex)
+    es.selectedSegmentIndices = next
+  } else if (!es.selectedSegmentIndices.has(segmentIndex)) {
+    es.selectedVertexIndices = new Set()
+    es.selectedSegmentIndices = new Set([segmentIndex])
+  }
+}
+
+/** Drags the selected points and segments, and `pressed` with them, from where the pointer went down. */
 function startPointsDrag(
   es: NodeEditState,
   pressed: number[],
@@ -147,15 +161,19 @@ function startPointsDrag(
   nodeEditEditor: NodeEditEditor,
   setDrag: (d: DragState) => void
 ) {
+  const segmentEnds = [...es.selectedSegmentIndices].flatMap((index) => {
+    const segment = es.segments.at(index)
+    return segment ? [segment.start, segment.end] : []
+  })
   const origPositions = new Map<number, Vector>()
-  for (const index of [...es.selectedVertexIndices, ...pressed]) {
+  for (const index of [...es.selectedVertexIndices, ...segmentEnds, ...pressed]) {
     origPositions.set(index, { x: es.vertices[index].x, y: es.vertices[index].y })
   }
   nodeEditEditor.nodeEditPushHistory?.()
   setDrag({ type: 'edit-node', startX: cx, startY: cy, origPositions })
 }
 
-/** Selects the points inside the marquee, with the ones it started with. */
+/** Selects the points inside the marquee and the segments between them, with what it started with. */
 export function handleNodeEditMarqueeMove(
   d: DragEditMarquee,
   cx: number,
@@ -170,7 +188,12 @@ export function handleNodeEditMarqueeMove(
     width: Math.abs(cx - d.startX),
     height: Math.abs(cy - d.startY)
   }
-  es.selectedVertexIndices = new Set([...d.baseSelection, ...editVerticesInRect(editor, marquee)])
+  const enclosed = new Set(editVerticesInRect(editor, marquee))
+  const enclosedSegments = es.segments.flatMap((segment, index) =>
+    enclosed.has(segment.start) && enclosed.has(segment.end) ? [index] : []
+  )
+  es.selectedVertexIndices = new Set([...d.baseSelection, ...enclosed])
+  es.selectedSegmentIndices = new Set([...d.baseSegments, ...enclosedSegments])
   es.selectedHandles = new Set()
   editor.setMarquee(marquee)
   editor.requestRepaint()

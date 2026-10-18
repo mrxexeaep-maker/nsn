@@ -35,6 +35,7 @@ function setup() {
     ],
     regions: [],
     selectedVertexIndices: new Set<number>(),
+    selectedSegmentIndices: new Set<number>(),
     selectedHandles: new Set<number>(),
     hoveredHandleInfo: null
   }
@@ -52,22 +53,41 @@ function selected() {
   return [...(getNodeEditState(editor)?.selectedVertexIndices ?? [])].sort()
 }
 
+function selectedSegments() {
+  return [...(getNodeEditState(editor)?.selectedSegmentIndices ?? [])].sort()
+}
+
 describe('editing a path: segments', () => {
-  test('a press on a segment selects its two points and drags them, staying in edit mode', () => {
+  test('a press on a segment selects the segment, not its points, and drags its points', () => {
     setup()
+    const es = getNodeEditState(editor)
+    if (es) es.selectedVertexIndices = new Set([2])
     const drag = press(50, 2)
-    expect(selected()).toEqual([0, 1])
+    expect(selectedSegments()).toEqual([0])
+    expect(selected()).toEqual([])
     expect(drag?.type).toBe('edit-node')
     if (drag?.type !== 'edit-node') return
     expect([...drag.origPositions.keys()].sort()).toEqual([0, 1])
     expect(exitNodeEditMode).not.toHaveBeenCalled()
   })
 
-  test('Shift adds a segment’s points to the selection', () => {
+  test('Shift toggles a segment in the selection', () => {
     setup()
     press(50, 0)
     press(100, 50, true)
-    expect(selected()).toEqual([0, 1, 2])
+    expect(selectedSegments()).toEqual([0, 1])
+    press(50, 0, true)
+    expect(selectedSegments()).toEqual([1])
+  })
+
+  test('a press on a selected segment drags the whole selection', () => {
+    setup()
+    press(50, 0)
+    press(100, 50, true)
+    const drag = press(50, 0)
+    expect(selectedSegments()).toEqual([0, 1])
+    if (drag?.type !== 'edit-node') throw new Error('expected a point drag')
+    expect([...drag.origPositions.keys()].sort()).toEqual([0, 1, 2])
   })
 })
 
@@ -78,19 +98,35 @@ describe('editing a path: marquee', () => {
     if (drag?.type !== 'edit-marquee') throw new Error('expected a marquee')
     handleNodeEditMarqueeMove(drag, 120, 120, editor)
     expect(selected()).toEqual([1, 2])
+    expect(selectedSegments()).toEqual([1])
     finishNodeEditMarquee(editor)
     expect(editor.state.marquee).toBeNull()
     expect(exitNodeEditMode).not.toHaveBeenCalled()
   })
 
-  test('with Shift it keeps the points already selected', () => {
+  test('with Shift it keeps what was already selected', () => {
     setup()
     const es = getNodeEditState(editor)
-    if (es) es.selectedVertexIndices = new Set([0])
+    if (es) {
+      es.selectedVertexIndices = new Set([0])
+      es.selectedSegmentIndices = new Set([0])
+    }
     const drag = press(80, 80, true)
     if (drag?.type !== 'edit-marquee') throw new Error('expected a marquee')
     handleNodeEditMarqueeMove(drag, 120, 120, editor)
     expect(selected()).toEqual([0, 2])
+    expect(selectedSegments()).toEqual([0])
+  })
+
+  test('without Shift it replaces the selection', () => {
+    setup()
+    const es = getNodeEditState(editor)
+    if (es) es.selectedSegmentIndices = new Set([0])
+    const drag = press(80, 80)
+    if (drag?.type !== 'edit-marquee') throw new Error('expected a marquee')
+    handleNodeEditMarqueeMove(drag, 120, 120, editor)
+    expect(selected()).toEqual([2])
+    expect(selectedSegments()).toEqual([])
   })
 
   test('a click on empty space still leaves edit mode', () => {
