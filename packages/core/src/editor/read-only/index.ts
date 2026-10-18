@@ -1,6 +1,3 @@
-import { isEqual } from 'es-toolkit'
-
-import type { SceneGraph } from '@open-pencil/scene-graph'
 import type { UndoManager } from '@open-pencil/scene-graph/undo'
 
 import type { EditorContext, Tool } from '#core/editor/types'
@@ -53,42 +50,6 @@ export function guardUndo(undo: UndoManager, isReadOnly: () => boolean): UndoMan
       return typeof value === 'function' ? value.bind(target) : value
     }
   })
-}
-
-/**
- * Runs `run` so that its first change to a layer of `graph` throws `ReadOnlyDocumentError` before it lands,
- * as Figma's scripts fail on a read-only document; reads go through. Variables change without
- * notice, so a run that changed them fails once it ends and they are put back. Covers what writes
- * the graph directly, such as scripts and tools, which the editor's guard does not see.
- */
-export async function withoutDocumentWrites<T>(
-  graph: SceneGraph,
-  run: () => T | Promise<T>
-): Promise<T> {
-  const refuse = () => {
-    throw new ReadOnlyDocumentError()
-  }
-  const stop = graph.observeNodeChanges({ before: refuse, created: refuse })
-  const variables = structuredClone(graph.variables)
-  const collections = structuredClone(graph.variableCollections)
-  const variablesChanged = () =>
-    !isEqual(variables, graph.variables) || !isEqual(collections, graph.variableCollections)
-  try {
-    const result = await run()
-    if (variablesChanged()) throw new ReadOnlyDocumentError()
-    return result
-  } finally {
-    stop()
-    if (variablesChanged()) {
-      replaceEntries(graph.variables, variables)
-      replaceEntries(graph.variableCollections, collections)
-    }
-  }
-}
-
-function replaceEntries<K, V>(target: Map<K, V>, source: Map<K, V>) {
-  target.clear()
-  for (const [key, value] of source) target.set(key, value)
 }
 
 export function createReadOnlyActions(ctx: EditorContext, endEdits: () => void) {

@@ -6,8 +6,7 @@ import {
   createEditor,
   executeAtomicTool,
   READ_ONLY_ACTIONS,
-  ReadOnlyDocumentError,
-  withoutDocumentWrites
+  ReadOnlyDocumentError
 } from '@open-pencil/core/editor'
 import { FigmaAPI } from '@open-pencil/core/figma-api'
 import { ALL_TOOLS } from '@open-pencil/core/tools'
@@ -96,26 +95,6 @@ describe('read-only documents', () => {
     expect(getNodeOrThrow(editor.graph, rect.id).opacity).toBe(0.5)
   })
 
-  test('scripts read the document but fail on their first write', async () => {
-    const { editor, rect } = setup()
-    const figma = new FigmaAPI(editor.graph)
-
-    const name = await withoutDocumentWrites(editor.graph, () => figma.getNodeById(rect.id)?.name)
-    expect(name).toBe('Rect')
-    await expect(
-      withoutDocumentWrites(editor.graph, () => {
-        const node = figma.getNodeById(rect.id)
-        if (node) node.x = 99
-      })
-    ).rejects.toThrow(ReadOnlyDocumentError)
-    await expect(
-      withoutDocumentWrites(editor.graph, () => figma.createRectangle())
-    ).rejects.toThrow(ReadOnlyDocumentError)
-
-    expect(getNodeOrThrow(editor.graph, rect.id).x).toBe(10)
-    expect(editor.graph.getChildren(editor.state.currentPageId)).toHaveLength(1)
-  })
-
   test('agents cannot edit through atomic tools', () => {
     const { editor, rect } = setup()
     const setOpacity = ALL_TOOLS.find((tool) => tool.name === 'set_opacity')
@@ -136,15 +115,5 @@ describe('read-only documents', () => {
     expect(editor.undo.canUndo).toBe(true)
     expect(() => editor.undo.undo()).toThrow(ReadOnlyDocumentError)
     expect(getNodeOrThrow(editor.graph, rect.id).opacity).toBe(0.5)
-  })
-
-  test('scripts that change variables fail and leave them as they were', async () => {
-    const { editor } = setup()
-    const figma = new FigmaAPI(editor.graph)
-
-    await expect(
-      withoutDocumentWrites(editor.graph, () => figma.createVariableCollection('Theme'))
-    ).rejects.toThrow(ReadOnlyDocumentError)
-    expect(editor.graph.variableCollections.size).toBe(0)
   })
 })

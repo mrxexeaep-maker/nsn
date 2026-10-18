@@ -22,7 +22,7 @@ import {
 import { resolveAutoLayoutHover } from '#vue/shared/input/auto-layout-hover'
 import { createClickCounter } from '#vue/shared/input/click-count'
 import { handleDrawMove } from '#vue/shared/input/draw'
-import { handleMoveMove, handleMoveUp } from '#vue/shared/input/move/drag'
+import { cancelMove, handleMoveMove, handleMoveUp } from '#vue/shared/input/move/drag'
 import { setupPanZoom } from '#vue/shared/input/pan/zoom'
 import { applyResize, cancelResizePreview, commitResizePreview } from '#vue/shared/input/resize'
 import { updateHoverCursor } from '#vue/shared/input/select'
@@ -408,33 +408,24 @@ export function useCanvasInput(
     else if (d.type === 'pencil-drag') editor.pencilCancel()
   }
 
-  function cancelPointerInteraction() {
-    if (drag.value) discardDrawnPreview(drag.value)
-    if (drag.value?.type === 'rotate') {
-      const rotation = drag.value
-      drag.value = null
-      if (editor.state.rotationPreview?.nodeId === rotation.nodeId) editor.setRotationPreview(null)
-    }
-    if (
-      drag.value?.type === 'draw' ||
-      drag.value?.type === 'gradient' ||
-      drag.value?.type === 'shape-handle'
-    ) {
-      const drawing = drag.value
-      drag.value = null
-      drawing.cancel()
-    }
-    if (
-      drag.value?.type === 'edit-node' ||
-      drag.value?.type === 'edit-handle' ||
-      drag.value?.type === 'bend-handle'
-    ) {
-      const methods = editor as Editor & {
-        nodeEditCancelDrag?: () => void
-      }
+  /** Takes back what a drag in progress has previewed, by its kind. */
+  function discardDrag(d: DragState) {
+    discardDrawnPreview(d)
+    if (d.type === 'move') cancelMove(d, editor)
+    else if (d.type === 'rotate') {
+      if (editor.state.rotationPreview?.nodeId === d.nodeId) editor.setRotationPreview(null)
+    } else if (d.type === 'draw' || d.type === 'gradient' || d.type === 'shape-handle') d.cancel()
+    else if (d.type === 'edit-node' || d.type === 'edit-handle' || d.type === 'bend-handle') {
+      const methods = editor as Editor & { nodeEditCancelDrag?: () => void }
       methods.nodeEditCancelDrag?.()
     }
+  }
+
+  function cancelPointerInteraction() {
+    const d = drag.value
+    // Cleared first: ending a preview fires events whose listeners cancel again.
     drag.value = null
+    if (d) discardDrag(d)
     cursorOverride.value = null
     clearTransientInteractionFeedback()
   }
