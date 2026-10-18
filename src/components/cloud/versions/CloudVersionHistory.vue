@@ -176,7 +176,7 @@ function setScope(value: unknown) {
 
     <ul :class="ui.list()" :aria-label="t.versionHistory">
       <CloudVersionListItem
-        :title="t.currentVersion"
+        :label="t.currentVersion"
         current
         :selected="selectedId === null"
         :last="list.versions.value.length === 0"
@@ -185,7 +185,7 @@ function setScope(value: unknown) {
       <CloudVersionListItem
         v-for="(version, index) in list.versions.value"
         :key="version.id"
-        :title="titleOf(version)"
+        :label="titleOf(version)"
         :description="descriptionOf(version)"
         :author="version.createdBy.name"
         :at="version.createdAt"

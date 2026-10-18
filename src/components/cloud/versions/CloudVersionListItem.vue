@@ -7,7 +7,7 @@ import { cloudVersions } from '@/theme/cloud/versions'
  * Figma; the line runs on to the next entry unless this is the last one.
  */
 const {
-  title,
+  label,
   description = null,
   author = null,
   at = null,
@@ -16,7 +16,7 @@ const {
   last = false,
   current = false
 } = defineProps<{
-  title: string
+  label: string
   description?: string | null
   author?: string | null
   at?: string | null
@@ -47,7 +47,7 @@ const ui = cloudVersions()
         <span :class="named || current ? ui.ring() : ui.dot()" />
       </span>
       <span :class="ui.body()">
-        <span :class="current ? ui.current() : ui.title()">{{ title }}</span>
+        <span :class="current ? ui.current() : ui.title()">{{ label }}</span>
         <span v-if="description" :class="ui.description()">{{ description }}</span>
         <span v-if="author" :class="ui.author()">{{ author }}</span>
         <CommentTime v-if="at && named" :at="at" :class="ui.time()" />
