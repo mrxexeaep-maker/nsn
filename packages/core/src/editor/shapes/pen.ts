@@ -1,14 +1,16 @@
-import type {
-  SceneNode,
-  VectorNetwork,
-  VectorRegion,
-  VectorSegment
+import {
+  cloneVectorNetwork,
+  type SceneNode,
+  type VectorNetwork,
+  type VectorRegion,
+  type VectorSegment,
+  type VectorVertex
 } from '@open-pencil/scene-graph'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
 
 import { BLACK } from '#core/constants'
 import { createVectorFromNetwork, type CreateShape } from '#core/editor/shapes/vector'
-import type { EditorContext } from '#core/editor/types'
+import type { EditorContext, ResumedPath } from '#core/editor/types'
 import { vectorChangesFromPagePath } from '#core/vector'
 
 export interface PenDragOptions {
@@ -52,6 +54,48 @@ function applyAnchorTangent(
   if (lastSeg) {
     lastSeg.tangentEnd = { x: tangent.x, y: tangent.y }
   }
+}
+
+/**
+ * The network a continued path commits: the one it came from, with the pen's chain written back
+ * over the part it walked and the new points and segments added, so branches the pen didn't walk
+ * stay as they were. A closed chain becomes a new region.
+ */
+function continuedNetwork(
+  resumed: ResumedPath,
+  vertices: VectorVertex[],
+  segments: VectorSegment[],
+  closed: boolean
+): VectorNetwork {
+  const network = cloneVectorNetwork(resumed.network)
+  const vertexIndex = vertices.map((vertex, i) => {
+    const index = resumed.vertices.at(i)
+    if (index === undefined) return network.vertices.push({ ...vertex }) - 1
+    network.vertices[index] = { ...vertex }
+    return index
+  })
+  const segmentIndex = segments.map((segment, i) => {
+    const walked = resumed.segments.at(i)
+    if (!walked) {
+      return (
+        network.segments.push({
+          start: vertexIndex[segment.start],
+          end: vertexIndex[segment.end],
+          tangentStart: { ...segment.tangentStart },
+          tangentEnd: { ...segment.tangentEnd }
+        }) - 1
+      )
+    }
+    const target = network.segments[walked.index]
+    const [tangentStart, tangentEnd] = walked.reversed
+      ? [segment.tangentEnd, segment.tangentStart]
+      : [segment.tangentStart, segment.tangentEnd]
+    target.tangentStart = { ...tangentStart }
+    target.tangentEnd = { ...tangentEnd }
+    return walked.index
+  })
+  if (closed) network.regions.push({ windingRule: 'NONZERO', loops: [segmentIndex] })
+  return network
 }
 
 export function createPenActions(
@@ -171,9 +215,10 @@ export function createPenActions(
       ? [{ windingRule: 'NONZERO', loops: [ps.segments.map((_, i) => i)] }]
       : []
 
-    const network: VectorNetwork = { vertices: ps.vertices, segments: ps.segments, regions }
-
     const resumed = ps.resumingNodeId ? ctx.graph.getNode(ps.resumingNodeId) : undefined
+    const network: VectorNetwork = ps.resumedPath
+      ? continuedNetwork(ps.resumedPath, ps.vertices, ps.segments, closed)
+      : { vertices: ps.vertices, segments: ps.segments, regions }
     if (resumed?.type === 'VECTOR' && commitIntoLayer(resumed, network)) {
       finishPath()
       return

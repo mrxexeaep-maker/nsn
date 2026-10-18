@@ -3,9 +3,9 @@ import { transformVectorNetwork } from '@open-pencil/scene-graph'
 import { getWorldMatrix } from '@open-pencil/scene-graph/coordinate'
 
 import {
+  chainEndingAt,
   createResumedPenState,
-  walkChainOrdered,
-  walkChainToEnd,
+  wholeChain,
   type PenState
 } from '@/app/editor/pen/resume'
 
@@ -31,7 +31,7 @@ export function createPenActions(editor: Editor, state: PenState) {
       getWorldMatrix(node, editor.graph),
       node.vectorNetwork
     )
-    state.penState = createResumedPenState(node, absNetwork.vertices, absNetwork.segments)
+    state.penState = createResumedPenState(node, wholeChain(absNetwork))
 
     editor.clearSelection()
     editor.setTool('PEN')
@@ -46,16 +46,7 @@ export function createPenActions(editor: Editor, state: PenState) {
       getWorldMatrix(node, editor.graph),
       node.vectorNetwork
     )
-    const absVertices = absNetwork.vertices
-    const absSegments = absNetwork.segments
-    const otherEnd = walkChainToEnd(absSegments, endpointVertexIndex)
-    const { orderedVertices, orderedSegments } = walkChainOrdered(
-      absVertices,
-      absSegments,
-      otherEnd
-    )
-
-    state.penState = createResumedPenState(node, orderedVertices, orderedSegments)
+    state.penState = createResumedPenState(node, chainEndingAt(absNetwork, endpointVertexIndex))
     editor.clearSelection()
     editor.setTool('PEN')
     editor.requestRender()

@@ -61,6 +61,7 @@ export type {
   EditorSharedState,
   EditorViewState,
   FigmaClipboardImageResolver,
+  ResumedPath,
   ShapeHandleHover,
   GradientEdit,
   Tool
