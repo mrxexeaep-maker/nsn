@@ -36,12 +36,14 @@ export function variableValueReferences(value: VariableValue): string[] {
 /** Clone a value while remapping its references for transfer to another document. */
 export function mapVariableValueReferences(
   value: VariableValue,
-  map: (id: string) => string
+  map: (id: string) => string,
+  mapMode: (id: string) => string = (id) => id
 ): VariableValue {
   if (isUnsupportedVariableValue(value))
     return {
       ...structuredClone(value),
-      references: value.references.map((id) => (id === null ? null : map(id)))
+      references: value.references.map((id) => (id === null ? null : map(id))),
+      modes: value.modes.map(mapMode)
     }
   if (typeof value !== 'object') return value
   if ('aliasId' in value) return { aliasId: map(value.aliasId) }

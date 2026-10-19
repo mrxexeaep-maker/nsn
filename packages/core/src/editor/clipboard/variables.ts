@@ -76,7 +76,11 @@ export function importClipboardVariables(graph: SceneGraph, dependencies: Clipbo
     valuesByMode: Object.fromEntries(
       Object.entries(variable.valuesByMode).map(([mode, value]) => [
         modeIds.get(mode) ?? mode,
-        mapVariableValueReferences(value, (id) => variableIds.get(id) ?? id)
+        mapVariableValueReferences(
+          value,
+          (id) => variableIds.get(id) ?? id,
+          (id) => modeIds.get(id) ?? id
+        )
       ])
     )
   }))

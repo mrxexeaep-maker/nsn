@@ -872,7 +872,8 @@ export interface VariableFormula {
 /**
  * An imported expression OpenPencil cannot evaluate, kept as the file wrote it so saving writes it
  * back. `references` holds one entry per alias in `value`, in the order the format walks them, and
- * `null` where the alias names a variable this document does not have.
+ * `null` where the alias names a variable this document does not have. `modes` holds the mode id of
+ * each mode key in `value`, in the same walk order.
  */
 export interface VariableUnsupportedExpression {
   expression: 'UNSUPPORTED'
@@ -880,6 +881,7 @@ export interface VariableUnsupportedExpression {
   function: string
   value: Record<string, unknown>
   references: (string | null)[]
+  modes: string[]
 }
 export type VariableValue =
   | VariableLiteral

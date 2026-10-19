@@ -59,14 +59,15 @@ type Alias = NonNullable<NonNullable<VariableDataEntry['value']>['alias']>
 /**
  * Walk the aliases and mode keys of an expression OpenPencil does not evaluate, always in the same
  * order, without reading the function. `alias` gets each alias with its position and may return a
- * replacement; `mode` may replace each mode key. Changes `entry` in place.
+ * replacement; `mode` does the same for each mode key. Changes `entry` in place.
  */
 export function mapUnsupportedExpressionReferences(
   entry: VariableDataEntry,
   alias: (reference: Alias, index: number) => Alias | undefined,
-  mode: (guid: GUID) => GUID = (guid) => guid
+  mode: (guid: GUID, index: number) => GUID = (guid) => guid
 ): void {
   let index = 0
+  let modeIndex = 0
   const visit = (data: VariableDataEntry): void => {
     const value = data.value
     if (!value) return
@@ -79,7 +80,7 @@ export function mapUnsupportedExpressionReferences(
       value.fontStyleValue?.asVariations
     ]
     for (const item of value.mapValue?.values ?? []) {
-      if (item.guidKey) item.guidKey = mode(item.guidKey)
+      if (item.guidKey) item.guidKey = mode(item.guidKey, modeIndex++)
       nested.push(item.value)
     }
     for (const child of nested) if (child) visit(child)

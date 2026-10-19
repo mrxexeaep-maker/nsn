@@ -85,7 +85,8 @@ test('a tolerant read keeps the expression with one reference slot per alias', (
     expression: 'UNSUPPORTED',
     function: 'TERNARY',
     value: { ...ternary },
-    references: [TARGET, null]
+    references: [TARGET, null],
+    modes: []
   })
 })
 

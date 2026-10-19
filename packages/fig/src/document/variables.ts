@@ -130,15 +130,24 @@ function modeValues(
       if (!(error instanceof UnsupportedExpressionError) || !onUnsupportedExpression) throw error
       const data = structuredClone(entry.variableData)
       const references: (string | null)[] = []
-      mapUnsupportedExpressionReferences(data, (reference) => {
-        references.push(resolve(reference) ?? null)
-        return undefined
-      })
+      const modeKeys: string[] = []
+      mapUnsupportedExpressionReferences(
+        data,
+        (reference) => {
+          references.push(resolve(reference) ?? null)
+          return undefined
+        },
+        (guid) => {
+          modeKeys.push(guidToString(guid))
+          return guid
+        }
+      )
       value = {
         expression: 'UNSUPPORTED',
         function: data.value?.expressionValue?.expressionFunction ?? '',
         value: { ...data },
-        references
+        references,
+        modes: modeKeys
       }
       onUnsupportedExpression({
         sourceId: resource.guid ? guidToString(resource.guid) : '',

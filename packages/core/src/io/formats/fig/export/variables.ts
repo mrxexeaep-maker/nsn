@@ -158,7 +158,7 @@ function variableValueToKiwi(
         const id = value.references[index]
         return id && graph.variables.has(id) ? variableAlias(graph, id, ids) : undefined
       },
-      (guid) => modes?.get(guidToString(guid)) ?? guid
+      (guid, index) => modes?.get(value.modes[index] ?? '') ?? guid
     )
     return data
   }
