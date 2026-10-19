@@ -1,18 +1,18 @@
-import { afterAll, describe, expect, test } from 'bun:test'
+import { afterAll, describe, test } from 'bun:test'
 
 import { SkiaRenderer } from '@open-pencil/core'
-import { initCanvasKit, renderNodesToImage } from '@open-pencil/core/io'
-import { SceneGraph, type Effect, type SceneNode } from '@open-pencil/scene-graph'
+import { initCanvasKit } from '@open-pencil/core/io'
+import type { Effect, SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 
 import { expectDefined } from '../helpers/assert'
+import { expectFigmaRow, renderRow, type FigmaRowScene } from '../helpers/figma-rows'
 
 const ck = await initCanvasKit()
 const renderer = new SkiaRenderer(ck, expectDefined(ck.MakeSurface(1, 1)))
 afterAll(() => renderer.destroy())
 
 /**
- * Rows of pixels from Figma 126 exports of the scenes below, each in a 400 × 300 frame without a
- * fill, read every 2px from `x0` to `x1` at `y`: alpha unless the test names another channel.
+ * Rows of pixels from Figma 126 exports of the scenes below, read as `renderRow` reads ours.
  */
 const FIGMA: Record<string, number[]> = {
   "rect-nofill-stroke-CENTER-F": [
@@ -118,8 +118,6 @@ function shadow(type: Effect['type'], props: Partial<Effect> = {}): Effect {
   }
 }
 
-type Build = (graph: SceneGraph, hostId: string) => void
-
 /** A 160px square at (120, 70), where every scene puts its shadowed layer. */
 const square = { x: 120, y: 70, width: 160, height: 160 }
 
@@ -140,53 +138,8 @@ function overflowingChild(graph: SceneGraph, parentId: string): void {
   graph.createNode('RECTANGLE', parentId, { x: -60, y: 50, width: 120, height: 50, fills: [BLUE] })
 }
 
-function row(build: Build, y: number, x0: number, x1: number, channel = 3): number[] {
-  const graph = new SceneGraph()
-  const page = graph.getPages()[0].id
-  const host = graph.createNode('FRAME', page, {
-    width: 400,
-    height: 300,
-    fills: [],
-    clipsContent: true
-  })
-  build(graph, host.id)
-  const png = expectDefined(
-    renderNodesToImage(ck, renderer, graph, page, [host.id], {
-      scale: 1,
-      format: 'PNG',
-      trimTransparent: false
-    })
-  )
-  const image = expectDefined(ck.MakeImageFromEncoded(png))
-  try {
-    const offset = (image.width() - 400) / 2
-    const pixels = expectDefined(
-      image.readPixels(0, 0, {
-        width: image.width(),
-        height: image.height(),
-        alphaType: ck.AlphaType.Unpremul,
-        colorType: ck.ColorType.RGBA_8888,
-        colorSpace: ck.ColorSpace.SRGB
-      })
-    )
-    const values: number[] = []
-    for (let x = x0; x <= x1; x += 2) {
-      values.push(pixels[((y + offset) * image.width() + x + offset) * 4 + channel])
-    }
-    return values
-  } finally {
-    image.delete()
-  }
-}
-
-/** Our blur kernel is fitted to Figma's within a few levels; outlines must match exactly. */
-function expectFigmaRow(values: number[], figma: number[]): void {
-  expect(values).toHaveLength(figma.length)
-  const differences = values.map((value, index) => Math.abs(value - figma[index]))
-  const rms = Math.sqrt(differences.reduce((sum, d) => sum + d * d, 0) / differences.length)
-  expect(Math.max(...differences)).toBeLessThanOrEqual(10)
-  expect(rms).toBeLessThanOrEqual(3)
-}
+const row = (build: FigmaRowScene, y: number, x0: number, x1: number, channel = 3) =>
+  renderRow(ck, renderer, build, y, x0, x1, channel)
 
 describe('drop shadows are cast from what the layer draws, as in Figma', () => {
   test('a shape without a fill casts from its stroke and hides the shadow inside', () => {
