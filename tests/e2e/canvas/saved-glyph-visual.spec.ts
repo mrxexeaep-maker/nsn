@@ -265,7 +265,8 @@ test('typed emoji take a 1 em square and draw their image', async () => {
 
 /**
  * Figma draws a keycap as the text font's character with Noto Sans Symbols' keycap frame after
- * it, in the text's colour; the whole text used to disappear, as Inter has no keycap mark.
+ * it, in the colour of its text, a style run's included; the whole text used to disappear, as
+ * Inter has no keycap mark.
  */
 test('typed keycaps draw their character in a keycap frame', async () => {
   await editor.page.evaluate(() => {
@@ -279,7 +280,20 @@ test('typed keycaps draw their character in a keycap frame', async () => {
       text: 'Keys 1⃣ #⃣ ok',
       fontFamily: 'Inter',
       fontSize: 48,
-      fills: [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.2, a: 1 }, opacity: 1, visible: true }]
+      fills: [
+        { type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.2, a: 1 }, opacity: 1, visible: true }
+      ],
+      styleRuns: [
+        {
+          start: 8,
+          length: 2,
+          style: {
+            fills: [
+              { type: 'SOLID', color: { r: 0.9, g: 0.1, b: 0.1, a: 1 }, opacity: 1, visible: true }
+            ]
+          }
+        }
+      ]
     })
     store.requestRender()
   })

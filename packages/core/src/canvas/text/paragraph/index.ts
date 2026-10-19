@@ -117,7 +117,8 @@ function blockHeightBehavior(
   return ck.TextHeightBehavior.All
 }
 
-function styleRunColor(
+/** The colour a style run's text is drawn in: its first visible solid fill, or `baseColor`. */
+export function styleRunColor(
   ck: CanvasKit,
   style: SceneNode['styleRuns'][number]['style'],
   baseColor: Float32Array

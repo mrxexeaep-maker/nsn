@@ -12,6 +12,7 @@ import { resolveRGBAForPreview } from '@open-pencil/scene-graph/color'
 import { outlineInk, savedGlyphInk, type InkSpan } from '#core/canvas/text/ink'
 import { COMBINING_KEYCAP, drawKeycapFrame } from '#core/canvas/text/keycap'
 import type { TextLayout } from '#core/canvas/text/layout'
+import { styleRunColor } from '#core/canvas/text/paragraph'
 import { laidOutGlyphs, type LaidOutGlyph } from '#core/canvas/text/placed'
 import type { PreparedText } from '#core/canvas/text/preparation/cache'
 import { shownText } from '#core/text/case'
@@ -349,7 +350,7 @@ export function savedTextDecorationRects(
  * Draws laid-out text and its decorations, `y` below the node's top. The decorations are kept
  * with the prepared text, which its cache replaces when an input of the text changes.
  */
-/** The frames of the text's keycaps, which its layout leaves to be drawn, in the text's paint. */
+/** The frames of the text's keycaps, which its layout leaves to be drawn, in their text's colour. */
 function drawKeycapFrames(
   ck: CanvasKit,
   canvas: Canvas,
@@ -360,10 +361,20 @@ function drawKeycapFrames(
 ): void {
   const text = shownText(node)
   if (!text.includes(COMBINING_KEYCAP)) return
-  for (const glyph of laidOutGlyphs(node, layout, text, y) ?? []) {
-    const character = glyph.firstCharacter
-    if (character === undefined || text[character] !== COMBINING_KEYCAP) continue
-    drawKeycapFrame(ck, canvas, glyph.x, glyph.y, glyph.fontSize, paint)
+  const runPaint = paint.copy()
+  try {
+    for (const glyph of laidOutGlyphs(node, layout, text, y) ?? []) {
+      const character = glyph.firstCharacter
+      if (character === undefined || text[character] !== COMBINING_KEYCAP) continue
+      // The frame takes the colour the paragraph gives its mark: its style run's, if it has one.
+      const run = node.styleRuns.find(
+        (item) => character >= item.start && character < item.start + item.length
+      )
+      runPaint.setColor(run ? styleRunColor(ck, run.style, paint.getColor()) : paint.getColor())
+      drawKeycapFrame(ck, canvas, glyph.x, glyph.y, glyph.fontSize, runPaint)
+    }
+  } finally {
+    runPaint.delete()
   }
 }
 

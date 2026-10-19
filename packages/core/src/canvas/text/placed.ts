@@ -150,6 +150,7 @@ function drawnCharacters(
 function runOutlineSource(
   node: SceneNode,
   text: string,
+  shaped: string,
   run: GlyphRun,
   characterAt: (offset: number) => number
 ): GlyphOutlineSource | null {
@@ -157,8 +158,7 @@ function runOutlineSource(
   const offsets = Array.from(run.offsets, characterAt)
   const start = Math.min(...offsets)
   const end = Math.max(...offsets)
-  // The run drew the text as laid out, a keycap mark as a zero-width space.
-  const characters = drawnCharacters(laidOutText(text), run, offsets, start, end)
+  const characters = drawnCharacters(shaped, run, offsets, start, end)
   for (const source of candidateSources(fontAt(node, start))) {
     if (!source.covers(characters)) continue
     if (characters === '' || drawsOwnGlyph(source, run, text, characterAt)) return source
@@ -228,6 +228,8 @@ export function laidOutGlyphs(
   const metrics = layout.getLineMetrics()
   if (lines.length === 0 || lines.length !== metrics.length) return null
   const characterAt = utf16IndicesByUtf8(text)
+  // The runs drew the text as laid out, a keycap mark as a zero-width space.
+  const shaped = laidOutText(text)
   const markers = new Map(layout.getMarkers().map((marker) => [marker.lineNumber, marker]))
   const glyphs: LaidOutGlyph[] = []
   for (const [lineIndex, line] of lines.entries()) {
@@ -240,7 +242,7 @@ export function laidOutGlyphs(
         lastLine && runIndex === line.runs.length - 1 && layout.didExceedMaxLines()
           ? ellipsisSource(node, run, characterAt)
           : null
-      const source = ellipsis ?? runOutlineSource(node, text, run, characterAt)
+      const source = ellipsis ?? runOutlineSource(node, text, shaped, run, characterAt)
       for (let index = 0; index < run.glyphs.length; index++) {
         const x = run.positions[index * 2]
         glyphs.push({

@@ -1,17 +1,9 @@
 import * as opentype from 'opentype.js'
 
+import type { OutlineCommand } from '@open-pencil/core/text'
+
 /** The combining enclosing keycap, which draws a keycap's frame around the character before it. */
 export const COMBINING_KEYCAP = 0x20e3
-
-interface OutlineCommand {
-  type: string
-  x?: number
-  y?: number
-  x1?: number
-  y1?: number
-  x2?: number
-  y2?: number
-}
 
 const round = (value: number | undefined) =>
   value === undefined ? undefined : Math.round(value * 10000) / 10000
