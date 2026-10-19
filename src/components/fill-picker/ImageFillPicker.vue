@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useFileDialog, useObjectUrl } from '@vueuse/core'
-import { computed, shallowRef, watch } from 'vue'
+import { useFileDialog } from '@vueuse/core'
+import { computed } from 'vue'
 
 import type { Fill, ImageScaleMode } from '@open-pencil/scene-graph'
 import { coverImageTransform } from '@open-pencil/scene-graph/images'
@@ -11,6 +11,8 @@ import NumberField from '@/components/inputs/NumberField.vue'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import IconButton from '@/components/ui/button/IconButton.vue'
 import AppSelect from '@/components/ui/select/AppSelect.vue'
+
+import { useImageFill } from './useImageFill'
 
 const IMAGE_SCALE_MODES: { value: ImageScaleMode; label: string }[] = [
   { value: 'FILL', label: 'Fill' },
@@ -29,29 +31,7 @@ const emit = defineEmits<{ update: [fill: Fill] }>()
 const store = useEditorStore()
 const { panels } = useI18n()
 
-const imageBlob = shallowRef<Blob | null>(null)
-const imagePreviewURL = useObjectUrl(imageBlob)
-const imageSize = shallowRef<{ width: number; height: number } | null>(null)
-watch(imageBlob, async (blob) => {
-  imageSize.value = null
-  if (!blob) return
-  const bitmap = await createImageBitmap(blob)
-  if (imageBlob.value === blob) imageSize.value = { width: bitmap.width, height: bitmap.height }
-  bitmap.close()
-})
-
-watch(
-  () => fill.imageHash,
-  (hash) => {
-    if (!hash) {
-      imageBlob.value = null
-      return
-    }
-    const data = store.getImage(hash)
-    imageBlob.value = data ? new Blob([data]) : null
-  },
-  { immediate: true }
-)
+const { url: imagePreviewURL, size: imageSize } = useImageFill(() => fill.imageHash)
 
 const { open: pickImage, onChange: onFileChange } = useFileDialog({
   accept: 'image/png,image/jpeg,image/webp',
@@ -133,6 +113,7 @@ function rotate() {
           suffix="%"
           :aria-label="panels.imageTileScale"
           data-test-id="fill-picker-tile-scale"
+          @update:model-value="setTileScale"
           @commit="setTileScale"
         />
       </div>

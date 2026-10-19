@@ -1,1 +1,2 @@
 - Tiled images from Figma draw at their own size and tile scale, and Fill, Fit, and Tile images keep their rotation; switching to Crop starts from the Fill framing, as in Figma.
+- An image fill's swatch in the properties panel shows its image instead of black.
