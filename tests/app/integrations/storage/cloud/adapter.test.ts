@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
 
 import { fromUint8Array } from 'js-base64'
 
@@ -20,6 +21,8 @@ function cloudServer() {
   type Doc = { name: string; revision: string | null; version: number; checksum?: string }
   const documents = new Map<string, Doc>()
   const objects = new Map<string, Uint8Array>()
+  let fullReads = 0
+  let ignoresRanges = false
   const uploads = new Map<string, { documentId: string; base: string | null }>()
   const summary = (id: string, doc: Doc) => ({
     id,
@@ -128,7 +131,16 @@ function cloudServer() {
       return new Response(null, { status: 200 })
     }
     const bytes = objects.get(key)
-    return bytes ? new Response(Uint8Array.from(bytes)) : new Response(null, { status: 404 })
+    if (!bytes) return new Response(null, { status: 404 })
+    const range = /^bytes=(\d+)-(\d+)$/.exec(new Headers(init.headers).get('Range') ?? '')
+    if (!range || ignoresRanges) {
+      fullReads += 1
+      return new Response(Uint8Array.from(bytes))
+    }
+    const [, start = '0', end = '0'] = range
+    return new Response(Uint8Array.from(bytes.subarray(Number(start), Number(end) + 1)), {
+      status: 206
+    })
   }
 
   /** Someone else saves the document, moving its revision on. */
@@ -138,7 +150,16 @@ function cloudServer() {
   }
 
   const client = createCloudAPIClient('https://cloud.test/api', { fetch: api })
-  return { client, objectFetch, saveElsewhere, objects }
+  return {
+    client,
+    objectFetch,
+    saveElsewhere,
+    objects,
+    fullReads: () => fullReads,
+    ignoreRanges() {
+      ignoresRanges = true
+    }
+  }
 }
 
 function adapter(server: ReturnType<typeof cloudServer>) {
@@ -214,5 +235,28 @@ describe('Cloud storage adapter', () => {
     })
     server.objects.set(saved.revision ?? '', new Uint8Array([9, 9, 9]))
     await expect(storage.getDocument(id)).rejects.toThrow('does not match')
+  })
+
+  test('reads a document’s preview without downloading the whole file', async () => {
+    const server = cloudServer()
+    const storage = adapter(server)
+    const id = crypto.randomUUID()
+    const figBytes = new Uint8Array(readFileSync('tests/fixtures/gold-preview.fig'))
+    await storage.putDocument(id, figBytes, { name: 'Preview', updatedAt: '' })
+    const thumbnail = await storage.getThumbnail?.(id)
+    expect(thumbnail?.subarray(0, 8)).toEqual(
+      new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+    )
+    expect(server.fullReads()).toBe(0)
+  })
+
+  test('gives up on a preview when the object store sends the whole file', async () => {
+    const server = cloudServer()
+    const storage = adapter(server)
+    const id = crypto.randomUUID()
+    const figBytes = new Uint8Array(readFileSync('tests/fixtures/gold-preview.fig'))
+    await storage.putDocument(id, figBytes, { name: 'Preview', updatedAt: '' })
+    server.ignoreRanges()
+    await expect(storage.getThumbnail?.(id) ?? Promise.resolve()).rejects.toThrow('HTTP 200')
   })
 })

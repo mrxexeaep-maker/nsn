@@ -31,3 +31,23 @@ export async function downloadCloudRevision(
   options.onProgress?.({ transferredBytes: bytes.byteLength, totalBytes: download.byteSize })
   return bytes
 }
+
+/**
+ * Bytes `start` to `endExclusive` of a revision, for reading its preview without the rest. A
+ * store that ignores the range would send the whole file, so only a partial response counts.
+ */
+export async function readCloudRevisionRange(
+  download: DocumentDownload,
+  objectFetch: (input: string, init: RequestInit) => Promise<Response>,
+  start: number,
+  endExclusive: number
+): Promise<Uint8Array> {
+  const response = await objectFetch(download.download.url, {
+    method: download.download.method,
+    headers: { ...download.download.headers, Range: `bytes=${start}-${endExclusive - 1}` }
+  })
+  if (response.status !== 206) {
+    throw new Error(`Cloud document range read failed with HTTP ${response.status}`)
+  }
+  return new Uint8Array(await response.arrayBuffer())
+}
