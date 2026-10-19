@@ -81,6 +81,38 @@ describe('sticky notes in design JSX', () => {
     expect(sticky.fills[0]?.color).toEqual(DEFAULT_STICKY_COLOR)
   })
 
+  test('take layer props as any layer does: a variable binds, and a placed note in auto layout is absolute', async () => {
+    const graph = new SceneGraph()
+    graph.addCollection({
+      id: 'numbers',
+      name: 'Numbers',
+      modes: [{ modeId: 'base', name: 'Base' }],
+      defaultModeId: 'base',
+      variableIds: []
+    })
+    graph.addVariable({
+      id: 'var-faded',
+      name: 'Faded',
+      type: 'FLOAT',
+      collectionId: 'numbers',
+      valuesByMode: { base: 0.5 },
+      description: '',
+      hiddenFromPublishing: false
+    })
+    const [result] = await renderJSX(
+      graph,
+      `<Frame name="Board" flex="col" w={600} h={600}>
+  <Sticky opacity={designVar('var-faded', 0.5)}>Faded</Sticky>
+  <Sticky x={300} y={40}>Placed</Sticky>
+</Frame>`
+    )
+    expect(result.warnings ?? []).toEqual([])
+    const [faded, placed] = graph.getChildren(result.id)
+    expect(faded.opacity).toBe(0.5)
+    expect(faded.boundVariables.opacity).toBe('var-faded')
+    expect(placed).toMatchObject({ x: 300, y: 40, layoutPositioning: 'ABSOLUTE' })
+  })
+
   test('join connectors to themselves, never to the layers they generate', async () => {
     const graph = new SceneGraph()
     const [result] = await renderJSX(

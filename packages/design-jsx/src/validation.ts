@@ -17,6 +17,25 @@ export function parseScriptInput<S extends v.GenericSchema>(
   throw new Error(`${heading}:\n${v.summarize(result.issues)}`)
 }
 
+/**
+ * The layer props an element that draws its own layer takes, such as a connector's: the
+ * renderer makes them into fields and variable bindings as it does for any layer.
+ */
+export const OwnLayerProps = v.object({
+  name: v.optional(v.string()),
+  key: v.optional(v.unknown()),
+  visible: v.optional(v.boolean()),
+  opacity: v.optional(v.number())
+})
+
+/** `OwnLayerProps` and the props that place a layer in its parent, such as a sticky note's. */
+export const PlacedOwnLayerProps = v.object({
+  ...OwnLayerProps.entries,
+  x: v.optional(v.number()),
+  y: v.optional(v.number()),
+  position: v.optional(v.picklist(['absolute']))
+})
+
 /** The props of an element read one at a time, each of them optional. */
 export type ElementPropsSchema = v.ObjectSchema<v.ObjectEntries, undefined>
 

@@ -16,7 +16,7 @@ import type { Color } from '@open-pencil/scene-graph/primitives'
 
 import { enumProp, STICKY_TEXT_SIZE } from './enums'
 import { plainTextOf, type TreeNode } from './tree'
-import { readElementProps } from './validation'
+import { PlacedOwnLayerProps, readElementProps } from './validation'
 
 /**
  * `<Sticky color="yellow" author="Ada">Body</Sticky>`: a FigJam sticky note, made from the same
@@ -43,6 +43,9 @@ const StickyColor = v.pipe(
   })
 )
 
+/** The layer props a note has: those that place it, but no size, fills, or layout. */
+export const StickyLayerProps = PlacedOwnLayerProps
+
 /** The props `<Sticky>` takes: its own, and the few layer props a note has. */
 export const StickyProps = v.object({
   color: v.optional(StickyColor),
@@ -51,22 +54,22 @@ export const StickyProps = v.object({
   wide: v.optional(v.boolean()),
   textSize: v.optional(enumProp(STICKY_TEXT_SIZE)),
   scale: v.optional(v.pipe(v.number(), v.gtValue(0))),
-  name: v.optional(v.string()),
-  key: v.optional(v.unknown()),
-  x: v.optional(v.number()),
-  y: v.optional(v.number()),
-  position: v.optional(v.picklist(['absolute'])),
-  visible: v.optional(v.boolean()),
-  opacity: v.optional(v.number())
+  ...StickyLayerProps.entries
 })
 
-/** The note an element describes, named by its body as FigJam names a note until renamed. */
-export function renderStickyNode(graph: SceneGraph, tree: TreeNode, parentId: string) {
+/**
+ * The note an element describes, with `layer`'s fields; it is named by its body, as FigJam names
+ * a note, until given a name.
+ */
+export function renderStickyNode(
+  graph: SceneGraph,
+  tree: TreeNode,
+  parentId: string,
+  layer: Partial<SceneNode>
+) {
   const props = readElementProps(StickyProps, tree.props)
   const text = plainTextOf(tree)
   const author = props.author ?? ''
-  const parent = graph.getNode(parentId)
-  const named = props.name !== undefined
   const sticky = createSticky(
     graph,
     parentId,
@@ -78,16 +81,7 @@ export function renderStickyNode(graph: SceneGraph, tree: TreeNode, parentId: st
       wide: props.wide === true,
       scale: props.scale ?? 1
     },
-    {
-      name: props.name ?? (text.trim() || 'Sticky'),
-      autoRename: !named,
-      ...(props.x !== undefined && { x: props.x }),
-      ...(props.y !== undefined && { y: props.y }),
-      ...(props.visible === false && { visible: false }),
-      ...(props.opacity !== undefined && { opacity: props.opacity }),
-      ...(props.position === 'absolute' &&
-        parent?.layoutMode !== 'NONE' && { layoutPositioning: 'ABSOLUTE' as const })
-    }
+    { ...layer, name: layer.name ?? (text.trim() || 'Sticky'), autoRename: !layer.name }
   )
   const body = stickySublayers(graph, sticky)?.body
   if (body && props.textSize) graph.updateNode(body.id, stickyBodySizeFields(props.textSize))

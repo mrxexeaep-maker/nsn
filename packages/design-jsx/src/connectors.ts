@@ -25,7 +25,7 @@ import { Reference } from './export/value'
 import { isColor } from './overrides/fills'
 import { isLayerRef, type LayerRef, type LayerRefs } from './refs'
 import { plainTextOf, type TreeNode } from './tree'
-import { readElementProps } from './validation'
+import { OwnLayerProps, readElementProps } from './validation'
 
 /**
  * `<Connector from="A" to="B">`: a FigJam connector whose ends name other layers of the same
@@ -66,10 +66,7 @@ export const ConnectorProps = v.object({
   line: v.optional(enumProp(CONNECTOR_LINE)),
   startCap: v.optional(enumProp(STROKE_CAP)),
   endCap: v.optional(enumProp(STROKE_CAP)),
-  name: v.optional(v.string()),
-  key: v.optional(v.unknown()),
-  visible: v.optional(v.boolean()),
-  opacity: v.optional(v.number()),
+  ...OwnLayerProps.entries,
   stroke: v.optional(LineColor),
   strokeWidth: v.optional(v.pipe(v.number(), v.gtValue(0))),
   dashPattern: v.optional(v.array(v.number()))
@@ -77,8 +74,19 @@ export const ConnectorProps = v.object({
 
 type ConnectorPropValues = v.InferOutput<typeof ConnectorProps>
 
-/** Makes the connector an element describes, its ends free until `resolveConnectorEnds`. */
-export function renderConnectorNode(graph: SceneGraph, tree: TreeNode, parentId: string) {
+/** The layer props a connector has: no place or size, which its ends give it. */
+export const ConnectorLayerProps = OwnLayerProps
+
+/**
+ * Makes the connector an element describes, with `layer`'s fields, its ends free until
+ * `resolveConnectorEnds`.
+ */
+export function renderConnectorNode(
+  graph: SceneGraph,
+  tree: TreeNode,
+  parentId: string,
+  layer: Partial<SceneNode>
+) {
   const props = readElementProps(ConnectorProps, tree.props)
   const parent = graph.getNode(parentId)
   const connector = createConnector(
@@ -93,9 +101,7 @@ export function renderConnectorNode(graph: SceneGraph, tree: TreeNode, parentId:
       text: plainTextOf(tree)
     },
     {
-      ...(props.name !== undefined && { name: props.name }),
-      ...(props.visible === false && { visible: false }),
-      ...(props.opacity !== undefined && { opacity: props.opacity }),
+      ...layer,
       // A connector is drawn between layers, not placed by its parent's auto layout.
       ...(parent && parent.layoutMode !== 'NONE' && { layoutPositioning: 'ABSOLUTE' as const })
     }
@@ -103,6 +109,12 @@ export function renderConnectorNode(graph: SceneGraph, tree: TreeNode, parentId:
   const lineLayer = connectorSublayers(graph, connector)?.line
   if (lineLayer) styleLine(graph, lineLayer, props)
   return connector
+}
+
+/** The layer a connector's variable binding goes on: its line for the stroke, else itself. */
+export function connectorBindingTarget(graph: SceneGraph, connector: SceneNode, field: string) {
+  const onLine = field.startsWith('strokes/') || field === 'strokeWeight'
+  return (onLine && connectorSublayers(graph, connector)?.line.id) || connector.id
 }
 
 /** Restyles the line by `stroke`, `strokeWidth`, and `dashPattern`; each left out keeps FigJam's. */
