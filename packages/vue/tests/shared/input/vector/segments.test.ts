@@ -171,6 +171,76 @@ describe('editing a path: regions and segments', () => {
   })
 })
 
+// Figma desktop 126, a 260 × 200 shape of two rooms sharing the wall x = 130: a press on a picked
+// room keeps both picked so a drag moves them together; a click narrows to that room and a
+// Shift-click drops it.
+describe('editing a path: pressing a picked region', () => {
+  function setupRooms() {
+    setup()
+    const es = getNodeEditState(editor)
+    if (!es) throw new Error('expected edit state')
+    const line = (start: number, end: number) => ({
+      start,
+      end,
+      tangentStart: zero,
+      tangentEnd: zero
+    })
+    es.vertices = [
+      { x: 0, y: 0 },
+      { x: 130, y: 0 },
+      { x: 260, y: 0 },
+      { x: 260, y: 200 },
+      { x: 130, y: 200 },
+      { x: 0, y: 200 }
+    ]
+    es.segments = [
+      line(0, 1),
+      line(1, 4),
+      line(4, 5),
+      line(5, 0),
+      line(1, 2),
+      line(2, 3),
+      line(3, 4)
+    ]
+    es.regions = [
+      { windingRule: 'NONZERO', loops: [[0, 1, 2, 3]] },
+      { windingRule: 'NONZERO', loops: [[4, 5, 6, 1]] }
+    ]
+    es.selectedRegions = new Set()
+    press(65, 100)
+    press(195, 100, true)
+    return es
+  }
+
+  function release(drag: DragState | null) {
+    handleNodeEditPointerUp(ref(drag), editor)
+  }
+
+  test('a drag from one moves both and keeps both picked', () => {
+    const es = setupRooms()
+    const drag = press(65, 100)
+    if (drag?.type !== 'edit-node') throw new Error('expected a point drag')
+    handleNodeEditMove(drag, 65, 140, editor, false, false, false, true)
+    release(drag)
+    expect([...(es.selectedRegions ?? [])].sort()).toEqual([0, 1])
+    expect(es.vertices.map((vertex) => vertex.y)).toEqual([40, 40, 40, 240, 240, 240])
+  })
+
+  test('a click narrows to the room clicked', () => {
+    const es = setupRooms()
+    release(press(65, 100))
+    expect([...(es.selectedRegions ?? [])]).toEqual([0])
+    expect(selected()).toEqual([0, 1, 4, 5])
+  })
+
+  test('a Shift-click drops the room and the points only it had', () => {
+    const es = setupRooms()
+    release(press(195, 100, true))
+    expect([...(es.selectedRegions ?? [])]).toEqual([0])
+    expect(selected()).toEqual([0, 1, 4, 5])
+  })
+})
+
 describe('editing a path: pressing a selected segment', () => {
   function release(drag: DragState | null) {
     handleNodeEditPointerUp(ref(drag), editor)
