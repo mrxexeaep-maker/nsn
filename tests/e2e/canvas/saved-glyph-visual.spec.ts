@@ -295,6 +295,31 @@ test('typed keycaps draw their character in a keycap frame', async () => {
         }
       ]
     })
+    // Upper-cased, ß shows as SS: the keycap's run is found by its source index all the same.
+    store.graph.createNode('TEXT', store.state.currentPageId, {
+      x: 40,
+      y: 200,
+      width: 600,
+      height: 80,
+      text: '\u00df 1\u20e3',
+      textCase: 'UPPER',
+      fontFamily: 'Inter',
+      fontSize: 48,
+      fills: [
+        { type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.2, a: 1 }, opacity: 1, visible: true }
+      ],
+      styleRuns: [
+        {
+          start: 2,
+          length: 2,
+          style: {
+            fills: [
+              { type: 'SOLID', color: { r: 0.9, g: 0.1, b: 0.1, a: 1 }, opacity: 1, visible: true }
+            ]
+          }
+        }
+      ]
+    })
     store.requestRender()
   })
   await editor.page.evaluate(

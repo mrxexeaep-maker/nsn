@@ -15,7 +15,7 @@ import type { TextLayout } from '#core/canvas/text/layout'
 import { styleRunColor } from '#core/canvas/text/paragraph'
 import { laidOutGlyphs, type LaidOutGlyph } from '#core/canvas/text/placed'
 import type { PreparedText } from '#core/canvas/text/preparation/cache'
-import { shownText } from '#core/text/case'
+import { shownCharacters, shownText } from '#core/text/case'
 import { characterStyles, TEXT_STYLE_KEYS, type CharacterStyle } from '#core/text/character-style'
 import { weightToStyle } from '#core/text/fonts'
 import { fontDecorationMetricsSync, type FontDecorationMetrics } from '#core/text/opentype'
@@ -361,14 +361,22 @@ function drawKeycapFrames(
 ): void {
   const text = shownText(node)
   if (!text.includes(COMBINING_KEYCAP)) return
+  // Style runs index the source text, which a case such as `ß` to `SS` makes shorter.
+  const sourceIndexAt = new Map<number, number>()
+  let shownIndex = 0
+  for (const { character, sourceIndex } of shownCharacters(node)) {
+    sourceIndexAt.set(shownIndex, sourceIndex)
+    shownIndex += character.length
+  }
   const runPaint = paint.copy()
   try {
     for (const glyph of laidOutGlyphs(node, layout, text, y) ?? []) {
       const character = glyph.firstCharacter
       if (character === undefined || text[character] !== COMBINING_KEYCAP) continue
       // The frame takes the colour the paragraph gives its mark: its style run's, if it has one.
+      const source = sourceIndexAt.get(character) ?? character
       const run = node.styleRuns.find(
-        (item) => character >= item.start && character < item.start + item.length
+        (item) => source >= item.start && source < item.start + item.length
       )
       runPaint.setColor(run ? styleRunColor(ck, run.style, paint.getColor()) : paint.getColor())
       drawKeycapFrame(ck, canvas, glyph.x, glyph.y, glyph.fontSize, runPaint)
