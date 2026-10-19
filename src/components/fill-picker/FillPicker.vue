@@ -33,7 +33,8 @@ const {
   okhcl = null,
   swatchBackground,
   keepOpen,
-  shader = null
+  shader = null,
+  layerSize = null
 } = defineProps<{
   fill: Fill
   /** The shader the paint draws, when it is a shader's frame; the picker then edits the shader. */
@@ -44,6 +45,8 @@ const {
   label?: string
   /** Whether a press outside the picker should leave it open, such as on a gradient handle. */
   keepOpen?: (event: PointerEvent) => boolean
+  /** The one layer the paint is on, which an image crop starts by covering. */
+  layerSize?: { width: number; height: number } | null
 }>()
 const activeStop = defineModel<number>('activeStop')
 const emit = defineEmits<{
@@ -177,6 +180,7 @@ function cancelFromEscape(event: KeyboardEvent) {
           <ImageFillPicker
             v-else-if="root.category === 'IMAGE'"
             :fill="root.fill"
+            :layer-size="layerSize"
             @update="emit('update', $event)"
           />
         </PopoverContent>
