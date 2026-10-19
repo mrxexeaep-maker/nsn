@@ -1,4 +1,4 @@
-import { useClipboard } from '@vueuse/core'
+import { useClipboard, useShare } from '@vueuse/core'
 import { computed, inject, provide, proxyRefs } from 'vue'
 import type { InjectionKey, ShallowUnwrapRef } from 'vue'
 import IconFilePlus from '~icons/lucide/file-plus'
@@ -9,6 +9,7 @@ import IconZoomIn from '~icons/lucide/zoom-in'
 
 import { useEditorCommands, useI18n } from '@open-pencil/vue'
 
+import { isCloudBinding, openCloudShare } from '@/app/cloud/integration'
 import { DEFAULT_COLLAB_STATE, useCollabInjected } from '@/app/collab/use'
 import { useActiveEditorStoreRef, useEditorStore } from '@/app/editor/active-store'
 import { toolIcons } from '@/app/editor/icons'
@@ -28,6 +29,7 @@ function createMobileHudContext() {
   const collab = useCollabInjected()
   const store = useEditorStore()
   const { copy } = useClipboard()
+  const { share: sendThroughSheet, isSupported: canShare } = useShare()
   const { common, collaboration } = useI18n()
   const notifications = useNotificationMessages()
   const { getCommand } = useEditorCommands()
@@ -83,12 +85,26 @@ function createMobileHudContext() {
       : ''
   )
 
-  /** Copies the room's link; a tab not in a room is shared first, never a room it opened. */
+  /**
+   * Shares the document. A Cloud document opens its share dialog, where its server decides who
+   * may open it. Anything else goes into a room, shared first if it is not in one, never a room it
+   * opened, and its link goes out through the system share sheet, or is copied without one.
+   */
   function share() {
+    if (isCloudBinding(store.getStorageBinding())) {
+      openCloudShare()
+      return
+    }
     if (!collab) return
     const roomId = collabState.value.roomId ?? collab.shareCurrentDoc()
     if (!roomId) return
-    void copy(getShareURL(roomId))
+    const url = getShareURL(roomId)
+    if (canShare.value) {
+      // Closing the sheet without sending is a choice, not a failure.
+      void sendThroughSheet({ title: store.state.documentName, url }).catch(() => undefined)
+      return
+    }
+    void copy(url)
     toast.info(notifications.value.linkCopied)
   }
 
