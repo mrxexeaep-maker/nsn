@@ -750,11 +750,8 @@ function drawRegularStroke(
   sc: Color
 ): void {
   configureStrokePaint(r, node, stroke, sc)
-  if (stroke.dashPattern && stroke.dashPattern.length > 0) {
-    r.strokePaint.setPathEffect(r.ck.PathEffect.MakeDash(stroke.dashPattern, 0))
-  } else {
-    r.strokePaint.setPathEffect(null)
-  }
+  const dash = normalizeDashPattern(stroke.dashPattern)
+  r.strokePaint.setPathEffect(dash.length > 0 ? r.ck.PathEffect.MakeDash(dash, 0) : null)
 
   if (node.independentStrokeWeights && r.isRectangularType(node.type)) {
     r.drawIndividualSideStrokes(canvas, node, stroke)

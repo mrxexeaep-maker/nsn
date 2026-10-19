@@ -84,6 +84,24 @@ describe('strokes with sides of their own weights, as in Figma', () => {
     expectFigmaRow(values, FIGMA.dashed)
   })
 
+  test('dash rounded sides with a one-value pattern, as dash and gap alike', () => {
+    const rounded = sidesFrame({ cornerRadius: 24 }, 1)
+    const values = renderRow(
+      ck,
+      renderer,
+      (graph, hostId) => {
+        rounded(graph, hostId)
+        const frame = graph.getNode(expectDefined(graph.getNode(hostId)).childIds[0])
+        if (frame) frame.strokes = frame.strokes.map((stroke) => ({ ...stroke, dashPattern: [10] }))
+      },
+      70,
+      160,
+      240
+    )
+    expect(values.filter((alpha) => alpha === 0).length).toBeGreaterThan(10)
+    expect(values.filter((alpha) => alpha === 255).length).toBeGreaterThan(10)
+  })
+
   test('take Figma’s corner radii: inner by each side, outer by the narrower side', () => {
     const node = createDefaultNode(() => 'frame', 'FRAME', {
       width: 160,
