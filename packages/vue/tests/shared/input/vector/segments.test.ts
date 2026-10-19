@@ -5,7 +5,6 @@ import { ref } from 'vue'
 import { createEditor, type Editor } from '@open-pencil/core/editor'
 
 import { handleNodeEditPointerUp } from '#vue/canvas/vector-input/input'
-
 import type { DragState } from '#vue/shared/input/types'
 import {
   finishNodeEditMarquee,
@@ -76,13 +75,11 @@ describe('editing a path: segments', () => {
     expect(exitNodeEditMode).not.toHaveBeenCalled()
   })
 
-  test('Shift toggles a segment in the selection', () => {
+  test('Shift adds a segment to the selection', () => {
     setup()
     press(50, 0)
     press(100, 50, true)
     expect(selectedSegments()).toEqual([0, 1])
-    press(50, 0, true)
-    expect(selectedSegments()).toEqual([1])
   })
 
   test('a press on a selected segment drags the whole selection', () => {
@@ -158,6 +155,30 @@ describe('editing a path: pressing a selected segment', () => {
     release(drag)
     expect(selectedSegments()).toEqual([0])
     expect(selected()).toEqual([])
+  })
+
+  test('a Shift-click takes it out of the selection on release', () => {
+    setup()
+    press(50, 0)
+    press(100, 50, true)
+    const drag = press(50, 0, true)
+    expect(selectedSegments()).toEqual([0, 1])
+    release(drag)
+    expect(selectedSegments()).toEqual([1])
+  })
+
+  // Figma desktop 126: a Shift-drag from a selected segment moves it with the rest of the
+  // selection and leaves it selected.
+  test('a Shift-drag moves the whole selection and keeps it', () => {
+    setup()
+    press(50, 0)
+    press(100, 50, true)
+    const drag = press(50, 0, true)
+    if (drag?.type !== 'edit-node') throw new Error('expected a point drag')
+    handleNodeEditMove(drag, 50, -20, editor, false, false, false, true)
+    release(drag)
+    expect(selectedSegments()).toEqual([0, 1])
+    expect(getNodeEditState(editor)?.vertices.map((vertex) => vertex.y)).toEqual([-20, -20, 80])
   })
 
   test('a drag moves the whole selection and keeps it', () => {
