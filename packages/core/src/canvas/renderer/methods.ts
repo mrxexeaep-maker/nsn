@@ -16,7 +16,7 @@ import type { SkiaRenderer } from '#core/canvas/renderer'
 import type { PresenceCursor, RenderOverlays } from '#core/canvas/renderer/types'
 import * as Rulers from '#core/canvas/rulers'
 import * as SceneRender from '#core/canvas/scene'
-import { renderEffects as renderShadowEffects } from '#core/canvas/shadows'
+import { type EffectPass, renderEffects as renderShadowEffects } from '#core/canvas/shadows'
 import * as Shapes from '#core/canvas/shapes'
 import * as Strokes from '#core/canvas/strokes'
 import type { TextEditor } from '#core/text/editor'
@@ -242,15 +242,19 @@ const rendererMethods: ThisType<SkiaRenderer> = {
     SceneRender.renderShapeUncached(this, canvas, node, graph)
   },
 
+  paintShapeContent(canvas: Canvas, node: SceneNode, graph: SceneGraph): void {
+    SceneRender.paintShapeContent(this, canvas, node, graph)
+  },
+
   renderEffects(
     canvas: Canvas,
     node: SceneNode,
+    graph: SceneGraph,
     rect: Float32Array,
     hasRadius: boolean,
-    pass: 'behind' | 'front',
-    shadowShapeChild?: SceneNode | null
+    pass: EffectPass
   ): void {
-    renderShadowEffects(this, canvas, node, rect, hasRadius, pass, shadowShapeChild)
+    renderShadowEffects(this, canvas, node, graph, rect, hasRadius, pass)
   },
 
   renderText(canvas: Canvas, node: SceneNode, fill?: Fill): void {

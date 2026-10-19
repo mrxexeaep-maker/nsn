@@ -39,6 +39,7 @@ import { initializeRendererPaints, initializeSelectionPaintColors } from './rend
 import * as RenderPipeline from './renderer/pipeline'
 import type { SceneBacking, SceneBackingBuild } from './renderer/retained-backing/types'
 import * as RendererState from './renderer/state'
+import type { EffectPass } from './shadows'
 import * as RenderText from './text'
 import type { SavedDecorationCache } from './text/decorations'
 import { createDerivedGlyphPathCache, createGlyphSilhouetteCache } from './text/derived'
@@ -179,7 +180,6 @@ export class SkiaRenderer {
   lastSceneViewport: { panX: number; panY: number; zoom: number } | null = null
   nodePictureCache = new Map<string, SkPicture | null>()
   nodePictureCacheGenerations = new Map<string, number>()
-  nodePictureCacheDependencies = new Map<string, readonly string[]>()
   effectRasterCache = new EffectRasterCache()
   subtreePictureCache = new Map<string, SubtreePictureCacheEntry>()
   subtreePictureCachePageId: string | null = null
@@ -361,13 +361,14 @@ export class SkiaRenderer {
   declare renderComponentSet: (canvas: Canvas, node: SceneNode, graph: SceneGraph) => void
   declare renderShape: (canvas: Canvas, node: SceneNode, graph: SceneGraph) => void
   declare renderShapeUncached: (canvas: Canvas, node: SceneNode, graph: SceneGraph) => void
+  declare paintShapeContent: (canvas: Canvas, node: SceneNode, graph: SceneGraph) => void
   declare renderEffects: (
     canvas: Canvas,
     node: SceneNode,
+    graph: SceneGraph,
     rect: Float32Array,
     hasRadius: boolean,
-    pass: 'behind' | 'front',
-    shadowShapeChild?: SceneNode | null
+    pass: EffectPass
   ) => void
   declare renderText: (canvas: Canvas, node: SceneNode, fill?: Fill) => void
   declare drawNodeFill: (
