@@ -5,7 +5,7 @@ import { type Locale, useI18n } from '@open-pencil/vue'
 
 import { recoveryEnabled, setRecoveryEnabled } from '@/app/document/recovery/preferences'
 import { RECENT_FILES_LIMIT_MIN, RECENT_FILES_LIMIT_MAX } from '@/app/recent-files/limit'
-import { recentFilesLimit } from '@/app/recent-files/preferences'
+import { recentFilesAvailable, recentFilesLimit } from '@/app/recent-files/preferences'
 import { setSnappingPreference } from '@/app/settings/preferences/apply'
 import { appPreferences } from '@/app/settings/preferences/store'
 import { animationPreference } from '@/app/shell/motion'
@@ -23,6 +23,7 @@ import AppSwitch from '@/components/ui/toggle/AppSwitch.vue'
 
 const { availableLocales, locale, localeLabels, menu, recovery, setLocale, settings } = useI18n()
 
+const showRecentFiles = recentFilesAvailable()
 const recentFilesPresets = [10, 25, 50, 100]
 const recentFilesRangeMessage = computed(() =>
   settings.value.recentFilesLimitRange({ min: RECENT_FILES_LIMIT_MIN, max: RECENT_FILES_LIMIT_MAX })
@@ -187,7 +188,7 @@ const snapToPixelGrid = computed({
       <p class="text-[11px] text-muted">{{ settings.temporaryDisableSnappingHint }}</p>
     </SettingsSection>
 
-    <SettingsSection>
+    <SettingsSection v-if="showRecentFiles">
       <template #title>{{ settings.recentFiles }}</template>
       <template #description>{{ settings.recentFilesDescription }}</template>
       <SettingsGroup>
