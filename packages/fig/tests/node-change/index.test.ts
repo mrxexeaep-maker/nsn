@@ -77,6 +77,28 @@ describe('@open-pencil/fig NodeChange policy', () => {
     expect(computeExportTransform(rectangle)).toMatchObject({ m02: 80, m12: 10 })
   })
 
+  test('exports a vertically flipped layer as the matrix that places it', () => {
+    const graph = new SceneGraph()
+    const node = graph.createNode('RECTANGLE', graph.getPages()[0].id, {
+      x: 30,
+      y: 40,
+      width: 80,
+      height: 20,
+      rotation: 30,
+      flipY: true
+    })
+    const exported = computeExportTransform(node)
+    const corners = [0, 0, 80, 0, 80, 20, 0, 20]
+    const expected = TransformMatrix.mapPoints(getWorldMatrix(node, graph), corners)
+    const reimported = graph.createNode(
+      'RECTANGLE',
+      graph.getPages()[0].id,
+      nodeChangeToProps({ type: 'RECTANGLE', size: { x: 80, y: 20 }, transform: exported }, [])
+    )
+    const actual = TransformMatrix.mapPoints(getWorldMatrix(reimported, graph), corners)
+    for (const [i, value] of expected.entries()) expect(actual[i]).toBeCloseTo(value)
+  })
+
   test('converts normalized text values', () => {
     expect(convertLineHeight({ value: 120, units: 'PERCENT' }, 20)).toBe(24)
     expect(convertLetterSpacing({ value: 10, units: 'PERCENT' }, 20)).toBe(2)
