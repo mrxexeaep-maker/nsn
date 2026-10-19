@@ -17,7 +17,7 @@ import { computed, onMounted, useTemplateRef } from 'vue'
 import type { DocumentVersion } from '@open-pencil/cloud/contract'
 import { useCloudMessages, useI18n } from '@open-pencil/vue'
 
-import { cloudVersionLinkURL } from '@/app/cloud/documents/link'
+import { canLinkToVersions, cloudVersionLinkURL } from '@/app/cloud/documents/link'
 import { duplicateVersion, editVersion, restoreVersion } from '@/app/cloud/versions/actions'
 import {
   closeVersionHistory,
@@ -121,6 +121,8 @@ const deleteInfo = (version: DocumentVersion) =>
   run(() => editVersion(shown, version, { name: null, description: '' }))
 
 const { copy } = useClipboard({ legacy: true })
+// A server that advertises no editor has no address to link to.
+const linkable = computed(() => canLinkToVersions(shown))
 
 async function copyLink(version: DocumentVersion) {
   const url = cloudVersionLinkURL(shown, version.id)
@@ -218,7 +220,7 @@ function setScope(value: unknown) {
         :last="index === list.versions.value.length - 1"
         @select="select(version)"
       >
-        <template #actions>
+        <template v-if="list.canEdit.value || linkable" #actions>
           <DropdownMenuRoot :modal="false">
             <DropdownMenuTrigger as-child>
               <IconButton :label="t.versionOptions">
@@ -253,7 +255,11 @@ function setScope(value: unknown) {
                       {{ t.deleteVersionInfo }}
                     </DropdownMenuItem>
                   </template>
-                  <DropdownMenuItem :class="menuCls.item" @select="copyLink(version)">
+                  <DropdownMenuItem
+                    v-if="linkable"
+                    :class="menuCls.item"
+                    @select="copyLink(version)"
+                  >
                     {{ t.shareCopyLink }}
                   </DropdownMenuItem>
                 </MenuScrollArea>

@@ -48,6 +48,9 @@ test('a document or version address names its server and carries no secret', () 
     cloudDocumentURL(discovery, 'https://company.example', 'doc-id', 'version-id')
   )
   expect(version.searchParams.get('version')).toBe('version-id')
+
+  const anchored = { ...discovery, appURL: 'https://editor.company.example/#welcome' }
+  expect(new URL(cloudDocumentURL(anchored, 'https://company.example', 'doc-id')).hash).toBe('')
 })
 
 test('authentication continuation stays on the issuing origin', () => {
