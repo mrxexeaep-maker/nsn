@@ -52,9 +52,10 @@ export function drawTextEditOverlay(
 }
 
 /**
- * Caret and selection for text on a path, as Figma draws them: the selection covers each selected
- * glyph from the font's descent to its ascent, turned with the glyph, and the caret stands square
- * to the path between two characters over the same height.
+ * Text on a path while it is edited, as Figma draws it: the lettering outlined by the bounds of
+ * its glyph boxes, the selection covering each selected glyph from the font's descent to its
+ * ascent, turned with the glyph, and the caret square to the path between two characters over the
+ * same height.
  */
 function drawPathTextCaret(
   r: SkiaRenderer,
@@ -62,6 +63,18 @@ function drawPathTextCaret(
   _node: SceneNode,
   editor: TextEditor
 ): void {
+  const corners = editor.getPathTextQuads().flat()
+  if (corners.length > 0) {
+    const xs = corners.map((point) => point.x)
+    const ys = corners.map((point) => point.y)
+    withScreenStroke(r, { color: r.selColor() }, (paint) =>
+      canvas.drawRect(
+        r.ck.LTRBRect(Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)),
+        paint
+      )
+    )
+  }
+
   const quads = editor.getPathSelectionQuads()
   if (quads.length > 0) {
     // One path, so boxes overlapping where the path bends are not tinted twice.

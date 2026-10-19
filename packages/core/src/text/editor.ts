@@ -433,6 +433,14 @@ export class TextEditor {
     return pathTextCaret(path.glyphs, s.text.length, s.cursor, path.metrics)
   }
 
+  /** The boxes of every glyph along the path, for outlining the lettering while it is edited. */
+  getPathTextQuads(): Vector[][] {
+    const s = this.current()
+    const path = this.pathText()
+    if (!s || !path) return []
+    return pathTextSelectionQuads(path.glyphs, s.text.length, 0, s.text.length, path.metrics)
+  }
+
   /** The selection along the path, one box per glyph, for text on a path. */
   getPathSelectionQuads(): Vector[][] {
     const s = this.current()
