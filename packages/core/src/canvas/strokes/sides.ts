@@ -182,6 +182,8 @@ export function drawDashedRectStroke(
   weights: SideWeights,
   pattern: readonly number[]
 ): void {
+  // Skia draws a stroke of width 0 as a hairline, so a ring without weight draws nothing.
+  if (weights.every((weight) => weight <= 0)) return
   const dashed: DashedRect = {
     node,
     align: stroke.align,

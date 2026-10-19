@@ -143,6 +143,29 @@ describe('strokes with sides of their own weights, as in Figma', () => {
     expect(dashedRow('ROUND')).not.toEqual(dashedRow('NONE'))
   })
 
+  test('draw nothing when no side has a weight', () => {
+    const empty = sidesFrame({
+      cornerRadius: 24,
+      borderTopWeight: 0,
+      borderRightWeight: 0,
+      borderBottomWeight: 0,
+      borderLeftWeight: 0
+    }, 1)
+    const values = renderRow(
+      ck,
+      renderer,
+      (graph, hostId) => {
+        empty(graph, hostId)
+        const frame = graph.getNode(expectDefined(graph.getNode(hostId)).childIds[0])
+        if (frame) frame.strokes = frame.strokes.map((stroke) => ({ ...stroke, dashPattern: [20, 10] }))
+      },
+      70,
+      112,
+      170
+    )
+    expect(Math.max(...values)).toBe(0)
+  })
+
   test('take Figma’s corner radii: inner by each side, outer by the narrower side', () => {
     const node = createDefaultNode(() => 'frame', 'FRAME', {
       width: 160,
