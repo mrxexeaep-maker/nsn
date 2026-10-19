@@ -3,12 +3,12 @@ import { uniq } from 'es-toolkit/array'
 
 import type { SceneNode } from '@open-pencil/scene-graph'
 
-import { resolveParagraphFontFamilies } from '#core/canvas/text/font-families'
+import { loadedFace, resolveParagraphFontFamilies } from '#core/canvas/text/font-families'
 import { laidOutText } from '#core/canvas/text/keycap'
 import type { TextLayout, TextLayoutMarker } from '#core/canvas/text/layout'
 import { textFontVariations } from '#core/canvas/text/paragraph'
 import { utf16IndicesByUtf8 } from '#core/canvas/text/utf8'
-import { fontManager, fontWeightMatchOrder, weightToStyle } from '#core/text/fonts'
+import { fontManager, weightToStyle } from '#core/text/fonts'
 import { glyphOutlineSourceSync, type GlyphOutlineSource } from '#core/text/opentype'
 
 type GlyphRun = ReturnType<Paragraph['getShapedLines']>[number]['runs'][number]
@@ -30,18 +30,10 @@ export interface LaidOutGlyph {
   source: GlyphOutlineSource | null
 }
 
-/**
- * The loaded face of a family the paragraph draws a style in: the style itself, or the nearest
- * loaded weight in the same slant, then the other, as font matching picks it.
- */
+/** The loaded face of a family the paragraph draws a style in, as its style name. */
 function loadedStyle(family: string, weight: number, italic: boolean): string | null {
-  for (const slant of [italic, !italic]) {
-    for (const candidate of fontWeightMatchOrder(weight)) {
-      const style = weightToStyle(candidate, slant)
-      if (fontManager.isStyleLoaded(family, style)) return style
-    }
-  }
-  return null
+  const face = loadedFace(family, weight, italic)
+  return face ? weightToStyle(face.weight, face.italic) : null
 }
 
 /** The font a character asks for: its family, weight, and slant, and the variable axes it sets. */
@@ -145,7 +137,7 @@ function drawnCharacters(
  * The font a run was shaped with. CanvasKit leaves `GlyphRun.typeface` null, so the run's font
  * is found as the paragraph falls back: the first of the fonts it lists, the style's own then
  * its fallbacks, that has every character of the run, confirmed by the glyph IDs it chose.
- * Glyphs CanvasKit emboldened or slanted itself match no font's outlines.
+ * The paragraph asks each family for a face it has loaded, so CanvasKit never fakes one.
  */
 function runOutlineSource(
   node: SceneNode,
@@ -154,7 +146,7 @@ function runOutlineSource(
   run: GlyphRun,
   characterAt: (offset: number) => number
 ): GlyphOutlineSource | null {
-  if (run.fakeBold || run.fakeItalic || run.glyphs.length === 0) return null
+  if (run.glyphs.length === 0) return null
   const offsets = Array.from(run.offsets, characterAt)
   const start = Math.min(...offsets)
   const end = Math.max(...offsets)
@@ -178,7 +170,7 @@ function ellipsisSource(
   run: GlyphRun,
   characterAt: (offset: number) => number
 ): GlyphOutlineSource | null {
-  if (run.glyphs.length !== 1 || run.fakeBold || run.fakeItalic) return null
+  if (run.glyphs.length !== 1) return null
   for (const source of candidateSources(fontAt(node, characterAt(run.offsets[0])))) {
     if (source.glyphOf(ELLIPSIS) === run.glyphs[0]) return source
   }
@@ -195,7 +187,6 @@ function markerGlyphs(marker: TextLayoutMarker, offsetY: number): LaidOutGlyph[]
   const glyphs: LaidOutGlyph[] = []
   for (const line of marker.paragraph.getShapedLines()) {
     for (const run of line.runs) {
-      const trusted = !run.fakeBold && !run.fakeItalic
       for (let index = 0; index < run.glyphs.length; index++) {
         const x = run.positions[index * 2]
         glyphs.push({
@@ -205,7 +196,7 @@ function markerGlyphs(marker: TextLayoutMarker, offsetY: number): LaidOutGlyph[]
           fontSize: run.size,
           advance: run.positions[(index + 1) * 2] - x,
           lineLeft: marker.x,
-          source: trusted ? source : null
+          source
         })
       }
     }
