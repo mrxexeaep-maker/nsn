@@ -5,6 +5,7 @@ import type {
   SceneGraph,
   SceneGraphEvents,
   SceneNode,
+  VectorNetwork,
   VectorSegment,
   VectorVertex
 } from '@open-pencil/scene-graph'
@@ -23,6 +24,7 @@ import type {
   SelectionTheme
 } from '#core/canvas/renderer/types'
 import type { InterfaceTheme } from '#core/constants'
+import type { ConnectorTarget } from '#core/editor/connectors/attach'
 import type { PlayState } from '#core/editor/play/actions'
 import type { SnappingPreferences } from '#core/editor/preferences'
 import type { ShaderRasterizer } from '#core/editor/shaders/types'
@@ -42,6 +44,7 @@ export type Tool =
   | 'STAR'
   | 'TEXT'
   | 'STICKY'
+  | 'CONNECTOR'
   | 'PEN'
   | 'PENCIL'
   | 'HAND'
@@ -71,6 +74,11 @@ export interface ShapeHandleHover {
 
 export interface EditorSharedState {
   activeTool: Tool
+  /**
+   * The document can be looked at, selected in, and copied from but not changed, as for a viewer
+   * or an earlier version; set with `setReadOnly`.
+   */
+  readOnly: boolean
   snappingPreferences: SnappingPreferences
   /** Draw the pixel grid once zoomed in far enough, as Figma's View › Pixel grid; shown unless false. */
   showPixelGrid?: boolean
@@ -94,6 +102,18 @@ export interface EditorSharedState {
    * name or CSS name, bump only `sceneVersion`, so the canvas keeps its recorded pictures.
    */
   canvasVersion: number
+}
+
+/**
+ * The path a pen continues, in page coordinates, and where the pen's chain sits in it. The pen
+ * walks one chain out of the network; committing writes the chain back and keeps the rest.
+ */
+export interface ResumedPath {
+  network: VectorNetwork
+  /** Each chain vertex's index in `network`. */
+  vertices: number[]
+  /** Each chain segment's index in `network`, and whether the chain runs it from end to start. */
+  segments: Array<{ index: number; reversed: boolean }>
 }
 
 export interface PencilState {
@@ -133,6 +153,7 @@ export interface EditorViewState {
     pendingClose?: boolean
     closingToFirst: boolean
     resumingNodeId?: string
+    resumedPath?: ResumedPath
     resumedFills?: SceneNode['fills']
     resumedStrokes?: SceneNode['strokes']
   } | null
@@ -147,6 +168,8 @@ export interface EditorViewState {
     side?: 'top' | 'right' | 'bottom' | 'left'
   } | null
   shapeHandleHover: ShapeHandleHover | null
+  /** The layer a connector end being drawn or dragged would attach to, and by which magnet. */
+  connectorTarget: ConnectorTarget | null
   panX: number
   pageColor: Color
   panY: number
@@ -189,6 +212,7 @@ export interface EditorEvents extends SceneGraphEvents {
   'repaint:requested': (versions: { renderVersion: number; sceneVersion: number }) => void
   'graph:replaced': (graph: SceneGraph) => void
   'document:color-space-changed': (colorSpace: DocumentColorSpace) => void
+  'document:read-only-changed': (readOnly: boolean) => void
   'history:changed': () => void
   'selection:changed': (selectedIds: string[], previousIds: string[]) => void
   'rotation:preview-changed': (preview: RotationPreview | null) => void

@@ -1,6 +1,6 @@
+import { CONNECTOR_KIND } from '../connectors/sublayers'
 import type { SceneGraph } from '../index'
 import type { NodeType, SceneNode } from '../types'
-import { CONNECTOR_KIND } from './connector'
 import type { GeneratedFrameKind } from './kind'
 import { STICKY_KIND } from './sticky'
 
@@ -36,7 +36,7 @@ export function generatedFrameOwner(graph: SceneGraph, node: SceneNode): SceneNo
   return node.parentId ? graph.closest(node.parentId, isGeneratedFrame) : undefined
 }
 
-/** The text a generated frame edits in place, such as a sticky note's body. */
+/** The text a generated frame edits in place: a sticky note's body or a connector's label. */
 export function generatedFrameText(graph: SceneGraph, node: SceneNode): SceneNode | undefined {
   return generatedFrameKind(node)?.text(graph, node)
 }
@@ -52,5 +52,4 @@ export function layerResizes(node: Pick<SceneNode, 'type'>): boolean {
 }
 
 export type { GeneratedFrameKind } from './kind'
-export * from './connector'
 export * from './sticky'

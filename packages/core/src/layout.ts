@@ -35,7 +35,9 @@ export {
   type TextMeasurer
 } from './layout/text-measurement'
 import {
+  connectorSublayers,
   isGeneratedFrame,
+  layoutConnector,
   layoutSizing,
   type LayoutSizing,
   type SceneGraph,
@@ -92,7 +94,22 @@ export function computeAllLayouts(graph: SceneGraph, scopeId?: string): void {
     if (applyEffectiveGeneratedTextLayout(graph, rootId)) {
       computeLayoutsBottomUp(graph, rootId, new Set())
     }
+    routeUnroutedConnectors(graph, rootId)
   })
+}
+
+/**
+ * Routes each connector that has no route yet, as one read from a file that saved none, once its
+ * label is measured, as FigJam routes such a connector when it opens. A saved route is kept.
+ */
+export function routeUnroutedConnectors(graph: SceneGraph, rootId: string): void {
+  for (const { node } of graph.flattenTree(rootId)) {
+    if (node.type !== 'CONNECTOR') continue
+    const line = connectorSublayers(graph, node)?.line
+    if (!line || (line.vectorNetwork?.vertices.length ?? 0) > 0) continue
+    sizeAutoResizingText(graph, node.id)
+    layoutConnector(graph, node)
+  }
 }
 
 /**
@@ -117,6 +134,12 @@ export function layoutAuthoredNodes(graph: SceneGraph, rootIds: Iterable<string>
   layout()
   // Layout gives wrapping text its width, which its height follows.
   if (roots.map((id) => sizeAutoResizingText(graph, id, true)).some(Boolean)) layout()
+  // Connectors authored with the layers they join route once those layers are in place.
+  for (const id of roots) {
+    for (const { node } of graph.flattenTree(id)) {
+      if (node.type === 'CONNECTOR') layoutConnector(graph, node)
+    }
+  }
 }
 
 function computeLayoutsBottomUp(graph: SceneGraph, nodeId: string, visited: Set<string>): void {

@@ -42,6 +42,7 @@ import * as RendererState from './renderer/state'
 import * as RenderText from './text'
 import type { SavedDecorationCache } from './text/decorations'
 import { createDerivedGlyphPathCache, createGlyphSilhouetteCache } from './text/derived'
+import { createEmojiImageCache } from './text/emoji'
 import { TextPreparationCache } from './text/preparation/cache'
 export type {
   MeasurementMode,
@@ -149,6 +150,8 @@ export class SkiaRenderer {
   glyphSilhouetteCache = createGlyphSilhouetteCache()
   derivedGlyphPathCache = createDerivedGlyphPathCache()
   derivedDecorationCache: SavedDecorationCache = new WeakMap()
+  /** Images of the emoji saved text draws, by what drew them and the emoji. */
+  emojiImageCache = createEmojiImageCache()
   renderingSceneBacking = false
   scenePicture: SkPicture | null = null
   scenePictureVersion = -1
@@ -165,6 +168,8 @@ export class SkiaRenderer {
   sceneBackingLastViewportEventAt = 0
   navigationPhase: EditorState['navigation']['phase'] = 'idle'
   navigationGeneration = 0
+  /** The document is read-only: selections draw without handles to drag. */
+  readOnly = false
   tiledSceneEnabled = false
   /**
    * What an empty sticky note shows while it is edited on this canvas, in the interface language;
@@ -300,6 +305,7 @@ export class SkiaRenderer {
   declare getRotatedCorners: (node: SceneNode, abs: Vector) => Vector[]
   declare drawHandle: (canvas: Canvas, x: number, y: number) => void
   declare drawSnapGuides: (canvas: Canvas, guides?: SnapGuide[]) => void
+  declare drawSnapMarks: (canvas: Canvas, guides?: SnapGuide[]) => void
   declare drawMarquee: (canvas: Canvas, marquee?: Rect | null) => void
   declare drawFlashes: (canvas: Canvas, graph: SceneGraph) => void
   declare drawLayoutInsertIndicator: (

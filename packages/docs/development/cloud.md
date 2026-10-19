@@ -61,6 +61,22 @@ keeps on its own, and versions someone named (`document_version`, one per revisi
   version's stored file, and advances the collaboration epoch, so the live room starts over on it.
   Duplicating makes a new document in the same workspace from the same file. Neither uploads
   anything or uses more storage.
+- A restore ends the document's rooms on the relay with close code `4410`, and the relay turns away
+  tickets for an earlier epoch. A tab told so, or handed a ticket for another room, drops its queued
+  uploads, shows the restored file it downloads, and joins the new room; a saver never overwrites a
+  revision once its room has moved on.
+- In the editor, File → Show version history makes the document read-only and lists its versions in
+  the right sidebar, as Figma does. Choosing a version shows it in a read-only editor of its own in
+  place of the document, whose room keeps syncing underneath; Save to version history (⌥⌘S) names
+  the document once the saver's edits are uploaded. When a version is named, renamed, or turned
+  back into an autosave, or a save adds a checkpoint, the server sends `versions` to the
+  document's rooms and every open history loads it again; peers cannot send it.
+- A document's address is `/cloud/documents/:id?server=…`, with `&version=…` for a version; the
+  editor keeps the address bar on the active tab's document and the version it shows, and a
+  version's Copy link builds the address on the server's advertised editor URL. The address carries
+  no secret: opening it signs in to the named server, one the app already knows or the official one,
+  and the server's access rules decide. Fetching a version returns the version with its download, so
+  a link can show it without paging the history.
 - The cleanup worker compacts saves that are neither current nor a version once they are a day old,
   a batch at a time, and returns the bytes of files nothing else uses to the workspace's usage. A
   freed file's row stays until the object store deletes it, so a failed delete is retried. With

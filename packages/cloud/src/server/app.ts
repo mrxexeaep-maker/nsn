@@ -68,6 +68,10 @@ export type CloudServices = {
    * peer-to-peer and writes are not enforced by the server.
    */
   relayURL?: string
+  /** Ends a restored document's live rooms, on the relay this runtime runs, if any. */
+  onDocumentRestored?: (documentId: string) => void
+  /** Tells a document's live rooms its version history changed, on the relay this runtime runs. */
+  onDocumentVersionsChanged?: (documentId: string) => void
 }
 
 type CloudEnvironment = CloudAPIEnvironment
@@ -197,11 +201,14 @@ export function createCloudApp(services: CloudServices) {
     createDefaultCloudPolicy(new EntitlementOpenFeatureProvider(entitlementSource))
   const documents = createDocumentService(services.database, services.objects, {
     policy,
-    technicalMaximumUploadBytes: services.config.technicalLimits.maximumUploadBytes
+    technicalMaximumUploadBytes: services.config.technicalLimits.maximumUploadBytes,
+    onVersionsChanged: services.onDocumentVersionsChanged
   })
   const versions = createDocumentVersionService(services.database, services.objects, {
     policy,
-    deploymentMode: services.config.deployment
+    deploymentMode: services.config.deployment,
+    onRestored: services.onDocumentRestored,
+    onVersionsChanged: services.onDocumentVersionsChanged
   })
   const entitlements = createEntitlementService(
     services.database,
