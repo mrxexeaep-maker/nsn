@@ -313,6 +313,23 @@ describe('drop shadows are cast from what the layer draws, as in Figma', () => {
   })
 })
 
+describe('arcs cast from the arc, not the whole ellipse', () => {
+  test('a half pie casts only below its flat edge', () => {
+    const pie: FigmaRowScene = (graph, hostId) =>
+      graph.createNode('ELLIPSE', hostId, {
+        ...square,
+        fills: [RED],
+        arcData: { startingAngle: 0, endingAngle: Math.PI, innerRadius: 0 },
+        effects: [shadow('DROP_SHADOW')]
+      })
+    // Outside the ellipse, right of it: under the missing top half, then beside the pie.
+    const above = row(pie, square.y + 60, square.x + 162, square.x + 168)
+    const beside = row(pie, square.y + 100, square.x + 162, square.x + 168)
+    expect(Math.max(...above)).toBeLessThanOrEqual(2)
+    expect(Math.min(...beside)).toBeGreaterThan(200)
+  })
+})
+
 describe('inner shadows sit where Figma draws them', () => {
   test('a shape takes its inner shadow under its strokes (blue channel)', () => {
     const values = row(

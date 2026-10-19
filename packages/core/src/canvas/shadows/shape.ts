@@ -24,6 +24,7 @@ export function castsFromOwnShape(node: SceneNode): boolean {
   return (
     node.type !== 'TEXT' &&
     node.type !== 'BOOLEAN_OPERATION' &&
+    !isPartialArc(node) &&
     fillsCastShadow(node) &&
     node.strokes.every((stroke) => !paintCastsShadow(stroke) || stroke.align === 'INSIDE')
   )
@@ -39,6 +40,16 @@ const OUTLINE_SHAPE_TYPES: ReadonlySet<SceneNode['type']> = new Set<SceneNode['t
   'INSTANCE',
   'SECTION'
 ])
+
+/**
+ * A pie, donut, or open arc. The shadow paths below draw ellipses as ovals, so these take the
+ * silhouette, which draws the arc itself.
+ */
+function isPartialArc(node: SceneNode): boolean {
+  const arc = node.type === 'ELLIPSE' ? node.arcData : null
+  if (!arc) return false
+  return arc.innerRadius > 0 || Math.abs(arc.endingAngle - arc.startingAngle) < 2 * Math.PI - 1e-6
+}
 
 /** Distances from each side of a rectangle: top, right, bottom, left. */
 type Sides = readonly [number, number, number, number]
@@ -71,7 +82,7 @@ function sideOutline([top, right, bottom, left]: Sides, align: Stroke['align']):
  * measured on Figma 126, a shadow with a spread grows every side by the layer's single weight.
  */
 export function regularStrokeOutline(node: SceneNode, spread: number): StrokeOutline | null {
-  if (!OUTLINE_SHAPE_TYPES.has(node.type)) return null
+  if (!OUTLINE_SHAPE_TYPES.has(node.type) || isPartialArc(node)) return null
   const strokes = node.strokes.filter(paintCastsShadow)
   if (strokes.length === 0) return evenOutline(0, 'INSIDE')
   const [stroke] = strokes
