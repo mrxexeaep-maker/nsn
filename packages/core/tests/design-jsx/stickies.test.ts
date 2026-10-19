@@ -49,6 +49,16 @@ describe('sticky notes in design JSX', () => {
     expect(sceneNodeToJSX(reread.id, again)).toBe(jsx)
   })
 
+  test('keep a name given in the JSX, even one that matches the body', async () => {
+    const graph = new SceneGraph()
+    const [result] = await renderJSX(graph, '<Sticky name="Ship it">Ship it</Sticky>')
+    const jsx = sceneNodeToJSX(result.id, graph)
+    expect(jsx).toContain('name="Ship it"')
+    const again = new SceneGraph()
+    const [reread] = await renderJSX(again, jsx)
+    expect(getNodeOrThrow(again, reread.id).autoRename).toBe(false)
+  })
+
   test('join connectors to themselves, never to the layers they generate', async () => {
     const graph = new SceneGraph()
     const [result] = await renderJSX(

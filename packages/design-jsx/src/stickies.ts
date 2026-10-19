@@ -79,10 +79,12 @@ function colorName(color: Color): string {
   return named ? named[0] : hex
 }
 
-/** The name `<Sticky>` writes: none while the note is still named by its body. */
-export function stickyName(graph: SceneGraph, node: SceneNode): string | null {
-  const body = stickySublayers(graph, node)?.body.text ?? ''
-  return node.autoRename || node.name === (body.trim() || 'Sticky') ? null : node.name
+/**
+ * The name `<Sticky>` writes: none while the note is still named by its body, and its name once
+ * renamed, even to its body, so reading it back keeps the name from following the body.
+ */
+export function stickyName(node: SceneNode): string | null {
+  return node.autoRename ? null : node.name
 }
 
 /** A note's own props as `<Sticky>` writes them, after its name and position. */

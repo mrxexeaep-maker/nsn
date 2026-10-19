@@ -65,7 +65,7 @@ const OWN_ELEMENTS: Partial<
   Record<NodeType, (graph: SceneGraph, node: SceneNode, scope?: ConnectorExportScope) => OwnElement>
 > = {
   STICKY: (graph, node) => {
-    const name = stickyName(graph, node)
+    const name = stickyName(node)
     return {
       props: [
         ...(name ? [['name', name] satisfies JSXProp] : []),
