@@ -23,6 +23,7 @@ import { cloudConnection, cloudConnections } from '../sessions/connection'
 import { cloudShareTarget } from '../sharing/document'
 import { versionListRevision } from '../versions/history'
 import { accountRoomIdentity } from './identity'
+import { shareRoomUploads, uploadStoredDocument } from './upload'
 
 /** Each Cloud tab's permission in its room, for the status beside the name. */
 export const cloudRoomPermissions = shallowRef<ReadonlyMap<EditorStore, 'edit' | 'view'>>(new Map())
@@ -77,7 +78,7 @@ function followSaver(
   session: RoomSession,
   canSave: boolean,
   roomIsCurrent: () => Promise<boolean>
-): () => void {
+): { stop: () => void; saving: () => boolean } {
   let saving: boolean | null = null
   const documentId = () => store.getStorageBinding()?.documentId ?? null
 
@@ -120,10 +121,13 @@ function followSaver(
     const id = documentId()
     if (id && event.documentId === id) void settleConflict(id)
   })
-  return () => {
-    stopPeers()
-    stopDirty()
-    stopEvents()
+  return {
+    stop() {
+      stopPeers()
+      stopDirty()
+      stopEvents()
+    },
+    saving: () => saving === true
   }
 }
 
@@ -145,6 +149,8 @@ export function openCloudDocumentRoom(
      */
     roomIsCurrent?: () => Promise<boolean>
     onRestored?: () => void
+    /** How the saver gets the document onto the server; the tab's own upload unless a test stands in. */
+    uploadNow?: () => Promise<boolean>
     /** Who the tab is in the room; the device's own identity unless an account names it. */
     identity?: RoomIdentity
   }
@@ -166,17 +172,30 @@ export function openCloudDocumentRoom(
     if (canEdit && !session.roomHasDocument()) session.shareDocument()
   })
   // Unsure whether the document moved on, the saver waits rather than overwrite a restore.
-  const stopSaver = followSaver(store, session, canSave, async () => {
+  const saver = followSaver(store, session, canSave, async () => {
     const current = options.roomIsCurrent ? await options.roomIsCurrent().catch(() => null) : true
     if (current === false) options.onRestored?.()
     return current === true
   })
+  const uploads = shareRoomUploads(session.upload, {
+    saving: saver.saving,
+    saverPeer: () => {
+      const elected = electCloudSaver(session.presence(), { clientId: session.clientId, canSave })
+      return elected === null || elected === session.clientId
+        ? null
+        : (session.peerForClient(elected) ?? null)
+    },
+    upload: options.uploadNow ?? (() => uploadStoredDocument(store))
+  })
   return {
     session,
+    /** Whether the server now holds the room's document with every edit this tab has seen. */
+    upload: uploads.upload,
     stop() {
       stopVersions()
       stopSynced()
-      stopSaver()
+      saver.stop()
+      uploads.stop()
       setPermission(store, null)
       store.setReadOnly(false)
     }
@@ -207,11 +226,13 @@ export function cloudRelayTransport(
   })
 }
 
+type LiveRoom = Pick<ReturnType<typeof openCloudDocumentRoom>, 'stop' | 'upload'>
+
 /** Each tab's live Cloud room, stopped when the tab closes or the room starts over. */
-const liveRooms = new Map<EditorStore, { stop(): void }>()
+const liveRooms = new Map<EditorStore, LiveRoom>()
 
 /** Leaves the room's saving and status behind once its tab closes. */
-export function stopWithTab(store: EditorStore, room: { stop(): void }): void {
+export function stopWithTab(store: EditorStore, room: LiveRoom): void {
   liveRooms.set(store, room)
   const stopLeaving = watch(allTabs, () => {
     if (roomForStore(store)) return
@@ -254,6 +275,14 @@ export async function startCloudRoom(store: EditorStore): Promise<void> {
   } finally {
     starting.delete(store)
   }
+}
+
+/**
+ * Gets the document of `store` onto its server as the tab shows it: through the room's saver
+ * while the tab is in a room, or by uploading it itself. Whether it got there.
+ */
+export function uploadCloudDocument(store: EditorStore): Promise<boolean> {
+  return liveRooms.get(store)?.upload() ?? uploadStoredDocument(store)
 }
 
 const restarting = new WeakSet<EditorStore>()
