@@ -279,7 +279,7 @@ function drawTextPathSelection(
 
       // Start-point marker where aligned text is laid out from.
       // forward only flips travel direction, which the display-only marker ignores.
-      const start = pointAtArc(sampled, textPathStartArc(data, box, sampled))
+      const start = pointAtArc(sampled, textPathStartArc(data, sampled))
       drawHandle(r, canvas, start.x, start.y)
     },
     preview

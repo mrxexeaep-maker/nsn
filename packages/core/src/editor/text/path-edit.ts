@@ -152,7 +152,7 @@ function alignedRun(
   const direction = data.forward ? 1 : -1
   const align = node.textAlignHorizontal
 
-  const start = data.startSegment === undefined ? null : textPathStartDistance(data, box)
+  const start = data.startSegment === undefined ? null : textPathStartDistance(data, path)
   if (start !== null) {
     const [from, to] = alignmentWindow(align, start, path.length, path.closed, data.forward)
     const count = fittingGlyphCount(metrics, letterSpacing, to - from)
