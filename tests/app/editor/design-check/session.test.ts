@@ -139,7 +139,7 @@ describe('the focused issue', () => {
     store.designCheck.openMarker([firstText.id])
     expect(store.designCheck.focusedIssueId.value).not.toBeNull()
 
-    // A layer made right after could reuse the id, and with it the focus.
+    // Until the next check, the panel still lists the deleted layer's issue and would reveal it.
     store.deleteSelected()
 
     expect(store.designCheck.focusedIssueId.value).toBeNull()
