@@ -9,6 +9,7 @@ import type { DocumentPermission } from '@open-pencil/cloud/contract'
 import { exportFigFile, initCodec, parseFigFile } from '@open-pencil/core'
 import { SceneGraph } from '@open-pencil/scene-graph'
 
+import { accountRoomIdentity } from '@/app/cloud/rooms/identity'
 import { openCloudDocumentRoom } from '@/app/cloud/rooms/live'
 import { connectCollabRoom } from '@/app/collab/room/connection'
 import { createEditorStore } from '@/app/editor/session'
@@ -122,6 +123,36 @@ describe('collaboration through the Cloud relay', () => {
       user: { name: 'Grace', color: '#000' },
       cloud: { kind: 'guest', name: 'Grace', permission: 'view' }
     })
+  })
+})
+
+describe('Cloud document rooms, identity', () => {
+  test('a member is their account in the room, in every tab', async () => {
+    const relay = await startRelay()
+    const documentId = crypto.randomUUID()
+    const [grace, again] = await openedTwice()
+    const account = { id: crypto.randomUUID(), name: 'Grace' }
+    const open = (store: typeof grace) => {
+      const room = openCloudDocumentRoom(store, {
+        roomId: `cloud:${documentId}:0`,
+        transport: relay.join(documentId, 'Grace', 'edit', 'user'),
+        permission: 'edit',
+        identity: accountRoomIdentity(account)
+      })
+      cleanups.push(() => {
+        room.stop()
+        room.session.dispose()
+      })
+      return room
+    }
+    const first = open(grace)
+    const second = open(again)
+    await until(() => first.session.peers.value.length > 0)
+    const own = (room: typeof first) => room.session.presence().get(room.session.clientId)?.user
+    const expected = { name: 'Grace', color: accountRoomIdentity(account).color }
+    expect(own(first)).toEqual(expected)
+    expect(own(second)).toEqual(expected)
+    expect(first.session.peers.value[0]).toMatchObject({ name: 'Grace' })
   })
 })
 
