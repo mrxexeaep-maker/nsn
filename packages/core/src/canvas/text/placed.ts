@@ -100,6 +100,36 @@ function drawsOwnGlyph(
   return false
 }
 
+/** Characters a shaper draws as nothing, such as variation selectors and joiners, whatever the font. */
+const DRAWN_AS_NOTHING = /[\s\p{Default_Ignorable_Code_Point}]/u
+
+/**
+ * The characters a run draws with glyphs of its font, leaving out whitespace and characters the
+ * shaper draws as nothing. A character no font has is shaped as the run font's missing glyph
+ * (ID 0), which says nothing about which font that is, so it does not count against the font
+ * the run's other characters confirm.
+ */
+function drawnCharacters(
+  text: string,
+  run: GlyphRun,
+  offsets: number[],
+  start: number,
+  end: number
+): string {
+  const missing = new Set<number>()
+  for (const [index, glyph] of run.glyphs.entries()) {
+    if (glyph !== 0) continue
+    const from = offsets[index]
+    const to = Math.min(end, ...offsets.filter((offset) => offset > from))
+    for (let character = from; character < to; character++) missing.add(character)
+  }
+  let characters = ''
+  for (let index = start; index < end; index++) {
+    if (!missing.has(index) && !DRAWN_AS_NOTHING.test(text[index])) characters += text[index]
+  }
+  return characters
+}
+
 /**
  * The font a run was shaped with. CanvasKit leaves `GlyphRun.typeface` null, so the run's font
  * is found as the paragraph falls back: the first of the fonts it lists, the style's own then
@@ -116,7 +146,7 @@ function runOutlineSource(
   const offsets = Array.from(run.offsets, characterAt)
   const start = Math.min(...offsets)
   const end = Math.max(...offsets)
-  const characters = text.slice(start, end).replace(/\s/g, '')
+  const characters = drawnCharacters(text, run, offsets, start, end)
   for (const source of candidateSources(fontAt(node, start))) {
     if (!source.covers(characters)) continue
     if (characters === '' || drawsOwnGlyph(source, run, text, characterAt)) return source

@@ -64,6 +64,56 @@ describe('text shaping for saved glyphs', () => {
     expect([advance(1), advance(3), advance(3 + family.length)]).toEqual([40, 40, 40])
   })
 
+  /**
+   * Figma draws a saved emoji from its code points over a placeholder square 1 em wide, from
+   * 0.07 em below the baseline, and saves ☺ with the selector for its emoji form; measured in
+   * Figma desktop. The other glyphs keep their outlines.
+   */
+  test('saves an emoji as Figma does: a placeholder square with its code points', async () => {
+    const metrics = expectDefined(
+      await fontManager.fetchBundledFont('/OpenPencilEmojiMetrics-Regular.ttf'),
+      'bundled emoji metrics font'
+    )
+    fontManager.markLoaded(EMOJI_METRICS_FAMILY, 'Regular', metrics)
+    const shaped = expectDefined(
+      await shape({ text: 'a😀☺©', fontSize: 40, width: 400, textAutoResize: 'NONE' }),
+      'shaped text'
+    )
+    const glyph = (character: number) =>
+      expectDefined(
+        shaped.glyphs.find((candidate) => candidate.firstCharacter === character),
+        `glyph ${character}`
+      )
+    expect(glyph(1).emojiCodePoints).toEqual([0x1f600])
+    expect(glyph(3).emojiCodePoints).toEqual([0x263a, 0xfe0f])
+    const square = (glyph(1).commands ?? []).map(({ type, x, y }) => [type, x, y?.toFixed(2)])
+    expect(square).toEqual([
+      ['M', 0, '2.80'],
+      ['L', 40, '2.80'],
+      ['L', 40, '-37.20'],
+      ['L', 0, '-37.20'],
+      ['L', 0, '2.80'],
+      ['Z', undefined, undefined]
+    ])
+    for (const character of [0, 4]) {
+      expect(glyph(character).emojiCodePoints).toBeUndefined()
+      expect(glyph(character).commands?.length).toBeGreaterThan(1)
+    }
+  })
+
+  /**
+   * Figma draws pasted or saved text only from the glyph outlines written for it. A character no
+   * font has is shaped as the font's missing glyph; it must not cost the other characters their
+   * outlines, or Figma shows the text blank. Checked by pasting into Figma desktop.
+   */
+  test('outlines every glyph of text with a character no font has', async () => {
+    const shaped = expectDefined(
+      await shape({ text: 'Keys 1\ufe0f\u20e3 ok', fontSize: 40, width: 400, textAutoResize: 'NONE' }),
+      'shaped text'
+    )
+    expect(shaped.glyphs.every((glyph) => glyph.commands !== null)).toBe(true)
+  })
+
   test('breaks lines at the layer width (#914)', async () => {
     const shaped = expectDefined(await shape({ text: SENTENCE }), 'shaped text')
     const [first, second] = shaped.baselines

@@ -13,10 +13,13 @@ import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 import { buildParagraph, textVerticalOffset } from '#core/canvas/text'
 import { textDecorationRects, type DecoratedGlyph } from '#core/canvas/text/decorations'
 import { outlineInk, savedGlyphInk } from '#core/canvas/text/ink'
-import { laidOutGlyphs } from '#core/canvas/text/placed'
+import { characterFamily, laidOutGlyphs, type LaidOutGlyph } from '#core/canvas/text/placed'
 import { getCanvasKit } from '#core/canvaskit'
 import { shownText } from '#core/text/case'
+import { EMOJI_METRICS_FAMILY } from '#core/text/emoji'
 import { fontManager } from '#core/text/fonts'
+import { nextGraphemeBoundary } from '#core/text/graphemes'
+import type { OutlineCommand } from '#core/text/opentype'
 
 /**
  * Whether saved glyphs could stand for this text: case changes that alter its length move
@@ -37,10 +40,43 @@ function completeCharacterOffsets(offsets: Array<number | undefined>): number[] 
 }
 
 /**
+ * The square Figma saves for an emoji, in pixels at `size` with y down: 1 em wide, from 0.07 em
+ * below the baseline, closed with a line back to its start as Figma writes it.
+ */
+function emojiPlaceholder(size: number): OutlineCommand[] {
+  const bottom = 0.07 * size
+  const top = -0.93 * size
+  return [
+    { type: 'M', x: 0, y: bottom },
+    { type: 'L', x: size, y: bottom },
+    { type: 'L', x: size, y: top },
+    { type: 'L', x: 0, y: top },
+    { type: 'L', x: 0, y: bottom },
+    { type: 'Z' }
+  ]
+}
+
+/**
+ * The code points Figma saves for the emoji a glyph draws, when the layout gave it to the emoji
+ * metrics font. An emoji that shows as text by default is saved with the selector that asks for
+ * its emoji form, as Figma saves ☺ as ☺️.
+ */
+function emojiCodePoints(node: SceneNode, text: string, glyph: LaidOutGlyph): number[] | undefined {
+  const start = glyph.firstCharacter
+  if (start === undefined || characterFamily(node, text, start) !== EMOJI_METRICS_FAMILY)
+    return undefined
+  const emoji = text.slice(start, nextGraphemeBoundary(text, start))
+  const codePoints = Array.from(emoji, (character) => character.codePointAt(0) ?? 0)
+  if (codePoints.length === 1 && !/\p{Emoji_Presentation}/u.test(emoji)) codePoints.push(0xfe0f)
+  return codePoints
+}
+
+/**
  * Lay a text node out as the renderer draws it and pair each shaped glyph with the outline of
- * the glyph ID CanvasKit chose, so ligatures and contextual forms keep their shapes. When a run's
- * font is missing, variable, or a fallback, no glyph gets an outline: the layout still stands,
- * and readers draw the text themselves.
+ * the glyph ID CanvasKit chose, so ligatures and contextual forms keep their shapes. An emoji the
+ * layout gives the emoji metrics font is saved as Figma saves one: a placeholder square with its
+ * code points. When a run's font cannot be told, no glyph gets an outline: the layout still
+ * stands and OpenPencil lays the text out again on reading, but Figma draws it blank.
  * Returns `null` for text saved glyphs cannot represent at all.
  */
 export function shapeText(
@@ -64,13 +100,17 @@ export function shapeText(
       if (glyph.firstCharacter !== undefined) {
         characterOffsets[glyph.firstCharacter] ??= glyph.x - glyph.lineLeft
       }
+      const emoji = emojiCodePoints(node, text, glyph)
       return {
-        commands: glyph.source?.outline(glyph.id, glyph.fontSize) ?? null,
+        commands: emoji
+          ? emojiPlaceholder(glyph.fontSize)
+          : (glyph.source?.outline(glyph.id, glyph.fontSize) ?? null),
         x: glyph.x,
         y: glyph.y,
         fontSize: glyph.fontSize,
         firstCharacter: glyph.firstCharacter,
-        advance: glyph.advance
+        advance: glyph.advance,
+        emojiCodePoints: emoji
       }
     })
     // Outlines from some runs only would draw the text with characters missing.
