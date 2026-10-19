@@ -1,12 +1,15 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'bun:test'
 
+import { toRaw } from 'vue'
+
 import * as layoutModule from '@open-pencil/core/layout'
 
 import { makeFigmaFromStore } from '@/app/automation/bridge/figma-factory'
 import { createAutomationCommandHandlers } from '@/app/automation/bridge/handlers'
 import { recentDocuments } from '@/app/recent-files'
 import { recentFilesLimit } from '@/app/recent-files/preferences'
+import { appPreferences } from '@/app/settings/preferences/store'
 import { createTab, getActiveStore, getActiveTabId, getTabById, getTabsSnapshot } from '@/app/tabs'
 
 import { asDouble } from '#tests/helpers/doubles'
@@ -368,9 +371,15 @@ describe('close_file and save_file never prompt', () => {
 })
 
 describe('list_recent_files', () => {
+  let previousPreferences: typeof appPreferences.value
+
+  beforeEach(() => {
+    previousPreferences = structuredClone(toRaw(appPreferences.value))
+  })
+
   afterEach(() => {
     recentDocuments.value = []
-    recentFilesLimit.value = 10
+    appPreferences.value = previousPreferences
   })
 
   test('lists local files newest first within the recent files limit', async () => {
