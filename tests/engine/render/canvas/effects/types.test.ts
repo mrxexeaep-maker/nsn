@@ -72,9 +72,8 @@ describe('Renderer handles all effect types (Behavioral)', () => {
     expect(r.ltrb).toHaveBeenCalledWith(-2, -2, 102, 102)
     expect(r.ltrb).toHaveBeenCalledWith(2, 2, 98, 98)
     const [ring] = mockCalls(canvas.drawPath).find(([, paint]) => paint === r.auxFill) ?? []
-    expect(asDouble<{ setFillType: unknown }>(ring).setFillType).toHaveBeenCalledWith(
-      r.ck.FillType.EvenOdd
-    )
+    if (typeof ring !== 'object' || ring === null) throw new Error('expected the ring path')
+    expect(mockCalls(Reflect.get(ring, 'setFillType'))).toContainEqual([r.ck.FillType.EvenOdd])
     expect(canvas.clipPath).toHaveBeenCalledWith(expect.anything(), r.ck.ClipOp.Difference, true)
     expect(canvas.drawPath).toHaveBeenCalledWith(expect.anything(), r.auxFill)
     expect(r.paintShapeContent).not.toHaveBeenCalled()

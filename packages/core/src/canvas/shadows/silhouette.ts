@@ -4,12 +4,11 @@ import type { Fill, NodeType, SceneGraph, SceneNode, Stroke } from '@open-pencil
 import Matrix from '@open-pencil/scene-graph/matrix'
 import type { Rect } from '@open-pencil/scene-graph/primitives'
 
+import { paintBooleanOperation } from '#core/canvas/boolean'
+import { renderMaskedChildIds } from '#core/canvas/masks'
+import type { SkiaRenderer } from '#core/canvas/renderer'
+import { nodeHasRadius, nodeHasSmoothCorners } from '#core/canvas/shapes'
 import { nodeOrientationMatrix } from '#core/geometry'
-
-import { paintBooleanOperation } from '../boolean'
-import { renderMaskedChildIds } from '../masks'
-import type { SkiaRenderer } from '../renderer'
-import { nodeHasRadius, nodeHasSmoothCorners } from '../shapes'
 
 /**
  * What a shadow is cast from (`cast`) or hidden under when it does not show behind the node
@@ -367,7 +366,8 @@ export function soleShadowChild(graph: SceneGraph, node: SceneNode): SceneNode |
     if (child.isMask || sole) return null
     sole = child
   }
-  if (!sole || sole.rotation !== 0 || sole.flipX || sole.flipY) return null
+  if (!sole) return null
+  if (sole.rotation !== 0 || sole.flipX || sole.flipY) return null
   if (isLayerContainer(sole) && shadowIncludesChildren(graph, sole)) return null
   return sole
 }

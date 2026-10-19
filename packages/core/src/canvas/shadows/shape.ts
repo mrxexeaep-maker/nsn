@@ -2,15 +2,16 @@ import type { BlendMode, Canvas, Path } from 'canvaskit-wasm'
 
 import type { Effect, SceneNode, Stroke } from '@open-pencil/scene-graph'
 
-import { figmaBlendModeToSkia } from '../blend'
-import { blurSigma } from '../effects'
-import type { SkiaRenderer } from '../renderer'
+import { figmaBlendModeToSkia } from '#core/canvas/blend'
+import { blurSigma } from '#core/canvas/effects'
+import type { SkiaRenderer } from '#core/canvas/renderer'
 import {
   makeNodeShapePath,
   makeSmoothRRectPath,
   nodeHasRadius,
   nodeHasSmoothCorners
-} from '../shapes'
+} from '#core/canvas/shapes'
+
 import { alignShare, fillsCastShadow, paintCastsShadow } from './silhouette'
 
 function isPathShape(node: SceneNode): boolean {
