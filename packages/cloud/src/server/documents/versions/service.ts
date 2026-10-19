@@ -1,5 +1,5 @@
 import type {
-  DocumentDownload,
+  DocumentVersionDownload,
   DocumentSummary,
   DocumentVersion,
   DocumentVersions,
@@ -58,7 +58,12 @@ function versionOf(row: VersionRow, currentRevisionId: string | null): DocumentV
 export function createDocumentVersionService(
   database: Kysely<CloudDatabase>,
   objects: ObjectStore,
-  options: { policy?: CloudPolicy; deploymentMode?: CloudPolicyContext['deploymentMode'] } = {}
+  options: {
+    policy?: CloudPolicy
+    deploymentMode?: CloudPolicyContext['deploymentMode']
+    /** Called once a restore lands, so the document's live room starts over. */
+    onRestored?: (documentId: string) => void
+  } = {}
 ) {
   const deploymentMode = options.deploymentMode ?? 'self-hosted'
   function versions() {
@@ -223,20 +228,23 @@ export function createDocumentVersionService(
       userId: string,
       documentId: string,
       versionId: string
-    ): Promise<DocumentDownload> {
+    ): Promise<DocumentVersionDownload> {
       const { document, start } = await openHistory(userId, documentId, false)
       const version = await findVersion(documentId, versionId, start)
       const stored = await storedRevision(database, version.revisionId)
       return {
-        document: documentSummary(document),
-        revisionId: version.revisionId,
-        byteSize: Number(stored.byteSize),
-        checksum: stored.checksum,
-        contentType: stored.contentType,
-        download: await objects.createDownload({
-          key: stored.objectKey,
-          expiresAt: new Date(Date.now() + DOWNLOAD_LIFETIME_MS)
-        })
+        document: {
+          document: documentSummary(document),
+          revisionId: version.revisionId,
+          byteSize: Number(stored.byteSize),
+          checksum: stored.checksum,
+          contentType: stored.contentType,
+          download: await objects.createDownload({
+            key: stored.objectKey,
+            expiresAt: new Date(Date.now() + DOWNLOAD_LIFETIME_MS)
+          })
+        },
+        version: versionOf(version, document.currentRevisionId)
       }
     },
 
@@ -305,6 +313,12 @@ export function createDocumentVersionService(
           restoredFromVersionId: versionId
         })
       })
+      // The restore stands whatever the hook does; a stale ticket is still turned away by its epoch.
+      try {
+        options.onRestored?.(documentId)
+      } catch (error) {
+        console.error('[Cloud] Ending the rooms of a restored document failed:', error)
+      }
       const document = await findDocument(database, userId, documentId)
       if (!document) throw new DocumentNotFoundError()
       const restored = await versions()

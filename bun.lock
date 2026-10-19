@@ -87,6 +87,7 @@
         "tailwind-variants": "^3.3.1",
         "tailwindcss": "^4.3.3",
         "tinykeys": "^3.1.0",
+        "ufo": "^1.6.4",
         "valibot": "^1.5.0",
         "vee-validate": "5.0.0-beta.0",
         "vue": "^3.5.43",
@@ -226,6 +227,7 @@
         "lib0": "^0.2.117",
         "nodemailer": "^9.0.5",
         "smol-toml": "^1.8.0",
+        "ufo": "^1.6.4",
         "valibot": "^1.5.0",
         "vue": "^3.5.43",
         "ws": "^8.21.3",
@@ -717,6 +719,16 @@
         "@types/node": "^25.9.9",
         "@types/proper-lockfile": "4.1.4",
         "typescript": "~5.8.3",
+      },
+    },
+    "tools/generate/emoji-metrics": {
+      "name": "@open-pencil/emoji-metrics-tools",
+      "dependencies": {
+        "opentype.js": "^2.0.0",
+      },
+      "devDependencies": {
+        "@open-pencil/core": "workspace:*",
+        "@open-pencil/package-artifacts-tools": "workspace:*",
       },
     },
     "tools/generate/landing-posters": {
@@ -1586,6 +1598,8 @@
     "@open-pencil/dom-css": ["@open-pencil/dom-css@workspace:packages/dom-css"],
 
     "@open-pencil/emit": ["@open-pencil/emit@workspace:packages/emit"],
+
+    "@open-pencil/emoji-metrics-tools": ["@open-pencil/emoji-metrics-tools@workspace:tools/generate/emoji-metrics"],
 
     "@open-pencil/feedback": ["@open-pencil/feedback@workspace:packages/feedback"],
 
