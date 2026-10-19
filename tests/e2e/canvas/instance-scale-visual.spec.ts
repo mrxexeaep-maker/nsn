@@ -1,9 +1,16 @@
 import { pick } from 'es-toolkit/object'
+import { deflateSync } from 'fflate'
 import { toUint8Array } from 'js-base64'
 
 import { computeAllLayouts, computeLayout } from '@open-pencil/core/layout'
-import { materializeDocument } from '@open-pencil/fig'
-import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
+import { materializeDocument, writeFigArchive } from '@open-pencil/fig'
+import {
+  createNodeChangesMessage,
+  encodeMessage,
+  getSchemaBytes,
+  initCodec,
+  type NodeChange
+} from '@open-pencil/kiwi/fig/codec'
 import {
   reconcileVariableBindings,
   rescaleNodeTree,
@@ -207,6 +214,96 @@ test('layout keeps a rotated imported Hug panel inside its instance', async () =
   const [[r, g, b]] = await readScenePixels(editor.page, [{ x: 240, y: 240 }])
   expect(g).toBeGreaterThan(Math.max(r, b))
   expect(await editor.canvas.screenshotCanvasRegion()).toMatchSnapshot('rotated-imported-hug.png')
+})
+
+test('a bound root swap renders its replacement paint rather than its old cache', async () => {
+  const guid = (localID: number) => ({ sessionID: 1, localID })
+  const paint = (r: number, g: number): NonNullable<NodeChange['fillPaints']> => [
+    { type: 'SOLID', color: { r, g, b: 0, a: 1 }, opacity: 1, visible: true }
+  ]
+  const records: NodeChange[] = [
+    { guid: guid(0), type: 'DOCUMENT' },
+    { guid: guid(1), type: 'CANVAS', parentIndex: { guid: guid(0), position: '!' } },
+    {
+      guid: guid(2),
+      type: 'SYMBOL',
+      parentIndex: { guid: guid(1), position: '!' },
+      size: { x: 40, y: 40 },
+      fillPaints: paint(1, 0)
+    },
+    {
+      guid: guid(3),
+      type: 'SYMBOL',
+      parentIndex: { guid: guid(1), position: '"' },
+      size: { x: 40, y: 40 },
+      fillPaints: paint(0, 1)
+    },
+    {
+      guid: guid(4),
+      type: 'SYMBOL',
+      parentIndex: { guid: guid(1), position: '#' },
+      size: { x: 40, y: 40 },
+      componentPropDefs: [
+        { id: guid(90), type: 'INSTANCE_SWAP', initialValue: { guidValue: guid(2) } }
+      ]
+    },
+    {
+      guid: guid(5),
+      type: 'INSTANCE',
+      parentIndex: { guid: guid(4), position: '!' },
+      size: { x: 40, y: 40 },
+      fillPaints: paint(1, 0),
+      symbolData: { symbolID: guid(2) },
+      componentPropRefs: [{ defID: guid(90), componentPropNodeField: 'OVERRIDDEN_SYMBOL_ID' }]
+    },
+    {
+      guid: guid(6),
+      type: 'INSTANCE',
+      parentIndex: { guid: guid(1), position: '!' },
+      size: { x: 40, y: 40 },
+      symbolData: { symbolID: guid(4) },
+      componentPropAssignments: [{ defID: guid(90), value: { guidValue: guid(3) } }]
+    }
+  ]
+  const { graph, sources } = materializeDocument(records, [], { derivedBounds: true })
+  const instance = sources.get('1:6')
+  if (!instance) throw new Error('Missing paint-swap instance')
+  expect(graph.getChildren(instance)[0].fills[0].color.g).toBe(1)
+  await renderTrees([renderTree(graph, instance)])
+  await editor.canvas.waitForRender()
+  const [[r, g, b]] = await readScenePixels(editor.page, [{ x: 240, y: 240 }])
+  expect(g).toBeGreaterThan(Math.max(r, b))
+  expect(await editor.canvas.screenshotCanvasRegion()).toMatchSnapshot('bound-swap-root-paint.png')
+  await initCodec()
+  const bytes = writeFigArchive({
+    schemaDeflated: deflateSync(getSchemaBytes()),
+    kiwiData: encodeMessage(createNodeChangesMessage(0, 0, records)),
+    thumbnailPNG: new Uint8Array(),
+    metaJSON: '{}'
+  })
+  const workerPaint = await editor.page.evaluate(
+    async (saved) => {
+      const store = window.openPencil?.getStore?.()
+      if (!store) throw new Error('Editor unavailable')
+      await store.openFigFile(new File([new Uint8Array(saved)], 'Bound-swap.fig'))
+      const root = store.graph
+        .getChildren(store.state.currentPageId)
+        .find(
+          (node) =>
+            node.type === 'INSTANCE' && node.componentPropertyAssignments['1:90'] !== undefined
+        )
+      if (!root) throw new Error('Imported bound instance unavailable')
+      return store.graph.getChildren(root.id)[0].fills[0].color
+    },
+    [...bytes]
+  )
+  expect(workerPaint.g).toBe(1)
+  await editor.page.evaluate(() => {
+    const store = window.openPencil?.getStore?.()
+    if (!store) throw new Error('Editor unavailable')
+    store.pan(-store.state.panX, -store.state.panY)
+    store.setZoomAroundPoint(1, 0, 0)
+  })
 })
 
 test('absolute constraints survive occurrence resizing', async () => {

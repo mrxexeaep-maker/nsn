@@ -22,6 +22,7 @@ import {
   type InstanceSyncContext
 } from './copies'
 import { INSTANCE_SYNC_FIELD_OWNERS, INSTANCE_SYNC_FIELDS } from './fields'
+import { ownsSelfFillField, sourceWithEffectiveFill } from './main-component'
 import { PLACEMENT_FIELDS, placedByConstraints } from './placement'
 import { followVectorGeometry } from './vector-geometry'
 
@@ -152,6 +153,9 @@ function copySyncedFields(
     if (isEqual(copy[key], from[key])) continue
     copyProp(updates, from, key)
   }
+  if (updates.fills)
+    updates.fillStyleId =
+      skip('fillStyleId') || skip('fills') ? copy.fillStyleId : source.fillStyleId
   followVectorGeometry(updates, copy, source)
   remeasureChangedText(updates, copy)
   return { placed, x: !placedByLayout && !skip('x'), y: !placedByLayout && !skip('y') }
@@ -167,9 +171,9 @@ export function updateSyncedProps(
       ([key, value]) => !isEqual(target[key as keyof SceneNode], value)
     )
   ) as Partial<SceneNode>
+  if (changed.fills && updates.fillStyleId !== undefined) changed.fillStyleId = updates.fillStyleId
   if (Object.keys(changed).length) graph.updateNode(target.id, changed)
 }
-
 function cloneChildInCoordinates(
   graph: SceneGraph,
   src: SceneNode,
@@ -221,7 +225,6 @@ export function enclosingInstanceOverrideFields(graph: SceneGraph, node: SceneNo
   }
   return fields
 }
-
 /** SLOT_CONTENT is absent because it drives children, which `ownsSlotContent` keeps instead. */
 const PROPERTY_REFERENCE_FIELDS: Partial<Record<ComponentPropertyReferenceField, string>> = {
   VISIBLE: 'visible',
@@ -313,7 +316,6 @@ function propertyDrivenFields(
   }
   return driven
 }
-
 /**
  * The text and visibility enclosing assignments give an existing child whose layer a property
  * drives. A layer linked to a property after the instance was made would otherwise keep what it
@@ -341,7 +343,8 @@ function childBindingProtection(
 ) {
   const fields = enclosingInstanceOverrideFields(graph, child)
   fields.push(new Set(overrides.descendants.get(child.id)?.keys()))
-  return bindingProtection(fields)
+  const protectedField = bindingProtection(fields)
+  return (field: string) => protectedField(field) || ownsSelfFillField(child, field)
 }
 
 function linkMatchedChild(
@@ -555,18 +558,17 @@ export function syncChildren(
   )
 
   placeMissingChildren(graph, compParent, instParent, instChildMap, usedInstChildIds, context)
-
   // Pass 4: Synchronize properties and recurse
   for (const compChildId of compParent.childIds) {
     const compChild = graph.nodes.get(compChildId)
     const instChild = instChildMap.get(compChildId)
     if (!compChild || !instChild) continue
-
     const protectedField = childBindingProtection(graph, instChild, overrides)
     const driven = propertyDrivenFields(graph, instChild, compChild)
     const componentScale =
       (compChild.componentScale * instParent.componentScale) / compParent.componentScale
-    const source = sourceInTargetCoordinates(compChild, componentScale)
+    const effectiveSource = sourceWithEffectiveFill(graph, compChild, instChild)
+    const source = sourceInTargetCoordinates(effectiveSource, componentScale)
     // Which properties a layer serves is the component's to say; a slot or exposed layer
     // created on the component becomes one in every instance.
     const updates: Partial<SceneNode> = {
@@ -583,7 +585,6 @@ export function syncChildren(
     Object.assign(updates, assignedFieldValues(graph, instChild, compChild))
     keepOwnContentSize(graph, updates, instChild, source, placement)
     updateSyncedProps(graph, instChild, updates)
-
     if (
       compChild.childIds.length > 0 &&
       !hasNodeInstanceOverride(overrides, instParentId, instChild.id, 'componentId') &&
@@ -594,7 +595,6 @@ export function syncChildren(
       syncChildren(graph, compChildId, instChild.id, overrides, context)
     }
   }
-
   // Pass 5: Sort instance children to match component child order
   sortInstanceChildren(graph, instParent, instParentId, compParent.childIds, overrides)
 }
