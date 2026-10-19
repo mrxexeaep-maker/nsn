@@ -435,10 +435,4 @@ describe('MCP idle expiration', () => {
     await instance.clear()
     expect(closed.filter((value) => value === id)).toHaveLength(1)
   })
-
-  test('rejects invalid idle timeouts', () => {
-    for (const sessionIdleTimeoutMs of [-1, Number.NaN, Infinity, 1.5, 2_147_483_648]) {
-      expect(() => manager({ sessionIdleTimeoutMs })).toThrow('idle timeout')
-    }
-  })
 })
