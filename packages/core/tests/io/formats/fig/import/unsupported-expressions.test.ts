@@ -5,7 +5,7 @@ import { deflateSync } from 'fflate'
 import { compressFigDataSync, parseFigBuffer } from '@open-pencil/fig'
 import { getCompiledSchema, getSchemaBytes, type NodeChange } from '@open-pencil/kiwi/fig/codec'
 import { guidToString, stringToGuid } from '@open-pencil/kiwi/fig/guid'
-import { SceneGraph, type VariableValue } from '@open-pencil/scene-graph'
+import { isUnsupportedVariableValue, SceneGraph, type VariableValue } from '@open-pencil/scene-graph'
 
 import { createEditor } from '#core/editor/create'
 import {
@@ -161,6 +161,27 @@ test('pasting a layer bound to a kept expression into another file follows the c
   expect(lookupOperand(saved.find((node) => node.name === 'Gap'))).toMatchObject({
     guidKey: savedLookupMode,
     value: { value: { alias: { guid: savedCompact } } }
+  })
+})
+
+test('pasting copies a collection that a kept expression reaches only through a mode key', async () => {
+  const file = await figWithLookup()
+  const graph = await parseFigFile(file.bytes.slice().buffer)
+  const size = graph.createCollection('Size')
+  const kept = graph.variables.get(file.gap)?.valuesByMode[file.mode]
+  if (!isUnsupportedVariableValue(kept)) throw new Error('Missing kept expression')
+  kept.modes = [size.defaultModeId]
+  const destination = new SceneGraph()
+  const transfer = importClipboardVariables(
+    destination,
+    captureClipboardVariables(graph, [graph.getChildren(graph.getPages()[0].id)[0]])
+  )
+  transfer.apply()
+  const sizeMode = transfer.modeIds.get(size.defaultModeId)
+  expect(sizeMode).toBeDefined()
+  const gap = destination.variables.get(transfer.variableIds.get(file.gap) ?? '')
+  expect(gap?.valuesByMode[transfer.modeIds.get(file.mode) ?? '']).toMatchObject({
+    modes: [sizeMode]
   })
 })
 
