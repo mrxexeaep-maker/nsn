@@ -1,0 +1,1 @@
+- Drop and inner shadows are cast from everything a layer draws, as in Figma: its strokes, every child of a frame or group, and boolean operations, cut out under translucent fills and strokes unless shown behind the node, with a shape's inner shadow under its strokes.
