@@ -74,6 +74,7 @@ export function openDocumentRoom(
     origin: 'shared',
     joinRoom: transport,
     holdsDocument: true,
+    leavable: false,
     identity
   })
   addSession(session)

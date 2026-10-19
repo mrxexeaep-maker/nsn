@@ -329,6 +329,8 @@ describe('Cloud document rooms', () => {
     await until(() => grace.graph.getNode('from:ada') !== undefined)
     await until(() => first.session.peers.value.length > 0)
     expect(compact([grace.state.autosaveEnabled, ada.state.autosaveEnabled])).toHaveLength(1)
+    // The document lives in its room, so neither tab offers leaving it.
+    expect([first.session.leavable, second.session.leavable]).toEqual([false, false])
   })
 
   test('a tab that does not save has the saver upload its latest edit', async () => {
