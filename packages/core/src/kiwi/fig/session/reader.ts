@@ -52,7 +52,6 @@ export function openReaderSession(
         return {
           checkpoint: session.checkpoint(),
           populated,
-          diagnostics: structuredClone(diagnostics),
           delta: buildFigPopulationDelta(session.graph, journal, loadedGraphIds())
         }
       } finally {

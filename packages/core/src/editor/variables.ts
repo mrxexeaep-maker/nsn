@@ -3,7 +3,6 @@ import { isEmptyObject } from 'es-toolkit/predicate'
 
 import {
   isModeAttributeName,
-  isUnsupportedVariableValue,
   tokenExpressionForValue,
   type BindingScope,
   type TokenExpression,
@@ -442,8 +441,6 @@ export function createVariableActions(ctx: EditorContext) {
   ) {
     const variable = ctx.graph.variables.get(id)
     if (!variable) return
-    if (isUnsupportedVariableValue(variable.valuesByMode[modeId]))
-      throw new Error('Cannot edit an unsupported variable expression')
     const previous = modeEntry(variable, modeId)
     const next: ModeEntry = {
       value: structuredClone(value),

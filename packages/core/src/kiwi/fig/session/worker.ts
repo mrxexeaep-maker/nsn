@@ -121,7 +121,6 @@ self.onmessage = (event: MessageEvent<FigSessionOpenRequest>) => {
       type: 'graph',
       graph: serializeSceneGraph(opened.graph),
       checkpoint: opened.checkpoint(),
-      diagnostics: opened.diagnostics,
       archiveInfo
     })
   } catch (error) {

@@ -2,7 +2,6 @@ import { fromUint8Array, isValid, toUint8Array } from 'js-base64'
 
 import {
   createConnector,
-  isUnsupportedVariableValue,
   freeEndpoint,
   updateTokenExpression,
   type GroupFitOptions,
@@ -368,8 +367,6 @@ export class FigmaAPI implements NodeProxyHost {
   setVariableValue(variableId: string, modeId: string, value: VariableValue): void {
     const variable = this.graph.variables.get(variableId)
     if (!variable) throw new Error(`Variable "${variableId}" not found`)
-    if (isUnsupportedVariableValue(variable.valuesByMode[modeId]))
-      throw new Error('Cannot edit an unsupported variable expression')
     variable.valuesByMode[modeId] = structuredClone(value)
     updateTokenExpression(variable, modeId, value)
     reconcileVariableLayouts(this.graph, { variables: [variableId] })
