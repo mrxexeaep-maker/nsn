@@ -167,6 +167,51 @@ describe('Cloud document rooms, reopening', () => {
         .sort()
     expect(layers(reopened)).toEqual(layers(grace))
   })
+
+  test('a tab left on a page only its file had moves to one of the room’s pages', async () => {
+    const relay = await startRelay()
+    const documentId = crypto.randomUUID()
+    const roomId = `cloud:${documentId}:0`
+    const [grace, earlier] = await openedTwice()
+    const first = openCloudDocumentRoom(grace, {
+      roomId,
+      transport: relay.join(documentId, 'Grace', 'edit', 'user'),
+      permission: 'edit'
+    })
+    cleanups.push(() => {
+      first.stop()
+      first.session.dispose()
+    })
+    await until(() => first.session.roomHasDocument())
+    // An earlier visit leaves this device a saved copy of the room, which the next opens first.
+    const visit = openCloudDocumentRoom(earlier, {
+      roomId,
+      transport: relay.join(documentId, 'Ada', 'edit', 'user'),
+      permission: 'edit'
+    })
+    await until(() => visit.session.hasDocument.value && visit.session.peers.value.length > 0)
+    visit.stop()
+    visit.session.dispose()
+
+    const [reopened] = await openedTwice()
+    await until(() => reopened.state.preparation === null)
+    // A page the room never had, as the file's own copy of a page can be.
+    const stray = reopened.graph.addPage('Stray')
+    reopened.state.currentPageId = stray.id
+    const second = openCloudDocumentRoom(reopened, {
+      roomId,
+      transport: relay.join(documentId, 'Ada', 'edit', 'user'),
+      permission: 'edit'
+    })
+    cleanups.push(() => {
+      second.stop()
+      second.session.dispose()
+    })
+    await until(() => reopened.graph.getNode(stray.id) === undefined)
+    await until(() =>
+      reopened.graph.getPages().some((page) => page.id === reopened.state.currentPageId)
+    )
+  })
 })
 
 /** Tabs that each opened the same stored file, which gives each its own root. */

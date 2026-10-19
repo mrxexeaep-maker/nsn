@@ -366,6 +366,8 @@ export function createYjsGraphSync({
     }
     visit(graph.rootId)
     for (const id of outside) graph.deleteNode(id)
+    // The page the tab was on may have been the file's own; it moves to one of the room's.
+    if (outside.length > 0) ensureCurrentPageExists(getStore())
   }
 
   return {
