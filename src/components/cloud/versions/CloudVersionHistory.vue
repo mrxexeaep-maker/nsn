@@ -99,9 +99,11 @@ async function select(version: DocumentVersion) {
 }
 
 async function run(action: () => Promise<unknown>) {
+  // A restore closes the preview, after which `shown` no longer leads to its document.
+  const document = versionHistoryOf(shown)?.store ?? shown
   try {
     await action()
-    versionsChanged(shown)
+    versionsChanged(document)
   } catch (error) {
     console.warn('[Cloud] Changing the version history failed:', error)
     toast.error(t.value.versionChangeFailed)
