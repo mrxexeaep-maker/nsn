@@ -114,8 +114,12 @@ export function drawIndividualSideStrokes(
   stroke: Stroke
 ): void {
   const pattern = normalizeDashPattern(stroke.dashPattern)
-  if (pattern.length > 0) {
+  if (pattern.length > 0 && hasFlatDashes(node, stroke)) {
     drawDashedRectStroke(r, canvas, node, stroke, strokeSideWeights(node, stroke), pattern)
+    return
+  }
+  if (pattern.length > 0) {
+    drawDashedSideLines(r, canvas, node, stroke.align)
     return
   }
   r.strokePaint.setStyle(r.ck.PaintStyle.Fill)
@@ -148,13 +152,17 @@ export function sideDashSpans(length: number, pattern: readonly number[]): Array
   return spans
 }
 
+/** Dashes with flat ends on corners without smoothing, which the layout below draws. */
+function hasFlatDashes(node: SceneNode, stroke: Stroke): boolean {
+  return !nodeHasSmoothCorners(node) && (stroke.cap ?? node.strokeCap) === 'NONE'
+}
+
 /**
  * Whether Figma's dash layout below applies: a rectangle without smoothed corners whose
  * dashes have flat ends, and on sharp corners a mitered join, which the corner squares are.
  */
 export function strokeDashesByOutline(node: SceneNode, stroke: Stroke): boolean {
-  if (nodeHasSmoothCorners(node)) return false
-  if ((stroke.cap ?? node.strokeCap) !== 'NONE') return false
+  if (!hasFlatDashes(node, stroke)) return false
   const rounded = fittedCornerRadii(node).some((radius) => radius > 0)
   return rounded || (stroke.join ?? node.strokeJoin) === 'MITER'
 }
@@ -174,31 +182,40 @@ export function drawDashedRectStroke(
   weights: SideWeights,
   pattern: readonly number[]
 ): void {
-  const radii = fittedCornerRadii(node)
+  const dashed: DashedRect = {
+    node,
+    align: stroke.align,
+    weights,
+    pattern,
+    radii: fittedCornerRadii(node)
+  }
   const inset = weights[0] * (1 - strokeAlignShare(stroke.align))
   const even = weights.every((weight) => weight === weights[0])
   r.strokePaint.setPathEffect(null)
-  drawDashRects(r, canvas, node, stroke.align, weights, pattern, radii)
-  if (even && radii.every((radius) => radius === 0 || radius >= inset)) {
-    drawDashedArcs(r, canvas, node, stroke.align, weights[0], pattern, radii)
+  drawDashRects(r, canvas, dashed)
+  if (even && dashed.radii.every((radius) => radius === 0 || radius >= inset)) {
+    drawDashedArcs(r, canvas, dashed)
   } else {
-    drawClippedCornerDashes(r, canvas, node, stroke.align, weights, pattern, radii)
+    drawClippedCornerDashes(r, canvas, dashed)
   }
+}
+
+/** A dashed rectangle stroke: the node, its alignment and side weights, and the corners Skia draws. */
+interface DashedRect {
+  node: SceneNode
+  align: Stroke['align']
+  weights: SideWeights
+  pattern: readonly number[]
+  radii: [number, number, number, number]
 }
 
 /**
  * The dashes along the straight sides, and the squares of sharp corners between stroked sides,
  * filled as one path so a translucent stroke does not darken where they meet.
  */
-function drawDashRects(
-  r: SkiaRenderer,
-  canvas: Canvas,
-  node: SceneNode,
-  align: Stroke['align'],
-  weights: SideWeights,
-  pattern: readonly number[],
-  [tl, tr, br, bl]: [number, number, number, number]
-): void {
+function drawDashRects(r: SkiaRenderer, canvas: Canvas, dashed: DashedRect): void {
+  const { node, align, weights, pattern } = dashed
+  const [tl, tr, br, bl] = dashed.radii
   const share = strokeAlignShare(align)
   const w = node.width
   const h = node.height
@@ -248,17 +265,11 @@ function drawDashRects(
  * The dashes around rounded corners of a stroke with one weight, as arcs with flat ends, which
  * Skia cuts through the arc's centre as Figma does.
  */
-function drawDashedArcs(
-  r: SkiaRenderer,
-  canvas: Canvas,
-  node: SceneNode,
-  align: Stroke['align'],
-  weight: number,
-  pattern: readonly number[],
-  [tl, tr, br, bl]: [number, number, number, number]
-): void {
-  const w = node.width
-  const h = node.height
+function drawDashedArcs(r: SkiaRenderer, canvas: Canvas, dashed: DashedRect): void {
+  const { node, align, pattern } = dashed
+  const [weight] = dashed.weights
+  const [tl, tr, br, bl] = dashed.radii
+  const { width: w, height: h } = node
   // The stroke's centre line runs this far outside the shape's edge.
   const shift = weight * (strokeAlignShare(align) - 0.5)
   r.strokePaint.setStrokeWidth(weight)
@@ -282,19 +293,12 @@ function drawDashedArcs(
  * The dashes around rounded corners of any other ring, as the ring clipped to each corner's box
  * and to a wedge from the corner's centre for every dash along its arc.
  */
-function drawClippedCornerDashes(
-  r: SkiaRenderer,
-  canvas: Canvas,
-  node: SceneNode,
-  align: Stroke['align'],
-  weights: SideWeights,
-  pattern: readonly number[],
-  [tl, tr, br, bl]: [number, number, number, number]
-): void {
-  const w = node.width
-  const h = node.height
+function drawClippedCornerDashes(r: SkiaRenderer, canvas: Canvas, dashed: DashedRect): void {
+  const { node, align, weights, pattern, radii } = dashed
+  const { width: w, height: h } = node
   const share = strokeAlignShare(align)
   const [top, right, bottom, left] = weights.map((weight) => weight * share)
+  const [tl, tr, br, bl] = radii
   const { outer, inner } = sideStrokeRRects(node, align, 0, weights)
   r.strokePaint.setStyle(r.ck.PaintStyle.Fill)
   const corner = (
@@ -353,4 +357,56 @@ function fittedCornerRadii(node: SceneNode): [number, number, number, number] {
     fit(node.height, tr, br)
   )
   return [tl * scale, tr * scale, br * scale, bl * scale]
+}
+
+/**
+ * Dashes with round or square ends, or on smoothed corners, which Figma's layout was not measured
+ * for: straight dashed lines along each side, with the stroke paint's own dash effect and caps.
+ */
+function drawDashedSideLines(
+  r: SkiaRenderer,
+  canvas: Canvas,
+  node: SceneNode,
+  align: 'INSIDE' | 'CENTER' | 'OUTSIDE'
+): void {
+  const w = node.width
+  const h = node.height
+  const inside = align === 'INSIDE'
+  const outside = align === 'OUTSIDE'
+
+  const tw = node.borderTopWeight
+  if (tw > 0) {
+    let y = 0
+    if (inside) y = tw / 2
+    else if (outside) y = -tw / 2
+    r.strokePaint.setStrokeWidth(tw)
+    canvas.drawLine(0, y, w, y, r.strokePaint)
+  }
+
+  const rw = node.borderRightWeight
+  if (rw > 0) {
+    let x = w
+    if (inside) x = w - rw / 2
+    else if (outside) x = w + rw / 2
+    r.strokePaint.setStrokeWidth(rw)
+    canvas.drawLine(x, 0, x, h, r.strokePaint)
+  }
+
+  const bw = node.borderBottomWeight
+  if (bw > 0) {
+    let y = h
+    if (inside) y = h - bw / 2
+    else if (outside) y = h + bw / 2
+    r.strokePaint.setStrokeWidth(bw)
+    canvas.drawLine(0, y, w, y, r.strokePaint)
+  }
+
+  const lw = node.borderLeftWeight
+  if (lw > 0) {
+    let x = 0
+    if (inside) x = lw / 2
+    else if (outside) x = -lw / 2
+    r.strokePaint.setStrokeWidth(lw)
+    canvas.drawLine(x, 0, x, h, r.strokePaint)
+  }
 }

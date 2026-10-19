@@ -123,6 +123,26 @@ describe('strokes with sides of their own weights, as in Figma', () => {
     expect(values.filter((alpha) => alpha === 255).length).toBeGreaterThan(10)
   })
 
+  test('keep round dash ends, which Figma’s flat-ended layout does not cover', () => {
+    const rounded = sidesFrame({ cornerRadius: 24 }, 1)
+    const dashedRow = (strokeCap: SceneNode['strokeCap']) =>
+      renderRow(
+        ck,
+        renderer,
+        (graph, hostId) => {
+          rounded(graph, hostId)
+          const frame = graph.getNode(expectDefined(graph.getNode(hostId)).childIds[0])
+          if (!frame) return
+          frame.strokeCap = strokeCap
+          frame.strokes = frame.strokes.map((stroke) => ({ ...stroke, dashPattern: [20, 10] }))
+        },
+        70,
+        160,
+        240
+      )
+    expect(dashedRow('ROUND')).not.toEqual(dashedRow('NONE'))
+  })
+
   test('take Figma’s corner radii: inner by each side, outer by the narrower side', () => {
     const node = createDefaultNode(() => 'frame', 'FRAME', {
       width: 160,
