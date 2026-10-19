@@ -256,14 +256,17 @@ function drawSilhouetteInnerShadow(
     restoreCount++
     canvas.translate(effect.offset.x, effect.offset.y)
 
+    // The inverse is drawn in offset coordinates, so it covers `bounds` once shifted back.
+    const { x: dx, y: dy } = effect.offset
+    const inverse = ck.LTRBRect(bounds[0] - dx, bounds[1] - dy, bounds[2] - dx, bounds[3] - dy)
     r.effectLayerPaint.setBlendMode(ck.BlendMode.SrcOver)
     r.effectLayerPaint.setColorFilter(null)
     r.effectLayerPaint.setImageFilter(r.getCachedDecalBlur(blurSigma(effect.radius)))
-    canvas.saveLayer(r.effectLayerPaint, bounds)
+    canvas.saveLayer(r.effectLayerPaint, inverse)
     restoreCount++
 
     r.auxFill.setColor(ck.Color4f(0, 0, 0, 1))
-    canvas.drawRect(bounds, r.auxFill)
+    canvas.drawRect(inverse, r.auxFill)
 
     r.effectLayerPaint.setImageFilter(null)
     r.effectLayerPaint.setBlendMode(ck.BlendMode.DstOut)

@@ -1,4 +1,4 @@
-import { afterAll, describe, test } from 'bun:test'
+import { afterAll, describe, expect, test } from 'bun:test'
 
 import { SkiaRenderer } from '@open-pencil/core'
 import { initCanvasKit } from '@open-pencil/core/io'
@@ -356,5 +356,32 @@ describe('inner shadows sit where Figma draws them', () => {
       2
     )
     expectFigmaRow(values, FIGMA['inner-frame-clip-child-at-edge'])
+  })
+
+  test('an offset larger than the blur shades the whole strip it uncovers (red channel)', () => {
+    const values = row(
+      (graph, hostId) => {
+        const union = graph.createNode('BOOLEAN_OPERATION', hostId, {
+          ...square,
+          booleanOperation: 'UNION',
+          fills: [RED],
+          effects: [shadow('INNER_SHADOW', { radius: 4, offset: { x: 50, y: 0 } })]
+        })
+        graph.createNode('RECTANGLE', union.id, {
+          x: 0,
+          y: 0,
+          width: 160,
+          height: 160,
+          fills: [BLUE]
+        })
+      },
+      40 + square.y,
+      square.x,
+      square.x + 60,
+      0
+    )
+    // Opaque black covers the first 50px; past the blur the fill shows again.
+    expect(Math.max(...values.slice(0, 22))).toBeLessThanOrEqual(2)
+    expect(values.at(-1)).toBe(255)
   })
 })
