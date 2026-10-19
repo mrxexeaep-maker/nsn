@@ -1,4 +1,9 @@
 {
+  "unsupportedExpressionDependency": "保留的表达式正在使用此资源。请先删除依赖此资源的表达式，或删除整个集合。",
+  "expressionWarningHeading": "部分变量表达式暂不支持",
+  "expressionWarningDescription": "{count} 个变量使用了暂不支持的表达式。将显示图层已保存的值；外观和模式切换结果可能有所不同。保存时会保留表达式。暂不支持添加或删除模式、编辑这些值、复制变量或将其传输到其他文档。",
+  "unsupportedExpressionValue": "暂不支持的表达式",
+  "unsupportedExpressionModes": "此集合包含暂不支持的表达式，无法添加或删除模式。",
   "unsavedChanges": "未保存的更改",
   "saveBeforeClosing": "保存对“{name}”的更改吗？",
   "saveBeforeClosingDescription": "如果不保存就关闭，更改将丢失。",

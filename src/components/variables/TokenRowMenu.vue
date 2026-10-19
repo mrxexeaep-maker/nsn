@@ -20,7 +20,12 @@ import MenuScrollArea from '@/components/ui/menu/MenuScrollArea.vue'
  * Right-click actions for the selected tokens. The list selects the row under the pointer before
  * the menu opens, so every action applies to what is highlighted.
  */
-const { groups, single } = defineProps<{
+const {
+  groups,
+  single,
+  canDuplicate = true
+} = defineProps<{
+  canDuplicate?: boolean
   /** Groups the tokens can move into, as their paths. */
   groups: string[]
   /** One token is selected, so it can be renamed in place. */
@@ -53,6 +58,7 @@ const dangerItem = useMenuUI({ item: 'justify-start gap-2 text-error' }).item
           </ContextMenuItem>
           <ContextMenuItem
             :class="menu.item"
+            :disabled="!canDuplicate"
             data-test-id="variables-duplicate"
             @select="emit('duplicate')"
           >

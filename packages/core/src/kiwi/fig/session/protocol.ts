@@ -9,6 +9,7 @@ import type { FigPageManifestEntry } from '@open-pencil/kiwi/fig'
 import type { ParseFigFileOptions } from '#core/io/formats/fig/read'
 import type { SerializedSceneGraph } from '#core/kiwi/fig/parse/transfer'
 import type { FigPopulationDelta } from '#core/kiwi/fig/population/delta'
+import type { FigReaderDiagnostic } from '#core/kiwi/fig/session/options'
 
 export interface FigSessionOpenRequest {
   type: 'open'
@@ -78,6 +79,7 @@ export type FigSessionResponse =
   | {
       type: 'graph'
       graph?: SerializedSceneGraph
+      diagnostics?: FigReaderDiagnostic[]
       checkpoint?: FigSessionCheckpoint
       /** Taken while the records are decoded, for writing the archive back later. */
       archiveInfo?: FigArchiveRecordInfo
@@ -88,6 +90,7 @@ export type FigSessionResponse =
       requestId: string
       baseRevision: number
       populated: boolean
+      diagnostics?: FigReaderDiagnostic[]
       checkpoint?: FigSessionCheckpoint
       delta: FigPopulationDelta
     }

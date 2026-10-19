@@ -1,4 +1,9 @@
 {
+  "unsupportedExpressionDependency": "Diese Ressource wird von einem erhaltenen Ausdruck verwendet. Löschen Sie zuerst den abhängigen Ausdruck oder die gesamte gemeinsame Sammlung.",
+  "expressionWarningHeading": "Einige Variablenausdrücke werden nicht unterstützt",
+  "expressionWarningDescription": "{count} Variablen verwenden nicht unterstützte Ausdrücke. Stattdessen werden gespeicherte Ebenenwerte angezeigt; Darstellung und Moduswechsel können abweichen. Ausdrücke bleiben beim Speichern erhalten. Modi hinzufügen oder entfernen, diese Werte bearbeiten, duplizieren und in ein anderes Dokument übertragen ist nicht möglich.",
+  "unsupportedExpressionValue": "Nicht unterstützter Ausdruck",
+  "unsupportedExpressionModes": "Solange diese Sammlung nicht unterstützte Ausdrücke enthält, können keine Modi hinzugefügt oder entfernt werden.",
   "unsavedChanges": "Ungespeicherte Änderungen",
   "saveBeforeClosing": "Änderungen an „{name}“ speichern?",
   "saveBeforeClosingDescription": "Wenn du ohne Speichern schließt, werden deine Änderungen verworfen.",

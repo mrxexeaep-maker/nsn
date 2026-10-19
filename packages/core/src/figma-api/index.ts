@@ -1,6 +1,10 @@
 import { fromUint8Array, isValid, toUint8Array } from 'js-base64'
 
-import { createConnector, freeEndpoint } from '@open-pencil/scene-graph'
+import {
+  assertEditableVariableValue,
+  createConnector,
+  freeEndpoint
+} from '@open-pencil/scene-graph'
 import type {
   GroupFitOptions,
   SceneGraph,
@@ -352,7 +356,6 @@ export class FigmaAPI implements NodeProxyHost {
   }
 
   // --- Variable/Collection CRUD ---
-
   createVariable(
     name: string,
     type: VariableType,
@@ -365,6 +368,7 @@ export class FigmaAPI implements NodeProxyHost {
   setVariableValue(variableId: string, modeId: string, value: VariableValue): void {
     const variable = this.graph.variables.get(variableId)
     if (!variable) throw new Error(`Variable "${variableId}" not found`)
+    assertEditableVariableValue(variable)
     variable.valuesByMode[modeId] = structuredClone(value)
     reconcileVariableLayouts(this.graph, { variables: [variableId] })
   }
@@ -392,7 +396,6 @@ export class FigmaAPI implements NodeProxyHost {
   }
 
   // --- Boolean Operations ---
-
   private _booleanOperation(
     operation: 'UNION' | 'SUBTRACT' | 'INTERSECT' | 'EXCLUDE',
     nodes: ReadonlyArray<BaseNode | FigmaNodeProxy>,

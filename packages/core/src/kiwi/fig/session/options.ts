@@ -7,6 +7,10 @@ export type FigReaderDiagnostic =
   | { kind: 'property'; diagnostic: Parameters<Handler<'onUnresolvedProperty'>>[0] }
   | { kind: 'assignment'; diagnostic: Parameters<Handler<'onUnresolvedAssignment'>>[0] }
   | { kind: 'binding'; diagnostic: Parameters<Handler<'onUnresolvedBinding'>>[0] }
+  | {
+      kind: 'variable-expression'
+      diagnostic: Parameters<Handler<'onUnsupportedVariableExpression'>>[0]
+    }
   | { kind: 'component'; diagnostic: Parameters<Handler<'onMissingComponent'>>[0] }
   | { kind: 'slot-content'; diagnostic: Parameters<Handler<'onMissingSlotContent'>>[0] }
 
@@ -17,7 +21,10 @@ const reported = new WeakMap<FigReaderDiagnostic[], Set<string>>()
  * Opening a file, recovering a page, and every save read records through sessions that share
  * one sink, so the same skipped record can reach it more than once.
  */
-function report(sink: FigReaderDiagnostic[], entry: FigReaderDiagnostic): void {
+export function reportReaderDiagnostic(
+  sink: FigReaderDiagnostic[],
+  entry: FigReaderDiagnostic
+): void {
   let keys = reported.get(sink)
   if (!keys) {
     keys = new Set(sink.map((existing) => JSON.stringify(existing)))
@@ -40,10 +47,17 @@ function report(sink: FigReaderDiagnostic[], entry: FigReaderDiagnostic): void {
 export function readerSessionOptions(sink: FigReaderDiagnostic[]): DocumentAssemblyOptions {
   return {
     derivedBounds: true,
-    onUnresolvedProperty: (diagnostic) => report(sink, { kind: 'property', diagnostic }),
-    onUnresolvedAssignment: (diagnostic) => report(sink, { kind: 'assignment', diagnostic }),
-    onUnresolvedBinding: (diagnostic) => report(sink, { kind: 'binding', diagnostic }),
-    onMissingComponent: (diagnostic) => report(sink, { kind: 'component', diagnostic }),
-    onMissingSlotContent: (diagnostic) => report(sink, { kind: 'slot-content', diagnostic })
+    onUnsupportedVariableExpression: (diagnostic) =>
+      reportReaderDiagnostic(sink, { kind: 'variable-expression', diagnostic }),
+    onUnresolvedProperty: (diagnostic) =>
+      reportReaderDiagnostic(sink, { kind: 'property', diagnostic }),
+    onUnresolvedAssignment: (diagnostic) =>
+      reportReaderDiagnostic(sink, { kind: 'assignment', diagnostic }),
+    onUnresolvedBinding: (diagnostic) =>
+      reportReaderDiagnostic(sink, { kind: 'binding', diagnostic }),
+    onMissingComponent: (diagnostic) =>
+      reportReaderDiagnostic(sink, { kind: 'component', diagnostic }),
+    onMissingSlotContent: (diagnostic) =>
+      reportReaderDiagnostic(sink, { kind: 'slot-content', diagnostic })
   }
 }

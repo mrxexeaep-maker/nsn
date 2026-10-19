@@ -11,10 +11,12 @@ import tokensPanelTheme from '@/theme/tokens-panel'
 /** Actions for several selected tokens, and naming a new group for the selection. */
 const {
   count,
+  canDuplicate = true,
   focusGroup = false,
   layout = 'side'
 } = defineProps<{
   count: number
+  canDuplicate?: boolean
   /** Opened from "New group…", so the group name takes focus. */
   focusGroup?: boolean
   /** `full` fills the panel behind a back button on narrow screens. */
@@ -70,7 +72,13 @@ function move() {
       </label>
     </section>
     <section :class="ui.section()">
-      <AppButton variant="ghost" size="sm" class="self-start" @click="emit('duplicate')">
+      <AppButton
+        variant="ghost"
+        size="sm"
+        class="self-start"
+        :disabled="!canDuplicate"
+        @click="emit('duplicate')"
+      >
         <template #leading><icon-lucide-copy class="size-3.5" /></template>
         {{ variables.duplicate }}
       </AppButton>

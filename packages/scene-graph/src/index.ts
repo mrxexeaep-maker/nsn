@@ -2,7 +2,7 @@
 export * from './mutation-impact'
 export * from './variables/bindings'
 export type { VariableModeFallback } from './variables'
-export { modesDefaultFirst } from './variables'
+export { modesDefaultFirst, canRemoveVariables, assertEditableVariableValue } from './variables'
 export * from './variables/token'
 export * from './plugin-data/field'
 export * from './plugin-data/fields'
@@ -60,6 +60,7 @@ export * from './statuses/workflow'
 export * from './copy'
 export {
   createDefaultNode,
+  createDefaultSourceMetadata,
   defaultStrokeAlign,
   FITTED_CONTAINER_TYPES,
   newStrokeGeometry

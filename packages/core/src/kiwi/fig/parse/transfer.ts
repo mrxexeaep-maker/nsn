@@ -94,8 +94,8 @@ export function deserializeSceneGraph(data: SerializedSceneGraph): SceneGraph {
   graph.rootId = data.rootId
   graph.nodes = new Map(data.nodes.map(([id, node]) => [id, normalizeImportedNode(node)]))
   graph.images = new Map(data.images)
-  graph.variables = new Map(data.variables)
   graph.variableCollections = new Map(data.variableCollections)
+  for (const [, variable] of data.variables) graph.addVariable(variable)
   graph.activeMode = new Map(data.activeMode)
   graph.instanceIndex = new Map(data.instanceIndex.map(([id, nodeIds]) => [id, new Set(nodeIds)]))
   // Routing finds connectors through the index the nodes it was sent without imply.

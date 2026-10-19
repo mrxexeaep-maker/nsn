@@ -1,6 +1,7 @@
 import {
   collectionPluginDataNodeChange,
   parseGuidOrNull,
+  preservedVariableRecord,
   variableAlias,
   variableMetadataNodeChange
 } from '@open-pencil/fig/node-change'
@@ -10,6 +11,8 @@ import {
   modesDefaultFirst,
   type SceneGraph,
   type SceneNode,
+  type Variable,
+  type VariableCollection,
   type VariableCollectionMode,
   type VariableValue
 } from '@open-pencil/scene-graph'
@@ -168,6 +171,47 @@ export function sequentialPositions(start = 0): () => string {
   return () => fractionalPosition(index++)
 }
 
+function checkedPreservedVariable(
+  graph: SceneGraph,
+  variable: Variable,
+  collection: VariableCollection,
+  ids: Map<string, GUID>,
+  modes: Map<string, GUID>
+): NodeChange {
+  if (!variable.unresolved) throw new Error('Expected unresolved variable')
+  const raw = variable.source?.fig.rawNodeFields
+  if (!raw || variable.source?.id !== variable.id)
+    throw new Error('Missing original unsupported variable record')
+  const original = preservedVariableRecord(variable)
+  // New independent resources may need IDs. Preserve the identities this raw value uses.
+  const preservedIds = [
+    variable.id,
+    collection.id,
+    ...collection.modes.map((mode) => mode.modeId),
+    ...variable.unresolved.dependencies
+  ]
+  if (!variable.unresolved.referencesComplete)
+    for (const [resourceId] of [...ids, ...modes])
+      if (parseGuidOrNull(resourceId)) preservedIds.push(resourceId)
+  for (const resourceId of preservedIds) {
+    const mapped = ids.get(resourceId) ?? modes.get(resourceId)
+    if (!mapped || guidToString(mapped) !== resourceId)
+      throw new Error('Cannot remap resources referenced by unsupported expressions')
+  }
+  for (const dependency of variable.unresolved.dependencies)
+    if (!graph.variables.has(dependency))
+      throw new Error('Missing resource referenced by an unsupported expression')
+  const entries = original.variableDataValues?.entries
+  if (
+    !entries?.length ||
+    entries.some(
+      (entry) => !collection.modes.some((mode) => mode.modeId === guidToString(entry.modeID))
+    )
+  )
+    throw new Error('Unsupported variable modes no longer match their collection')
+  return original
+}
+
 export function appendVariableNodeChanges(
   graph: SceneGraph,
   changes: NodeChange[],
@@ -201,6 +245,25 @@ export function appendVariableNodeChanges(
     for (const id of collection.variableIds) {
       const variable = graph.variables.get(id)
       if (!variable) continue
+      if (variable.unresolved) {
+        const original = checkedPreservedVariable(graph, variable, collection, ids, modes)
+        // Omitted current metadata means cleared, not an invitation to restore the imported value.
+        delete original.description
+        delete original.symbolDescription
+        delete original.codeSyntax
+        // Preserve its values verbatim. Only identity, placement and editable metadata are rewritten.
+        changes.push({
+          ...structuredClone(original),
+          guid: ids.get(id) ?? stringToGuid(id),
+          parentIndex: { guid: parent, position: nextPosition() },
+          name: variable.name,
+          variableSetID: collection.key
+            ? { assetRef: { key: collection.key, version: collection.version } }
+            : { guid },
+          ...variableMetadataNodeChange(variable, modeKey)
+        })
+        continue
+      }
       changes.push({
         guid: ids.get(id) ?? stringToGuid(id),
         parentIndex: { guid: parent, position: nextPosition() },
