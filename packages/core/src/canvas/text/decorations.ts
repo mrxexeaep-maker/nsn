@@ -10,6 +10,8 @@ import type {
 import { resolveRGBAForPreview } from '@open-pencil/scene-graph/color'
 
 import { outlineInk, savedGlyphInk, type InkSpan } from '#core/canvas/text/ink'
+import { COMBINING_KEYCAP, drawKeycapFrame } from '#core/canvas/text/keycap'
+import type { TextLayout } from '#core/canvas/text/layout'
 import { laidOutGlyphs, type LaidOutGlyph } from '#core/canvas/text/placed'
 import type { PreparedText } from '#core/canvas/text/preparation/cache'
 import { shownText } from '#core/text/case'
@@ -347,6 +349,24 @@ export function savedTextDecorationRects(
  * Draws laid-out text and its decorations, `y` below the node's top. The decorations are kept
  * with the prepared text, which its cache replaces when an input of the text changes.
  */
+/** The frames of the text's keycaps, which its layout leaves to be drawn, in the text's paint. */
+function drawKeycapFrames(
+  ck: CanvasKit,
+  canvas: Canvas,
+  node: SceneNode,
+  layout: TextLayout,
+  y: number,
+  paint: Paint
+): void {
+  const text = shownText(node)
+  if (!text.includes(COMBINING_KEYCAP)) return
+  for (const glyph of laidOutGlyphs(node, layout, text, y) ?? []) {
+    const character = glyph.firstCharacter
+    if (character === undefined || text[character] !== COMBINING_KEYCAP) continue
+    drawKeycapFrame(ck, canvas, glyph.x, glyph.y, glyph.fontSize, paint)
+  }
+}
+
 export function drawTextLayout(
   ck: CanvasKit,
   canvas: Canvas,
@@ -357,6 +377,7 @@ export function drawTextLayout(
 ): void {
   const layout = prepared.paragraph
   layout.draw(canvas, 0, y)
+  drawKeycapFrames(ck, canvas, node, layout, y, textPaint)
   if (!hasDecoration(node)) return
   if (prepared.decorations?.y !== y) {
     const glyphs = laidOutGlyphs(node, layout, shownText(node), y)

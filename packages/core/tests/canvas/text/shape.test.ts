@@ -108,10 +108,41 @@ describe('text shaping for saved glyphs', () => {
    */
   test('outlines every glyph of text with a character no font has', async () => {
     const shaped = expectDefined(
-      await shape({ text: 'Keys 1\ufe0f\u20e3 ok', fontSize: 40, width: 400, textAutoResize: 'NONE' }),
+      await shape({ text: 'Tamil \u0b86 ok', fontSize: 40, width: 400, textAutoResize: 'NONE' }),
       'shaped text'
     )
     expect(shaped.glyphs.every((glyph) => glyph.commands !== null)).toBe(true)
+  })
+
+  /**
+   * Figma draws a keycap as the text font's character with Noto Sans Symbols' keycap frame
+   * after it: no advance, centred where the character ends, from 0.01 em below the baseline to
+   * 0.83 em above. Measured from a keycap Figma saved.
+   */
+  test('saves a keycap as Figma does: the character, then the frame around it', async () => {
+    const shaped = expectDefined(
+      await shape({ text: 'Key 1\ufe0f\u20e3', fontSize: 100, width: 600, textAutoResize: 'NONE' }),
+      'shaped text'
+    )
+    expect(shaped.glyphs.every((glyph) => glyph.commands !== null)).toBe(true)
+    const frame = expectDefined(
+      shaped.glyphs.find((glyph) => glyph.firstCharacter === 6),
+      'keycap frame glyph'
+    )
+    const digit = expectDefined(
+      shaped.glyphs.find((glyph) => glyph.firstCharacter === 4),
+      'keycap digit glyph'
+    )
+    const bounds = (axis: 'x' | 'y') => {
+      const values = (frame.commands ?? []).flatMap((command) =>
+        command[axis] === undefined ? [] : [command[axis]]
+      )
+      return [Math.min(...values), Math.max(...values)].map((value) => Number(value.toFixed(2)))
+    }
+    expect(frame.advance).toBe(0)
+    expect(frame.x).toBeCloseTo(digit.x + digit.advance, 3)
+    expect(bounds('x')).toEqual([-42.2, 42.2])
+    expect(bounds('y')).toEqual([-83.2, 1])
   })
 
   /** An emoji sequence the font does not join is several glyphs; Figma gets the emoji once. */

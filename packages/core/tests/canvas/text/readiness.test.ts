@@ -10,8 +10,7 @@ import { fontManager } from '#core/text/fonts'
 
 /**
  * A character no font has, once no fallback is left for it, shows as the font's missing glyph
- * and leaves the rest of the text drawn: a typed keycap's mark, which Inter lacks, used to hide
- * the whole text.
+ * and leaves the rest of the text drawn; it used to hide the whole text.
  */
 describe('text readiness with characters no font has', () => {
   beforeAll(async () => {
@@ -26,8 +25,8 @@ describe('text readiness with characters no font has', () => {
     const ck = await getCanvasKit()
     const fontProvider = ck.TypefaceFontProvider.Make()
     fontManager.attachProvider(ck, fontProvider)
-    const node = createDefaultNode(() => 'keycap-text', 'TEXT', {
-      text: 'Keys 1⃣ ok',
+    const node = createDefaultNode(() => 'tamil-text', 'TEXT', {
+      text: 'Tamil \u0b86 ok',
       fontFamily: 'Inter',
       fontSize: 24,
       width: 300,

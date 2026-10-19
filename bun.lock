@@ -723,6 +723,9 @@
     },
     "tools/generate/emoji-metrics": {
       "name": "@open-pencil/emoji-metrics-tools",
+      "dependencies": {
+        "opentype.js": "^2.0.0",
+      },
       "devDependencies": {
         "@open-pencil/package-artifacts-tools": "workspace:*",
       },

@@ -4,6 +4,7 @@ import { uniq } from 'es-toolkit/array'
 import type { SceneNode } from '@open-pencil/scene-graph'
 
 import { resolveParagraphFontFamilies } from '#core/canvas/text/font-families'
+import { laidOutText } from '#core/canvas/text/keycap'
 import type { TextLayout, TextLayoutMarker } from '#core/canvas/text/layout'
 import { textFontVariations } from '#core/canvas/text/paragraph'
 import { utf16IndicesByUtf8 } from '#core/canvas/text/utf8'
@@ -156,7 +157,8 @@ function runOutlineSource(
   const offsets = Array.from(run.offsets, characterAt)
   const start = Math.min(...offsets)
   const end = Math.max(...offsets)
-  const characters = drawnCharacters(text, run, offsets, start, end)
+  // The run drew the text as laid out, a keycap mark as a zero-width space.
+  const characters = drawnCharacters(laidOutText(text), run, offsets, start, end)
   for (const source of candidateSources(fontAt(node, start))) {
     if (!source.covers(characters)) continue
     if (characters === '' || drawsOwnGlyph(source, run, text, characterAt)) return source

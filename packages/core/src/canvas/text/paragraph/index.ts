@@ -14,6 +14,7 @@ import { resolveRGBAForPreview } from '@open-pencil/scene-graph/color'
 import { resolveNodeTextDirection } from '@open-pencil/scene-graph/text-direction'
 
 import { resolveParagraphFontFamilies } from '#core/canvas/text/font-families'
+import { laidOutText } from '#core/canvas/text/keycap'
 import {
   pushParagraphStyle,
   type ParagraphPaintStyle,
@@ -181,7 +182,7 @@ function addParagraphText(
   start: number,
   end: number
 ): void {
-  builder.addText(shownTextSlice(node, start, end))
+  builder.addText(laidOutText(shownTextSlice(node, start, end)))
 }
 
 function addStyledRuns(

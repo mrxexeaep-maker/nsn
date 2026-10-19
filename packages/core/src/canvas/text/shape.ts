@@ -13,6 +13,7 @@ import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 import { buildParagraph, textVerticalOffset } from '#core/canvas/text'
 import { textDecorationRects, type DecoratedGlyph } from '#core/canvas/text/decorations'
 import { outlineInk, savedGlyphInk } from '#core/canvas/text/ink'
+import { COMBINING_KEYCAP, keycapFrame } from '#core/canvas/text/keycap'
 import { characterFamily, laidOutGlyphs, type LaidOutGlyph } from '#core/canvas/text/placed'
 import { getCanvasKit } from '#core/canvaskit'
 import { shownText } from '#core/text/case'
@@ -78,14 +79,21 @@ function savedEmoji(node: SceneNode, text: string, glyph: LaidOutGlyph): SavedEm
   return { codePoints, end }
 }
 
-/** A glyph's saved outline: an emoji's placeholder, nothing inside one, or its font's outline. */
+/**
+ * A glyph's saved outline: an emoji's placeholder, nothing inside one, a keycap's frame, or its
+ * font's outline.
+ */
 function savedOutline(
   glyph: LaidOutGlyph,
+  text: string,
   emoji: SavedEmoji | undefined,
   insideEmoji: boolean
 ): OutlineCommand[] | null {
   if (insideEmoji) return []
   if (emoji) return emojiPlaceholder(glyph.fontSize)
+  const character = glyph.firstCharacter
+  if (character !== undefined && text[character] === COMBINING_KEYCAP)
+    return keycapFrame(glyph.fontSize)
   return glyph.source?.outline(glyph.id, glyph.fontSize) ?? null
 }
 
@@ -125,7 +133,7 @@ export function shapeText(
       const emoji = insideEmoji ? undefined : savedEmoji(node, text, glyph)
       if (emoji && start !== undefined) emojiRange = { start, end: emoji.end }
       return {
-        commands: savedOutline(glyph, emoji, insideEmoji),
+        commands: savedOutline(glyph, text, emoji, insideEmoji),
         x: glyph.x,
         y: glyph.y,
         fontSize: glyph.fontSize,

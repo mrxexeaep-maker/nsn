@@ -264,11 +264,10 @@ test('typed emoji take a 1 em square and draw their image', async () => {
 })
 
 /**
- * A character no font has, such as the combining keycap mark Inter lacks, shows as the font's
- * missing-glyph box once no fallback is left, and the rest of the text draws; the whole text
- * used to disappear.
+ * Figma draws a keycap as the text font's character with Noto Sans Symbols' keycap frame after
+ * it, in the text's colour; the whole text used to disappear, as Inter has no keycap mark.
  */
-test('typed keycaps draw their text with a missing-glyph box', async () => {
+test('typed keycaps draw their character in a keycap frame', async () => {
   await editor.page.evaluate(() => {
     const store = window.openPencil?.getStore?.()
     if (!store) throw new Error('Missing editor')
