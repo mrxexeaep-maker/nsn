@@ -8,6 +8,7 @@ import { paintBooleanOperation } from '#core/canvas/boolean'
 import { renderMaskedChildIds } from '#core/canvas/masks'
 import type { SkiaRenderer } from '#core/canvas/renderer'
 import { nodeHasRadius, nodeHasSmoothCorners } from '#core/canvas/shapes'
+import { strokeAlignShare } from '#core/canvas/strokes/sides'
 import { nodeOrientationMatrix } from '#core/geometry'
 
 /**
@@ -165,16 +166,9 @@ function drawChildSilhouettes(
   }
 }
 
-/** The share of a stroke's weight that lies outside the shape it outlines. */
-export function alignShare(align: Stroke['align']): number {
-  if (align === 'OUTSIDE') return 1
-  if (align === 'CENTER') return 0.5
-  return 0
-}
-
 /** How far a stroke reaches past the shape it outlines. */
 export function strokeOutset(stroke: Stroke): number {
-  return stroke.weight * alignShare(stroke.align)
+  return stroke.weight * strokeAlignShare(stroke.align)
 }
 
 function strokeOverflow(node: SceneNode): number {

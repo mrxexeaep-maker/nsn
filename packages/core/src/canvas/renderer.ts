@@ -407,11 +407,7 @@ export class SkiaRenderer {
     node: SceneNode,
     stroke: Stroke
   ) => void
-  declare drawIndividualSideStrokes: (
-    canvas: Canvas,
-    node: SceneNode,
-    align: 'INSIDE' | 'CENTER' | 'OUTSIDE'
-  ) => void
+  declare drawIndividualSideStrokes: (canvas: Canvas, node: SceneNode, stroke: Stroke) => void
   declare strokeNodeShape: (canvas: Canvas, node: SceneNode, paint: Paint) => void
   declare makeNodeShapePath: (node: SceneNode, rect: Float32Array, hasRadius: boolean) => Path
   declare makePolygonPath: (node: SceneNode) => Path

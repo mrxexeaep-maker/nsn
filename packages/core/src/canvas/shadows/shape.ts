@@ -11,8 +11,9 @@ import {
   nodeHasRadius,
   nodeHasSmoothCorners
 } from '#core/canvas/shapes'
+import { sideStrokeRRects, strokeAlignShare } from '#core/canvas/strokes/sides'
 
-import { alignShare, fillsCastShadow, paintCastsShadow } from './silhouette'
+import { fillsCastShadow, paintCastsShadow } from './silhouette'
 
 function isPathShape(node: SceneNode): boolean {
   return node.type === 'POLYGON' || node.type === 'STAR' || node.type === 'VECTOR'
@@ -50,28 +51,29 @@ export interface StrokeOutline {
   inset: Sides
   /** Every side reaches as far, so the outline is the shape itself grown. */
   even: boolean
+  align: Stroke['align']
 }
 
 function sideOutline([top, right, bottom, left]: Sides, align: Stroke['align']): StrokeOutline {
-  const share = alignShare(align)
+  const share = strokeAlignShare(align)
   return {
     outset: [top * share, right * share, bottom * share, left * share],
     inset: [top * (1 - share), right * (1 - share), bottom * (1 - share), left * (1 - share)],
-    even: false
+    even: false,
+    align
   }
 }
 
 /**
  * For a rectangle, ellipse, or frame with at most one plain stroke, the outline that stroke
- * gives it; null when the outline is not the shape grown, as with dashes, a sharp corner the
- * stroke does not miter, or sides of their own weights on rounded corners. Measured on Figma
- * 126, sides of their own weights each push their side out, with the corners between them
- * filled, but a shadow with a spread grows every side by the layer's single stroke weight.
+ * gives it; null when the outline is not the shape grown, as with dashes or a sharp corner the
+ * stroke does not miter. Sides of their own weights give the ring of `sideStrokeRRects`, but
+ * measured on Figma 126, a shadow with a spread grows every side by the layer's single weight.
  */
 export function regularStrokeOutline(node: SceneNode, spread: number): StrokeOutline | null {
   if (!OUTLINE_SHAPE_TYPES.has(node.type)) return null
   const strokes = node.strokes.filter(paintCastsShadow)
-  if (strokes.length === 0) return { outset: evenSides(0), inset: evenSides(0), even: true }
+  if (strokes.length === 0) return evenOutline(0, 'INSIDE')
   const [stroke] = strokes
   if (strokes.length > 1 || stroke.dashPattern?.length) return null
   const sharp = node.type !== 'ELLIPSE' && !nodeHasRadius(node)
@@ -83,7 +85,6 @@ export function regularStrokeOutline(node: SceneNode, spread: number): StrokeOut
       node.borderLeftWeight
     ]
     if (sides.every((weight) => weight === sides[0])) return evenOutline(sides[0], stroke.align)
-    if (!sharp) return null
     if (spread !== 0) return evenOutline(node.strokeWeight, stroke.align)
     return sideOutline(sides, stroke.align)
   }
@@ -92,8 +93,8 @@ export function regularStrokeOutline(node: SceneNode, spread: number): StrokeOut
 }
 
 function evenOutline(weight: number, align: Stroke['align']): StrokeOutline {
-  const outset = weight * alignShare(align)
-  return { outset: evenSides(outset), inset: evenSides(weight - outset), even: true }
+  const outset = weight * strokeAlignShare(align)
+  return { outset: evenSides(outset), inset: evenSides(weight - outset), even: true, align }
 }
 
 /** The node's rectangle, rounded rectangle, or ellipse grown by `offset`, or shrunk when negative. */
@@ -109,21 +110,6 @@ function grownShapePath(r: SkiaRenderer, node: SceneNode, offset: number): Path 
   return builder.detachAndDelete()
 }
 
-/** The node's rectangle with each side pushed out by its own distance plus `spread`. */
-function sidesRect(
-  r: SkiaRenderer,
-  node: SceneNode,
-  [top, right, bottom, left]: Sides,
-  spread = 0
-) {
-  return r.ltrb(
-    -left - spread,
-    -top - spread,
-    node.width + right + spread,
-    node.height + bottom + spread
-  )
-}
-
 /** The outline the node's stroke gives it, grown further by `spread`. */
 function strokeOutlinePath(
   r: SkiaRenderer,
@@ -133,7 +119,7 @@ function strokeOutlinePath(
 ): Path {
   if (outline.even) return grownShapePath(r, node, outline.outset[0] + spread)
   const builder = new r.ck.PathBuilder()
-  builder.addRect(sidesRect(r, node, outline.outset, spread))
+  builder.addRRect(sideStrokeRRects(node, outline.align, spread).outer)
   return builder.detachAndDelete()
 }
 
@@ -256,13 +242,14 @@ export function drawOutlineDropShadow(
 ): void {
   drawMaskShadow(r, canvas, effect, blendMode, () => {
     const offset = outline.outset[0] + spread
-    const rect = sidesRect(r, node, outline.outset, spread)
-    if (outline.even && node.type !== 'ELLIPSE' && nodeHasSmoothCorners(node)) {
+    const rect = r.ltrb(-offset, -offset, node.width + offset, node.height + offset)
+    if (!outline.even) {
+      canvas.drawRRect(sideStrokeRRects(node, outline.align, spread).outer, r.auxFill)
+    } else if (node.type !== 'ELLIPSE' && nodeHasSmoothCorners(node)) {
       const path = strokeOutlinePath(r, node, outline, spread)
       canvas.drawPath(path, r.auxFill)
       path.delete()
-    } else if (!outline.even) canvas.drawRect(rect, r.auxFill)
-    else if (node.type === 'ELLIPSE') canvas.drawOval(rect, r.auxFill)
+    } else if (node.type === 'ELLIPSE') canvas.drawOval(rect, r.auxFill)
     else if (nodeHasRadius(node)) canvas.drawRRect(r.makeRRectWithSpread(node, offset), r.auxFill)
     else canvas.drawRect(rect, r.auxFill)
   })
@@ -279,18 +266,20 @@ export function drawRingDropShadow(
   blendMode: BlendMode
 ): void {
   const builder = new r.ck.PathBuilder()
-  const outer = strokeOutlinePath(r, node, outline, spread)
-  builder.addPath(outer)
-  outer.delete()
-  const [top, right, bottom, left] = outline.inset.map((inset) => inset + spread)
-  if (left + right < node.width && top + bottom < node.height) {
-    if (outline.even) {
-      const inner = grownShapePath(r, node, -top)
+  if (outline.even) {
+    const outer = strokeOutlinePath(r, node, outline, spread)
+    builder.addPath(outer)
+    outer.delete()
+    const inset = outline.inset[0] + spread
+    if (inset * 2 < Math.min(node.width, node.height)) {
+      const inner = grownShapePath(r, node, -inset)
       builder.addPath(inner)
       inner.delete()
-    } else {
-      builder.addRect(r.ltrb(left, top, node.width - right, node.height - bottom))
     }
+  } else {
+    const { outer, inner } = sideStrokeRRects(node, outline.align, spread)
+    builder.addRRect(outer)
+    if (inner) builder.addRRect(inner)
   }
   const ring = builder.detachAndDelete()
   ring.setFillType(r.ck.FillType.EvenOdd)

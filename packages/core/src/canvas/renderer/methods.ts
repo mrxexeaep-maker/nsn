@@ -19,6 +19,7 @@ import * as SceneRender from '#core/canvas/scene'
 import { type EffectPass, renderEffects as renderShadowEffects } from '#core/canvas/shadows'
 import * as Shapes from '#core/canvas/shapes'
 import * as Strokes from '#core/canvas/strokes'
+import { drawIndividualSideStrokes } from '#core/canvas/strokes/sides'
 import type { TextEditor } from '#core/text/editor'
 
 const rendererMethods: ThisType<SkiaRenderer> = {
@@ -314,12 +315,8 @@ const rendererMethods: ThisType<SkiaRenderer> = {
     Strokes.drawRRectStrokeWithAlign(this, canvas, rrect, node, stroke)
   },
 
-  drawIndividualSideStrokes(
-    canvas: Canvas,
-    node: SceneNode,
-    align: 'INSIDE' | 'CENTER' | 'OUTSIDE'
-  ): void {
-    Strokes.drawIndividualSideStrokes(this, canvas, node, align)
+  drawIndividualSideStrokes(canvas: Canvas, node: SceneNode, stroke: Stroke): void {
+    drawIndividualSideStrokes(this, canvas, node, stroke)
   },
 
   strokeNodeShape(canvas: Canvas, node: SceneNode, paint: Paint): void {

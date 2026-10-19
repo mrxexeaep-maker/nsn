@@ -487,7 +487,7 @@ export function renderSection(
   forVisibleStrokes(r, node, graph, (stroke, color) => {
     configureStrokePaint(r, node, stroke, color)
 
-    if (node.independentStrokeWeights) r.drawIndividualSideStrokes(canvas, node, stroke.align)
+    if (node.independentStrokeWeights) r.drawIndividualSideStrokes(canvas, node, stroke)
     else r.drawRRectStrokeWithAlign(canvas, rrect, node, stroke)
   })
 }
@@ -757,7 +757,7 @@ function drawRegularStroke(
   }
 
   if (node.independentStrokeWeights && r.isRectangularType(node.type)) {
-    r.drawIndividualSideStrokes(canvas, node, stroke.align)
+    r.drawIndividualSideStrokes(canvas, node, stroke)
   } else {
     r.drawStrokeWithAlign(canvas, node, rect, hasRadius, stroke.align)
   }
