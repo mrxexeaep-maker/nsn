@@ -57,10 +57,11 @@ export function drawRegionHatch(
     if (!region) continue
     const builder = new r.ck.PathBuilder()
     for (const loop of region.loops) addLoopToPath(builder, loop, segments, vertices)
-    builder.setFillType(
+    const path = builder.detachAndDelete()
+    // On the detached path: the builder's setFillType returns a copy that nothing deletes.
+    path.setFillType(
       region.windingRule === 'EVENODD' ? r.ck.FillType.EvenOdd : r.ck.FillType.Winding
     )
-    const path = builder.detachAndDelete()
     // Lines only where the region is on screen: a large region would otherwise draw thousands of
     // invisible ones on every hover repaint.
     const [pathLeft, pathTop, pathRight, pathBottom] = path.getBounds()
