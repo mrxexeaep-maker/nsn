@@ -158,13 +158,15 @@ export function createDesignCheck(editor: Editor, state: AppEditorState) {
       const focused = focusedIssueId.value
       if (focused && !current.issues.some(({ id }) => id === focused)) focusedIssueId.value = null
     })
-    // The switch itself settles the new page's layout, which changes the scene again, so the
-    // check waits for that instead of running once inside the switch and once after it.
+    // A page nothing changed on shows its last result at once. The check still runs once the
+    // switch settles, rather than inside it, since variables can change what a page reports.
     watch(
       () => state.currentPageId,
-      () => {
+      (pageId) => {
         focusedIssueId.value = null
         editor.setDesignIssueHighlight(null)
+        const cached = enabled.value ? pages.fresh(pageId) : null
+        if (cached) snapshot.value = { pageId, issues: [...cached] }
         publishMarkers()
         if (enabled.value) schedule()
       }

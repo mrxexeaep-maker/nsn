@@ -34,6 +34,19 @@ function twoPagesWithIssues() {
   return { store, first, second, firstText, secondText, checkedPages, markedNodes }
 }
 
+/** The editor's own switch; the app's adds a progress overlay with timers of its own. */
+async function switchPage(store: ReturnType<typeof createEditorStore>, pageId: string) {
+  const prepared = await store.preparePage(pageId)
+  if (prepared) store.commitPageSwitch(prepared)
+  await nextTick()
+}
+
+/** Lets the check scheduled after a change run. */
+async function settleCheck() {
+  jest.advanceTimersByTime(1000)
+  await nextTick()
+}
+
 describe('the design check across a page switch', () => {
   test('checks the new page once, after the switch', async () => {
     jest.useFakeTimers()
@@ -42,17 +55,12 @@ describe('the design check across a page switch', () => {
     expect(store.designCheck.snapshot.value?.pageId).toBe(first.id)
     expect(markedNodes()).toEqual([firstText.id])
 
-    // The editor's own switch; the app's adds a progress overlay with timers of its own.
-    const prepared = await store.preparePage(second.id)
-    if (prepared) store.commitPageSwitch(prepared)
-    expect(store.state.currentPageId).toBe(second.id)
-    await nextTick()
+    await switchPage(store, second.id)
     // The previous page's markers would point at layers that are no longer shown.
     expect(markedNodes()).toEqual([])
     expect(checkedPages).toEqual([])
 
-    jest.advanceTimersByTime(1000)
-    await nextTick()
+    await settleCheck()
     expect(checkedPages).toEqual([second.id])
     expect(markedNodes()).toEqual([secondText.id])
   })
@@ -77,6 +85,38 @@ describe('the design check across a page switch', () => {
     expect(checkedPages).toEqual([second.id])
     expect(store.designCheck.snapshot.value?.issues.map(({ id }) => id)).toContain(issue.id)
     expect(store.designCheck.focusedIssueId.value).toBe(issue.id)
+  })
+})
+
+describe('a page visited before', () => {
+  test('shows its last result at once when nothing on it changed', async () => {
+    jest.useFakeTimers()
+    const { store, first, second, secondText, markedNodes } = twoPagesWithIssues()
+    await switchPage(store, second.id)
+    await settleCheck()
+    await switchPage(store, first.id)
+    await settleCheck()
+
+    await switchPage(store, second.id)
+
+    // Before the check that follows the switch runs.
+    expect(markedNodes()).toEqual([secondText.id])
+  })
+
+  test('waits for a new check when it changed while away', async () => {
+    jest.useFakeTimers()
+    const { store, first, second, secondText, markedNodes } = twoPagesWithIssues()
+    await switchPage(store, second.id)
+    await settleCheck()
+    await switchPage(store, first.id)
+    await settleCheck()
+    store.updateNode(secondText.id, { fontSize: 16 })
+
+    await switchPage(store, second.id)
+    expect(markedNodes()).toEqual([])
+
+    await settleCheck()
+    expect(markedNodes()).toEqual([])
   })
 })
 
