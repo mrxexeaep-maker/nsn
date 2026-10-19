@@ -152,12 +152,16 @@ describe('Cloud document rooms, identity', () => {
     }
     const first = open(grace)
     const second = open(again)
-    await until(() => first.session.peers.value.length > 0)
+    await until(() => first.session.peers.value.length > 0 && second.session.peers.value.length > 0)
     const own = (room: typeof first) => room.session.presence().get(room.session.clientId)?.user
     expect(own(first)).toMatchObject({ name: 'Grace Hopper' })
     expect(own(second)).toEqual(own(first))
-    // Others see the name on the ticket, which the server takes from the same account.
-    expect(first.session.peers.value[0]).toMatchObject({ name: 'Grace Hopper' })
+    // Each tab sees the other as it presents itself; the name comes from the ticket, which the
+    // server takes from the same account.
+    const seen = (room: typeof first) =>
+      room.session.peers.value.map((peer) => ({ name: peer.name, color: peer.color }))
+    expect([own(second)]).toEqual(seen(first))
+    expect([own(first)]).toEqual(seen(second))
   })
 })
 
