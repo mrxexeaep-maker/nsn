@@ -1,5 +1,7 @@
 import type {
   BlendMode,
+  ConnectorLineType,
+  ConnectorMagnet,
   ConstraintType,
   MaskType,
   SceneNode,
@@ -63,7 +65,10 @@ export const STROKE_CAP = lowercaseEnum<StrokeCap>([
   'ROUND',
   'SQUARE',
   'ARROW_LINES',
-  'ARROW_EQUILATERAL'
+  'ARROW_EQUILATERAL',
+  'TRIANGLE_FILLED',
+  'DIAMOND_FILLED',
+  'CIRCLE_FILLED'
 ])
 export const STROKE_JOIN = lowercaseEnum<StrokeJoin>(['MITER', 'BEVEL', 'ROUND'])
 export const STROKE_ALIGN = lowercaseEnum<Stroke['align']>(['INSIDE', 'CENTER', 'OUTSIDE'])
@@ -121,6 +126,11 @@ export const STICKY_TEXT_SIZE = jsxEnum<StickyTextSize>({
   extraLarge: 'extraLarge',
   huge: 'huge'
 })
+export const CONNECTOR_LINE = lowercaseEnum<ConnectorLineType>(['ELBOWED', 'STRAIGHT', 'CURVED'])
+/** The sides a `<Connector>` end attaches by; the other magnets come only from files. */
+export const CONNECTOR_SIDE = lowercaseEnum<
+  Extract<ConnectorMagnet, 'AUTO' | 'TOP' | 'RIGHT' | 'BOTTOM' | 'LEFT' | 'CENTER'>
+>(['AUTO', 'TOP', 'RIGHT', 'BOTTOM', 'LEFT', 'CENTER'])
 
 /** The props whose values are one of an enum's spellings, for checking what JSX passes. */
 export const ENUM_PROPS: Readonly<Partial<Record<string, JSXEnum<string>>>> = {
@@ -136,5 +146,10 @@ export const ENUM_PROPS: Readonly<Partial<Record<string, JSXEnum<string>>>> = {
   textDecoration: TEXT_DECORATION,
   textDecorationStyle: TEXT_DECORATION_STYLE,
   textCase: TEXT_CASE,
-  textSize: STICKY_TEXT_SIZE
+  textSize: STICKY_TEXT_SIZE,
+  line: CONNECTOR_LINE,
+  fromSide: CONNECTOR_SIDE,
+  toSide: CONNECTOR_SIDE,
+  startCap: STROKE_CAP,
+  endCap: STROKE_CAP
 }

@@ -15,6 +15,8 @@ export const menuMessageDefaults = {
   save: 'Save',
   saveAs: 'Save as…',
   saveTo: 'Save to…',
+  showVersionHistory: 'Show version history',
+  saveToVersionHistory: 'Save to version history…',
   exportSelection: 'Export selection…',
   exportSelectionAsPNG: 'Export selection as PNG',
   exportSelectionAsSVG: 'Export selection as SVG',
@@ -65,6 +67,8 @@ export const menuMessageDefaults = {
 
   pasteHere: 'Paste here',
   pasteToReplace: 'Paste to replace',
+  copyProperties: 'Copy properties',
+  pasteProperties: 'Paste properties',
   renameSelection: 'Rename selection…',
   copyPasteAs: 'Copy/Paste as',
   copyAsText: 'Copy as text',

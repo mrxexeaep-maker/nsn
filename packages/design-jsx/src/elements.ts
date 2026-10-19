@@ -4,6 +4,8 @@ import type { NodeType } from '@open-pencil/scene-graph'
 
 import { REKA_ELEMENTS, rekaRole } from './behaviours'
 import {
+  DESIGN_JSX_CONNECTOR_LAYER_PROPERTY_NAMES,
+  DESIGN_JSX_CONNECTOR_PROPERTY_NAMES,
   DESIGN_JSX_PARAGRAPH_PROPERTY_NAMES,
   DESIGN_JSX_SPAN_PROPERTY_NAMES,
   DESIGN_JSX_STICKY_LAYER_PROPERTY_NAMES,
@@ -160,6 +162,14 @@ export const DESIGN_JSX_ELEMENTS: DesignJSXElementDefinition[] = [
     description: 'A FigJam sticky note; its text is the body.',
     props: [...DESIGN_JSX_STICKY_PROPERTY_NAMES, ...DESIGN_JSX_STICKY_LAYER_PROPERTY_NAMES],
     writes: ['STICKY']
+  },
+  {
+    name: 'Connector',
+    runtimeType: 'connector',
+    description:
+      'A FigJam connector between two layers of the same JSX, named by `from` and `to`, or points.',
+    props: [...DESIGN_JSX_CONNECTOR_PROPERTY_NAMES, ...DESIGN_JSX_CONNECTOR_LAYER_PROPERTY_NAMES],
+    writes: ['CONNECTOR']
   },
   ...rekaElementDefinitions()
 ]

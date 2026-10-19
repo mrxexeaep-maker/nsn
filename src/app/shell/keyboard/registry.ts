@@ -5,7 +5,12 @@ import { onScopeDispose } from 'vue'
 import { editorCommandMetadata } from '@open-pencil/vue'
 import type { EditorCommandId } from '@open-pencil/vue'
 
+import { isCloudBinding, openVersionDialog } from '@/app/cloud/integration'
 import { useComments } from '@/app/comments/use'
+import {
+  copySelectionProperties,
+  pasteClipboardProperties
+} from '@/app/editor/clipboard/properties'
 import { requestRenameSelection } from '@/app/editor/selection/rename-dialog'
 import { TOOL_SHORTCUTS } from '@/app/editor/session'
 import { openSettingsDialog } from '@/app/settings/dialog'
@@ -167,6 +172,16 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
       'selection.flipVertical'
     ),
     {
+      id: 'copy-properties',
+      keys: '$mod+Alt+KeyC',
+      run: ({ store }) => void copySelectionProperties(store)
+    },
+    {
+      id: 'paste-properties',
+      keys: '$mod+Alt+KeyV',
+      run: ({ store }) => void pasteClipboardProperties(store)
+    },
+    {
       id: 'export-selection-png',
       keys: appMenuTinykeysShortcut('export-selection') ?? '$mod+Shift+KeyE',
       run: ({ actions }) => actions.exportSelectionPNG()
@@ -175,6 +190,13 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
       id: 'save-as',
       keys: appMenuTinykeysShortcut('save-as') ?? '$mod+Shift+KeyS',
       run: ({ store }) => void store.saveFigFileAs()
+    },
+    {
+      id: 'save-version',
+      keys: appMenuTinykeysShortcut('save-version') ?? '$mod+Alt+KeyS',
+      run: ({ store }) => {
+        if (isCloudBinding(store.getStorageBinding())) openVersionDialog(store)
+      }
     },
     ...commandShortcuts('selection.ungroup', 'edit.redo'),
     {

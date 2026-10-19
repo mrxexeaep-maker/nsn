@@ -37,6 +37,8 @@
   "underline": "下划线",
   "pasteHere": "粘贴到这里",
   "pasteToReplace": "粘贴并替换",
+  "copyProperties": "复制属性",
+  "pasteProperties": "粘贴属性",
   "copyPasteAs": "复制/粘贴为",
   "copyAsText": "复制为文本",
   "copyAsSVG": "复制为 SVG",
@@ -78,5 +80,7 @@
   "exportSelectionAsFig": "将所选内容导出为 .fig",
   "togglePreview": "预览",
   "browseFiles": "浏览文件…",
-  "saveTo": "保存到…"
+  "saveTo": "保存到…",
+  "showVersionHistory": "显示版本历史",
+  "saveToVersionHistory": "保存到版本历史…"
 }

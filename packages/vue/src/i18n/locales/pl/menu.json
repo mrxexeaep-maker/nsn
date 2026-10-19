@@ -37,6 +37,8 @@
   "underline": "Podkreślenie",
   "pasteHere": "Wklej tutaj",
   "pasteToReplace": "Wklej, aby zastąpić",
+  "copyProperties": "Kopiuj właściwości",
+  "pasteProperties": "Wklej właściwości",
   "copyPasteAs": "Kopiuj/Wklej jako",
   "copyAsText": "Kopiuj jako tekst",
   "copyAsSVG": "Kopiuj jako SVG",
@@ -78,5 +80,7 @@
   "exportSelectionAsFig": "Eksportuj zaznaczenie jako .fig",
   "togglePreview": "Podgląd",
   "browseFiles": "Przeglądaj pliki…",
-  "saveTo": "Zapisz w…"
+  "saveTo": "Zapisz w…",
+  "showVersionHistory": "Pokaż historię wersji",
+  "saveToVersionHistory": "Zapisz w historii wersji…"
 }

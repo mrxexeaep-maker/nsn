@@ -165,6 +165,8 @@ export class SkiaRenderer {
   sceneBackingLastViewportEventAt = 0
   navigationPhase: EditorState['navigation']['phase'] = 'idle'
   navigationGeneration = 0
+  /** The document is read-only: selections draw without handles to drag. */
+  readOnly = false
   tiledSceneEnabled = false
   /**
    * What an empty sticky note shows while it is edited on this canvas, in the interface language;
@@ -300,6 +302,7 @@ export class SkiaRenderer {
   declare getRotatedCorners: (node: SceneNode, abs: Vector) => Vector[]
   declare drawHandle: (canvas: Canvas, x: number, y: number) => void
   declare drawSnapGuides: (canvas: Canvas, guides?: SnapGuide[]) => void
+  declare drawSnapMarks: (canvas: Canvas, guides?: SnapGuide[]) => void
   declare drawMarquee: (canvas: Canvas, marquee?: Rect | null) => void
   declare drawFlashes: (canvas: Canvas, graph: SceneGraph) => void
   declare drawLayoutInsertIndicator: (

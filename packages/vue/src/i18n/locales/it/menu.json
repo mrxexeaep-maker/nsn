@@ -37,6 +37,8 @@
   "underline": "Sottolineato",
   "pasteHere": "Incolla qui",
   "pasteToReplace": "Incolla per sostituire",
+  "copyProperties": "Copia proprietà",
+  "pasteProperties": "Incolla proprietà",
   "copyPasteAs": "Copia/Incolla come",
   "copyAsText": "Copia come testo",
   "copyAsSVG": "Copia come SVG",
@@ -78,5 +80,7 @@
   "exportSelectionAsFig": "Esporta selezione come .fig",
   "togglePreview": "Anteprima",
   "browseFiles": "Sfoglia file…",
-  "saveTo": "Salva in…"
+  "saveTo": "Salva in…",
+  "showVersionHistory": "Mostra cronologia versioni",
+  "saveToVersionHistory": "Salva nella cronologia versioni…"
 }
