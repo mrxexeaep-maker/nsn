@@ -115,14 +115,15 @@ export function shapeText(
     const metrics = paragraph.getLineMetrics()
     const characterOffsets: Array<number | undefined> = Array.from({ length: text.length })
     // A sequence the font does not join is several glyphs: the first stands for the emoji, and
-    // the rest keep their place and draw nothing.
-    let emojiEnd = 0
+    // the rest keep their place and draw nothing. Glyphs come in visual order, so in
+    // right-to-left text a character before the emoji can follow it: the whole range counts.
+    let emojiRange = { start: 0, end: 0 }
     const glyphs: ShapedTextGlyph[] = placed.map((glyph) => {
       const start = glyph.firstCharacter
       if (start !== undefined) characterOffsets[start] ??= glyph.x - glyph.lineLeft
-      const insideEmoji = start !== undefined && start < emojiEnd
+      const insideEmoji = start !== undefined && start > emojiRange.start && start < emojiRange.end
       const emoji = insideEmoji ? undefined : savedEmoji(node, text, glyph)
-      if (emoji) emojiEnd = emoji.end
+      if (emoji && start !== undefined) emojiRange = { start, end: emoji.end }
       return {
         commands: savedOutline(glyph, emoji, insideEmoji),
         x: glyph.x,

@@ -134,6 +134,33 @@ describe('text shaping for saved glyphs', () => {
   })
 
   /**
+   * Glyphs come in visual order, so in right-to-left text a letter before an emoji can follow
+   * it; that letter keeps its outline.
+   */
+  test('keeps the outlines of letters an emoji precedes in right-to-left text', async () => {
+    const metrics = expectDefined(
+      await fontManager.fetchBundledFont('/OpenPencilEmojiMetrics-Regular.ttf'),
+      'bundled emoji metrics font'
+    )
+    fontManager.markLoaded(EMOJI_METRICS_FAMILY, 'Regular', metrics)
+    const shaped = expectDefined(
+      await shape({
+        text: '\u05d0\u{1f600}\u05d1',
+        textDirection: 'RTL',
+        fontSize: 40,
+        width: 400,
+        textAutoResize: 'NONE'
+      }),
+      'shaped text'
+    )
+    // Inter has no Hebrew: each letter is the missing glyph's box, an outline all the same.
+    for (const character of [0, 3]) {
+      const glyph = shaped.glyphs.find((candidate) => candidate.firstCharacter === character)
+      expect(glyph?.commands?.length).toBeGreaterThan(1)
+    }
+  })
+
+  /**
    * Characters the shaper draws as nothing, tag characters among them, take two UTF-16 units
    * past the Basic Multilingual Plane; they must not cost the letters around them their outlines.
    */
