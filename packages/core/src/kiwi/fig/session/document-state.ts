@@ -1,7 +1,11 @@
 import { createFigDocumentSession, type FigSessionCheckpoint } from '@open-pencil/fig'
 import type { SceneGraph } from '@open-pencil/scene-graph'
 
-import { readerSessionOptions, type FigReaderDiagnostic } from '#core/kiwi/fig/session/options'
+import {
+  readerSessionOptions,
+  reportReaderDiagnostic,
+  type FigReaderDiagnostic
+} from '#core/kiwi/fig/session/options'
 
 /**
  * Per-graph reader state: the archive bytes, the live session or its checkpoint, and the
@@ -22,9 +26,10 @@ const states = new WeakMap<SceneGraph, ReaderState>()
 export function registerReaderRecovery(
   graph: SceneGraph,
   bytes: ArrayBuffer,
-  checkpoint: FigSessionCheckpoint
+  checkpoint: FigSessionCheckpoint,
+  diagnostics: FigReaderDiagnostic[] = []
 ): void {
-  states.set(graph, { bytes, checkpoint, diagnostics: [] })
+  states.set(graph, { bytes, checkpoint, diagnostics })
 }
 
 export function registerReaderSession(
@@ -36,6 +41,18 @@ export function registerReaderSession(
 }
 
 /** Records skipped while opening, recovering, or exporting this graph's document. */
+export function appendReaderDiagnostics(
+  graph: SceneGraph,
+  diagnostics: readonly FigReaderDiagnostic[]
+): void {
+  let state = states.get(graph)
+  if (!state) {
+    state = { diagnostics: [], complete: true }
+    states.set(graph, state)
+  }
+  for (const diagnostic of diagnostics) reportReaderDiagnostic(state.diagnostics, diagnostic)
+}
+
 export function readerDiagnostics(graph: SceneGraph): readonly FigReaderDiagnostic[] {
   return states.get(graph)?.diagnostics ?? []
 }

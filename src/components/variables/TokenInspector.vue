@@ -61,13 +61,14 @@ const emit = defineEmits<{
   remove: []
 }>()
 
-const { variables } = useI18n()
+const { variables, files } = useI18n()
 const ui = computed(() => tv(tokensPanelTheme)({ layout }))
 /**
  * A copy per list refresh: the graph edits a variable in place, so the same object coming back
  * would not tell the fields an inline rename or an undo changed it.
  */
 const variable = computed(() => ({ ...row.variable }))
+const editableModes = computed(() => (variable.value.unresolved ? [] : collection.modes))
 
 const SCOPE_MESSAGES: Partial<Record<VariableScope, () => string>> = {
   ALL_FILLS: () => variables.value.scopeAllFills,
@@ -305,7 +306,10 @@ function cssNameDone(event: KeyboardEvent) {
 
     <section :class="ui.section()">
       <h3 :class="ui.sectionTitle()">{{ singleMode ? variables.value : variables.values }}</h3>
-      <div v-for="mode in collection.modes" :key="mode.modeId" :class="ui.field()">
+      <span v-if="variable.unresolved" :class="ui.hint()">{{
+        files.unsupportedExpressionValue
+      }}</span>
+      <div v-for="mode in editableModes" :key="mode.modeId" :class="ui.field()">
         <span v-if="!singleMode" :class="ui.label()">{{ mode.name }}</span>
         <div :class="ui.valueRow()">
           <div v-if="alias(mode.modeId)" :class="ui.valueControl()">
@@ -372,7 +376,7 @@ function cssNameDone(event: KeyboardEvent) {
           @enter="done"
         />
       </div>
-      <span v-if="variable.type === 'FLOAT'" :class="ui.hint()">{{
+      <span v-if="!variable.unresolved && variable.type === 'FLOAT'" :class="ui.hint()">{{
         variables.expressionHint
       }}</span>
     </section>

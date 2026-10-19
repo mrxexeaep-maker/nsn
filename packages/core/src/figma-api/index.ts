@@ -10,6 +10,7 @@ import type {
   VariableType,
   VariableValue
 } from '@open-pencil/scene-graph'
+import { assertEditableVariableValue } from '@open-pencil/scene-graph'
 import { copyFills } from '@open-pencil/scene-graph/copy'
 import { computeBounds } from '@open-pencil/scene-graph/geometry'
 import { computeImageHash } from '@open-pencil/scene-graph/images'
@@ -336,7 +337,6 @@ export class FigmaAPI implements NodeProxyHost {
   }
 
   // --- Variable/Collection CRUD ---
-
   createVariable(
     name: string,
     type: VariableType,
@@ -349,6 +349,7 @@ export class FigmaAPI implements NodeProxyHost {
   setVariableValue(variableId: string, modeId: string, value: VariableValue): void {
     const variable = this.graph.variables.get(variableId)
     if (!variable) throw new Error(`Variable "${variableId}" not found`)
+    assertEditableVariableValue(variable)
     variable.valuesByMode[modeId] = structuredClone(value)
     reconcileVariableLayouts(this.graph, { variables: [variableId] })
   }
@@ -376,7 +377,6 @@ export class FigmaAPI implements NodeProxyHost {
   }
 
   // --- Boolean Operations ---
-
   private _booleanOperation(
     operation: 'UNION' | 'SUBTRACT' | 'INTERSECT' | 'EXCLUDE',
     nodes: ReadonlyArray<BaseNode | FigmaNodeProxy>,

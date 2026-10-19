@@ -46,6 +46,8 @@ export function prepareVariableTransfer(
   collections: readonly VariableCollection[],
   references: VariableTransferReferences
 ): { variables: Variable[]; collections: VariableCollection[] } {
+  if (variables.some((variable) => variable.unresolved))
+    throw new Error('Cannot transfer variables with unsupported expressions between documents')
   assertResourceOwnership(variables, collections)
   assertUniqueMappings(references.variables, 'variable')
   assertUniqueMappings(references.collections, 'collection')

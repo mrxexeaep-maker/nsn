@@ -15,6 +15,7 @@ import CollabPanel from '@/components/collab-panel/CollabPanel.vue'
 import ActiveRoomOverlay from '@/components/collab-room/ActiveRoomOverlay.vue'
 import { useRoomActions } from '@/components/collab-room/useRoomActions'
 import CommentDeleteDialog from '@/components/comments/CommentDeleteDialog.vue'
+import ImportFidelityWarning from '@/components/document/ImportFidelityWarning.vue'
 import EditorCanvas from '@/components/EditorCanvas.vue'
 import LayersPanel from '@/components/LayersPanel.vue'
 import MobileDrawer from '@/components/MobileDrawer.vue'
@@ -48,6 +49,7 @@ const { pending: roomPending } = useRoomActions()
 </script>
 
 <template>
+  <ImportFidelityWarning v-if="!roomPending" />
   <div v-if="roomPending" :key="'room-' + tab.id" class="relative flex flex-1 overflow-hidden">
     <ActiveRoomOverlay />
   </div>

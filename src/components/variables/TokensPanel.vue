@@ -7,6 +7,7 @@ import type { VariableTokenFields } from '@open-pencil/core/editor'
 import type { TokenStylesheetFormat } from '@open-pencil/dom-css/export'
 import {
   isLibraryCollection,
+  canRemoveVariables,
   type VariableType,
   type VariableValue
 } from '@open-pencil/scene-graph'
@@ -22,6 +23,7 @@ import {
 } from '@/app/editor/tokens/model'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import IconButton from '@/components/ui/button/IconButton.vue'
+import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 import AppPlaceholder from '@/components/ui/feedback/AppPlaceholder.vue'
 import AppInput from '@/components/ui/input/AppInput.vue'
 import PanelDrillIn from '@/components/ui/panel/PanelDrillIn.vue'
@@ -46,7 +48,8 @@ import tokensPanelTheme, {
 
 const emit = defineEmits<{ copy: [format: TokenStylesheetFormat]; export: [] }>()
 
-const { variables: messages, common } = useI18n()
+const { variables: messages, common, files } = useI18n()
+const removalRefused = ref(false)
 const ui = tv(tokensPanelTheme)()
 
 /**
@@ -236,6 +239,11 @@ function addToken(type: VariableType) {
 }
 
 function removeTokens(ids: readonly string[]) {
+  if (ids.some((id) => !canRemoveVariables(editor.graph, [id]))) {
+    removalRefused.value = true
+    return
+  }
+  removalRefused.value = false
   actions.remove(ids)
   closeDetail()
 }
@@ -288,6 +296,7 @@ const bulkInspector = computed(() => {
   const ids = bulkIds.value ?? []
   return {
     count: ids.length,
+    canDuplicate: !ids.some((id) => editor.graph.variables.get(id)?.unresolved),
     focusGroup: groupingIds.value !== null,
     onMoveToGroup: (group: string) => moveToGroup(ids, group),
     onDuplicate: () => duplicateTokens(ids),
@@ -298,7 +307,15 @@ const collectionInspector = computed(() => {
   const current = collection.value
   return {
     onRename: (name: string) => current && ctx.renameCollection(current.id, name),
-    onRemove: () => current && ctx.removeCollection(current.id),
+    onRemove: () => {
+      if (!current) return
+      if (!canRemoveVariables(editor.graph, current.variableIds)) {
+        removalRefused.value = true
+        return
+      }
+      removalRefused.value = false
+      ctx.removeCollection(current.id)
+    },
     onAddMode: ctx.addMode,
     onRenameMode: ctx.renameMode,
     onDuplicateMode: ctx.duplicateMode,
@@ -324,6 +341,12 @@ const groupOptions = computed(() => groupEntries.value.map((entry) => entry.path
 
 <template>
   <div ref="root" :class="ui.root()" data-test-id="tokens-panel">
+    <AppAlert
+      v-if="removalRefused"
+      tone="warning"
+      :heading="files.unsupportedExpressionValue"
+      :description="files.unsupportedExpressionDependency"
+    />
     <template v-if="!collection">
       <div :class="ui.toolbar()">
         <span class="flex-1" />
@@ -370,6 +393,12 @@ const groupOptions = computed(() => groupEntries.value.map((entry) => entry.path
           layout="full"
         />
         <CollectionInspector
+          :modes-locked="
+            collectionVariables.some((variable) => variable.unresolved) ||
+            [...editor.graph.variables.values()].some(
+              (variable) => variable.unresolved && !variable.unresolved.referencesComplete
+            )
+          "
           v-else-if="compactDetail?.kind === 'collection'"
           v-bind="collectionInspector"
           :collection="collection"
@@ -510,6 +539,12 @@ const groupOptions = computed(() => groupEntries.value.map((entry) => entry.path
             :collection="collection"
           />
           <CollectionInspector
+            :modes-locked="
+              collectionVariables.some((variable) => variable.unresolved) ||
+              [...editor.graph.variables.values()].some(
+                (variable) => variable.unresolved && !variable.unresolved.referencesComplete
+              )
+            "
             v-else
             key="collection"
             v-bind="collectionInspector"

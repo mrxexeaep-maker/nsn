@@ -817,6 +817,17 @@ export interface ComponentPropertyDefinition {
 
 export type VariableType = 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN'
 export type VariableValue = Color | number | string | boolean | { aliasId: string }
+
+/** Preserved imported content whose evaluation is unavailable, not an editable runtime value. */
+export interface UnresolvedVariable {
+  reason: 'unsupported-expression'
+  /** Resources explicitly referenced by the original value; deletion must not leave dangling references. */
+  dependencies: string[]
+  /** False when an unknown value container may hide additional references. */
+  referencesComplete: boolean
+  /** Imported identities that unknown references may address; absent means conservatively unknown. */
+  importedIds?: string[]
+}
 export type VariableModeMap = Record<string, string>
 
 /** Property pickers a variable is offered in, as Figma names them. */
@@ -869,6 +880,10 @@ export interface Variable {
   type: VariableType
   collectionId: string
   valuesByMode: Record<string, VariableValue>
+  /** Imported values that cannot be evaluated; consumers keep their saved concrete fields. */
+  unresolved?: UnresolvedVariable
+  /** Original format record, separate from runtime values and never a guessed replacement. */
+  source?: SourceMetadata
   description: string
   hiddenFromPublishing: boolean
   /** Absent means every scope. */

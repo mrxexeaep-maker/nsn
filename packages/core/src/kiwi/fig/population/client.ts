@@ -3,7 +3,11 @@ import { randomHex } from '@open-pencil/scene-graph/random'
 
 import { releaseFigArchive } from '#core/kiwi/fig/session/archive/access'
 import { archiveChanges, trackArchiveChanges } from '#core/kiwi/fig/session/archive/changes'
-import { updateReaderRecovery, releaseReaderRecovery } from '#core/kiwi/fig/session/document-state'
+import {
+  appendReaderDiagnostics,
+  updateReaderRecovery,
+  releaseReaderRecovery
+} from '#core/kiwi/fig/session/document-state'
 import type { FigSessionResponse } from '#core/kiwi/fig/session/protocol'
 
 import { applyFigPopulationDelta } from './delta'
@@ -245,6 +249,7 @@ export function createPopulationWorkerClient(
     const applyStartedAt = performance.now()
     try {
       applyFigPopulationDelta(graph, result.delta)
+      appendReaderDiagnostics(graph, result.diagnostics ?? [])
       if (result.checkpoint) updateReaderRecovery(graph, result.checkpoint)
     } catch {
       applyingDelta = false
