@@ -526,9 +526,10 @@ function interpretRoot(
   ): InstanceOccurrence => {
     const original = raw.symbolData?.symbolID
     const [, sourceComponentOverrideKey] = componentKeys(original)
+    // A swapped root draws the replacement's paint, so the old paint's style link goes with it.
     const placed =
       base && effective && !sameGuid(original, effective) && source.type === 'INSTANCE'
-        ? omit(source, ['fillPaints'])
+        ? omit(source, ['fillPaints', 'styleIdForFill'])
         : source
     const occurrence: InstanceOccurrence = {
       sourceId: id,

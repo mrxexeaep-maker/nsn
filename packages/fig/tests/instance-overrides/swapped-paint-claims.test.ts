@@ -179,3 +179,40 @@ test('binding swap ignores known removed-child paint claims without discarding u
     []
   )
 })
+
+test('a root swap drops the old fill style link along with the old paint', () => {
+  const paint = (g: number): NonNullable<NodeChange['fillPaints']> => [
+    { type: 'SOLID', color: { r: 1 - g, g, b: 0, a: 1 }, visible: true, opacity: 1 }
+  ]
+  const todoStyle = { guid: guid(80) },
+    doneStyle = { guid: guid(81) }
+  const changes: NodeChange[] = [
+    { guid: guid(1), type: 'SYMBOL', fillPaints: paint(0), styleIdForFill: todoStyle },
+    { guid: guid(2), type: 'SYMBOL', fillPaints: paint(1), styleIdForFill: doneStyle },
+    {
+      guid: guid(3),
+      type: 'SYMBOL',
+      componentPropDefs: [
+        { id: guid(90), type: 'INSTANCE_SWAP', initialValue: { guidValue: guid(1) } }
+      ]
+    },
+    {
+      guid: guid(4),
+      type: 'INSTANCE',
+      parentIndex: { guid: guid(3), position: '!' },
+      fillPaints: paint(0),
+      styleIdForFill: todoStyle,
+      symbolData: { symbolID: guid(1) },
+      componentPropRefs: [{ defID: guid(90), componentPropNodeField: 'OVERRIDDEN_SYMBOL_ID' }]
+    },
+    {
+      guid: guid(5),
+      type: 'INSTANCE',
+      symbolData: { symbolID: guid(3) },
+      componentPropAssignments: [{ defID: guid(90), value: { guidValue: guid(2) } }]
+    }
+  ]
+  const badge = interpretInstance(changes, '1:5').children[0].properties
+  expect(badge.fillPaints).toEqual(paint(1))
+  expect(badge.styleIdForFill).toEqual(doneStyle)
+})

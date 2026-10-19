@@ -99,6 +99,15 @@ test('the swapped badge keeps its own fill, binding and style overrides through 
   expect(target.fillStyleId).toBe('style-own')
 })
 
+test('its own plain fill override keeps the swapped badge unbound', () => {
+  const { graph, outer, target } = swappedBadge()
+  graph.updateNode(target.id, { fills: solid(0.5, 0, 1), boundVariables: { opacity: 'faded' } })
+  setInstanceOverride(target.instanceOverrides, target.id, target.id, 'fills', target.fills)
+  graph.syncInstance(outer.id)
+  expect(target.fills).toEqual(solid(0.5, 0, 1))
+  expect(target.boundVariables).toEqual({ opacity: 'faded' })
+})
+
 test('clearing its own fill binding leaves the swapped badge unbound', () => {
   const { graph, outer, target } = swappedBadge()
   graph.updateNode(target.id, { boundVariables: { opacity: 'faded' }, variableBindingScales: {} })

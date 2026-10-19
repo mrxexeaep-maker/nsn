@@ -22,7 +22,11 @@ export function instanceMainComponent(
 export function ownsSelfFillField(target: SceneNode, field: string): boolean {
   const own = target.instanceOverrides.self
   if (field === 'fills' || field === 'fillStyleId') return own.has(field) || own.has('fills')
-  return field.startsWith('boundVariables/fills/') && (own.has(field) || own.has('boundVariables'))
+  // A paint the layer set itself owns its bindings too, bound or not.
+  return (
+    field.startsWith('boundVariables/fills/') &&
+    (own.has(field) || own.has('boundVariables') || own.has('fills'))
+  )
 }
 
 /** A swapped nested root takes its fill from what it shows, not its template's old component. */
