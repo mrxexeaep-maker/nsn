@@ -2,10 +2,10 @@ import { describe, expect, test } from 'bun:test'
 
 import { SceneGraph } from '@open-pencil/scene-graph'
 
-import { pathTextEditChanges } from '#core/editor/text/path-edit'
+import { pathTextEditChanges, resizedPathTextGlyphs } from '#core/editor/text/path-edit'
 import { fontManager } from '#core/text/fonts'
 import { getGlyphOutlineMetricsSync } from '#core/text/opentype'
-import { nearestArcPoint, pointAtArc, sampleTextPath } from '#core/text/path'
+import { nearestArcPoint, pointAtArc, sampleTextPath, textPathStartArc } from '#core/text/path'
 
 import { expectDefined } from '#tests/helpers/assert'
 
@@ -505,4 +505,72 @@ test('overflowing text on a closed path keeps what fits one loop', async () => {
   )
   const firstArc = nearestArcPoint(path, glyphs[0].x, glyphs[0].y).s
   expect(firstArc).toBeCloseTo((50 - width / 2 + 400) % 400, 0)
+})
+
+// A 100 × 100 square path in a Figma file, text starting halfway along its top side. Resizing
+// moved old glyphs by their distance along the path, which put letters near the corners on the
+// wrong side and scrambled the run once the sides changed length.
+describe('resizedPathTextGlyphs — resize lays the text out again', () => {
+  test('a squashed or stretched square keeps every letter on the path, in order', async () => {
+    const font = await fontManager.fetchBundledFont('/Inter-Regular.ttf')
+    if (!font) throw new Error('expected the bundled Inter font')
+    fontManager.markLoaded('Inter', 'Regular', font)
+
+    const corner = (x: number, y: number) => ({ x, y })
+    const side = (start: number, end: number) => ({
+      start,
+      end,
+      tangentStart: corner(0, 0),
+      tangentEnd: corner(0, 0)
+    })
+    const box = { x: 0, y: 0, width: 100, height: 100 }
+    const text = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const graph = new SceneGraph()
+    const node = graph.createNode('TEXT', expectDefined(graph.getPages()[0]).id, {
+      width: 100,
+      height: 100,
+      text,
+      fontFamily: 'Inter',
+      fontWeight: 400,
+      italic: false,
+      fontSize: 18,
+      textPathBox: { ...box },
+      derivedTextGlyphs: [
+        { commandsBlob: new Uint8Array(4), x: 50, y: 0, fontSize: 18, rotation: 0 }
+      ]
+    })
+    node.textPathData = {
+      network: {
+        vertices: [corner(0, 0), corner(100, 0), corner(100, 100), corner(0, 100)],
+        segments: [side(0, 1), side(1, 2), side(2, 3), side(3, 0)],
+        regions: []
+      },
+      normalizedSize: { x: 100, y: 100 },
+      tValue: 0.5,
+      forward: true,
+      startSegment: 0
+    }
+    const laidOut = expectDefined(pathTextEditChanges(node, { text }).derivedTextGlyphs)
+    node.derivedTextGlyphs = laidOut
+
+    for (const size of [
+      { width: 273, height: 126 },
+      { width: 167, height: 126 },
+      { width: 60, height: 300 }
+    ]) {
+      const resized = { x: 0, y: 0, ...size }
+      const glyphs = expectDefined(resizedPathTextGlyphs(node, laidOut, box, resized))
+      const path = expectDefined(sampleTextPath(node.textPathData, resized))
+      const start = textPathStartArc(node.textPathData, path)
+      let previous = -1
+      for (const glyph of glyphs) {
+        const point = nearestArcPoint(path, glyph.x, glyph.y)
+        expect(Math.hypot(point.x - glyph.x, point.y - glyph.y)).toBeLessThan(0.01)
+        const along = (point.s - start + path.length) % path.length
+        expect(along).toBeGreaterThan(previous)
+        previous = along
+      }
+      expect(glyphs.length).toBeGreaterThan(0)
+    }
+  })
 })

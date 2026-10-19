@@ -1,7 +1,8 @@
 import { mean } from 'es-toolkit'
 
 import { encodePathCommandsBlob } from '@open-pencil/fig/node-change'
-import type { SceneNode, TextPathData } from '@open-pencil/scene-graph'
+import type { DerivedTextGlyph, SceneNode, TextPathData } from '@open-pencil/scene-graph'
+import type { Rect } from '@open-pencil/scene-graph/primitives'
 
 import { weightToStyle } from '#core/text/fonts'
 import { getGlyphOutlineMetricsSync } from '#core/text/opentype'
@@ -9,9 +10,52 @@ import {
   calibratePathTextLayout,
   getTextPathData,
   layoutPathTextFromAdvances,
+  type PathTextLayout,
   sampleTextPath,
   textPathStartDistance
 } from '#core/text/path'
+
+type PathTextType = Pick<
+  SceneNode,
+  'text' | 'fontFamily' | 'fontWeight' | 'italic' | 'fontSize' | 'letterSpacing'
+>
+
+/**
+ * Glyphs for `type` laid out along the path mapped into `box` from the local font: aligned from
+ * the text path start, at the calibrated normal offset. Null when the font is unavailable.
+ */
+function layOutPathText(
+  node: SceneNode,
+  data: TextPathData,
+  box: Rect,
+  type: PathTextType,
+  layout: PathTextLayout
+): DerivedTextGlyph[] | null {
+  const { fontSize, letterSpacing } = type
+  const metrics = getGlyphOutlineMetricsSync(
+    type.fontFamily,
+    weightToStyle(type.fontWeight, type.italic),
+    type.text,
+    fontSize
+  )
+  if (!metrics) return null
+  const run = alignedRun(node, data, box, layout.anchor, metrics, letterSpacing)
+  return layoutPathTextFromAdvances(
+    data,
+    box,
+    run.anchor,
+    mean(layout.offsets),
+    metrics.slice(0, run.count).map((m) => ({
+      commandsBlob: encodePathCommandsBlob(m.commands, fontSize),
+      fontSize,
+      // Pen walk expects em advances (it multiplies by fontSize); metrics and
+      // letterSpacing are px. Folding letterSpacing in here (rather than
+      // threading it through layoutPathTextFromAdvances) keeps that function's
+      // em-advance contract unchanged for its one caller.
+      advance: (m.advance + letterSpacing) / fontSize
+    }))
+  )
+}
 
 /**
  * Re-flow imported path text when its characters change: rebuild glyph
@@ -33,46 +77,45 @@ export function pathTextEditChanges(
   if (!node.textPathBox || !node.derivedTextGlyphs?.length) return {}
   const data = getTextPathData(node)
   if (!data) return {}
+  const layout = calibratePathTextLayout(node.derivedTextGlyphs, data, node.textPathBox)
+  if (!layout) return {}
 
   // Prefer pending typography from the same update batch over the pre-update
   // node so { text, fontSize/fontFamily/... } stays consistent for reflow.
-  const fontFamily = changes.fontFamily ?? node.fontFamily
-  const fontWeight = changes.fontWeight ?? node.fontWeight
-  const italic = changes.italic ?? node.italic
-  const fontSize = changes.fontSize ?? node.fontSize
-  const letterSpacing = changes.letterSpacing ?? node.letterSpacing
-
-  const metrics = getGlyphOutlineMetricsSync(
-    fontFamily,
-    weightToStyle(fontWeight, italic),
-    changes.text,
-    fontSize
-  )
-  if (!metrics) return {}
-
-  const layout = calibratePathTextLayout(node.derivedTextGlyphs, data, node.textPathBox)
-  if (!layout) return {}
-  const offset = mean(layout.offsets)
-  const run = alignedRun(node, data, layout.anchor, metrics, letterSpacing)
-
-  const glyphs = layoutPathTextFromAdvances(
+  const glyphs = layOutPathText(
+    node,
     data,
     node.textPathBox,
-    run.anchor,
-    offset,
-    metrics.slice(0, run.count).map((m) => ({
-      commandsBlob: encodePathCommandsBlob(m.commands, fontSize),
-      fontSize,
-      // Pen walk expects em advances (it multiplies by fontSize); metrics and
-      // letterSpacing are px. Folding letterSpacing in here (rather than
-      // threading it through layoutPathTextFromAdvances) keeps that function's
-      // em-advance contract unchanged for its one caller.
-      advance: (m.advance + letterSpacing) / fontSize
-    }))
+    {
+      text: changes.text,
+      fontFamily: changes.fontFamily ?? node.fontFamily,
+      fontWeight: changes.fontWeight ?? node.fontWeight,
+      italic: changes.italic ?? node.italic,
+      fontSize: changes.fontSize ?? node.fontSize,
+      letterSpacing: changes.letterSpacing ?? node.letterSpacing
+    },
+    layout
   )
   // Baked silhouettes belong to the OLD string — clear them so the renderer
   // rebuilds per-glyph silhouettes for the new lettering.
   return glyphs ? { derivedTextGlyphs: glyphs, strokeGeometry: [] } : {}
+}
+
+/**
+ * Glyphs for path text whose path now maps into `box`, laid out again from its characters at the
+ * same font size, as Figma does, rather than moving the old glyphs, which only fit the old path.
+ * `glyphs` and `origBox` are the layer before the resize. Null when the font is unavailable.
+ */
+export function resizedPathTextGlyphs(
+  node: SceneNode,
+  glyphs: DerivedTextGlyph[],
+  origBox: Rect,
+  box: Rect
+): DerivedTextGlyph[] | null {
+  const data = getTextPathData(node)
+  if (!data || node.text.trim().length === 0) return null
+  const layout = calibratePathTextLayout(glyphs, data, origBox)
+  return layout ? layOutPathText(node, data, box, node, layout) : null
 }
 
 /** How far along the path the start of new text moves so it keeps its alignment, px. */
@@ -141,14 +184,14 @@ function fittingGlyphCount(run: Array<{ advance: number }>, spacing: number, roo
 function alignedRun(
   node: SceneNode,
   data: TextPathData,
+  box: Rect,
   anchor: number,
   metrics: Array<{ advance: number }>,
   letterSpacing: number
 ): { anchor: number; count: number } {
   const all = { anchor, count: metrics.length }
-  const box = node.textPathBox
-  const path = box ? sampleTextPath(data, box) : null
-  if (!box || !path || path.length === 0) return all
+  const path = sampleTextPath(data, box)
+  if (!path || path.length === 0) return all
   const direction = data.forward ? 1 : -1
   const align = node.textAlignHorizontal
 
