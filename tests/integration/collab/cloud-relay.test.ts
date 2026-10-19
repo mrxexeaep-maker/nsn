@@ -125,6 +125,50 @@ describe('collaboration through the Cloud relay', () => {
   })
 })
 
+describe('Cloud document rooms, reopening', () => {
+  test('a tab that opens the stored file shows the room’s layers, not the file’s copies', async () => {
+    const relay = await startRelay()
+    const documentId = crypto.randomUUID()
+    const roomId = `cloud:${documentId}:0`
+    const [grace] = await openedTwice()
+    const first = openCloudDocumentRoom(grace, {
+      roomId,
+      transport: relay.join(documentId, 'Grace', 'edit', 'user'),
+      permission: 'edit'
+    })
+    cleanups.push(() => {
+      first.stop()
+      first.session.dispose()
+    })
+    await until(() => first.session.roomHasDocument())
+    const page = grace.graph.getPages()[0]
+    if (!page) throw new Error('Expected a page')
+    const dot = grace.graph.createNode('ELLIPSE', page.id, { name: 'Dot' })
+
+    // The saver uploads the document; opening that file numbers its layers afresh.
+    const saved = await exportFigFile(grace.graph)
+    const reopened = createEditorStore(await parseFigFile(Uint8Array.from(saved).buffer))
+    cleanups.push(() => reopened.preparationController.dispose())
+    const second = openCloudDocumentRoom(reopened, {
+      roomId,
+      transport: relay.join(documentId, 'Ada', 'edit', 'user'),
+      permission: 'edit'
+    })
+    cleanups.push(() => {
+      second.stop()
+      second.session.dispose()
+    })
+    await until(() => reopened.graph.getNode(dot.id) !== undefined)
+    const layers = (store: typeof grace) =>
+      store.graph
+        .getPages()
+        .flatMap((candidate) => candidate.childIds)
+        .map((id) => store.graph.getNode(id)?.name)
+        .sort()
+    expect(layers(reopened)).toEqual(layers(grace))
+  })
+})
+
 /** Tabs that each opened the same stored file, which gives each its own root. */
 async function openedTwice() {
   await initCodec()
