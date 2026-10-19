@@ -103,6 +103,19 @@ describe('a page visited before', () => {
     expect(markedNodes()).toEqual([secondText.id])
   })
 
+  test('shows the first page checked at once too', async () => {
+    jest.useFakeTimers()
+    const { store, first, second, firstText, markedNodes } = twoPagesWithIssues()
+    await switchPage(store, second.id)
+    // The second page's check replaces the first's result; the background checks wait longer.
+    jest.advanceTimersByTime(300)
+    await nextTick()
+
+    await switchPage(store, first.id)
+
+    expect(markedNodes()).toEqual([firstText.id])
+  })
+
   test('waits for a new check when it changed while away', async () => {
     jest.useFakeTimers()
     const { store, first, second, secondText, markedNodes } = twoPagesWithIssues()

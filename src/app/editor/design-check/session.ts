@@ -151,13 +151,18 @@ export function createDesignCheck(editor: Editor, state: AppEditorState) {
       if (pagesNeeded.value) pages.invalidateAll()
     })
     watch(pagesNeeded, (on) => (on ? pages.start() : pages.stop()), { immediate: true })
-    watch(snapshot, (current) => {
-      if (!current) return
-      pages.report(current.pageId, current.issues)
-      // A focused issue the check no longer finds, such as one fixed, has no row left to show.
-      const focused = focusedIssueId.value
-      if (focused && !current.issues.some(({ id }) => id === focused)) focusedIssueId.value = null
-    })
+    // Immediate: the first check runs while `enabled` starts up, before this watcher exists.
+    watch(
+      snapshot,
+      (current) => {
+        if (!current) return
+        pages.report(current.pageId, current.issues)
+        // A focused issue the check no longer finds, such as one fixed, has no row left to show.
+        const focused = focusedIssueId.value
+        if (focused && !current.issues.some(({ id }) => id === focused)) focusedIssueId.value = null
+      },
+      { immediate: true }
+    )
     // A page nothing changed on shows its last result at once. The check still runs once the
     // switch settles, rather than inside it, since variables can change what a page reports.
     watch(
