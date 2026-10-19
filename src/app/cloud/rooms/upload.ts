@@ -40,27 +40,31 @@ export async function uploadStoredDocument(store: EditorStore): Promise<boolean>
 
 /**
  * Lets the tabs of a room get its document onto the server as it is now. The saver uploads when
- * asked; anyone else asks the room, after the edits it sent, and the saver answers once the
+ * asked; anyone else asks the saver, after the edits it sent, and the saver answers once the
  * upload is done, so the server holds everything that reached the saver before the question.
+ * Only the saver's answer counts: another peer cannot say the upload finished.
  */
 export function shareRoomUploads(
   [send, receive]: CollabAction,
   options: {
     /** Whether this tab saves the room's document. */
     saving: () => boolean
+    /** The peer of the tab that saves for the room, when that is another tab. */
+    saverPeer: () => string | null
     upload: () => Promise<boolean>
     timeoutMs?: number
   }
 ) {
-  const { saving, upload, timeoutMs = ROOM_UPLOAD_TIMEOUT_MS } = options
-  const waiting = new Map<string, (uploaded: boolean) => void>()
+  const { saving, saverPeer, upload, timeoutMs = ROOM_UPLOAD_TIMEOUT_MS } = options
+  const waiting = new Map<string, { peer: string; answer: (uploaded: boolean) => void }>()
 
   receive((data, peerId) => {
     const parsed = v.safeParse(UploadMessageSchema, decoder.decode(data))
     if (!parsed.success) return
     const message = parsed.output
     if (message.type === 'reply') {
-      waiting.get(message.id)?.(message.uploaded)
+      const asked = waiting.get(message.id)
+      if (asked?.peer === peerId) asked.answer(message.uploaded)
       return
     }
     if (!saving()) return
@@ -70,13 +74,15 @@ export function shareRoomUploads(
   })
 
   function ask(): Promise<boolean> {
+    const peer = saverPeer()
+    if (!peer) return Promise.resolve(false)
     const request = crypto.randomUUID()
     const answer = new Promise<boolean>((resolve) => {
-      waiting.set(request, resolve)
+      waiting.set(request, { peer, answer: resolve })
     })
-    const timer = setTimeout(() => waiting.get(request)?.(false), timeoutMs)
+    const timer = setTimeout(() => waiting.get(request)?.answer(false), timeoutMs)
     // Edits made in this task reach the room in a microtask; the question has to follow them.
-    queueMicrotask(() => send(encode({ type: 'request', id: request })))
+    queueMicrotask(() => send(encode({ type: 'request', id: request }), peer))
     return answer.finally(() => {
       clearTimeout(timer)
       waiting.delete(request)
@@ -87,7 +93,7 @@ export function shareRoomUploads(
     /** Whether the room's document is on the server with every edit this tab has seen. */
     upload: () => (saving() ? upload() : ask()),
     stop() {
-      for (const answer of waiting.values()) answer(false)
+      for (const { answer } of waiting.values()) answer(false)
     }
   }
 }

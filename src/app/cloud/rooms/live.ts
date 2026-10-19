@@ -171,6 +171,12 @@ export function openCloudDocumentRoom(
   })
   const uploads = shareRoomUploads(session.upload, {
     saving: saver.saving,
+    saverPeer: () => {
+      const elected = electCloudSaver(session.presence(), { clientId: session.clientId, canSave })
+      return elected === null || elected === session.clientId
+        ? null
+        : (session.peerForClient(elected) ?? null)
+    },
     upload: options.uploadNow ?? (() => uploadStoredDocument(store))
   })
   return {

@@ -56,6 +56,8 @@ export interface RoomSession {
   presence(): ReadonlyMap<number, Record<string, unknown>>
   /** This tab's awareness client. */
   readonly clientId: number
+  /** The peer whose presence carries a client, to address it alone. */
+  peerForClient(clientId: number): string | undefined
   /** The room's channel for asking whoever saves its document to upload it now. */
   readonly upload: CollabAction
   /** Leaves the room and releases its connection, presence, and saved-copy handle. */
@@ -256,6 +258,7 @@ export function openRoomSession({
     onSynced: (handler) => connection.onSynced(handler),
     presence: () => awareness.getStates() as Map<number, Record<string, unknown>>,
     clientId: awareness.clientID,
+    peerForClient: (clientId) => connection.peerForClient(clientId),
     upload: connection.upload,
     dispose() {
       if (disposed) return
