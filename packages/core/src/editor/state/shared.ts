@@ -4,6 +4,7 @@ import type { EditorSharedState } from '#core/editor/types'
 export function createDefaultEditorSharedState(): EditorSharedState {
   return {
     activeTool: 'SELECT',
+    readOnly: false,
     snappingPreferences: { ...DEFAULT_SNAPPING_PREFERENCES },
     showPixelGrid: true,
     gradientEdit: null,

@@ -1,3 +1,4 @@
+import { CONNECTOR_KIND } from '../connectors/sublayers'
 import type { SceneGraph } from '../index'
 import type { NodeType, SceneNode } from '../types'
 import type { GeneratedFrameKind } from './kind'
@@ -13,7 +14,8 @@ import { STICKY_KIND } from './sticky'
  * the type.
  */
 const GENERATED_FRAME_KINDS: Partial<Record<NodeType, GeneratedFrameKind>> = {
-  STICKY: STICKY_KIND
+  STICKY: STICKY_KIND,
+  CONNECTOR: CONNECTOR_KIND
 }
 
 export const GENERATED_FRAME_TYPES: ReadonlySet<NodeType> = new Set(
@@ -34,7 +36,7 @@ export function generatedFrameOwner(graph: SceneGraph, node: SceneNode): SceneNo
   return node.parentId ? graph.closest(node.parentId, isGeneratedFrame) : undefined
 }
 
-/** The text a generated frame edits in place, such as a sticky note's body. */
+/** The text a generated frame edits in place: a sticky note's body or a connector's label. */
 export function generatedFrameText(graph: SceneGraph, node: SceneNode): SceneNode | undefined {
   return generatedFrameKind(node)?.text(graph, node)
 }

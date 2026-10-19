@@ -188,7 +188,15 @@ export interface Fill {
   customEffectId?: string
 }
 
-export type StrokeCap = 'NONE' | 'ROUND' | 'SQUARE' | 'ARROW_LINES' | 'ARROW_EQUILATERAL'
+export type StrokeCap =
+  | 'NONE'
+  | 'ROUND'
+  | 'SQUARE'
+  | 'ARROW_LINES'
+  | 'ARROW_EQUILATERAL'
+  | 'TRIANGLE_FILLED'
+  | 'DIAMOND_FILLED'
+  | 'CIRCLE_FILLED'
 export type StrokeJoin = 'MITER' | 'BEVEL' | 'ROUND'
 export type SharedStyleType = 'FILL' | 'TEXT' | 'EFFECT' | 'GRID'
 export type SharedStyleKind = 'fill' | 'stroke' | 'text' | 'effect' | 'grid'
@@ -239,6 +247,32 @@ export interface Effect {
 
 export type ConstraintType = 'MIN' | 'CENTER' | 'MAX' | 'STRETCH' | 'SCALE'
 export type TextAutoResize = 'NONE' | 'HEIGHT' | 'WIDTH_AND_HEIGHT' | 'TRUNCATE'
+
+/** Where a connector end attaches to a layer: a side, the side Figma picks, or a fixed point. */
+export type ConnectorMagnet =
+  | 'NONE'
+  | 'AUTO'
+  | 'AUTO_HORIZONTAL'
+  | 'TOP'
+  | 'RIGHT'
+  | 'BOTTOM'
+  | 'LEFT'
+  | 'CENTER'
+  | 'EDGE'
+  | 'ABSOLUTE'
+
+/**
+ * One end of a connector. Bound to a layer, it follows the layer by `magnet`, or by `position`
+ * in the layer's own axes when the magnet is `NONE`. Free, `nodeId` is null and `position` is in
+ * the connector's parent's axes.
+ */
+export interface ConnectorEndpoint {
+  nodeId: string | null
+  magnet: ConnectorMagnet
+  position: Vector
+}
+
+export type ConnectorLineType = 'ELBOWED' | 'STRAIGHT' | 'CURVED'
 export type TextAlignVertical = 'TOP' | 'CENTER' | 'BOTTOM'
 export type TextCase = 'ORIGINAL' | 'UPPER' | 'LOWER' | 'TITLE'
 export type TextDecoration = 'NONE' | 'UNDERLINE' | 'STRIKETHROUGH'
@@ -412,6 +446,13 @@ export interface DerivedTextGlyph {
    */
   scaleX?: number
   scaleY?: number
+  /**
+   * The code points of the emoji this glyph stands for, sequence and all. Its outline is only a
+   * placeholder square a 1 em wide; the emoji's image is drawn there instead, as Figma does.
+   */
+  emojiCodePoints?: number[]
+  /** The image set Figma draws the emoji from, when the file names one other than Apple's. */
+  emojiImageSet?: 'NOTO'
 }
 
 export interface SymbolLink {
@@ -662,6 +703,13 @@ export interface SceneNode {
    */
   targetAspectRatio: Vector | null
 
+  /** A connector's ends and the line between them; null on other layers. */
+  connectorStart: ConnectorEndpoint | null
+  connectorEnd: ConnectorEndpoint | null
+  connectorLineType: ConnectorLineType
+  connectorStartCap: StrokeCap
+  connectorEndCap: StrokeCap
+
   isMask: boolean
   maskType: MaskType
   maskIsOutline: boolean
@@ -775,7 +823,54 @@ export interface ComponentPropertyDefinition {
 }
 
 export type VariableType = 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN'
-export type VariableValue = Color | number | string | boolean | { aliasId: string }
+export interface VariableAlias {
+  aliasId: string
+}
+
+/** Figma's two-argument color expression; opacity is a percentage, not an alpha multiplier. */
+export interface VariableColorExpression {
+  expression: 'COMPOSE_COLOR'
+  color: Color | VariableAlias
+  opacity: number | VariableAlias
+}
+
+export type VariableLiteral = Color | number | string | boolean
+/** Figma's `ExpressionFunction` names for the arithmetic, comparison and logic a formula uses. */
+export const VARIABLE_FORMULA_OPERATORS = [
+  'ADDITION',
+  'SUBTRACTION',
+  'MULTIPLY',
+  'DIVIDE',
+  'NEGATE',
+  'EQUALS',
+  'NOT_EQUAL',
+  'LESS_THAN',
+  'LESS_THAN_OR_EQUAL',
+  'GREATER_THAN',
+  'GREATER_THAN_OR_EQUAL',
+  'AND',
+  'OR',
+  'NOT'
+] as const
+export type VariableFormulaOperator = (typeof VARIABLE_FORMULA_OPERATORS)[number]
+export type VariableFormulaNode =
+  | number
+  | boolean
+  | VariableAlias
+  | {
+      operator: VariableFormulaOperator
+      operands: VariableFormulaNode[]
+    }
+export interface VariableFormula {
+  expression: 'FORMULA'
+  type: 'FLOAT' | 'BOOLEAN'
+  value: VariableFormulaNode
+}
+export type VariableValue =
+  | VariableLiteral
+  | VariableAlias
+  | VariableColorExpression
+  | VariableFormula
 export type VariableModeMap = Record<string, string>
 
 /** Property pickers a variable is offered in, as Figma names them. */
@@ -816,10 +911,14 @@ export type CodeSyntaxPlatform = (typeof CODE_SYNTAX_PLATFORMS)[number]
 export const TOKEN_UNITS = ['none', 'px', 'rem', '%', 'ms', 's', 'deg'] as const
 export type TokenUnit = (typeof TOKEN_UNITS)[number]
 
-/** A mode value authored as raw CSS. `resolved` is the number the canvas drew for it. */
+/**
+ * CSS written in place of a number mode's value, such as `clamp(1rem, 4vw, 1.5rem)`. While the
+ * mode holds a plain number, `resolved` records it, so a number later edited elsewhere, Figma
+ * included, shows the CSS no longer describes it.
+ */
 export interface TokenExpression {
   css: string
-  resolved: number
+  resolved?: number
 }
 
 export interface Variable {
