@@ -9,6 +9,7 @@ function editorURL(discovery: CloudDiscovery, path: string, serverURL: string): 
   }
   url.pathname = path
   url.search = ''
+  url.hash = ''
   url.searchParams.set('server', serverURL)
   return url
 }

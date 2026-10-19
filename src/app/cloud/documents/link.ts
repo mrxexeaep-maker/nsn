@@ -74,12 +74,24 @@ export function cloudDocumentAddress(
   }
 }
 
-/** The link to copy for a version of the document in `store`, on its server's own editor. */
-export function cloudVersionLinkURL(store: EditorStore, versionId: string): string | null {
+/** Where links to the document in `store` go: its server, while that advertises an editor. */
+function linkTarget(store: EditorStore) {
   const binding = (versionHistoryOf(store)?.store ?? store).getStorageBinding()
   const server = binding?.profileId ? findCloudServer(binding.profileId) : null
   const discovery = server ? cloudConnection(server.id).discovery : null
-  if (!binding || !server || !discovery) return null
+  return binding && server && discovery?.appURL ? { binding, server, discovery } : null
+}
+
+/** Whether versions of the document in `store` can be linked to. */
+export function canLinkToVersions(store: EditorStore): boolean {
+  return linkTarget(store) !== null
+}
+
+/** The link to copy for a version of the document in `store`, on its server's own editor. */
+export function cloudVersionLinkURL(store: EditorStore, versionId: string): string | null {
+  const target = linkTarget(store)
+  if (!target) return null
+  const { binding, server, discovery } = target
   return cloudDocumentURL(discovery, server.url, binding.documentId, versionId)
 }
 
