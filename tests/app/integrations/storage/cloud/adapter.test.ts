@@ -22,6 +22,7 @@ function cloudServer() {
   const documents = new Map<string, Doc>()
   const objects = new Map<string, Uint8Array>()
   let fullReads = 0
+  let cancelledReads = 0
   let ignoresRanges = false
   const uploads = new Map<string, { documentId: string; base: string | null }>()
   const summary = (id: string, doc: Doc) => ({
@@ -135,7 +136,20 @@ function cloudServer() {
     const range = /^bytes=(\d+)-(\d+)$/.exec(new Headers(init.headers).get('Range') ?? '')
     if (!range || ignoresRanges) {
       fullReads += 1
-      return new Response(Uint8Array.from(bytes))
+      if (!ignoresRanges) return new Response(Uint8Array.from(bytes))
+      // The whole file, a chunk at a time, so a reader can stop it partway.
+      let offset = 0
+      const body = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          controller.enqueue(bytes.slice(offset, offset + 1024))
+          offset += 1024
+          if (offset >= bytes.byteLength) controller.close()
+        },
+        cancel() {
+          cancelledReads += 1
+        }
+      })
+      return new Response(body)
     }
     const [, start = '0', end = '0'] = range
     return new Response(Uint8Array.from(bytes.subarray(Number(start), Number(end) + 1)), {
@@ -156,6 +170,7 @@ function cloudServer() {
     saveElsewhere,
     objects,
     fullReads: () => fullReads,
+    cancelledReads: () => cancelledReads,
     ignoreRanges() {
       ignoresRanges = true
     }
@@ -258,5 +273,6 @@ describe('Cloud storage adapter', () => {
     await storage.putDocument(id, figBytes, { name: 'Preview', updatedAt: '' })
     server.ignoreRanges()
     await expect(storage.getThumbnail?.(id) ?? Promise.resolve()).rejects.toThrow('HTTP 200')
+    expect(server.cancelledReads()).toBe(1)
   })
 })

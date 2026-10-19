@@ -47,6 +47,8 @@ export async function readCloudRevisionRange(
     headers: { ...download.download.headers, Range: `bytes=${start}-${endExclusive - 1}` }
   })
   if (response.status !== 206) {
+    // A store that ignored the range is sending the whole file; stop it rather than let it finish.
+    await response.body?.cancel()
     throw new Error(`Cloud document range read failed with HTTP ${response.status}`)
   }
   return new Uint8Array(await response.arrayBuffer())
