@@ -1,4 +1,3 @@
-import { useClipboard, useShare } from '@vueuse/core'
 import { computed, inject, provide, proxyRefs } from 'vue'
 import type { InjectionKey, ShallowUnwrapRef } from 'vue'
 import IconFilePlus from '~icons/lucide/file-plus'
@@ -17,6 +16,7 @@ import { useNotificationMessages } from '@/app/i18n/notifications'
 import { presenceOf, renameAgent as renameLocalAgent } from '@/app/presence/registry'
 import type { FollowTarget } from '@/app/presence/types'
 import { openFileDialog } from '@/app/shell/menu/use'
+import { useSendLink } from '@/app/shell/share/link'
 import { toast } from '@/app/shell/ui'
 import { roomStatusText } from '@/components/collab-room/statusText'
 import { presenceRows } from '@/components/presence/rows'
@@ -28,8 +28,7 @@ type MenuAction = ToolbarActionItem
 function createMobileHudContext() {
   const collab = useCollabInjected()
   const store = useEditorStore()
-  const { copy } = useClipboard()
-  const { share: sendThroughSheet, isSupported: canShare } = useShare()
+  const { send } = useSendLink()
   const { common, collaboration } = useI18n()
   const notifications = useNotificationMessages()
   const { getCommand } = useEditorCommands()
@@ -90,7 +89,7 @@ function createMobileHudContext() {
    * may open it. Anything else goes into a room, shared first if it is not in one, never a room it
    * opened, and its link goes out through the system share sheet, or is copied without one.
    */
-  function share() {
+  async function share() {
     if (isCloudBinding(store.getStorageBinding())) {
       openCloudShare()
       return
@@ -98,14 +97,8 @@ function createMobileHudContext() {
     if (!collab) return
     const roomId = collabState.value.roomId ?? collab.shareCurrentDoc()
     if (!roomId) return
-    const url = getShareURL(roomId)
-    if (canShare.value) {
-      // Closing the sheet without sending is a choice, not a failure.
-      void sendThroughSheet({ title: store.state.documentName, url }).catch(() => undefined)
-      return
-    }
-    void copy(url)
-    toast.info(notifications.value.linkCopied)
+    const sent = await send(getShareURL(roomId), store.state.documentName)
+    if (sent === 'copied') toast.info(notifications.value.linkCopied)
   }
 
   function disconnect() {

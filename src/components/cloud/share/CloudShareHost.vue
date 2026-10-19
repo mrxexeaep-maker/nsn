@@ -1,24 +1,15 @@
 <script setup lang="ts">
-import { useClipboard, useShare } from '@vueuse/core'
-import { computed, ref, shallowRef, watch } from 'vue'
+import { computed, watch } from 'vue'
 
 import type { DocumentPermission } from '@open-pencil/cloud/contract'
-import { useCloudMessages, useI18n, useViewportKind } from '@open-pencil/vue'
+import { useCloudMessages, useI18n } from '@open-pencil/vue'
 
 import { cloudConnection } from '@/app/cloud/sessions/connection'
 import { cloudShareOpen } from '@/app/cloud/sharing/dialog'
-import {
-  changeCloudLink,
-  changeCloudMember,
-  cloudLinkURL,
-  cloudShareTarget,
-  inviteToCloudDocument,
-  readCloudSharing,
-  resetCloudLink,
-  type CloudShareLink,
-  type CloudSharing
-} from '@/app/cloud/sharing/document'
+import { cloudShareTarget, type CloudShareLink } from '@/app/cloud/sharing/document'
+import { useCloudSharing } from '@/app/cloud/sharing/use'
 import { useActiveEditorStoreRef } from '@/app/editor/active-store'
+import { useSendLink } from '@/app/shell/share/link'
 import { toast } from '@/app/shell/ui'
 
 import CloudShareDialog from './CloudShareDialog.vue'
@@ -30,14 +21,15 @@ import CloudShareDialog from './CloudShareDialog.vue'
 const storeRef = useActiveEditorStoreRef()
 const { locale } = useI18n()
 const t = useCloudMessages()
-const sharing = shallowRef<CloudSharing | null>(null)
-const inviting = ref(false)
-const { copy, copied } = useClipboard({ legacy: true })
 
 const target = computed(() => {
   const binding = storeRef.value?.getStorageBinding()
   return binding ? cloudShareTarget(binding) : null
 })
+const cloudSharing = useCloudSharing(target)
+const { sharing, inviting } = cloudSharing
+const { sendsLink, copied, send } = useSendLink()
+
 const workspace = computed(() => {
   const binding = storeRef.value?.getStorageBinding()
   if (!binding?.profileId) return null
@@ -55,76 +47,30 @@ const members = computed(() =>
   }))
 )
 
-// Each read is numbered so a slower earlier one never replaces a newer one.
-let latestRead = 0
-
 async function refresh() {
-  const current = target.value
-  if (!current) return
-  const read = ++latestRead
-  try {
-    const next = await readCloudSharing(current)
-    if (read === latestRead && target.value?.documentId === current.documentId) sharing.value = next
-  } catch {
-    if (read === latestRead) toast.error(t.value.shareLoadFailed)
-  }
+  if (!(await cloudSharing.refresh())) toast.error(t.value.shareLoadFailed)
 }
 
-/** Runs a change on the server and shows what it left. */
-async function change(run: () => Promise<void>) {
-  try {
-    await run()
-  } catch {
-    toast.error(t.value.shareChangeFailed)
-  }
-  await refresh()
+/** Says when a change did not take; the dialog shows what the server kept either way. */
+async function changed(outcome: Promise<boolean>) {
+  if (!(await outcome)) toast.error(t.value.shareChangeFailed)
 }
 
-async function invite(email: string, permission: DocumentPermission) {
-  const current = target.value
-  if (!current) return
-  inviting.value = true
-  await change(() => inviteToCloudDocument(current, email, permission))
-  inviting.value = false
+const invite = (email: string, permission: DocumentPermission) =>
+  changed(cloudSharing.invite(email, permission))
+const changeMember = (id: string, permission: DocumentPermission | 'remove') =>
+  changed(cloudSharing.changeMember(id, permission))
+const changeLink = (link: CloudShareLink) => changed(cloudSharing.changeLink(link))
+const resetLink = () => changed(cloudSharing.resetLink())
+
+async function sendLink() {
+  const url = await cloudSharing.linkURL()
+  if (url) await send(url, storeRef.value?.state.documentName)
 }
 
-function changeMember(id: string, permission: DocumentPermission | 'remove') {
-  const current = target.value
-  if (current) void change(() => changeCloudMember(current, id, permission))
-}
-
-function changeLink(link: CloudShareLink) {
-  const current = target.value
-  if (current) void change(() => changeCloudLink(current, link))
-}
-
-function resetLink() {
-  const current = target.value
-  if (current) void change(() => resetCloudLink(current))
-}
-
-const { share, isSupported: canShare } = useShare()
-const { isMobile } = useViewportKind()
-/** On a phone the link goes out through the system share sheet, as other apps send theirs. */
-const sendsLink = computed(() => isMobile.value && canShare.value)
-
-async function copyLink() {
-  const current = target.value
-  const url = current ? await cloudLinkURL(current) : null
-  if (!url) return
-  if (!sendsLink.value) {
-    await copy(url)
-    return
-  }
-  // Closing the sheet without sending is a choice, not a failure.
-  await share({ title: storeRef.value?.state.documentName, url }).catch(() => undefined)
-}
-
-// Another document's members and link never show, or take changes, while this one's load.
 watch(
   () => [cloudShareOpen.value, target.value?.documentId] as const,
-  ([open], previous) => {
-    if (target.value?.documentId !== previous?.[1]) sharing.value = null
+  ([open]) => {
     if (open) void refresh()
   }
 )
@@ -146,7 +92,7 @@ watch(
     @invite="invite"
     @change-member="changeMember"
     @change-link="changeLink"
-    @copy-link="copyLink"
+    @copy-link="sendLink"
     @reset-link="resetLink"
   />
 </template>
