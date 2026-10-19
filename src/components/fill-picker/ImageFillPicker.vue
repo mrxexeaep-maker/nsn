@@ -31,7 +31,9 @@ const emit = defineEmits<{ update: [fill: Fill] }>()
 const store = useEditorStore()
 const { panels } = useI18n()
 
-const { url: imagePreviewURL, size: imageSize } = useImageFill(() => fill.imageHash)
+const { url: imagePreviewURL, size: imageSize } = useImageFill(() => fill.imageHash, {
+  measure: true
+})
 
 const { open: pickImage, onChange: onFileChange } = useFileDialog({
   accept: 'image/png,image/jpeg,image/webp',
