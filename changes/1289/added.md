@@ -1,0 +1,1 @@
+- General settings let you choose how many recent files to keep, while preserving the default of ten.
