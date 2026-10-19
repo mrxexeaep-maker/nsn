@@ -26,15 +26,17 @@ function encode(message: UploadMessage): Uint8Array {
 }
 
 /**
- * Uploads what the tab of `store` has not saved yet and follows it onto the server. Whether the
- * document there is now what the tab shows.
+ * Saves what the tab of `store` has not saved yet, as Save does, and follows the document onto
+ * the server, an earlier save still on its way included. Whether the document there is now what
+ * the tab shows.
  */
 export async function uploadStoredDocument(store: EditorStore): Promise<boolean> {
   const documentId = store.getStorageBinding()?.documentId
   if (!documentId) return false
-  if (!store.state.autosaveEnabled || !store.hasUnsavedChanges()) return true
-  await store.saveFigFile()
-  await kickSyncEngine()
+  if (store.hasUnsavedChanges()) {
+    await store.saveFigFile()
+    await kickSyncEngine()
+  }
   return (await followUpload(documentId)) === 'uploaded'
 }
 
@@ -67,7 +69,11 @@ export function shareRoomUploads(
       if (asked?.peer === peerId) asked.answer(message.uploaded)
       return
     }
-    if (!saving()) return
+    // A tab that stopped saving since the question was asked says so rather than leave it waiting.
+    if (!saving()) {
+      send(encode({ type: 'reply', id: message.id, uploaded: false }), peerId)
+      return
+    }
     void upload()
       .catch(() => false)
       .then((uploaded) => send(encode({ type: 'reply', id: message.id, uploaded }), peerId))

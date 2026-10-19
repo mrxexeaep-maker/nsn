@@ -1,9 +1,16 @@
-import { describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
 import * as v from 'valibot'
 
-import { shareRoomUploads } from '@/app/cloud/rooms/upload'
+import { shareRoomUploads, uploadStoredDocument } from '@/app/cloud/rooms/upload'
 import type { CollabAction, CollabActionReceiver } from '@/app/collab/transport/types'
+import type { EditorStore } from '@/app/editor/session'
+import { createMemoryLocalCanvasStore, type LocalCanvasStore } from '@/app/storage/local-store'
+import { resetLocalCanvasStoreForTests } from '@/app/storage/local-store/store'
+import { createMemoryOutbox, resetOutboxForTests } from '@/app/storage/sync'
+import { emitStorageWorkspaceEvent } from '@/app/storage/workspace/events'
+
+import { asDouble } from '#tests/helpers/doubles'
 
 /**
  * A room of tabs whose channel delivers to everyone else, or to one tab when named; `overheard`
@@ -89,6 +96,22 @@ describe('room uploads', () => {
     expect(await answer).toBe(false)
   })
 
+  test('a tab that no longer saves answers at once rather than leave the question waiting', async () => {
+    const { tab } = room()
+    shareRoomUploads(tab('saver'), {
+      saving: () => false,
+      saverPeer: () => null,
+      upload: async () => true
+    })
+    const asking = shareRoomUploads(tab('other'), {
+      saving: () => false,
+      saverPeer: () => 'saver',
+      upload: async () => true,
+      timeoutMs: 60_000
+    })
+    expect(await asking.upload()).toBe(false)
+  })
+
   test('a failed upload, or no saver to ask, says the document is not there', async () => {
     const failing = room()
     shareRoomUploads(failing.tab('saver'), {
@@ -130,5 +153,45 @@ describe('room uploads', () => {
     const waiting = uploads.upload()
     uploads.stop()
     expect(await waiting).toBe(false)
+  })
+})
+
+describe('uploading the document a tab shows', () => {
+  let local: LocalCanvasStore
+
+  beforeEach(async () => {
+    local = createMemoryLocalCanvasStore()
+    resetLocalCanvasStoreForTests(local)
+    resetOutboxForTests(createMemoryOutbox())
+    await local.writeCanvas({
+      id: 'doc',
+      providerId: 'cloud',
+      name: 'Poster',
+      figBytes: new Uint8Array([1]),
+      syncStatus: 'pending'
+    })
+  })
+
+  afterEach(() => {
+    resetLocalCanvasStoreForTests()
+    resetOutboxForTests()
+  })
+
+  test('waits for a save still on its way, though nothing is left unsaved', async () => {
+    const store = asDouble<EditorStore>({
+      getStorageBinding: () => ({ documentId: 'doc' }),
+      hasUnsavedChanges: () => false
+    })
+    let settled = false
+    const uploading = uploadStoredDocument(store).finally(() => {
+      settled = true
+    })
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0)
+    })
+    expect(settled).toBe(false)
+    await local.updateMeta('doc', { syncStatus: 'synced' })
+    emitStorageWorkspaceEvent({ providerId: 'cloud', documentId: 'doc', kind: 'changed' })
+    expect(await uploading).toBe(true)
   })
 })
