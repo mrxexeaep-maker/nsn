@@ -46,7 +46,7 @@ const emit = defineEmits<{
   reorder: [sourceId: string, targetIndex: number, visibleIds: string[]]
 }>()
 
-const { variables, files } = useI18n()
+const { variables } = useI18n()
 const ui = tv(tokensPanelTheme)()
 /** Figma does not show a variable the file adds to a library's collection; such a row says so. */
 const libraryCollection = computed(() => isLibraryCollection(collection))
@@ -137,11 +137,7 @@ function commitName(row: TokenRow, text: string) {
 function editableValue(row: TokenRow, modeId: string) {
   const value = row.variable.valuesByMode[modeId]
   const aliased = typeof value === 'object' && 'aliasId' in value
-  return (
-    !row.variable.unresolved &&
-    !aliased &&
-    (row.variable.type === 'FLOAT' || row.variable.type === 'STRING')
-  )
+  return !aliased && (row.variable.type === 'FLOAT' || row.variable.type === 'STRING')
 }
 
 function startValueEdit(row: TokenRow, modeId: string) {
@@ -212,9 +208,6 @@ function dropEdge(id: string) {
     <TokenRowMenu
       :groups="groupOptions"
       :single="selectedIds.length === 1"
-      :can-duplicate="
-        !rows.some((row) => selectedIds.includes(row.variable.id) && row.variable.unresolved)
-      "
       @rename="selectedIds[0] && startRename(selectedIds[0])"
       @duplicate="emit('duplicate', [...selectedIds])"
       @move-to-group="emit('moveToGroup', [...selectedIds], $event)"
@@ -277,9 +270,8 @@ function dropEdge(id: string) {
               :class="ui.value()"
               @dblclick.stop="startValueEdit(row, value.modeId)"
             >
-              <span v-if="row.variable.unresolved">{{ files.unsupportedExpressionValue }}</span>
               <TokenCellInput
-                v-else-if="isEditing(row.variable.id, value.modeId)"
+                v-if="isEditing(row.variable.id, value.modeId)"
                 :value="tokenValueText(row.variable, row.variable.valuesByMode[value.modeId])"
                 :label="modeName(value.modeId)"
                 @commit="commitValue(row, value.modeId, $event)"

@@ -28,7 +28,6 @@ import {
 } from '@/app/editor/tokens/conditions'
 import { modeAttributeText, modeConditionPlaceholder } from '@/app/editor/tokens/model'
 import IconButton from '@/components/ui/button/IconButton.vue'
-import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 import AppBadge from '@/components/ui/feedback/AppBadge.vue'
 import AppInput from '@/components/ui/input/AppInput.vue'
 import { useMenuUI } from '@/components/ui/menu/menu'
@@ -38,12 +37,7 @@ import AppSelect from '@/components/ui/select/AppSelect.vue'
 import { useConditionLabels } from '@/components/variables/useConditionLabels'
 import tokensPanelTheme from '@/theme/tokens-panel'
 
-const {
-  collection,
-  layout = 'side',
-  modesLocked = false
-} = defineProps<{
-  modesLocked?: boolean
+const { collection, layout = 'side' } = defineProps<{
   collection: VariableCollection
   /** `full` fills the panel behind a back button on narrow screens. */
   layout?: 'side' | 'full'
@@ -61,7 +55,7 @@ const emit = defineEmits<{
   setCondition: [modeId: string, condition: string]
 }>()
 
-const { variables, files } = useI18n()
+const { variables } = useI18n()
 const { kindOptions } = useConditionLabels()
 const ui = computed(() => tv(tokensPanelTheme)({ layout }))
 const menu = useMenuUI({ content: 'w-44', item: 'justify-start gap-2' })
@@ -261,17 +255,10 @@ function attributeDone(event: KeyboardEvent) {
     </section>
 
     <section :class="ui.section()">
-      <AppAlert
-        v-if="modesLocked"
-        tone="warning"
-        :heading="files.unsupportedExpressionValue"
-        :description="files.unsupportedExpressionModes"
-      />
       <div class="flex items-center justify-between">
         <h3 :class="ui.sectionTitle()">{{ variables.modes }}</h3>
         <IconButton
           :label="variables.addMode"
-          :disabled="modesLocked"
           data-test-id="variables-add-mode"
           @click="emit('addMode')"
         >
@@ -305,11 +292,7 @@ function attributeDone(event: KeyboardEvent) {
             <DropdownMenuPortal>
               <DropdownMenuContent side="bottom" :side-offset="4" align="end" :class="menu.content">
                 <MenuScrollArea>
-                  <DropdownMenuItem
-                    :class="menu.item"
-                    :disabled="modesLocked"
-                    @select="emit('duplicateMode', item.modeId)"
-                  >
+                  <DropdownMenuItem :class="menu.item" @select="emit('duplicateMode', item.modeId)">
                     <icon-lucide-copy :class="menu.icon" />
                     {{ variables.duplicateMode }}
                   </DropdownMenuItem>
@@ -324,7 +307,7 @@ function attributeDone(event: KeyboardEvent) {
                   <DropdownMenuSeparator :class="menu.separator" />
                   <DropdownMenuItem
                     :class="dangerItem"
-                    :disabled="modesLocked || collection.modes.length <= 1"
+                    :disabled="collection.modes.length <= 1"
                     @select="emit('removeMode', item.modeId)"
                   >
                     <icon-lucide-trash-2 :class="menu.icon" />

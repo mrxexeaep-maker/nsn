@@ -1,14 +1,8 @@
 import type { NodeChange, VariableDataValuesEntry } from '@open-pencil/kiwi/fig/codec'
 import { guidToString } from '@open-pencil/kiwi/fig/guid'
-import {
-  createDefaultSourceMetadata,
-  type SceneGraph,
-  type VariableValue,
-  type UnresolvedVariable
-} from '@open-pencil/scene-graph'
+import type { SceneGraph, VariableValue } from '@open-pencil/scene-graph'
 
 import { extractPluginData } from '../node-change/plugin-data'
-import { visitVariableReferences } from '../node-change/variable/expression'
 import { readVariableMetadata } from '../node-change/variable/metadata'
 import {
   readModeAttribute,
@@ -17,14 +11,6 @@ import {
   withoutTokenPluginData
 } from '../node-change/variable/token'
 import { createResourceResolver } from './resource-reference'
-
-export interface UnsupportedVariableExpressionDiagnostic {
-  sourceId: string
-  modeId: string
-  reason: 'unsupported-variable-expression'
-}
-
-type ExpressionReporter = (diagnostic: UnsupportedVariableExpressionDiagnostic) => void
 
 function valueOf(
   entry: VariableDataValuesEntry,
@@ -65,8 +51,7 @@ function modeValues(
 export function materializeVariableResources(
   graph: SceneGraph,
   resources: readonly NodeChange[],
-  onUnsupported?: (resource: NodeChange) => void,
-  onUnsupportedExpression?: ExpressionReporter
+  onUnsupported?: (resource: NodeChange) => void
 ): void {
   const report = (resource: NodeChange, reason: string): void => {
     if (!onUnsupported) throw new Error(`Unsupported document resource ${resource.type}: ${reason}`)
@@ -101,76 +86,21 @@ export function materializeVariableResources(
       version: typeof resource.version === 'string' ? resource.version : undefined
     })
   }
-  addVariables(graph, resources, report, onUnsupportedExpression)
-}
-
-function unresolvedValues(
-  entries: readonly VariableDataValuesEntry[],
-  modes: readonly string[],
-  resolve: ReturnType<typeof createResourceResolver>,
-  importedIds: string[]
-): UnresolvedVariable {
-  const dependencies = new Set<string>()
-  const coverage = { complete: true }
-  const visit = (reference: Parameters<typeof resolve>[0]) => {
-    const id = resolve(reference)
-    if (id) dependencies.add(id)
-    else coverage.complete = false
-  }
-  for (const entry of entries) {
-    if (!modes.includes(guidToString(entry.modeID))) throw new Error('Unknown mode')
-    if (entry.variableData.dataType === 'EXPRESSION') {
-      if (!entry.variableData.value?.expressionValue?.expressionFunction)
-        throw new Error('Missing variable expression value')
-      if (!visitVariableReferences(entry.variableData, visit)) coverage.complete = false
-    } else {
-      const value = valueOf(entry, resolve)
-      if (typeof value === 'object' && 'aliasId' in value) dependencies.add(value.aliasId)
-    }
-  }
-  return {
-    reason: 'unsupported-expression',
-    dependencies: [...dependencies],
-    referencesComplete: coverage.complete,
-    ...(!coverage.complete ? { importedIds } : {})
-  }
-}
-
-function variableCollectionId(
-  resource: NodeChange,
-  resolve: ReturnType<typeof createResourceResolver>
-) {
-  if (resource.variableSetID) return resolve(resource.variableSetID)
-  return resource.parentIndex?.guid && guidToString(resource.parentIndex.guid)
-}
-
-function unresolvedSource(resource: NodeChange) {
-  const source = createDefaultSourceMetadata()
-  source.format = 'fig'
-  source.id = resource.guid ? guidToString(resource.guid) : null
-  source.fig.rawNodeFields = structuredClone(resource)
-  return source
+  addVariables(graph, resources, report)
 }
 
 function addVariables(
   graph: SceneGraph,
   resources: readonly NodeChange[],
-  report: (resource: NodeChange, reason: string) => void,
-  onUnsupportedExpression?: ExpressionReporter
+  report: (resource: NodeChange, reason: string) => void
 ): void {
   const resolve = createResourceResolver(resources)
-  const importedIds = resources.flatMap((record) =>
-    record.guid && (record.type === 'VARIABLE' || record.type === 'VARIABLE_SET')
-      ? [
-          guidToString(record.guid),
-          ...(record.variableSetModes?.map((mode) => guidToString(mode.id)) ?? [])
-        ]
-      : []
-  )
   for (const resource of resources) {
     if (resource.type !== 'VARIABLE') continue
     const type = resource.variableResolvedType
-    const collectionId = variableCollectionId(resource, resolve)
+    const collectionId = resource.variableSetID
+      ? resolve(resource.variableSetID)
+      : resource.parentIndex?.guid && guidToString(resource.parentIndex.guid)
     const collection = collectionId && graph.variableCollections.get(collectionId)
     if (
       !resource.guid ||
@@ -182,37 +112,19 @@ function addVariables(
       continue
     }
     const valuesByMode: Record<string, VariableValue> = {}
-    let unresolved: UnresolvedVariable | undefined
     try {
-      const entries = resource.variableDataValues?.entries ?? []
-      const expressions = entries.filter((entry) => entry.variableData.dataType === 'EXPRESSION')
-      if (expressions.length && onUnsupportedExpression) {
-        unresolved = unresolvedValues(
-          entries,
+      Object.assign(
+        valuesByMode,
+        modeValues(
+          resource,
           collection.modes.map((mode) => mode.modeId),
-          resolve,
-          importedIds
+          resolve
         )
-        for (const entry of expressions)
-          onUnsupportedExpression({
-            sourceId: guidToString(resource.guid),
-            modeId: guidToString(entry.modeID),
-            reason: 'unsupported-variable-expression'
-          })
-      } else
-        Object.assign(
-          valuesByMode,
-          modeValues(
-            resource,
-            collection.modes.map((mode) => mode.modeId),
-            resolve
-          )
-        )
+      )
     } catch (error) {
       report(resource, error instanceof Error ? error.message : 'Invalid mode value')
       continue
     }
-    const source = unresolved ? unresolvedSource(resource) : undefined
     const metadata = readVariableMetadata(resource)
     graph.addVariable({
       id: guidToString(resource.guid),
@@ -220,8 +132,6 @@ function addVariables(
       type,
       collectionId,
       valuesByMode,
-      unresolved,
-      source,
       ...metadata,
       ...readVariableToken(resource, valuesByMode)
     })

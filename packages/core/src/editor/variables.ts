@@ -3,7 +3,6 @@ import { isEmptyObject } from 'es-toolkit/predicate'
 
 import {
   isModeAttributeName,
-  assertEditableVariableValue,
   type BindingScope,
   type TokenExpression,
   type Variable,
@@ -251,8 +250,6 @@ export function createVariableActions(ctx: EditorContext) {
     const source = ctx.graph.variables.get(id)
     const collection = source && ctx.graph.variableCollections.get(source.collectionId)
     if (!source || !collection) return undefined
-    if (source.unresolved)
-      throw new Error('Cannot duplicate a variable with an unsupported expression')
     const created = ctx.graph.createVariable(name, source.type, source.collectionId)
     const copy: Variable = { ...structuredClone(source), id: created.id, name }
     ctx.graph.addVariable(copy)
@@ -443,7 +440,6 @@ export function createVariableActions(ctx: EditorContext) {
   ) {
     const variable = ctx.graph.variables.get(id)
     if (!variable) return
-    assertEditableVariableValue(variable)
     const previous = modeEntry(variable, modeId)
     // A number keeps its expression, which records the number it stands for; anything else drops it.
     const expression = previous.expression

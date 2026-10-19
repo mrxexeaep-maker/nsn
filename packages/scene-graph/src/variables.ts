@@ -20,27 +20,7 @@ import {
 } from './variables/bindings'
 import { BOOLEAN_BINDING_FIELDS, STRING_BINDING_FIELDS } from './variables/fields'
 
-export function assertEditableVariableValue(variable: Variable): void {
-  if (variable.unresolved)
-    throw new Error('Cannot edit values of a variable with an unsupported expression')
-}
-
 export function addVariable(graph: SceneGraph, variable: Variable): void {
-  if (
-    variable.unresolved &&
-    (typeof variable.unresolved.reason !== 'string' ||
-      typeof variable.unresolved.referencesComplete !== 'boolean' ||
-      !Array.isArray(variable.unresolved.dependencies) ||
-      !variable.unresolved.dependencies.every((id) => typeof id === 'string') ||
-      (variable.unresolved.importedIds !== undefined &&
-        (!Array.isArray(variable.unresolved.importedIds) ||
-          !variable.unresolved.importedIds.every((id) => typeof id === 'string'))) ||
-      Object.keys(variable.valuesByMode).length !== 0 ||
-      variable.source?.format !== 'fig' ||
-      variable.source.id !== variable.id ||
-      !variable.source.fig.rawNodeFields.variableDataValues)
-  )
-    throw new Error('Invalid unresolved variable state')
   graph.variables.set(variable.id, variable)
   const collection = graph.variableCollections.get(variable.collectionId)
   if (collection && !collection.variableIds.includes(variable.id)) {
@@ -48,31 +28,7 @@ export function addVariable(graph: SceneGraph, variable: Variable): void {
   }
 }
 
-/** Whether removing these resources would strand another preserved expression. */
-export function canRemoveVariables(graph: SceneGraph, ids: Iterable<string>): boolean {
-  const removed = new Set(ids)
-  return ![...graph.variables.values()].some(
-    (variable) =>
-      !removed.has(variable.id) &&
-      variable.unresolved &&
-      (variable.unresolved.dependencies.some((id) => removed.has(id)) ||
-        (!variable.unresolved.referencesComplete &&
-          (!variable.unresolved.importedIds ||
-            variable.unresolved.importedIds.some((id) => removed.has(id)))))
-  )
-}
-
-function assertRemovableVariables(graph: SceneGraph, ids: Iterable<string>): void {
-  if (!canRemoveVariables(graph, ids))
-    throw new Error('Cannot delete resources referenced by an unsupported expression')
-}
-
 export function removeVariable(graph: SceneGraph, id: string): void {
-  assertRemovableVariables(graph, [id])
-  removeVariableUnchecked(graph, id)
-}
-
-function removeVariableUnchecked(graph: SceneGraph, id: string): void {
   const variable = graph.variables.get(id)
   if (!variable) return
   graph.variables.delete(id)
@@ -165,13 +121,8 @@ export function createCollection(
 export function removeCollection(graph: SceneGraph, id: string): void {
   const collection = graph.variableCollections.get(id)
   if (collection) {
-    assertRemovableVariables(graph, [
-      id,
-      ...collection.modes.map((mode) => mode.modeId),
-      ...collection.variableIds
-    ])
     for (const varId of Array.from(collection.variableIds)) {
-      removeVariableUnchecked(graph, varId)
+      removeVariable(graph, varId)
     }
   }
   graph.variableCollections.delete(id)
@@ -212,21 +163,6 @@ export function setActiveMode(graph: SceneGraph, collectionId: string, modeId: s
   graph.activeMode.set(collectionId, modeId)
 }
 
-/** An opaque expression may address modes internally; changing their identities is not safe. */
-export function assertEditableCollectionModes(graph: SceneGraph, collectionId: string): void {
-  const collection = graph.variableCollections.get(collectionId)
-  if (
-    !canRemoveVariables(graph, [
-      collectionId,
-      ...(collection?.modes.map((mode) => mode.modeId) ?? [])
-    ]) ||
-    collection?.variableIds.some((id) => graph.variables.get(id)?.unresolved)
-  )
-    throw new Error(
-      'Cannot add or remove modes while the collection contains unsupported expressions'
-    )
-}
-
 export function addMode(
   graph: SceneGraph,
   collectionId: string,
@@ -236,7 +172,6 @@ export function addMode(
 ): void {
   const collection = graph.variableCollections.get(collectionId)
   if (!collection) return
-  assertEditableCollectionModes(graph, collectionId)
   collection.modes.push({ modeId, name })
   const sourceModeId = sourceMode ?? collection.defaultModeId
   for (const varId of collection.variableIds) {
@@ -265,7 +200,6 @@ export function createMode(
 export function removeMode(graph: SceneGraph, collectionId: string, modeId: string): void {
   const collection = graph.variableCollections.get(collectionId)
   if (!collection || collection.modes.length <= 1) return
-  assertEditableCollectionModes(graph, collectionId)
   collection.modes = collection.modes.filter((m) => m.modeId !== modeId)
   if (collection.defaultModeId === modeId) {
     collection.defaultModeId = collection.modes[0].modeId
@@ -313,7 +247,7 @@ export function resolveVariable(
 ): VariableValue | undefined {
   if (visited?.has(variableId)) return undefined
   const variable = graph.variables.get(variableId)
-  if (!variable || variable.unresolved) return undefined
+  if (!variable) return undefined
   const collection = graph.variableCollections.get(variable.collectionId)
   const preferredModeId = modeId ?? getActiveModeId(graph, variable.collectionId)
   const fallbackModeId = collection?.defaultModeId

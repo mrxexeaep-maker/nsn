@@ -1,9 +1,4 @@
 {
-  "unsupportedExpressionDependency": "Zachowane wyrażenie używa tego zasobu. Najpierw usuń zależne wyrażenie lub całą ich kolekcję.",
-  "expressionWarningHeading": "Niektóre wyrażenia zmiennych nie są obsługiwane",
-  "expressionWarningDescription": "Zmienne ({count}) używają nieobsługiwanych wyrażeń. Zamiast nich wyświetlane są zapisane wartości warstw; wygląd i zmiany trybów mogą się różnić. Wyrażenia są zachowywane podczas zapisywania. Dodawanie i usuwanie trybów, edycja tych wartości, powielanie oraz przenoszenie do innego dokumentu są niedostępne.",
-  "unsupportedExpressionValue": "Nieobsługiwane wyrażenie",
-  "unsupportedExpressionModes": "Nie można dodawać ani usuwać trybów, gdy ta kolekcja zawiera nieobsługiwane wyrażenia.",
   "unsavedChanges": "Niezapisane zmiany",
   "saveBeforeClosing": "Zapisać zmiany w „{name}”?",
   "saveBeforeClosingDescription": "Jeśli zamkniesz dokument bez zapisywania, zmiany zostaną utracone.",
