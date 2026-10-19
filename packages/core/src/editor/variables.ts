@@ -3,7 +3,8 @@ import { isEmptyObject } from 'es-toolkit/predicate'
 
 import {
   isModeAttributeName,
-  assertEditableVariableValue,
+  isUnsupportedVariableValue,
+  tokenExpressionForValue,
   type BindingScope,
   type TokenExpression,
   type Variable,
@@ -251,8 +252,6 @@ export function createVariableActions(ctx: EditorContext) {
     const source = ctx.graph.variables.get(id)
     const collection = source && ctx.graph.variableCollections.get(source.collectionId)
     if (!source || !collection) return undefined
-    if (source.unresolved)
-      throw new Error('Cannot duplicate a variable with an unsupported expression')
     const created = ctx.graph.createVariable(name, source.type, source.collectionId)
     const copy: Variable = { ...structuredClone(source), id: created.id, name }
     ctx.graph.addVariable(copy)
@@ -443,14 +442,12 @@ export function createVariableActions(ctx: EditorContext) {
   ) {
     const variable = ctx.graph.variables.get(id)
     if (!variable) return
-    assertEditableVariableValue(variable)
+    if (isUnsupportedVariableValue(variable.valuesByMode[modeId]))
+      throw new Error('Cannot edit an unsupported variable expression')
     const previous = modeEntry(variable, modeId)
-    // A number keeps its expression, which records the number it stands for; anything else drops it.
-    const expression = previous.expression
     const next: ModeEntry = {
       value: structuredClone(value),
-      expression:
-        typeof value === 'number' && expression ? { ...expression, resolved: value } : undefined
+      expression: tokenExpressionForValue(previous.expression, value)
     }
     const apply = (entry: ModeEntry) => {
       const target = ctx.graph.variables.get(id)

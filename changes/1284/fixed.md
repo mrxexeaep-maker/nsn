@@ -1,0 +1,1 @@
+- `.fig` files with unsupported variable functions open using saved layer values, preserve their expressions when saved, and show a dismissible fidelity warning.

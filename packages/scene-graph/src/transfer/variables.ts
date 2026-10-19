@@ -1,4 +1,5 @@
 import type { Variable, VariableCollection, VariableValue } from '../types'
+import { mapVariableValueReferences } from '../variables/value'
 import { requireTransferReference as mapped } from './references'
 
 export interface VariableTransferReferences {
@@ -46,18 +47,12 @@ export function prepareVariableTransfer(
   collections: readonly VariableCollection[],
   references: VariableTransferReferences
 ): { variables: Variable[]; collections: VariableCollection[] } {
-  if (variables.some((variable) => variable.unresolved))
-    throw new Error('Cannot transfer variables with unsupported expressions between documents')
   assertResourceOwnership(variables, collections)
   assertUniqueMappings(references.variables, 'variable')
   assertUniqueMappings(references.collections, 'collection')
   assertUniqueMappings(references.modes, 'mode')
-  const value = (input: VariableValue): VariableValue => {
-    if (typeof input === 'object' && 'aliasId' in input) {
-      return { aliasId: mapped(references.variables, input.aliasId, 'variable alias') }
-    }
-    return structuredClone(input)
-  }
+  const value = (input: VariableValue): VariableValue =>
+    mapVariableValueReferences(input, (id) => mapped(references.variables, id, 'variable alias'))
   return {
     collections: collections.map((collection) => ({
       ...structuredClone(collection),

@@ -5,13 +5,9 @@ import { i18n } from '#vue/i18n/create'
 export const filesMessageDefaults = {
   expressionWarningHeading: 'Some variable expressions are not supported',
   expressionWarningDescription: params(
-    '{count} variables use unsupported expressions. Saved layer values are shown instead; appearance and mode changes may differ. Expressions are preserved when saving. Adding or removing modes, editing these values, duplication, and transfer to another document are unavailable.'
+    '{count} variables use unsupported expressions. Saved layer values are shown instead; appearance and mode changes may differ. Unsupported values are read-only and their expressions are preserved when saving.'
   ),
   unsupportedExpressionValue: 'Unsupported expression',
-  unsupportedExpressionDependency:
-    'This resource is used by a preserved expression. Delete the dependent expression first, or delete their entire collection together.',
-  unsupportedExpressionModes:
-    'Modes cannot be added or removed while this collection contains unsupported expressions.',
   importLabel: 'Import',
   importHTMLCSS: 'Import HTML/CSS',
   importHTMLCSSDescription: 'Paste HTML plus optional CSS or compiled Tailwind CSS.',

@@ -1,9 +1,7 @@
 {
-  "unsupportedExpressionDependency": "Una expresión conservada usa este recurso. Elimina primero la expresión dependiente o toda su colección.",
   "expressionWarningHeading": "Algunas expresiones de variables no son compatibles",
-  "expressionWarningDescription": "{count} variables usan expresiones no compatibles. Se muestran los valores guardados de las capas; la apariencia y los cambios de modo pueden variar. Las expresiones se conservan al guardar. No se pueden añadir o eliminar modos, editar estos valores, duplicarlos ni transferirlos a otro documento.",
+  "expressionWarningDescription": "{count} variables usan expresiones no compatibles. Se muestran los valores guardados en las capas; el aspecto y los cambios de modo pueden variar. Los valores no compatibles son de solo lectura y sus expresiones se conservan al guardar.",
   "unsupportedExpressionValue": "Expresión no compatible",
-  "unsupportedExpressionModes": "No se pueden añadir o eliminar modos mientras esta colección contenga expresiones no compatibles.",
   "unsavedChanges": "Cambios sin guardar",
   "saveBeforeClosing": "¿Guardar los cambios de «{name}»?",
   "saveBeforeClosingDescription": "Si cierras sin guardar, se perderán los cambios.",

@@ -1,9 +1,7 @@
 {
-  "unsupportedExpressionDependency": "Un’espressione conservata usa questa risorsa. Elimina prima l’espressione dipendente o l’intera raccolta.",
   "expressionWarningHeading": "Alcune espressioni delle variabili non sono supportate",
-  "expressionWarningDescription": "{count} variabili usano espressioni non supportate. Vengono mostrati i valori salvati dei livelli; aspetto e cambi di modalità possono differire. Le espressioni vengono conservate al salvataggio. Non è possibile aggiungere o rimuovere modalità, modificare questi valori, duplicarli o trasferirli in un altro documento.",
+  "expressionWarningDescription": "{count} variabili usano espressioni non supportate. Vengono mostrati i valori salvati nei livelli; l’aspetto e i cambi di modalità possono variare. I valori non supportati sono di sola lettura e le loro espressioni vengono conservate al salvataggio.",
   "unsupportedExpressionValue": "Espressione non supportata",
-  "unsupportedExpressionModes": "Non è possibile aggiungere o rimuovere modalità finché questa raccolta contiene espressioni non supportate.",
   "unsavedChanges": "Modifiche non salvate",
   "saveBeforeClosing": "Salvare le modifiche a «{name}»?",
   "saveBeforeClosingDescription": "Se chiudi senza salvare, le modifiche andranno perse.",

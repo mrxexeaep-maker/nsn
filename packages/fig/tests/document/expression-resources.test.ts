@@ -36,7 +36,9 @@ test('only explicit tolerance preserves unsupported variable expressions without
       }
     }
   ]
-  expect(() => materializeDocument(source)).toThrow('Unsupported variable value EXPRESSION')
+  expect(() => materializeDocument(source)).toThrow(
+    'Unsupported variable expression UNKNOWN_FUNCTION'
+  )
   const diagnostics: unknown[] = []
   const open = () =>
     materializeDocument(source, [], {
@@ -46,23 +48,44 @@ test('only explicit tolerance preserves unsupported variable expressions without
   expect(diagnostics).toEqual([
     { sourceId: '1:4', modeId: '1:2', reason: 'unsupported-variable-expression' }
   ])
-  expect(graph.variables.get('1:4')?.valuesByMode).toEqual({})
+  expect(graph.variables.get('1:4')?.valuesByMode['1:2']).toMatchObject({
+    expression: 'UNSUPPORTED',
+    references: [],
+    value: source[1].variableDataValues?.entries?.[0].variableData
+  })
   expect(graph.resolveVariable('1:4', '1:2')).toBeUndefined()
-  expect(graph.resolveVariable('1:4', '1:3')).toBeUndefined()
-  expect(graph.variables.get('1:4')?.source?.fig.rawNodeFields).toEqual(source[1])
-  expect(() => graph.removeMode('1:1', '1:3')).toThrow('unsupported expressions')
-  const unresolved = graph.variables.get('1:4')?.unresolved
-  if (!unresolved) throw new Error('Missing preserved expression')
-  unresolved.referencesComplete = false
-  unresolved.importedIds = []
+  expect(graph.resolveVariable('1:4', '1:3')).toBe(42)
+  graph.removeMode('1:1', '1:3')
   const fresh = graph.createVariable('New', 'FLOAT', '1:1')
-  unresolved.dependencies.push(fresh.id)
-  expect(() => graph.removeVariable(fresh.id)).toThrow('unsupported expression')
-  unresolved.dependencies = []
-  delete unresolved.importedIds
-  expect(() => graph.removeVariable(fresh.id)).toThrow('unsupported expression')
+  graph.removeVariable(fresh.id)
+  expect(graph.variables.has(fresh.id)).toBe(false)
   const entries = source[1].variableDataValues?.entries
   if (!entries) throw new Error('Missing synthetic values')
+  for (const expressionFunction of [
+    'TERNARY',
+    'STRINGIFY',
+    'VAR_MODE_LOOKUP',
+    'IS_TRUTHY',
+    'RESOLVE_VARIANT',
+    'KEYFRAME',
+    'COMPOSE_COLOR'
+  ]) {
+    entries[0].variableData.value = {
+      expressionValue: { expressionFunction, expressionArguments: [] }
+    }
+    const preserved = open().variables.get('1:4')?.valuesByMode['1:2']
+    expect(preserved).toMatchObject({ expression: 'UNSUPPORTED', value: entries[0].variableData })
+  }
+  entries[0].variableData.value = {
+    expressionValue: {
+      expressionFunction: 'ADDITION',
+      expressionArguments: [
+        { dataType: 'FLOAT', value: { floatValue: 2 } },
+        { dataType: 'FLOAT', value: { floatValue: 3 } }
+      ]
+    }
+  }
+  expect(open().resolveVariable('1:4', '1:2')).toBe(5)
   entries[1].variableData.value = {}
   expect(open).toThrow('Unsupported variable value FLOAT')
   entries[1].variableData.value = { floatValue: 42 }
@@ -72,5 +95,5 @@ test('only explicit tolerance preserves unsupported variable expressions without
       expressionArguments: [entries[0].variableData]
     }
   }
-  expect(open).toThrow('maximum depth')
+  expect(open).toThrow('Invalid preserved variable expression')
 })

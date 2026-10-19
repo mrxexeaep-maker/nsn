@@ -60,42 +60,10 @@ export function visitVariableReferences(
   data: VariableDataEntry | undefined,
   visit: (reference: Reference) => void,
   depth = 0
-): boolean {
+): void {
   if (depth > MAX_EXPRESSION_DEPTH) throw new Error('Variable expression exceeds maximum depth')
-  const value = data?.value
-  if (!value) return true
-  if (value.alias) visit(value.alias)
-  let complete = referenceCoverageComplete(value)
-  const nested = [
-    ...(value.expressionValue?.expressionArguments ?? []),
-    ...(value.mapValue?.values?.map((entry) => entry.value) ?? []),
-    ...(value.colorArrayValue?.colors ?? []),
-    value.fontStyleValue?.asString,
-    value.fontStyleValue?.asFloat,
-    value.fontStyleValue?.asVariations
-  ]
-  for (const argument of nested)
-    if (!visitVariableReferences(argument, visit, depth + 1)) complete = false
-  return complete
+  if (data?.value?.alias) visit(data.value.alias)
+  for (const argument of data?.value?.expressionValue?.expressionArguments ?? []) {
+    visitVariableReferences(argument, visit, depth + 1)
+  }
 }
-
-function referenceCoverageComplete(value: NonNullable<VariableDataEntry['value']>): boolean {
-  return (
-    Object.keys(value).every((key) => REFERENCE_VALUE_FIELDS.has(key)) &&
-    !value.mapValue?.values?.some((entry) => entry.guidKey)
-  )
-}
-
-// Other shapes may contain node references or future nested values. Retain them, but do not
-// infer safe destructive edits. In particular, a MAP guidKey is a mode, not a variable.
-const REFERENCE_VALUE_FIELDS = new Set([
-  'alias',
-  'boolValue',
-  'textValue',
-  'floatValue',
-  'colorValue',
-  'expressionValue',
-  'mapValue',
-  'colorArrayValue',
-  'fontStyleValue'
-])

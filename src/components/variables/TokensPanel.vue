@@ -6,8 +6,10 @@ import { computed, ref, useTemplateRef, watch } from 'vue'
 import type { VariableTokenFields } from '@open-pencil/core/editor'
 import type { TokenStylesheetFormat } from '@open-pencil/dom-css/export'
 import {
+  formatVariableFormula,
+  parseVariableFormula,
+  variableFormulaReference,
   isLibraryCollection,
-  canRemoveVariables,
   type VariableType,
   type VariableValue
 } from '@open-pencil/scene-graph'
@@ -15,6 +17,9 @@ import { useI18n, useSceneComputed, useVariables } from '@open-pencil/vue'
 
 import {
   aliasCandidates,
+  cssReferenceCandidates,
+  referencePillName,
+  formulaCandidates,
   groupTree,
   inGroup,
   searchTokenIds,
@@ -23,7 +28,6 @@ import {
 } from '@/app/editor/tokens/model'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import IconButton from '@/components/ui/button/IconButton.vue'
-import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 import AppPlaceholder from '@/components/ui/feedback/AppPlaceholder.vue'
 import AppInput from '@/components/ui/input/AppInput.vue'
 import PanelDrillIn from '@/components/ui/panel/PanelDrillIn.vue'
@@ -41,16 +45,15 @@ import TokenTable from '@/components/variables/TokenTable.vue'
 import TokenTypeFilter from '@/components/variables/TokenTypeFilter.vue'
 import { useTokenActions } from '@/components/variables/useTokenActions'
 import { swapTransition } from '@/theme/motion/styles'
-import tokensPanelTheme, {
+import panelTheme, {
   TOKENS_PANEL_COMPACT_WIDTH,
   TOKENS_PANEL_SIDEBAR_WIDTH
-} from '@/theme/tokens-panel'
+} from '@/theme/variables/panel'
 
 const emit = defineEmits<{ copy: [format: TokenStylesheetFormat]; export: [] }>()
 
-const { variables: messages, common, files } = useI18n()
-const removalRefused = ref(false)
-const ui = tv(tokensPanelTheme)()
+const { variables: messages, common } = useI18n()
+const ui = tv(panelTheme)()
 
 /**
  * The panel lays out by its own width, not the window: inside a dialog, a split view, or a phone.
@@ -139,6 +142,15 @@ const bulkIds = computed(
 )
 const candidates = computed(() =>
   editedRow.value ? aliasCandidates(editor.graph, editedRow.value.variable) : []
+)
+/** Characters, counting each pill by its name, a formula fits on one line before it breaks. */
+const FORMULA_LINE_WIDTH = 36
+
+const referenceCandidates = computed(() =>
+  editedRow.value ? formulaCandidates(editor.graph, editedRow.value.variable) : []
+)
+const cssCandidates = computed(() =>
+  editedRow.value ? cssReferenceCandidates(editor.graph, editedRow.value.variable) : []
 )
 
 const collectionOptions = computed(() =>
@@ -239,11 +251,6 @@ function addToken(type: VariableType) {
 }
 
 function removeTokens(ids: readonly string[]) {
-  if (ids.some((id) => !canRemoveVariables(editor.graph, [id]))) {
-    removalRefused.value = true
-    return
-  }
-  removalRefused.value = false
   actions.remove(ids)
   closeDetail()
 }
@@ -281,6 +288,22 @@ const tokenInspector = computed(() => {
   const id = editedId.value
   return {
     aliasCandidates: candidates.value,
+    cssCandidates: cssCandidates.value,
+    formula: id
+      ? {
+          candidates: referenceCandidates.value,
+          parse: (modeId: string, source: string) =>
+            parseVariableFormula(editor.graph, id, modeId, source),
+          // A long formula reads on several lines in its field.
+          format: (value: VariableValue) =>
+            formatVariableFormula(editor.graph, value, {
+              width: FORMULA_LINE_WIDTH,
+              display: (variableId) =>
+                referencePillName(editor.graph.variables.get(variableId)?.name ?? variableId)
+            }),
+          reference: (id: string) => variableFormulaReference(editor.graph, id)
+        }
+      : undefined,
     onRename: (name: string) => id && editor.renameVariable(id, name),
     onUpdateToken: (patch: Partial<VariableTokenFields>) =>
       id && editor.updateVariableToken(id, patch),
@@ -296,7 +319,6 @@ const bulkInspector = computed(() => {
   const ids = bulkIds.value ?? []
   return {
     count: ids.length,
-    canDuplicate: !ids.some((id) => editor.graph.variables.get(id)?.unresolved),
     focusGroup: groupingIds.value !== null,
     onMoveToGroup: (group: string) => moveToGroup(ids, group),
     onDuplicate: () => duplicateTokens(ids),
@@ -307,15 +329,7 @@ const collectionInspector = computed(() => {
   const current = collection.value
   return {
     onRename: (name: string) => current && ctx.renameCollection(current.id, name),
-    onRemove: () => {
-      if (!current) return
-      if (!canRemoveVariables(editor.graph, current.variableIds)) {
-        removalRefused.value = true
-        return
-      }
-      removalRefused.value = false
-      ctx.removeCollection(current.id)
-    },
+    onRemove: () => current && ctx.removeCollection(current.id),
     onAddMode: ctx.addMode,
     onRenameMode: ctx.renameMode,
     onDuplicateMode: ctx.duplicateMode,
@@ -341,12 +355,6 @@ const groupOptions = computed(() => groupEntries.value.map((entry) => entry.path
 
 <template>
   <div ref="root" :class="ui.root()" data-test-id="tokens-panel">
-    <AppAlert
-      v-if="removalRefused"
-      tone="warning"
-      :heading="files.unsupportedExpressionValue"
-      :description="files.unsupportedExpressionDependency"
-    />
     <template v-if="!collection">
       <div :class="ui.toolbar()">
         <span class="flex-1" />
@@ -393,12 +401,6 @@ const groupOptions = computed(() => groupEntries.value.map((entry) => entry.path
           layout="full"
         />
         <CollectionInspector
-          :modes-locked="
-            collectionVariables.some((variable) => variable.unresolved) ||
-            [...editor.graph.variables.values()].some(
-              (variable) => variable.unresolved && !variable.unresolved.referencesComplete
-            )
-          "
           v-else-if="compactDetail?.kind === 'collection'"
           v-bind="collectionInspector"
           :collection="collection"
@@ -531,20 +533,15 @@ const groupOptions = computed(() => groupEntries.value.map((entry) => entry.path
         />
         <Transition v-bind="swapTransition" mode="out-in">
           <TokenBulkInspector v-if="bulkIds" key="bulk" v-bind="bulkInspector" />
+          <!-- One key for every token: switching rows updates the inspector in place, unanimated. -->
           <TokenInspector
             v-else-if="editedRow"
-            :key="editedRow.variable.id"
+            key="token"
             v-bind="tokenInspector"
             :row="editedRow"
             :collection="collection"
           />
           <CollectionInspector
-            :modes-locked="
-              collectionVariables.some((variable) => variable.unresolved) ||
-              [...editor.graph.variables.values()].some(
-                (variable) => variable.unresolved && !variable.unresolved.referencesComplete
-              )
-            "
             v-else
             key="collection"
             v-bind="collectionInspector"

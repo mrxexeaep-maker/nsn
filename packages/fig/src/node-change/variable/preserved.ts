@@ -1,9 +1,6 @@
 import * as v from 'valibot'
 
-import type { NodeChange, VariableDataEntry } from '@open-pencil/kiwi/fig/codec'
-import type { Variable } from '@open-pencil/scene-graph'
-
-import { visitVariableReferences } from './expression'
+import type { GUID, VariableDataEntry } from '@open-pencil/kiwi/fig/codec'
 
 const guid = v.looseObject({
   sessionID: v.pipe(v.number(), v.integer(), v.minValue(0)),
@@ -57,34 +54,43 @@ const data: v.GenericSchema<VariableDataEntry> = v.lazy(() =>
     )
   })
 )
-const record = v.looseObject({
-  guid,
-  type: v.literal('VARIABLE'),
-  variableResolvedType: v.picklist(['COLOR', 'FLOAT', 'STRING', 'BOOLEAN']),
-  variableSetID: v.optional(reference),
-  parentIndex: v.optional(v.looseObject({ guid, position: v.string() })),
-  variableDataValues: v.looseObject({
-    entries: v.pipe(v.array(v.looseObject({ modeID: guid, variableData: data })), v.minLength(1))
-  })
-})
+/** Visit references without interpreting the function or changing its expression tree. */
+export function visitPreservedVariableReferences(
+  entry: VariableDataEntry,
+  alias: (reference: NonNullable<NonNullable<VariableDataEntry['value']>['alias']>) => void,
+  mode: (guid: GUID) => GUID = (guid) => guid
+): void {
+  const value = entry.value
+  if (!value) return
+  if (value.alias) alias(value.alias)
+  const nested = [
+    ...(value.expressionValue?.expressionArguments ?? []),
+    ...(value.colorArrayValue?.colors ?? []),
+    value.fontStyleValue?.asString,
+    value.fontStyleValue?.asFloat,
+    value.fontStyleValue?.asVariations
+  ]
+  for (const item of value.mapValue?.values ?? []) {
+    if (item.guidKey) item.guidKey = mode(item.guidKey)
+    nested.push(item.value)
+  }
+  for (const child of nested) if (child) visitPreservedVariableReferences(child, alias, mode)
+}
 
-/** Read public source metadata defensively; it can have passed through recovery or collaboration. */
-export function preservedVariableRecord(variable: Variable): NodeChange {
-  const raw = variable.source?.fig.rawNodeFields
-  // Bound the tree before recursive validation, including cycles in an in-process caller's state.
+/** Validate recovered opaque trees before writing them back to .fig. */
+export function preservedVariableData(raw: unknown): VariableDataEntry {
   const pending: Array<{ value: unknown; depth: number }> = [{ value: raw, depth: 0 }]
   let count = 0
   while (pending.length) {
     const item = pending.pop()
     if (!item) break
-    if (++count > 100000 || item.depth > 256) throw new Error('Invalid preserved variable record')
+    if (++count > 100000 || item.depth > 256)
+      throw new Error('Invalid preserved variable expression')
     if (item.value && typeof item.value === 'object')
       for (const value of Object.values(item.value)) pending.push({ value, depth: item.depth + 1 })
   }
-  const parsed = v.safeParse(record, raw)
-  if (!parsed.success || (!parsed.output.variableSetID && !parsed.output.parentIndex))
-    throw new Error('Invalid preserved variable record')
-  for (const entry of parsed.output.variableDataValues.entries)
-    visitVariableReferences(entry.variableData, () => undefined)
-  return parsed.output
+  const parsed = v.parse(data, raw)
+  if (parsed.dataType !== 'EXPRESSION' || !parsed.value?.expressionValue)
+    throw new Error('Invalid preserved variable expression')
+  return parsed
 }

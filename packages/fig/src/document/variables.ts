@@ -1,15 +1,24 @@
-import type { NodeChange, VariableDataValuesEntry } from '@open-pencil/kiwi/fig/codec'
+import * as v from 'valibot'
+
+import type { NodeChange, VariableDataEntry } from '@open-pencil/kiwi/fig/codec'
 import { guidToString } from '@open-pencil/kiwi/fig/guid'
 import {
-  createDefaultSourceMetadata,
+  VARIABLE_FORMULA_OPERATORS,
+  variableFormulaSchema,
+  variableColorExpressionSchema,
+  formulaResultType,
+  MAX_FORMULA_DEPTH,
   type SceneGraph,
   type VariableValue,
-  type UnresolvedVariable
+  type VariableColorExpression
 } from '@open-pencil/scene-graph'
 
 import { extractPluginData } from '../node-change/plugin-data'
-import { visitVariableReferences } from '../node-change/variable/expression'
 import { readVariableMetadata } from '../node-change/variable/metadata'
+import {
+  preservedVariableData,
+  visitPreservedVariableReferences
+} from '../node-change/variable/preserved'
 import {
   readModeAttribute,
   readModeConditions,
@@ -23,14 +32,19 @@ export interface UnsupportedVariableExpressionDiagnostic {
   modeId: string
   reason: 'unsupported-variable-expression'
 }
-
 type ExpressionReporter = (diagnostic: UnsupportedVariableExpressionDiagnostic) => void
 
+class UnsupportedExpressionError extends Error {
+  override name = 'UnsupportedExpressionError'
+}
+
 function valueOf(
-  entry: VariableDataValuesEntry,
-  resolve: ReturnType<typeof createResourceResolver>
+  entry: VariableDataEntry,
+  resolve: ReturnType<typeof createResourceResolver>,
+  depth = 0
 ): VariableValue {
-  const { value, dataType, resolvedDataType } = entry.variableData
+  if (depth > MAX_FORMULA_DEPTH) throw new Error('Variable expression is too deeply nested')
+  const { value, dataType, resolvedDataType } = entry
   if (!value) throw new Error('Missing variable value')
   const type = dataType ?? resolvedDataType
   if (type === 'ALIAS') {
@@ -42,13 +56,69 @@ function valueOf(
   if (type === 'BOOLEAN' && value.boolValue !== undefined) return value.boolValue
   if (type === 'STRING' && value.textValue !== undefined) return value.textValue
   if (type === 'FLOAT' && value.floatValue !== undefined) return value.floatValue
+  if (type === 'EXPRESSION') return expressionValue(entry, resolve, depth)
   throw new Error(`Unsupported variable value ${type}`)
+}
+
+function expressionValue(
+  entry: VariableDataEntry,
+  resolve: ReturnType<typeof createResourceResolver>,
+  depth: number
+): VariableValue {
+  const value = entry.value
+  if (!value) throw new Error('Missing expression')
+  if (value.expressionValue?.expressionFunction === 'COMPOSE_COLOR')
+    return colorExpression(entry, resolve)
+  const expression = value.expressionValue
+  const parsed = v.safeParse(v.picklist(VARIABLE_FORMULA_OPERATORS), expression?.expressionFunction)
+  if (!parsed.success) {
+    if (!expression?.expressionFunction) throw new Error('Missing variable expression function')
+    throw new UnsupportedExpressionError(
+      `Unsupported variable expression ${expression.expressionFunction}`
+    )
+  }
+  const operator = parsed.output
+  const type = formulaResultType(operator)
+  if (entry.resolvedDataType && entry.resolvedDataType !== type)
+    throw new Error(`Expression result type does not match ${entry.resolvedDataType}`)
+  const operands = (expression?.expressionArguments ?? []).map((arg) => {
+    const operand = valueOf(arg, resolve, depth + 1)
+    return typeof operand === 'object' &&
+      'expression' in operand &&
+      operand.expression === 'FORMULA'
+      ? operand.value
+      : operand
+  })
+  return v.parse(variableFormulaSchema, {
+    expression: 'FORMULA',
+    type,
+    value: { operator, operands }
+  })
+}
+
+function colorExpression(
+  entry: VariableDataEntry,
+  resolve: ReturnType<typeof createResourceResolver>
+): VariableColorExpression {
+  const expression = entry.value?.expressionValue
+  const args = expression?.expressionArguments
+  if (expression?.expressionFunction !== 'COMPOSE_COLOR' || args?.length !== 2)
+    throw new UnsupportedExpressionError(
+      `Unsupported variable expression ${expression?.expressionFunction}`
+    )
+  // Only literal or alias operands are supported; other functions must not be flattened.
+  if (args.some((arg) => arg.dataType === 'EXPRESSION'))
+    throw new UnsupportedExpressionError('Unsupported nested color expression')
+  const color = valueOf(args[0], resolve)
+  const opacity = valueOf(args[1], resolve)
+  return v.parse(variableColorExpressionSchema, { expression: 'COMPOSE_COLOR', color, opacity })
 }
 
 function modeValues(
   resource: NodeChange,
   modes: readonly string[],
-  resolve: ReturnType<typeof createResourceResolver>
+  resolve: ReturnType<typeof createResourceResolver>,
+  onUnsupportedExpression?: ExpressionReporter
 ): Record<string, VariableValue> {
   const entries = resource.variableDataValues?.entries ?? []
   if (!entries.length) throw new Error('Missing mode values')
@@ -56,7 +126,32 @@ function modeValues(
   for (const entry of entries) {
     const modeId = guidToString(entry.modeID)
     if (!modes.includes(modeId)) throw new Error('Unknown mode')
-    values[modeId] = valueOf(entry, resolve)
+    let value: VariableValue
+    try {
+      value = valueOf(entry.variableData, resolve)
+    } catch (error) {
+      if (!(error instanceof UnsupportedExpressionError) || !onUnsupportedExpression) throw error
+      const raw = structuredClone(preservedVariableData(entry.variableData))
+      const references: string[] = []
+      visitPreservedVariableReferences(raw, (reference) => {
+        const id = resolve(reference)
+        if (id) references.push(id)
+      })
+      value = { expression: 'UNSUPPORTED', value: raw, references }
+      onUnsupportedExpression({
+        sourceId: resource.guid ? guidToString(resource.guid) : '',
+        modeId,
+        reason: 'unsupported-variable-expression'
+      })
+    }
+    if (
+      typeof value === 'object' &&
+      'expression' in value &&
+      value.expression === 'FORMULA' &&
+      value.type !== resource.variableResolvedType
+    )
+      throw new Error(`Expression result type does not match ${resource.variableResolvedType}`)
+    values[modeId] = value
   }
   return values
 }
@@ -104,54 +199,6 @@ export function materializeVariableResources(
   addVariables(graph, resources, report, onUnsupportedExpression)
 }
 
-function unresolvedValues(
-  entries: readonly VariableDataValuesEntry[],
-  modes: readonly string[],
-  resolve: ReturnType<typeof createResourceResolver>,
-  importedIds: string[]
-): UnresolvedVariable {
-  const dependencies = new Set<string>()
-  const coverage = { complete: true }
-  const visit = (reference: Parameters<typeof resolve>[0]) => {
-    const id = resolve(reference)
-    if (id) dependencies.add(id)
-    else coverage.complete = false
-  }
-  for (const entry of entries) {
-    if (!modes.includes(guidToString(entry.modeID))) throw new Error('Unknown mode')
-    if (entry.variableData.dataType === 'EXPRESSION') {
-      if (!entry.variableData.value?.expressionValue?.expressionFunction)
-        throw new Error('Missing variable expression value')
-      if (!visitVariableReferences(entry.variableData, visit)) coverage.complete = false
-    } else {
-      const value = valueOf(entry, resolve)
-      if (typeof value === 'object' && 'aliasId' in value) dependencies.add(value.aliasId)
-    }
-  }
-  return {
-    reason: 'unsupported-expression',
-    dependencies: [...dependencies],
-    referencesComplete: coverage.complete,
-    ...(!coverage.complete ? { importedIds } : {})
-  }
-}
-
-function variableCollectionId(
-  resource: NodeChange,
-  resolve: ReturnType<typeof createResourceResolver>
-) {
-  if (resource.variableSetID) return resolve(resource.variableSetID)
-  return resource.parentIndex?.guid && guidToString(resource.parentIndex.guid)
-}
-
-function unresolvedSource(resource: NodeChange) {
-  const source = createDefaultSourceMetadata()
-  source.format = 'fig'
-  source.id = resource.guid ? guidToString(resource.guid) : null
-  source.fig.rawNodeFields = structuredClone(resource)
-  return source
-}
-
 function addVariables(
   graph: SceneGraph,
   resources: readonly NodeChange[],
@@ -159,18 +206,12 @@ function addVariables(
   onUnsupportedExpression?: ExpressionReporter
 ): void {
   const resolve = createResourceResolver(resources)
-  const importedIds = resources.flatMap((record) =>
-    record.guid && (record.type === 'VARIABLE' || record.type === 'VARIABLE_SET')
-      ? [
-          guidToString(record.guid),
-          ...(record.variableSetModes?.map((mode) => guidToString(mode.id)) ?? [])
-        ]
-      : []
-  )
   for (const resource of resources) {
     if (resource.type !== 'VARIABLE') continue
     const type = resource.variableResolvedType
-    const collectionId = variableCollectionId(resource, resolve)
+    const collectionId = resource.variableSetID
+      ? resolve(resource.variableSetID)
+      : resource.parentIndex?.guid && guidToString(resource.parentIndex.guid)
     const collection = collectionId && graph.variableCollections.get(collectionId)
     if (
       !resource.guid ||
@@ -182,37 +223,20 @@ function addVariables(
       continue
     }
     const valuesByMode: Record<string, VariableValue> = {}
-    let unresolved: UnresolvedVariable | undefined
     try {
-      const entries = resource.variableDataValues?.entries ?? []
-      const expressions = entries.filter((entry) => entry.variableData.dataType === 'EXPRESSION')
-      if (expressions.length && onUnsupportedExpression) {
-        unresolved = unresolvedValues(
-          entries,
+      Object.assign(
+        valuesByMode,
+        modeValues(
+          resource,
           collection.modes.map((mode) => mode.modeId),
           resolve,
-          importedIds
+          onUnsupportedExpression
         )
-        for (const entry of expressions)
-          onUnsupportedExpression({
-            sourceId: guidToString(resource.guid),
-            modeId: guidToString(entry.modeID),
-            reason: 'unsupported-variable-expression'
-          })
-      } else
-        Object.assign(
-          valuesByMode,
-          modeValues(
-            resource,
-            collection.modes.map((mode) => mode.modeId),
-            resolve
-          )
-        )
+      )
     } catch (error) {
       report(resource, error instanceof Error ? error.message : 'Invalid mode value')
       continue
     }
-    const source = unresolved ? unresolvedSource(resource) : undefined
     const metadata = readVariableMetadata(resource)
     graph.addVariable({
       id: guidToString(resource.guid),
@@ -220,8 +244,6 @@ function addVariables(
       type,
       collectionId,
       valuesByMode,
-      unresolved,
-      source,
       ...metadata,
       ...readVariableToken(resource, valuesByMode)
     })

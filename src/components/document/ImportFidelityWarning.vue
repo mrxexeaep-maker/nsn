@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import { isUnsupportedVariableValue } from '@open-pencil/scene-graph'
 import { useCommonMessages, useFileMessages, useSceneComputed } from '@open-pencil/vue'
 
 import { useEditorStore } from '@/app/editor/active-store'
@@ -12,7 +13,10 @@ const files = useFileMessages()
 const common = useCommonMessages()
 const dismissed = ref(false)
 const count = useSceneComputed(
-  () => [...store.graph.variables.values()].filter((variable) => variable.unresolved).length
+  () =>
+    [...store.graph.variables.values()].filter((variable) =>
+      Object.values(variable.valuesByMode).some(isUnsupportedVariableValue)
+    ).length
 )
 </script>
 

@@ -4,12 +4,14 @@ import { deflateSync } from 'fflate'
 
 import { compressFigDataSync, parseFigBuffer } from '@open-pencil/fig'
 import { getCompiledSchema, getSchemaBytes } from '@open-pencil/kiwi/fig/codec'
+import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
 import { guidToString, stringToGuid } from '@open-pencil/kiwi/fig/guid'
 import { SceneGraph } from '@open-pencil/scene-graph'
 
 import { createEditor } from '#core/editor/create'
 import { FigmaAPI } from '#core/figma-api'
 import { exportFigFile } from '#core/io/formats/fig/export'
+import { appendVariableNodeChanges } from '#core/io/formats/fig/export/variables'
 import { parseFigFile, parseFigFileViaWorker } from '#core/io/formats/fig/read'
 import { deserializeSceneGraph, serializeSceneGraph } from '#core/kiwi/fig/parse/transfer'
 import {
@@ -47,7 +49,7 @@ test('tolerant import keeps cached layers, diagnostics and opaque values across 
     resolvedDataType: 'FLOAT',
     value: {
       expressionValue: {
-        expressionFunction: 'ADDITION',
+        expressionFunction: 'VAR_MODE_LOOKUP',
         expressionArguments: [
           {
             dataType: 'MAP',
@@ -91,14 +93,36 @@ test('tolerant import keeps cached layers, diagnostics and opaque values across 
     ])
     expect(graph.getPages().map((page) => graph.getChildren(page.id)[0].width)).toEqual([91, 91])
     expect(graph.resolveVariable(opaque.id)).toBeUndefined()
-    const editor = createEditor({ graph })
-    expect(() => new FigmaAPI(graph).setVariableValue(opaque.id, mode, 9)).toThrow(
-      'unsupported expression'
+    const remapped: NodeChange[] = []
+    appendVariableNodeChanges(
+      graph,
+      remapped,
+      { sessionID: 0, localID: 1 },
+      new Map([[literal.id, { sessionID: 99, localID: 1 }]]),
+      new Map([[empty.defaultModeId, { sessionID: 99, localID: 2 }]])
     )
-    expect(() => editor.removeVariable(literal.id)).toThrow('unsupported expression')
-    expect(graph.variables.has(literal.id)).toBe(true)
-    expect(() => graph.removeCollection(empty.id)).toThrow('unsupported expression')
-    expect(() => graph.createMode(empty.id, 'Other')).toThrow('unsupported expressions')
+    const mappedEntry = remapped.find((node) => node.name === 'Opaque')?.variableDataValues
+      ?.entries?.[0].variableData
+    expect(
+      mappedEntry?.value?.expressionValue?.expressionArguments?.[0].value?.mapValue?.values?.[0]
+    ).toMatchObject({
+      guidKey: { sessionID: 99, localID: 2 },
+      value: { value: { alias: { guid: { sessionID: 99, localID: 1 } } } }
+    })
+    expect(
+      entry.variableData.value?.expressionValue?.expressionArguments?.[0].value?.mapValue
+        ?.values?.[0].guidKey
+    ).toEqual(stringToGuid(empty.defaultModeId))
+    const editor = createEditor({ graph })
+    expect(() => editor.updateVariableValue(opaque.id, mode, 9)).toThrow(
+      'unsupported variable expression'
+    )
+    expect(() => new FigmaAPI(graph).setVariableValue(opaque.id, mode, 9)).toThrow(
+      'unsupported variable expression'
+    )
+    const unused = graph.createCollection('Unused')
+    editor.removeCollection(unused.id)
+    expect(graph.variableCollections.has(unused.id)).toBe(false)
     const added = graph.createVariable('New', 'FLOAT', collection.id)
     editor.addVariable(added)
     editor.undoAction()
@@ -117,15 +141,19 @@ test('tolerant import keeps cached layers, diagnostics and opaque values across 
     editor.updateVariableValue(literal.id, mode, 42)
     editor.renameCollection(collection.id, 'Safe edit')
     const full = deserializeSceneGraph(structuredClone(serializeSceneGraph(graph)))
-    expect(() => full.removeCollection(empty.id)).toThrow('unsupported expression')
+    expect(full.variables.get(opaque.id)?.valuesByMode[mode]).toEqual(
+      graph.variables.get(opaque.id)?.valuesByMode[mode]
+    )
     const fresh = full.createVariable('New after recovery', 'FLOAT', collection.id)
     full.removeVariable(fresh.id)
     expect(full.variables.has(fresh.id)).toBe(false)
     for (const saved of [await exportFigFile(graph), await exportFigFile(full)]) {
       const reopened = await parseFigFile(saved.slice().buffer)
-      expect(
-        reopened.variables.get(opaque.id)?.source?.fig.rawNodeFields.variableDataValues
-      ).toEqual(record.variableDataValues)
+      expect(reopened.variables.get(opaque.id)?.valuesByMode[mode]).toMatchObject({
+        expression: 'UNSUPPORTED',
+        value: entry.variableData,
+        references: [literal.id]
+      })
       expect(reopened.resolveVariable(literal.id)).toBe(42)
       expect(reopened.getPages().map((page) => reopened.getChildren(page.id)[0].width)).toEqual([
         91, 91

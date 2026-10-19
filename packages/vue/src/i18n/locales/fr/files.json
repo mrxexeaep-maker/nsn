@@ -1,9 +1,7 @@
 {
-  "unsupportedExpressionDependency": "Une expression conservée utilise cette ressource. Supprimez d’abord l’expression dépendante ou leur collection entière.",
   "expressionWarningHeading": "Certaines expressions de variables ne sont pas prises en charge",
-  "expressionWarningDescription": "{count} variables utilisent des expressions non prises en charge. Les valeurs enregistrées des calques sont affichées à la place ; l’apparence et les changements de mode peuvent différer. Les expressions sont conservées à l’enregistrement. L’ajout ou la suppression de modes, la modification de ces valeurs, leur duplication et leur transfert vers un autre document sont indisponibles.",
+  "expressionWarningDescription": "{count} variables utilisent des expressions non prises en charge. Les valeurs enregistrées sur les calques sont affichées ; le rendu et les changements de mode peuvent différer. Les valeurs non prises en charge sont en lecture seule et leurs expressions sont conservées lors de l’enregistrement.",
   "unsupportedExpressionValue": "Expression non prise en charge",
-  "unsupportedExpressionModes": "Impossible d’ajouter ou de supprimer des modes tant que cette collection contient des expressions non prises en charge.",
   "unsavedChanges": "Modifications non enregistrées",
   "saveBeforeClosing": "Enregistrer les modifications de « {name} » ?",
   "saveBeforeClosingDescription": "Si vous fermez sans enregistrer, vos modifications seront perdues.",

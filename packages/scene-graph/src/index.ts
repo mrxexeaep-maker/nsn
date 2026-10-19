@@ -2,8 +2,12 @@
 export * from './mutation-impact'
 export * from './variables/bindings'
 export type { VariableModeFallback } from './variables'
-export { modesDefaultFirst, canRemoveVariables, assertEditableVariableValue } from './variables'
+export { modesDefaultFirst } from './variables'
 export * from './variables/token'
+export * from './variables/value'
+export * from './variables/formula'
+export * from './variables/formula/schema'
+export * from './variables/schema'
 export * from './plugin-data/field'
 export * from './plugin-data/fields'
 export { rescaleNodeTree, scaleNodeChanges } from './scaling'
@@ -60,7 +64,6 @@ export * from './statuses/workflow'
 export * from './copy'
 export {
   createDefaultNode,
-  createDefaultSourceMetadata,
   defaultStrokeAlign,
   FITTED_CONTAINER_TYPES,
   newStrokeGeometry
@@ -142,7 +145,8 @@ import type {
   Variable,
   VariableCollection,
   VariableType,
-  VariableValue
+  VariableValue,
+  VariableLiteral
 } from './types'
 
 export {
@@ -370,7 +374,7 @@ export class SceneGraph {
     variableId: string,
     modeId?: string,
     visited?: Set<string>
-  ): VariableValue | undefined {
+  ): VariableLiteral | undefined {
     return Variables.resolveVariable(this, variableId, modeId, visited)
   }
 
@@ -402,7 +406,7 @@ export class SceneGraph {
     nodeId: string,
     variableId: string,
     fallback?: VariableModeFallback
-  ): VariableValue | undefined {
+  ): VariableLiteral | undefined {
     return Variables.resolveVariableForNode(this, nodeId, variableId, fallback)
   }
 
