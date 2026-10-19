@@ -1,4 +1,4 @@
-import type { SceneNode } from '@open-pencil/scene-graph'
+import { getNodeLocalMatrix, type SceneNode } from '@open-pencil/scene-graph'
 import type { Matrix } from '@open-pencil/scene-graph/primitives'
 
 export function mapToFigmaType(type: SceneNode['type']): string {
@@ -45,6 +45,10 @@ export function mapToFigmaType(type: SceneNode['type']): string {
 }
 
 export function computeExportTransform(node: SceneNode): Matrix {
+  if (node.type === 'LINE') {
+    const [m00, m01, m02, m10, m11, m12] = getNodeLocalMatrix(node)
+    return { m00, m01, m02, m10, m11, m12 }
+  }
   const sx = node.flipX ? -1 : 1
   const cos = Math.cos((node.rotation * Math.PI) / 180)
   const sin = Math.sin((node.rotation * Math.PI) / 180)

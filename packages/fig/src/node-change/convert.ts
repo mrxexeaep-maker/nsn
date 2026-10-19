@@ -259,7 +259,7 @@ export function convertFigmaTransformProps(
     if (det < 0) flipX = true
     rotation = Math.atan2(t.m10, flipX ? t.m11 : t.m00) * (180 / Math.PI)
 
-    // Scene nodes apply their reflection and rotation around the center. Decompose the Figma
+    // Reflection is centered; LINE rotation keeps its origin pivot. Decompose the Figma
     // matrix into that same linear transform, then recover the node translation so recomposing
     // it produces the original matrix. Reflected rotations need their angle read from the
     // second row; treating them as ordinary rotations reverses connector instances by 180°.
@@ -272,8 +272,11 @@ export function convertFigmaTransformProps(
     const m01 = flipX ? sin : -sin
     const m10 = sin
     const m11 = cos
-    x = t.m02 - centerX + m00 * centerX + m01 * centerY
-    y = t.m12 - centerY + m10 * centerX + m11 * centerY
+    x =
+      nc.type === 'LINE'
+        ? t.m02 - (flipX ? width : 0)
+        : t.m02 - centerX + m00 * centerX + m01 * centerY
+    y = nc.type === 'LINE' ? t.m12 : t.m12 - centerY + m10 * centerX + m11 * centerY
   }
 
   return { x, y, width, height, rotation, flipX, flipY: false }

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
+import { computeExportTransform } from '#fig/node-change/basics'
 import {
   applyStyleRefsToFields,
   buildStyleOverrideTable,
@@ -16,10 +17,66 @@ import {
   nodeChangeToProps,
   setVariableColorResolver
 } from '#fig/node-change/index'
+import { fillToKiwiPaint } from '#fig/node-change/paint'
 
+import { getCompiledSchema, initCodec } from '@open-pencil/kiwi/fig/codec'
 import type { NodeChange, Paint } from '@open-pencil/kiwi/fig/codec'
+import { SceneGraph, getWorldMatrix, TransformMatrix } from '@open-pencil/scene-graph'
 
 describe('@open-pencil/fig NodeChange policy', () => {
+  test('keeps raw LINE endpoints through reflected parents and exports authored origin pivots', () => {
+    const graph = new SceneGraph()
+    const parent = graph.createNode('FRAME', graph.getPages()[0].id, {
+      x: 10,
+      y: 20,
+      width: 200,
+      height: 100,
+      rotation: 90
+    })
+    for (const flip of [false, true]) {
+      const raw: NodeChange = {
+        type: 'LINE',
+        size: { x: 100, y: 0 },
+        transform: {
+          m00: 0,
+          m01: flip ? 1 : -1,
+          m02: 200,
+          m10: 1,
+          m11: 0,
+          m12: 300
+        }
+      }
+      const line = graph.createNode('LINE', parent.id, nodeChangeToProps(raw, []))
+      const points = TransformMatrix.mapPoints(getWorldMatrix(line, graph), [0, 0, 100, 0])
+      for (const [i, expected] of [-140, 170, -240, 170].entries())
+        expect(points[i]).toBeCloseTo(expected)
+      const exported = computeExportTransform(line)
+      for (const key of ['m00', 'm01', 'm02', 'm10', 'm11', 'm12'] as const)
+        expect(exported[key]).toBeCloseTo(raw.transform?.[key] ?? 0)
+    }
+    const authored = graph.createNode('LINE', parent.id, {
+      x: 30,
+      y: 40,
+      width: 80,
+      height: 0,
+      rotation: -90,
+      flipX: true
+    })
+    const exported = computeExportTransform(authored)
+    expect(exported.m02).toBe(110)
+    expect(exported.m12).toBe(40)
+    expect(exported.m01).toBeCloseTo(-1)
+    expect(exported.m10).toBeCloseTo(-1)
+    const rectangle = graph.createNode('RECTANGLE', parent.id, {
+      x: 30,
+      y: 40,
+      width: 80,
+      height: 20,
+      rotation: 90
+    })
+    expect(computeExportTransform(rectangle)).toMatchObject({ m02: 80, m12: 10 })
+  })
+
   test('converts normalized text values', () => {
     expect(convertLineHeight({ value: 120, units: 'PERCENT' }, 20)).toBe(24)
     expect(convertLetterSpacing({ value: 10, units: 'PERCENT' }, 20)).toBe(2)
@@ -36,6 +93,24 @@ describe('@open-pencil/fig NodeChange policy', () => {
       { tag: 'DLIG', enabled: true },
       { tag: 'LIGA', enabled: false }
     ])
+  })
+
+  test('normalizes raw STRETCH to crop while exporting the actual Kiwi enum', async () => {
+    await initCodec()
+    const transform = { m00: 2, m01: 0, m02: -0.25, m10: 0, m11: 2, m12: 0.125 }
+    const raw: Paint = { type: 'IMAGE', imageScaleMode: 'STRETCH', transform }
+    const fill = convertFills([raw])[0]
+    expect(fill.imageScaleMode).toBe('CROP')
+    expect(fill.imageTransform).toEqual(transform)
+    const paint = fillToKiwiPaint(fill)
+    expect(paint.imageScaleMode).toBe('STRETCH')
+    expect(paint.transform).toEqual(transform)
+    const codec = getCompiledSchema()
+    expect(() => codec.encodePaint({ ...raw, imageScaleMode: 'CROP' })).toThrow()
+    expect(codec.encodePaint(paint)).toEqual(codec.encodePaint({ ...paint, ...raw }))
+    expect(
+      convertFills([{ type: 'IMAGE', imageScaleMode: 'STRETCH' }])[0].imageTransform
+    ).toBeUndefined()
   })
 
   test('normalizes imported paints and effects', () => {
