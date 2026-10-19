@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 
 import type * as FigNodeChange from '@open-pencil/fig/node-change'
-import { shaderPresetKey } from '@open-pencil/scene-graph'
+import { shaderPresetKey, type Fill } from '@open-pencil/scene-graph'
 
 import { expect, test, useEditorSetupWithClear } from '#tests/e2e/fixtures'
 import { readScenePixels } from '#tests/helpers/canvas/pixels'
@@ -206,6 +206,36 @@ test('gradients and image fill modes', async () => {
       })
     }
 
+    // Figma tiles by scale and turns Fill, Fit and Tile images; a Tile ignores a crop it kept.
+    const placements: Partial<Fill>[] = [
+      { imageScaleMode: 'TILE', scale: 0.5 },
+      { imageScaleMode: 'TILE', imageRotation: 90 },
+      { imageScaleMode: 'FILL', imageRotation: 90 },
+      {
+        imageScaleMode: 'TILE',
+        imageTransform: { m00: 0.5, m01: 0, m02: 0.25, m10: 0, m11: 0.5, m12: 0.25 }
+      }
+    ]
+    for (const [index, placement] of placements.entries()) {
+      store.graph.createNode('RECTANGLE', pageId, {
+        name: `Image placement ${index}`,
+        x: 84 + index * 116,
+        y: 320,
+        width: 92,
+        height: 72,
+        fills: [
+          {
+            type: 'IMAGE',
+            color: { r: 0, g: 0, b: 0, a: 1 },
+            visible: true,
+            opacity: 1,
+            imageHash,
+            ...placement
+          }
+        ]
+      })
+    }
+
     for (const [index, rotation] of [90, -90].entries()) {
       const line = nodeChangeToProps(
         {
@@ -260,6 +290,13 @@ test('gradients and image fill modes', async () => {
     expect(Math.abs(g - 51)).toBeLessThanOrEqual(4)
     expect(Math.abs(b - 153)).toBeLessThanOrEqual(4)
   }
+  const [turnedFill, keptCrop] = await readScenePixels(editor.page, [
+    { x: 316 + 70, y: 320 + 20 },
+    { x: 432 + 20, y: 320 + 10 }
+  ])
+  // The red top-left quarter turns to the top right, and a kept crop leaves the tile at full size.
+  expect(turnedFill.slice(0, 3)).toEqual([239, 68, 68])
+  expect(keptCrop.slice(0, 3)).toEqual([239, 68, 68])
   await expectCanvas('gradients-and-image-fill-modes')
 })
 

@@ -381,46 +381,49 @@ export function applyGradientFill(
   }
 }
 
+/**
+ * Maps `img`'s pixels onto `node` as `fill` places them. `size` is the image's own size when `img`
+ * is a downscaled preview, so a tile keeps its size. A crop places the image by its transform;
+ * Fill, Fit and Tile ignore it, as Figma does, and turn the image by `imageRotation` first.
+ */
 export function makeImageFillLocalMatrix(
   r: SkiaRenderer,
   fill: Fill,
   node: SceneNode,
   imgW: number,
-  imgH: number
+  imgH: number,
+  size: { width: number; height: number } = { width: imgW, height: imgH }
 ) {
+  const M = r.ck.Matrix
   const scaleMode = fill.imageScaleMode ?? 'FILL'
-  if (scaleMode === 'TILE' && !fill.imageTransform) return r.ck.Matrix.identity()
-
-  if ((scaleMode === 'CROP' || scaleMode === 'TILE') && fill.imageTransform) {
+  if (scaleMode === 'CROP' && fill.imageTransform) {
     const t = fill.imageTransform
-    const transform = [t.m00, t.m01, t.m02, t.m10, t.m11, t.m12, 0, 0, 1]
-    const inverse = r.ck.Matrix.invert(transform)
-    if (inverse) {
-      return r.ck.Matrix.multiply(
-        r.ck.Matrix.scaled(node.width, node.height),
-        inverse,
-        r.ck.Matrix.scaled(1 / imgW, 1 / imgH)
-      )
-    }
+    const inverse = M.invert([t.m00, t.m01, t.m02, t.m10, t.m11, t.m12, 0, 0, 1])
+    if (inverse)
+      return M.multiply(M.scaled(node.width, node.height), inverse, M.scaled(1 / imgW, 1 / imgH))
   }
 
-  if (scaleMode === 'FIT') {
-    const scale = Math.min(node.width / imgW, node.height / imgH)
-    return r.ck.Matrix.multiply(
-      r.ck.Matrix.translated((node.width - imgW * scale) / 2, (node.height - imgH * scale) / 2),
-      r.ck.Matrix.scaled(scale, scale)
-    )
+  const radians = ((fill.imageRotation ?? 0) * Math.PI) / 180
+  const cos = Math.abs(Math.cos(radians))
+  const sin = Math.abs(Math.sin(radians))
+  const turnedW = size.width * cos + size.height * sin
+  const turnedH = size.width * sin + size.height * cos
+  const turned = M.multiply(
+    M.translated(turnedW / 2, turnedH / 2),
+    M.rotated(radians),
+    M.translated(-size.width / 2, -size.height / 2),
+    M.scaled(size.width / imgW, size.height / imgH)
+  )
+  if (scaleMode === 'TILE') {
+    const scale = fill.scale && fill.scale > 0 ? fill.scale : 1
+    return M.multiply(M.scaled(scale, scale), turned)
   }
-
-  const scale = Math.max(node.width / imgW, node.height / imgH)
-  const sw = node.width / scale
-  const sh = node.height / scale
-  const sx = (imgW - sw) / 2
-  const sy = (imgH - sh) / 2
-
-  return r.ck.Matrix.multiply(
-    r.ck.Matrix.scaled(node.width / sw, node.height / sh),
-    r.ck.Matrix.translated(-sx, -sy)
+  const fit = scaleMode === 'FIT'
+  const scale = (fit ? Math.min : Math.max)(node.width / turnedW, node.height / turnedH)
+  return M.multiply(
+    M.translated((node.width - turnedW * scale) / 2, (node.height - turnedH * scale) / 2),
+    M.scaled(scale, scale),
+    turned
   )
 }
 
@@ -439,10 +442,14 @@ function setImageShader(
   const imgW = img.width()
   const imgH = img.height()
   const scaleMode = fill.imageScaleMode ?? 'FILL'
-  const localMatrix =
-    scaleMode === 'TILE' && !fill.imageTransform && preview
-      ? r.ck.Matrix.scaled(preview.originalWidth / imgW, preview.originalHeight / imgH)
-      : makeImageFillLocalMatrix(r, fill, node, imgW, imgH)
+  const localMatrix = makeImageFillLocalMatrix(
+    r,
+    fill,
+    node,
+    imgW,
+    imgH,
+    preview && { width: preview.originalWidth, height: preview.originalHeight }
+  )
   const tileMode = scaleMode === 'FIT' ? r.ck.TileMode.Decal : r.ck.TileMode.Clamp
   const shader =
     scaleMode === 'TILE'

@@ -113,6 +113,27 @@ describe('@open-pencil/fig NodeChange policy', () => {
     ).toBeUndefined()
   })
 
+  test('reads a Figma tile by its scale and rotation, not the transform Figma keeps from a crop', () => {
+    // As Figma writes a Tile switched from a Crop: the old crop stays, and Figma ignores it.
+    const crop = { m00: 0.5, m01: 0, m02: 0.25, m10: 0, m11: 0.5, m12: 0.25 }
+    const tile = convertFills([
+      { type: 'IMAGE', imageScaleMode: 'TILE', transform: crop, scale: 0.5, rotation: 90 }
+    ])[0]
+    expect(tile).toMatchObject({ imageScaleMode: 'TILE', scale: 0.5, imageRotation: 90 })
+    expect(tile.imageTransform).toBeUndefined()
+    expect(fillToKiwiPaint(tile)).toMatchObject({
+      imageScaleMode: 'TILE',
+      scale: 0.5,
+      rotation: 90
+    })
+    const identity = { m00: 1, m01: 0, m02: 0, m10: 0, m11: 1, m12: 0 }
+    const fill = convertFills([
+      { type: 'IMAGE', imageScaleMode: 'FILL', transform: identity, rotation: 0 }
+    ])[0]
+    expect(fill.imageTransform).toBeUndefined()
+    expect(fill.imageRotation).toBeUndefined()
+  })
+
   test('normalizes imported paints and effects', () => {
     expect(convertFills([{ type: 'SOLID' }])[0]).toMatchObject({
       color: { r: 0, g: 0, b: 0, a: 1 },
