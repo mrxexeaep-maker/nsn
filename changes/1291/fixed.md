@@ -1,0 +1,2 @@
+- Text typed in OpenPencil with an emoji draws its emoji and its letters in Figma after a copy or save, instead of showing blank.
+- Text with a character no font has, such as a typed keycap, draws with a missing-glyph box for that character instead of disappearing, and draws in Figma after a copy or save.
