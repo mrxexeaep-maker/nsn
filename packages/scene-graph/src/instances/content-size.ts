@@ -44,12 +44,19 @@ function contentSizedAxes(
  * its count and the layers it shows rather than to the component's placeholder. Layout measures
  * those axes; the component's size there would be stale.
  */
+/** Where synchronization placed a copy, and on which axes the copy keeps that place itself. */
+export interface SyncedPlacement {
+  placed: Rect
+  x: boolean
+  y: boolean
+}
+
 export function keepOwnContentSize(
   graph: SceneGraph,
   updates: Partial<SceneNode>,
   copy: SceneNode,
   source: SceneNode,
-  placement?: { placed: Rect; x: boolean; y: boolean }
+  placement?: SyncedPlacement
 ): void {
   const axes = contentSizedAxes(graph, copy, source, updates)
   if (axes.width) Reflect.deleteProperty(updates, 'width')
