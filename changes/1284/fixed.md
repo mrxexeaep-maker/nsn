@@ -1,1 +1,1 @@
-- `.fig` files with unsupported variable functions open using saved layer values, preserve their expressions when saved, and show a dismissible fidelity warning.
+- `.fig` files whose variables use expressions OpenPencil cannot evaluate yet, such as `TERNARY` or `VAR_MODE_LOOKUP`, open with the values saved in the file and keep those expressions when saved, instead of failing to open.

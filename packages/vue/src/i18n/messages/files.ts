@@ -3,11 +3,6 @@ import { params } from '@nanostores/i18n'
 import { i18n } from '#vue/i18n/create'
 
 export const filesMessageDefaults = {
-  expressionWarningHeading: 'Some variable expressions are not supported',
-  expressionWarningDescription: params(
-    '{count} variables use unsupported expressions. Saved layer values are shown instead; appearance and mode changes may differ. Unsupported values are read-only and their expressions are preserved when saving.'
-  ),
-  unsupportedExpressionValue: 'Unsupported expression',
   importLabel: 'Import',
   importHTMLCSS: 'Import HTML/CSS',
   importHTMLCSSDescription: 'Paste HTML plus optional CSS or compiled Tailwind CSS.',

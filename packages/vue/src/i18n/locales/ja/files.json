@@ -1,7 +1,4 @@
 {
-  "expressionWarningHeading": "一部の変数式はサポートされていません",
-  "expressionWarningDescription": "{count} 個の変数で未対応の式が使用されています。レイヤーに保存された値が表示されるため、外観やモード変更の結果が異なる場合があります。未対応の値は読み取り専用で、式は保存時に保持されます。",
-  "unsupportedExpressionValue": "未対応の式",
   "unsavedChanges": "未保存の変更",
   "saveBeforeClosing": "「{name}」の変更を保存しますか？",
   "saveBeforeClosingDescription": "保存せずに閉じると、変更は失われます。",

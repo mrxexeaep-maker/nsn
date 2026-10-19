@@ -1,7 +1,4 @@
 {
-  "expressionWarningHeading": "Niektóre wyrażenia zmiennych nie są obsługiwane",
-  "expressionWarningDescription": "{count} zmiennych używa nieobsługiwanych wyrażeń. Wyświetlane są wartości zapisane w warstwach; wygląd i zmiany trybu mogą się różnić. Nieobsługiwane wartości są tylko do odczytu, a ich wyrażenia są zachowywane podczas zapisywania.",
-  "unsupportedExpressionValue": "Nieobsługiwane wyrażenie",
   "unsavedChanges": "Niezapisane zmiany",
   "saveBeforeClosing": "Zapisać zmiany w „{name}”?",
   "saveBeforeClosingDescription": "Jeśli zamkniesz dokument bez zapisywania, zmiany zostaną utracone.",

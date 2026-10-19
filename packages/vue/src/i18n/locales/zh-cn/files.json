@@ -1,7 +1,4 @@
 {
-  "expressionWarningHeading": "部分变量表达式暂不支持",
-  "expressionWarningDescription": "{count} 个变量使用了不支持的表达式。将显示图层中保存的值；外观和模式切换结果可能不同。不支持的值为只读，其表达式会在保存时保留。",
-  "unsupportedExpressionValue": "暂不支持的表达式",
   "unsavedChanges": "未保存的更改",
   "saveBeforeClosing": "保存对“{name}”的更改吗？",
   "saveBeforeClosingDescription": "如果不保存就关闭，更改将丢失。",

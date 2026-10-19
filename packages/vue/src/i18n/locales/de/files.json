@@ -1,7 +1,4 @@
 {
-  "expressionWarningHeading": "Einige Variablenausdrücke werden nicht unterstützt",
-  "expressionWarningDescription": "{count} Variablen verwenden nicht unterstützte Ausdrücke. Stattdessen werden gespeicherte Ebenenwerte angezeigt; Darstellung und Moduswechsel können abweichen. Nicht unterstützte Werte sind schreibgeschützt und ihre Ausdrücke bleiben beim Speichern erhalten.",
-  "unsupportedExpressionValue": "Nicht unterstützter Ausdruck",
   "unsavedChanges": "Ungespeicherte Änderungen",
   "saveBeforeClosing": "Änderungen an „{name}“ speichern?",
   "saveBeforeClosingDescription": "Wenn du ohne Speichern schließt, werden deine Änderungen verworfen.",

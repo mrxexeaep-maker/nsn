@@ -1,7 +1,4 @@
 {
-  "expressionWarningHeading": "Alcune espressioni delle variabili non sono supportate",
-  "expressionWarningDescription": "{count} variabili usano espressioni non supportate. Vengono mostrati i valori salvati nei livelli; l’aspetto e i cambi di modalità possono variare. I valori non supportati sono di sola lettura e le loro espressioni vengono conservate al salvataggio.",
-  "unsupportedExpressionValue": "Espressione non supportata",
   "unsavedChanges": "Modifiche non salvate",
   "saveBeforeClosing": "Salvare le modifiche a «{name}»?",
   "saveBeforeClosingDescription": "Se chiudi senza salvare, le modifiche andranno perse.",

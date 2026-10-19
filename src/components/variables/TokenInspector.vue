@@ -14,7 +14,6 @@ import {
 } from '@open-pencil/dom-css/export'
 import {
   TOKEN_UNITS,
-  isUnsupportedVariableValue,
   tokenNumberFromUnit,
   tokenNumberInUnit,
   type Color,
@@ -78,7 +77,7 @@ const emit = defineEmits<{
   remove: []
 }>()
 
-const { variables, files } = useI18n()
+const { variables } = useI18n()
 const ui = computed(() => tv(inspectorTheme)({ layout }))
 /**
  * A copy per list refresh: the graph edits a variable in place, so the same object coming back
@@ -276,6 +275,11 @@ function alias(modeId: string) {
   return row.values.find((value) => value.modeId === modeId)?.alias
 }
 
+/** A function from the file OpenPencil cannot evaluate; that mode's value is read-only. */
+function unsupported(modeId: string) {
+  return row.values.find((value) => value.modeId === modeId)?.unsupported
+}
+
 /** The color an aliased value resolves to, shown beside the variable as the panel does. */
 function aliasColor(modeId: string): Color | undefined {
   return row.values.find((value) => value.modeId === modeId)?.color
@@ -362,13 +366,17 @@ function cssNameDone(event: KeyboardEvent) {
         {{ singleMode ? variables.value : variables.values }}
       </h3>
       <div v-for="mode in collection.modes" :key="mode.modeId" :class="ui.value()">
-        <span v-if="!editsValues && !singleMode" :class="ui.label()">{{ mode.name }}</span>
         <span
-          v-if="isUnsupportedVariableValue(variable.valuesByMode[mode.modeId])"
-          :class="ui.hint()"
+          v-if="!singleMode && (!editsValues || unsupported(mode.modeId))"
+          :class="ui.label()"
+          >{{ mode.name }}</span
         >
-          {{ files.unsupportedExpressionValue }}
-        </span>
+        <Tip
+          v-if="unsupported(mode.modeId)"
+          :label="variables.unsupportedExpression({ name: unsupported(mode.modeId) ?? '' })"
+        >
+          <span :class="ui.hint()">{{ unsupported(mode.modeId) }}(…)</span>
+        </Tip>
         <TokenValueEditor
           v-else-if="editsValues && formula"
           :variable="variable"

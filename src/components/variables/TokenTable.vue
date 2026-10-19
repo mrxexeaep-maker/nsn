@@ -5,7 +5,6 @@ import { computed, ref, useTemplateRef, type ComponentPublicInstance } from 'vue
 
 import {
   isLibraryCollection,
-  isUnsupportedVariableValue,
   type VariableCollection,
   type VariableValue
 } from '@open-pencil/scene-graph'
@@ -47,7 +46,7 @@ const emit = defineEmits<{
   reorder: [sourceId: string, targetIndex: number, visibleIds: string[]]
 }>()
 
-const { variables, files } = useI18n()
+const { variables } = useI18n()
 const ui = tv(tableTheme)()
 /** Figma does not show a variable the file adds to a library's collection; such a row says so. */
 const libraryCollection = computed(() => isLibraryCollection(collection))
@@ -271,11 +270,8 @@ function dropEdge(id: string) {
               :class="ui.value()"
               @dblclick.stop="startValueEdit(row, value.modeId)"
             >
-              <span v-if="isUnsupportedVariableValue(row.variable.valuesByMode[value.modeId])">
-                {{ files.unsupportedExpressionValue }}
-              </span>
               <TokenCellInput
-                v-else-if="isEditing(row.variable.id, value.modeId)"
+                v-if="isEditing(row.variable.id, value.modeId)"
                 :value="tokenValueText(row.variable, row.variable.valuesByMode[value.modeId])"
                 :label="modeName(value.modeId)"
                 @commit="commitValue(row, value.modeId, $event)"
@@ -301,6 +297,12 @@ function dropEdge(id: string) {
                   </Tip>
                   <span class="truncate">{{ value.css || '—' }}</span>
                 </template>
+                <Tip
+                  v-else-if="value.unsupported"
+                  :label="variables.unsupportedExpression({ name: value.unsupported })"
+                >
+                  <span :class="ui.aliasResult()">{{ value.unsupported }}(…)</span>
+                </Tip>
                 <template v-else-if="value.alias">
                   <BindingPill :class="ui.aliasPill()" :label="value.alias" />
                   <span v-if="value.result" :class="ui.aliasResult()">{{ value.result }}</span>
