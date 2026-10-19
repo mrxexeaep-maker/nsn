@@ -23,7 +23,11 @@ function cloudServer() {
   const objects = new Map<string, Uint8Array>()
   let fullReads = 0
   let cancelledReads = 0
-  let ignoresRanges = false
+  /**
+   * How the object store answers a range: as asked, by ignoring it, with more or fewer bytes
+   * than asked and no `Content-Range` to tell, or with another range than asked.
+   */
+  let ranges: 'honored' | 'ignored' | 'oversized' | 'short' | 'other' = 'honored'
   const uploads = new Map<string, { documentId: string; base: string | null }>()
   const summary = (id: string, doc: Doc) => ({
     id,
@@ -134,27 +138,44 @@ function cloudServer() {
     const bytes = objects.get(key)
     if (!bytes) return new Response(null, { status: 404 })
     const range = /^bytes=(\d+)-(\d+)$/.exec(new Headers(init.headers).get('Range') ?? '')
-    if (!range || ignoresRanges) {
+    if (!range) {
       fullReads += 1
-      if (!ignoresRanges) return new Response(Uint8Array.from(bytes))
-      // The whole file, a chunk at a time, so a reader can stop it partway.
-      let offset = 0
-      const body = new ReadableStream<Uint8Array>({
+      return new Response(Uint8Array.from(bytes))
+    }
+    const [, first = '0', last = '0'] = range
+    const start = Number(first)
+    const end = Number(last) + 1
+    // A chunk at a time, so a reader can stop it partway.
+    const streamed = (from: number, to: number) => {
+      let offset = from
+      return new ReadableStream<Uint8Array>({
         pull(controller) {
-          controller.enqueue(bytes.slice(offset, offset + 1024))
+          controller.enqueue(bytes.slice(offset, Math.min(offset + 1024, to)))
           offset += 1024
-          if (offset >= bytes.byteLength) controller.close()
+          if (offset >= to) controller.close()
         },
         cancel() {
           cancelledReads += 1
         }
       })
-      return new Response(body)
     }
-    const [, start = '0', end = '0'] = range
-    return new Response(Uint8Array.from(bytes.subarray(Number(start), Number(end) + 1)), {
-      status: 206
-    })
+    if (ranges === 'ignored') {
+      fullReads += 1
+      return new Response(streamed(0, bytes.byteLength))
+    }
+    const sent = {
+      honored: [start, end],
+      oversized: [start, bytes.byteLength],
+      short: [start, end - 1],
+      other: [start + 1, end + 1]
+    }[ranges]
+    const [from = start, to = end] = sent
+    // A store whose CORS rules hide `Content-Range` leaves only the body's length to go by.
+    const headers: Record<string, string> =
+      ranges === 'oversized' || ranges === 'short'
+        ? {}
+        : { 'Content-Range': `bytes ${from}-${to - 1}/${bytes.byteLength}` }
+    return new Response(streamed(from, to), { status: 206, headers })
   }
 
   /** Someone else saves the document, moving its revision on. */
@@ -171,8 +192,8 @@ function cloudServer() {
     objects,
     fullReads: () => fullReads,
     cancelledReads: () => cancelledReads,
-    ignoreRanges() {
-      ignoresRanges = true
+    answerRanges(answer: typeof ranges) {
+      ranges = answer
     }
   }
 }
@@ -271,8 +292,25 @@ describe('Cloud storage adapter', () => {
     const id = crypto.randomUUID()
     const figBytes = new Uint8Array(readFileSync('tests/fixtures/gold-preview.fig'))
     await storage.putDocument(id, figBytes, { name: 'Preview', updatedAt: '' })
-    server.ignoreRanges()
+    server.answerRanges('ignored')
     await expect(storage.getThumbnail?.(id) ?? Promise.resolve()).rejects.toThrow('HTTP 200')
     expect(server.cancelledReads()).toBe(1)
+  })
+
+  test('takes only the range it asked for, stopping one that runs on', async () => {
+    const server = cloudServer()
+    const storage = adapter(server)
+    const id = crypto.randomUUID()
+    const figBytes = new Uint8Array(readFileSync('tests/fixtures/gold-preview.fig'))
+    await storage.putDocument(id, figBytes, { name: 'Preview', updatedAt: '' })
+    const preview = () => storage.getThumbnail?.(id) ?? Promise.resolve()
+
+    server.answerRanges('oversized')
+    await expect(preview()).rejects.toThrow('more than')
+    expect(server.cancelledReads()).toBeGreaterThan(0)
+    server.answerRanges('short')
+    await expect(preview()).rejects.toThrow('sent')
+    server.answerRanges('other')
+    await expect(preview()).rejects.toThrow('HTTP 206 (bytes')
   })
 })

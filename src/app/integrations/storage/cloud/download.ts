@@ -33,8 +33,36 @@ export async function downloadCloudRevision(
 }
 
 /**
- * Bytes `start` to `endExclusive` of a revision, for reading its preview without the rest. A
- * store that ignores the range would send the whole file, so only a partial response counts.
+ * Reads exactly `length` bytes of a response, stopping a body that runs past them rather than
+ * receiving the rest.
+ */
+async function readExactly(response: Response, length: number): Promise<Uint8Array> {
+  const bytes = new Uint8Array(length)
+  let received = 0
+  const reader = response.body?.getReader()
+  if (reader) {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (received + value.byteLength > length) {
+        await reader.cancel()
+        throw new Error(`Cloud document range read sent more than the ${length} bytes asked for`)
+      }
+      bytes.set(value, received)
+      received += value.byteLength
+    }
+  }
+  if (received !== length) {
+    throw new Error(`Cloud document range read sent ${received} of the ${length} bytes asked for`)
+  }
+  return bytes
+}
+
+/**
+ * Bytes `start` to `endExclusive` of a revision, for reading its preview without the rest. Only
+ * a partial response of exactly that range counts: a store that ignores the range, or answers
+ * another one, is stopped rather than left sending the file. `Content-Range` is checked when the
+ * store's CORS rules let the browser read it.
  */
 export async function readCloudRevisionRange(
   download: DocumentDownload,
@@ -46,10 +74,15 @@ export async function readCloudRevisionRange(
     method: download.download.method,
     headers: { ...download.download.headers, Range: `bytes=${start}-${endExclusive - 1}` }
   })
-  if (response.status !== 206) {
-    // A store that ignored the range is sending the whole file; stop it rather than let it finish.
+  const range = response.headers.get('Content-Range')
+  if (
+    response.status !== 206 ||
+    (range && !range.startsWith(`bytes ${start}-${endExclusive - 1}/`))
+  ) {
     await response.body?.cancel()
-    throw new Error(`Cloud document range read failed with HTTP ${response.status}`)
+    throw new Error(
+      `Cloud document range read failed with HTTP ${response.status}${range ? ` (${range})` : ''}`
+    )
   }
-  return new Uint8Array(await response.arrayBuffer())
+  return readExactly(response, endExclusive - start)
 }
