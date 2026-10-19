@@ -72,12 +72,13 @@ export function createVectorEditNetworkActions(
     editor.requestRender()
   }
 
-  function nodeEditAddVertex(cx: number, cy: number) {
+  /** Splits the segment under a canvas point; false when no segment is near enough. */
+  function nodeEditAddVertex(cx: number, cy: number): boolean {
     const es = getNodeEditState()
-    if (!es) return
+    if (!es) return false
     const live = getLiveNetwork(es)
     const nearest = nearestPointOnNetwork(cx, cy, live, nodeEditHitThreshold / state.zoom)
-    if (!nearest) return
+    if (!nearest) return false
     pushNodeEditHistory(es)
     const split = splitSegmentAt(live, nearest.segmentIndex, nearest.t)
     setNodeEditNetwork(es, split.network)
@@ -86,6 +87,7 @@ export function createVectorEditNetworkActions(
     es.selectedRegions = new Set()
     es.selectedHandles = new Set()
     editor.requestRender()
+    return true
   }
 
   function nodeEditRemoveVertex(vertexIndex: number) {
