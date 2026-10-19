@@ -5,6 +5,8 @@ import * as layoutModule from '@open-pencil/core/layout'
 
 import { makeFigmaFromStore } from '@/app/automation/bridge/figma-factory'
 import { createAutomationCommandHandlers } from '@/app/automation/bridge/handlers'
+import { recentDocuments } from '@/app/recent-files'
+import { recentFilesLimit } from '@/app/recent-files/preferences'
 import { createTab, getActiveStore, getActiveTabId, getTabById, getTabsSnapshot } from '@/app/tabs'
 
 import { asDouble } from '#tests/helpers/doubles'
@@ -362,5 +364,39 @@ describe('close_file and save_file never prompt', () => {
     expect(tab.store.state.documentName).toBe('Untitled')
     expect(tab.store.getDocumentFilePath()).toBeNull()
     expect(tab.store.hasWritableSource()).toBe(false)
+  })
+})
+
+describe('list_recent_files', () => {
+  afterEach(() => {
+    recentDocuments.value = []
+    recentFilesLimit.value = 10
+  })
+
+  test('lists local files newest first within the recent files limit', async () => {
+    const updatedAt = '2026-01-01T00:00:00.000Z'
+    recentDocuments.value = [
+      { id: 'local:/a.fig', kind: 'local', path: '/a.fig', name: 'a.fig', updatedAt },
+      {
+        id: 'storage:s3:doc',
+        kind: 'storage',
+        providerId: 's3',
+        documentId: 'doc',
+        name: 'Stored',
+        updatedAt
+      },
+      { id: 'local:/b.fig', kind: 'local', path: '/b.fig', name: 'b.fig', updatedAt },
+      { id: 'local:/c.fig', kind: 'local', path: '/c.fig', name: 'c.fig', updatedAt }
+    ]
+    recentFilesLimit.value = 3
+
+    const response = await request('list_recent_files')
+
+    expect(response.result).toEqual({
+      files: [
+        { path: '/a.fig', name: 'a.fig', updated_at: updatedAt },
+        { path: '/b.fig', name: 'b.fig', updated_at: updatedAt }
+      ]
+    })
   })
 })
