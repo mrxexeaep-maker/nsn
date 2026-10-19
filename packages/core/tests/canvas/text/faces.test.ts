@@ -6,9 +6,13 @@ import { expectDefined } from '#core-tests/helpers/assert'
 
 import { createDefaultNode } from '@open-pencil/scene-graph/node-defaults'
 
+import { SceneGraph } from '@open-pencil/scene-graph'
+
 import { buildParagraph } from '#core/canvas/text'
+import { withFigExportRuntime } from '#core/canvas/text/shape'
 import { getCanvasKit } from '#core/canvaskit'
 import { FontManager, fontManager } from '#core/text/fonts'
+import { glyphOutlineSourceSync } from '#core/text/opentype'
 
 /** A family only these tests load, so faces other tests load cannot answer for it. */
 const FAMILY = 'Faces Test Sans'
@@ -72,5 +76,34 @@ describe('text faces', () => {
     fontManager.markLoaded(FAMILY, 'Bold', await bundled('/Inter-Bold.ttf'))
     const regular = drawn(ck, fontProvider, { fontWeight: 400, italic: false })
     expect(drawn(ck, fontProvider, { fontWeight: 700, italic: false })).not.toEqual(regular)
+  })
+
+  /**
+   * One face for the whole text: a family without the requested face draws its own, and the
+   * characters it lacks fall back in that same face, which is the outline saved for them.
+   */
+  test('saves fallback characters in the face the text is drawn in', async () => {
+    const primary = 'Faces Test Naskh'
+    fontManager.markLoaded(primary, 'Regular', await bundled('/NotoNaskhArabic-Regular.ttf'))
+    fontManager.markLoaded('Inter', 'Regular', await bundled('/Inter-Regular.ttf'))
+    fontManager.markLoaded('Inter', 'Bold', await bundled('/Inter-Bold.ttf'))
+    const graph = new SceneGraph()
+    const node = graph.createNode('TEXT', graph.getPages()[0].id, {
+      text: 'F',
+      fontFamily: primary,
+      fontWeight: 700,
+      fontSize: 40,
+      width: 200,
+      height: 60,
+      textAutoResize: 'NONE'
+    })
+    const shaped = expectDefined(
+      await withFigExportRuntime(graph, await getCanvasKit(), async (runtime) =>
+        runtime.shapeText(node)
+      ),
+      'shaped text'
+    )
+    const regular = expectDefined(glyphOutlineSourceSync('Inter', 'Regular'), 'Inter Regular')
+    expect(shaped.glyphs[0]?.commands).toEqual(regular.outline(regular.glyphOf('F'), 40))
   })
 })

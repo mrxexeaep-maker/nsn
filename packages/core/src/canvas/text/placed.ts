@@ -8,6 +8,7 @@ import { laidOutText } from '#core/canvas/text/keycap'
 import type { TextLayout, TextLayoutMarker } from '#core/canvas/text/layout'
 import { textFontVariations } from '#core/canvas/text/paragraph'
 import { utf16IndicesByUtf8 } from '#core/canvas/text/utf8'
+import { DEFAULT_FONT_FAMILY } from '#core/constants'
 import { fontManager, weightToStyle } from '#core/text/fonts'
 import { glyphOutlineSourceSync, type GlyphOutlineSource } from '#core/text/opentype'
 
@@ -36,10 +37,14 @@ function loadedStyle(family: string, weight: number, italic: boolean): string | 
   return face ? weightToStyle(face.weight, face.italic) : null
 }
 
-/** The font a character asks for: its family, weight, and slant, and the variable axes it sets. */
+/**
+ * The font a character asks for: its family, weight, and slant, and the variable axes it sets;
+ * and the face the paragraph asks every family for, the one its own family has loaded, as
+ * `drawnFontStyle` asks CanvasKit.
+ */
 function fontAt(node: SceneNode, index: number) {
   const run = node.styleRuns.find((item) => index >= item.start && index < item.start + item.length)
-  const family = run?.style.fontFamily ?? node.fontFamily
+  const family = run?.style.fontFamily ?? (node.fontFamily || DEFAULT_FONT_FAMILY)
   const weight = run?.style.fontWeight ?? node.fontWeight
   const italic = run?.style.italic ?? node.italic
   const style = weightToStyle(weight, italic)
@@ -48,13 +53,14 @@ function fontAt(node: SceneNode, index: number) {
       run?.style.fontVariations ?? node.fontVariations,
       fontManager.namedInstanceVariations(family, style)
     ) ?? []
-  return { family, weight, italic, style, variations }
+  const drawn = loadedFace(family, weight, italic) ?? { weight, italic }
+  return { family, weight, italic, style, variations, drawn }
 }
 
 /** The outline source of each font the paragraph may have drawn a character in, in its order. */
 function* candidateSources(font: ReturnType<typeof fontAt>) {
   for (const family of resolveParagraphFontFamilies(font.family, font.style)) {
-    const style = loadedStyle(family, font.weight, font.italic)
+    const style = loadedStyle(family, font.drawn.weight, font.drawn.italic)
     const source = style ? glyphOutlineSourceSync(family, style, font.variations) : null
     if (source) yield source
   }
@@ -70,7 +76,7 @@ export function characterFamily(node: SceneNode, text: string, index: number): s
   const character = String.fromCodePoint(codePoint)
   const font = fontAt(node, index)
   for (const family of resolveParagraphFontFamilies(font.family, font.style)) {
-    const style = loadedStyle(family, font.weight, font.italic)
+    const style = loadedStyle(family, font.drawn.weight, font.drawn.italic)
     if (style && glyphOutlineSourceSync(family, style, font.variations)?.covers(character))
       return family
   }
