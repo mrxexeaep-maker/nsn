@@ -77,7 +77,7 @@ export function drawTextEditOverlay(
 function drawPathTextCaret(
   r: SkiaRenderer,
   canvas: Canvas,
-  _node: SceneNode,
+  node: SceneNode,
   editor: TextEditor
 ): void {
   const corners = editor.getPathTextQuads().flat()
@@ -111,9 +111,8 @@ function drawPathTextCaret(
   const caret = editor.getPathCaret()
   if (!caret) return
   r.auxStroke.setStrokeWidth(TEXT_CARET_WIDTH / r.zoom)
-  r.auxStroke.setColor(
-    r.ck.Color4f(TEXT_CARET_COLOR.r, TEXT_CARET_COLOR.g, TEXT_CARET_COLOR.b, TEXT_CARET_COLOR.a)
-  )
+  const color = textCaretColor(node, editor.caretIndex ?? 0)
+  r.auxStroke.setColor(r.ck.Color4f(color.r, color.g, color.b, color.a))
   r.auxStroke.setPathEffect(null)
   canvas.drawLine(caret.from.x, caret.from.y, caret.to.x, caret.to.y, r.auxStroke)
 }
