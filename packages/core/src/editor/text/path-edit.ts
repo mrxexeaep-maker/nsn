@@ -15,10 +15,18 @@ import {
   textPathStartDistance
 } from '#core/text/path'
 
-type PathTextType = Pick<
-  SceneNode,
-  'text' | 'fontFamily' | 'fontWeight' | 'italic' | 'fontSize' | 'letterSpacing'
->
+/** The fields path text is laid out from; a change to any of them lays it out again. */
+const PATH_TEXT_LAYOUT_FIELDS = [
+  'text',
+  'fontFamily',
+  'fontWeight',
+  'italic',
+  'fontSize',
+  'letterSpacing',
+  'textAlignHorizontal'
+] as const
+
+type PathTextType = Pick<SceneNode, (typeof PATH_TEXT_LAYOUT_FIELDS)[number]>
 
 /**
  * Glyphs for `type` laid out along the path mapped into `box` from the local font: aligned from
@@ -39,7 +47,15 @@ function layOutPathText(
     fontSize
   )
   if (!metrics) return null
-  const run = alignedRun(node, data, box, layout.anchor, metrics, letterSpacing)
+  const run = alignedRun(
+    node,
+    data,
+    box,
+    type.textAlignHorizontal,
+    layout.anchor,
+    metrics,
+    letterSpacing
+  )
   return layoutPathTextFromAdvances(
     data,
     box,
@@ -58,7 +74,7 @@ function layOutPathText(
 }
 
 /**
- * Re-flow imported path text when its characters change: rebuild glyph
+ * Re-flow imported path text when its characters or typography change: rebuild glyph
  * outlines from the local font and pen-walk them along the preserved path,
  * keeping the calibrated anchor and mean normal offset. Returns {} whenever
  * the node is not reflowable path text or the font is unavailable — the
@@ -70,8 +86,9 @@ export function pathTextEditChanges(
   changes: Partial<SceneNode>
 ): Partial<Pick<SceneNode, 'derivedTextGlyphs' | 'strokeGeometry'>> {
   if (node?.type !== 'TEXT') return {}
-  if (typeof changes.text !== 'string') return {}
-  if (changes.text.trim().length === 0) {
+  if (!PATH_TEXT_LAYOUT_FIELDS.some((field) => changes[field] !== undefined)) return {}
+  const text = changes.text ?? node.text
+  if (text.trim().length === 0) {
     return node.textPathBox ? { derivedTextGlyphs: null, strokeGeometry: [] } : {}
   }
   if (!node.textPathBox || !node.derivedTextGlyphs?.length) return {}
@@ -81,18 +98,19 @@ export function pathTextEditChanges(
   if (!layout) return {}
 
   // Prefer pending typography from the same update batch over the pre-update
-  // node so { text, fontSize/fontFamily/... } stays consistent for reflow.
+  // node so { text, fontSize/textAlignHorizontal/... } stays consistent for reflow.
   const glyphs = layOutPathText(
     node,
     data,
     node.textPathBox,
     {
-      text: changes.text,
+      text,
       fontFamily: changes.fontFamily ?? node.fontFamily,
       fontWeight: changes.fontWeight ?? node.fontWeight,
       italic: changes.italic ?? node.italic,
       fontSize: changes.fontSize ?? node.fontSize,
-      letterSpacing: changes.letterSpacing ?? node.letterSpacing
+      letterSpacing: changes.letterSpacing ?? node.letterSpacing,
+      textAlignHorizontal: changes.textAlignHorizontal ?? node.textAlignHorizontal
     },
     layout
   )
@@ -185,6 +203,7 @@ function alignedRun(
   node: SceneNode,
   data: TextPathData,
   box: Rect,
+  align: SceneNode['textAlignHorizontal'],
   anchor: number,
   metrics: Array<{ advance: number }>,
   letterSpacing: number
@@ -193,7 +212,6 @@ function alignedRun(
   const path = sampleTextPath(data, box)
   if (!path || path.length === 0) return all
   const direction = data.forward ? 1 : -1
-  const align = node.textAlignHorizontal
 
   const start = data.startSegment === undefined ? null : textPathStartDistance(data, path)
   if (start !== null) {
