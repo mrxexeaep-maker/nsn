@@ -125,6 +125,34 @@ describe('editor preparation controller', () => {
       jest.useRealTimers()
     }
   })
+
+  test('counts the time a tab was shown toward the limit, across visits', async () => {
+    jest.useFakeTimers()
+    try {
+      const state = createInitialAppEditorState('page')
+      const controller = createEditorPreparationController(state, undefined, {
+        presentationTimeoutMs: 100
+      })
+      const handle = controller.begin({ kind: 'page-switch' })
+      let failure: unknown = null
+      const waiting = controller.waitForPresentation(handle.id, 7).catch((error: unknown) => {
+        failure = error
+      })
+      // Two visits of 60 ms each: the scene had longer than its 100 ms to draw.
+      const detach = controller.attachCanvas()
+      jest.advanceTimersByTime(60)
+      detach()
+      controller.attachCanvas()
+      jest.advanceTimersByTime(60)
+      await Promise.resolve()
+      expect(failure).toHaveProperty('message', 'The operation was timed out')
+      controller.acknowledgePresentation(7)
+      await waiting
+      handle.fail({ code: 'render-failed', message: 'Timed out', retryable: true })
+    } finally {
+      jest.useRealTimers()
+    }
+  })
   test('emits exactly one terminal outcome', () => {
     const state = createInitialAppEditorState('page')
     const events = createEditorPreparationEvents()

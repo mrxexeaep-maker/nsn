@@ -18,6 +18,10 @@ interface PresentationWaiter {
   reject: (error: Error) => void
   /** Runs only while a canvas shows the document, which is the only place it is presented. */
   timer: ReturnType<typeof setTimeout> | null
+  /** When the timer last started, so hiding the tab keeps the time it already had. */
+  startedAt: number
+  /** The time left to draw the scene while shown. */
+  remainingMs: number
 }
 
 export interface EditorPreparationControllerOptions {
@@ -59,7 +63,16 @@ export function createEditorPreparationController(
   }
 
   function startTimer(id: number, waiter: PresentationWaiter) {
-    waiter.timer ??= setTimeout(() => settle(id, new TimeoutError()), presentationTimeoutMs)
+    if (waiter.timer !== null) return
+    waiter.startedAt = Date.now()
+    waiter.timer = setTimeout(() => settle(id, new TimeoutError()), waiter.remainingMs)
+  }
+
+  function pauseTimer(waiter: PresentationWaiter) {
+    if (waiter.timer === null) return
+    clearTimeout(waiter.timer)
+    waiter.timer = null
+    waiter.remainingMs = Math.max(0, waiter.remainingMs - (Date.now() - waiter.startedAt))
   }
 
   const isActive = (id: number) => state.preparation?.id === id
@@ -148,7 +161,14 @@ export function createEditorPreparationController(
       if (!isActive(id) || presentedSceneVersion >= sceneVersion) return Promise.resolve()
       settle(id, null)
       return new Promise<void>((resolve, reject) => {
-        const waiter: PresentationWaiter = { sceneVersion, resolve, reject, timer: null }
+        const waiter: PresentationWaiter = {
+          sceneVersion,
+          resolve,
+          reject,
+          timer: null,
+          startedAt: 0,
+          remainingMs: presentationTimeoutMs
+        }
         presentationWaiters.set(id, waiter)
         if (canvases > 0) startTimer(id, waiter)
       })
@@ -162,10 +182,7 @@ export function createEditorPreparationController(
         attached = false
         canvases -= 1
         if (canvases > 0) return
-        for (const waiter of presentationWaiters.values()) {
-          if (waiter.timer !== null) clearTimeout(waiter.timer)
-          waiter.timer = null
-        }
+        for (const waiter of presentationWaiters.values()) pauseTimer(waiter)
       }
     },
     dispose() {
