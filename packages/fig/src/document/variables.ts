@@ -137,7 +137,7 @@ function modeValues(
         const id = resolve(reference)
         if (id) references.push(id)
       })
-      value = { expression: 'UNSUPPORTED', value: raw, references }
+      value = { expression: 'UNSUPPORTED', value: { ...raw }, references }
       onUnsupportedExpression({
         sourceId: resource.guid ? guidToString(resource.guid) : '',
         modeId,
