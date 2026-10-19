@@ -15,6 +15,17 @@ describe('tab address', () => {
     expect(tabAddressFor(roomId, null, home).path).toBe(`/share/${roomId}`)
   })
 
+  test('takes a document’s server and version off when a room’s tab comes up', () => {
+    const shown = {
+      path: document.path,
+      query: { ...document.query, version: 'v1', cloud: 'preview' }
+    }
+    expect(tabAddressFor(roomId, null, shown)).toEqual({
+      path: `/share/${roomId}`,
+      query: { cloud: 'preview' }
+    })
+  })
+
   test('shows a Cloud document at its address, not its room', () => {
     expect(tabAddressFor(cloudRoomId, document, home)).toEqual(document)
     expect(tabAddressFor(cloudRoomId, null, { path: `/share/${roomId}`, query: {} }).path).toBe('/')

@@ -32,8 +32,8 @@ export function tabAddressFor(
 ): TabAddress {
   const query = omit(current.query, CLOUD_DOCUMENT_QUERY)
   if (cloud) return { path: cloud.path, query: { ...query, ...cloud.query } }
-  if (roomId && isRoomId(roomId)) return { path: shareRoutePath(roomId), query: current.query }
-  if (current.path.startsWith(SHARE_ROUTE_PREFIX)) return { path: '/', query: current.query }
+  if (roomId && isRoomId(roomId)) return { path: shareRoutePath(roomId), query }
+  if (current.path.startsWith(SHARE_ROUTE_PREFIX)) return { path: '/', query }
   if (current.path.startsWith(CLOUD_DOCUMENT_PREFIX) && !opening) return { path: '/', query }
   return current
 }
