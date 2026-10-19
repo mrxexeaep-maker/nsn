@@ -21,6 +21,7 @@ import { allTabs, getTabForStore, getTabsSnapshot, reloadStorageDocumentInTab } 
 import { isCloudBinding } from '../documents/status'
 import { cloudConnections } from '../sessions/connection'
 import { cloudShareTarget } from '../sharing/document'
+import { versionListRevision } from '../versions/history'
 import { shareRoomUploads, uploadStoredDocument } from './upload'
 
 /** Each Cloud tab's permission in its room, for the status beside the name. */
@@ -158,6 +159,10 @@ export function openCloudDocumentRoom(
   // A viewer sees the room's edits and makes none, as Figma's view-only files do.
   store.setReadOnly(!canEdit)
   if (!canSave) store.state.autosaveEnabled = false
+  // Someone named, renamed, or saved a checkpoint anywhere: an open history loads it again.
+  const stopVersions = session.onVersionsChanged(() => {
+    versionListRevision.value++
+  })
   const stopSynced = session.onSynced((peerId) => {
     if (peerId !== RELAY_SERVER_PEER) return
     stopSynced()
@@ -184,6 +189,7 @@ export function openCloudDocumentRoom(
     /** Whether the server now holds the room's document with every edit this tab has seen. */
     upload: uploads.upload,
     stop() {
+      stopVersions()
       stopSynced()
       saver.stop()
       uploads.stop()
@@ -291,6 +297,8 @@ export async function restartCloudRoom(store: EditorStore): Promise<void> {
     if (session) leaveRoom(session)
     // The tab shows what it downloaded: another tab of the document may still write the local copy.
     await reloadStorageDocumentInTab(store, await adoptStoredVersion(binding.documentId))
+    // The restore is in the history now; the old room closed before it could say so.
+    versionListRevision.value++
     await startCloudRoom(store)
   } finally {
     restarting.delete(store)
