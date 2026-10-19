@@ -43,6 +43,11 @@ export function createDesignCheck(editor: Editor, state: AppEditorState) {
   const snapshot = shallowRef<DesignCheckSnapshot | null>(null)
   const panelVisible = ref(false)
   const focusedIssueId = ref<string | null>(null)
+  /** The layer of the focused issue, which takes the focus with it when it is deleted. */
+  const focusedNodeId = computed(() => {
+    const id = focusedIssueId.value
+    return id ? (snapshot.value?.issues.find((issue) => issue.id === id)?.nodeId ?? null) : null
+  })
 
   const preferences = computed(() => appPreferences.value.designCheck)
   const enabled = computed(() => panelVisible.value || preferences.value.showOnCanvas)
@@ -81,7 +86,10 @@ export function createDesignCheck(editor: Editor, state: AppEditorState) {
     return graph.onNodeEvents({
       created: (node) => touch(node.id),
       updated: (id) => touch(id),
-      deleted: (_id, parentId) => touch(parentId),
+      deleted: (id, parentId) => {
+        touch(parentId)
+        if (id === focusedNodeId.value) focusedIssueId.value = null
+      },
       reparented: (_id, oldParentId, newParentId) => {
         touch(oldParentId)
         touch(newParentId)
@@ -143,7 +151,13 @@ export function createDesignCheck(editor: Editor, state: AppEditorState) {
       if (pagesNeeded.value) pages.invalidateAll()
     })
     watch(pagesNeeded, (on) => (on ? pages.start() : pages.stop()), { immediate: true })
-    watch(snapshot, (current) => current && pages.report(current.pageId, current.issues))
+    watch(snapshot, (current) => {
+      if (!current) return
+      pages.report(current.pageId, current.issues)
+      // A focused issue the check no longer finds, such as one fixed, has no row left to show.
+      const focused = focusedIssueId.value
+      if (focused && !current.issues.some(({ id }) => id === focused)) focusedIssueId.value = null
+    })
     // The switch itself settles the new page's layout, which changes the scene again, so the
     // check waits for that instead of running once inside the switch and once after it.
     watch(

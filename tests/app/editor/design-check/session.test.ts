@@ -79,3 +79,29 @@ describe('the design check across a page switch', () => {
     expect(store.designCheck.focusedIssueId.value).toBe(issue.id)
   })
 })
+
+describe('the focused issue', () => {
+  test('is dropped as soon as its layer is deleted', () => {
+    const { store, firstText } = twoPagesWithIssues()
+    store.designCheck.openMarker([firstText.id])
+    expect(store.designCheck.focusedIssueId.value).not.toBeNull()
+
+    // A layer made right after could reuse the id, and with it the focus.
+    store.deleteSelected()
+
+    expect(store.designCheck.focusedIssueId.value).toBeNull()
+  })
+
+  test('is dropped once the check no longer finds it', async () => {
+    jest.useFakeTimers()
+    const { store, firstText } = twoPagesWithIssues()
+    store.designCheck.openMarker([firstText.id])
+
+    store.updateNode(firstText.id, { fontSize: 16 })
+    await nextTick()
+    jest.advanceTimersByTime(1000)
+    await nextTick()
+
+    expect(store.designCheck.focusedIssueId.value).toBeNull()
+  })
+})
