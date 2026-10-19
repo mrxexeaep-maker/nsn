@@ -56,19 +56,37 @@ function emojiPlaceholder(size: number): OutlineCommand[] {
   ]
 }
 
+interface SavedEmoji {
+  codePoints: number[]
+  /** Where the emoji's characters end in the text. */
+  end: number
+}
+
 /**
- * The code points Figma saves for the emoji a glyph draws, when the layout gave it to the emoji
- * metrics font. An emoji that shows as text by default is saved with the selector that asks for
- * its emoji form, as Figma saves ☺ as ☺️.
+ * The emoji a glyph starts, as Figma saves it, when the layout gave it to the emoji metrics font:
+ * its code points, an emoji that shows as text by default with the selector that asks for its
+ * emoji form, as Figma saves ☺ as ☺️.
  */
-function emojiCodePoints(node: SceneNode, text: string, glyph: LaidOutGlyph): number[] | undefined {
+function savedEmoji(node: SceneNode, text: string, glyph: LaidOutGlyph): SavedEmoji | undefined {
   const start = glyph.firstCharacter
   if (start === undefined || characterFamily(node, text, start) !== EMOJI_METRICS_FAMILY)
     return undefined
-  const emoji = text.slice(start, nextGraphemeBoundary(text, start))
+  const end = nextGraphemeBoundary(text, start)
+  const emoji = text.slice(start, end)
   const codePoints = Array.from(emoji, (character) => character.codePointAt(0) ?? 0)
   if (codePoints.length === 1 && !/\p{Emoji_Presentation}/u.test(emoji)) codePoints.push(0xfe0f)
-  return codePoints
+  return { codePoints, end }
+}
+
+/** A glyph's saved outline: an emoji's placeholder, nothing inside one, or its font's outline. */
+function savedOutline(
+  glyph: LaidOutGlyph,
+  emoji: SavedEmoji | undefined,
+  insideEmoji: boolean
+): OutlineCommand[] | null {
+  if (insideEmoji) return []
+  if (emoji) return emojiPlaceholder(glyph.fontSize)
+  return glyph.source?.outline(glyph.id, glyph.fontSize) ?? null
 }
 
 /**
@@ -96,21 +114,23 @@ export function shapeText(
     if (!placed) return null
     const metrics = paragraph.getLineMetrics()
     const characterOffsets: Array<number | undefined> = Array.from({ length: text.length })
+    // A sequence the font does not join is several glyphs: the first stands for the emoji, and
+    // the rest keep their place and draw nothing.
+    let emojiEnd = 0
     const glyphs: ShapedTextGlyph[] = placed.map((glyph) => {
-      if (glyph.firstCharacter !== undefined) {
-        characterOffsets[glyph.firstCharacter] ??= glyph.x - glyph.lineLeft
-      }
-      const emoji = emojiCodePoints(node, text, glyph)
+      const start = glyph.firstCharacter
+      if (start !== undefined) characterOffsets[start] ??= glyph.x - glyph.lineLeft
+      const insideEmoji = start !== undefined && start < emojiEnd
+      const emoji = insideEmoji ? undefined : savedEmoji(node, text, glyph)
+      if (emoji) emojiEnd = emoji.end
       return {
-        commands: emoji
-          ? emojiPlaceholder(glyph.fontSize)
-          : (glyph.source?.outline(glyph.id, glyph.fontSize) ?? null),
+        commands: savedOutline(glyph, emoji, insideEmoji),
         x: glyph.x,
         y: glyph.y,
         fontSize: glyph.fontSize,
-        firstCharacter: glyph.firstCharacter,
+        firstCharacter: start,
         advance: glyph.advance,
-        emojiCodePoints: emoji
+        emojiCodePoints: emoji?.codePoints
       }
     })
     // Outlines from some runs only would draw the text with characters missing.

@@ -262,3 +262,36 @@ test('typed emoji take a 1 em square and draw their image', async () => {
     maxDiffPixels: 500
   })
 })
+
+/**
+ * A character no font has, such as the combining keycap mark Inter lacks, shows as the font's
+ * missing-glyph box once no fallback is left, and the rest of the text draws; the whole text
+ * used to disappear.
+ */
+test('typed keycaps draw their text with a missing-glyph box', async () => {
+  await editor.page.evaluate(() => {
+    const store = window.openPencil?.getStore?.()
+    if (!store) throw new Error('Missing editor')
+    store.graph.createNode('TEXT', store.state.currentPageId, {
+      x: 40,
+      y: 100,
+      width: 600,
+      height: 80,
+      text: 'Keys 1⃣ #⃣ ok',
+      fontFamily: 'Inter',
+      fontSize: 48,
+      fills: [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.2, a: 1 }, opacity: 1, visible: true }]
+    })
+    store.requestRender()
+  })
+  await editor.page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
+  )
+  // Letters a few hundred pixels wide stand out from edge noise; the default 1% would not.
+  expect(await editor.canvas.screenshotCanvasRegion()).toMatchSnapshot('typed-keycap.png', {
+    maxDiffPixels: 500
+  })
+})

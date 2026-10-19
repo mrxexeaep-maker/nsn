@@ -114,6 +114,51 @@ describe('text shaping for saved glyphs', () => {
     expect(shaped.glyphs.every((glyph) => glyph.commands !== null)).toBe(true)
   })
 
+  /** An emoji sequence the font does not join is several glyphs; Figma gets the emoji once. */
+  test('saves an unjoined emoji sequence once, at its first glyph', async () => {
+    const metrics = expectDefined(
+      await fontManager.fetchBundledFont('/OpenPencilEmojiMetrics-Regular.ttf'),
+      'bundled emoji metrics font'
+    )
+    fontManager.markLoaded(EMOJI_METRICS_FAMILY, 'Regular', metrics)
+    const sequence = '\u{1f469}\u200d\u{1f9af}\u200d\u{1f4bb}'
+    const shaped = expectDefined(
+      await shape({ text: `x${sequence}x`, fontSize: 40, width: 400, textAutoResize: 'NONE' }),
+      'shaped text'
+    )
+    const emoji = shaped.glyphs.filter((glyph) => glyph.emojiCodePoints)
+    expect(emoji.map((glyph) => glyph.firstCharacter)).toEqual([1])
+    expect(emoji[0]?.emojiCodePoints).toEqual(Array.from(sequence, (c) => c.codePointAt(0) ?? 0))
+    expect(shaped.glyphs.length).toBeGreaterThan(3)
+    expect(shaped.glyphs.every((glyph) => glyph.commands !== null)).toBe(true)
+  })
+
+  /**
+   * Characters the shaper draws as nothing, tag characters among them, take two UTF-16 units
+   * past the Basic Multilingual Plane; they must not cost the letters around them their outlines.
+   */
+  test('outlines letters beside a tag sequence and a supplementary tag character', async () => {
+    const metrics = expectDefined(
+      await fontManager.fetchBundledFont('/OpenPencilEmojiMetrics-Regular.ttf'),
+      'bundled emoji metrics font'
+    )
+    fontManager.markLoaded(EMOJI_METRICS_FAMILY, 'Regular', metrics)
+    const scotland = '\u{1f3f4}\u{e0067}\u{e0062}\u{e0073}\u{e0063}\u{e0074}\u{e007f}'
+    const shaped = expectDefined(
+      await shape({
+        text: `Flag ${scotland} a\u{e0001}b`,
+        fontSize: 40,
+        width: 600,
+        textAutoResize: 'NONE'
+      }),
+      'shaped text'
+    )
+    expect(shaped.glyphs.every((glyph) => glyph.commands !== null)).toBe(true)
+    expect(shaped.glyphs.find((glyph) => glyph.emojiCodePoints)?.emojiCodePoints).toEqual(
+      Array.from(scotland, (c) => c.codePointAt(0) ?? 0)
+    )
+  })
+
   test('breaks lines at the layer width (#914)', async () => {
     const shaped = expectDefined(await shape({ text: SENTENCE }), 'shaped text')
     const [first, second] = shaped.baselines

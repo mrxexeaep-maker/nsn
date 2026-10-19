@@ -1,4 +1,5 @@
 import type { Paragraph } from 'canvaskit-wasm'
+import { uniq } from 'es-toolkit/array'
 
 import type { SceneNode } from '@open-pencil/scene-graph'
 
@@ -116,16 +117,25 @@ function drawnCharacters(
   start: number,
   end: number
 ): string {
+  // A glyph covers the characters up to the next greater offset in the run, whatever its
+  // direction; the sorted offsets give that once for every glyph.
+  const boundaries = uniq([...offsets, end]).sort((a, b) => a - b)
+  const nextBoundary = new Map(
+    boundaries.map((offset, index) => [offset, boundaries[index + 1] ?? end])
+  )
   const missing = new Set<number>()
   for (const [index, glyph] of run.glyphs.entries()) {
     if (glyph !== 0) continue
     const from = offsets[index]
-    const to = Math.min(end, ...offsets.filter((offset) => offset > from))
+    const to = nextBoundary.get(from) ?? end
     for (let character = from; character < to; character++) missing.add(character)
   }
   let characters = ''
-  for (let index = start; index < end; index++) {
-    if (!missing.has(index) && !DRAWN_AS_NOTHING.test(text[index])) characters += text[index]
+  for (let index = start; index < end;) {
+    const codePoint = text.codePointAt(index) ?? 0
+    const character = String.fromCodePoint(codePoint)
+    if (!missing.has(index) && !DRAWN_AS_NOTHING.test(character)) characters += character
+    index += character.length
   }
   return characters
 }
