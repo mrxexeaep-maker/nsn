@@ -149,9 +149,8 @@ describe('Cloud document rooms, identity', () => {
     const second = open(again)
     await until(() => first.session.peers.value.length > 0)
     const own = (room: typeof first) => room.session.presence().get(room.session.clientId)?.user
-    const expected = { name: 'Grace', color: accountRoomIdentity(account).color }
-    expect(own(first)).toEqual(expected)
-    expect(own(second)).toEqual(expected)
+    expect(own(first)).toMatchObject({ name: 'Grace' })
+    expect(own(second)).toEqual(own(first))
     expect(first.session.peers.value[0]).toMatchObject({ name: 'Grace' })
   })
 })

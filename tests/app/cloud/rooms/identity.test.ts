@@ -10,4 +10,10 @@ describe('a member’s identity in rooms', () => {
     expect(first.name.value).toBe('Alice')
     expect(second.color).toEqual(first.color)
   })
+
+  test('picks its color from the account, so people tell each other apart', () => {
+    const alice = accountRoomIdentity({ id: 'alice', name: 'Alice' })
+    const carol = accountRoomIdentity({ id: 'carol', name: 'Carol' })
+    expect(alice.color).not.toEqual(carol.color)
+  })
 })
