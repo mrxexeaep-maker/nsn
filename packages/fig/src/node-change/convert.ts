@@ -478,12 +478,8 @@ function visibleContainerDerivedLayout(
     (nc.strokePaints?.some((paint) => paint.visible !== false) ?? false)
   if (layoutMode === 'NONE' || !hasHugAxis || !hasVisiblePaint) return undefined
 
-  return {
-    x: nc.transform?.m02 ?? 0,
-    y: nc.transform?.m12 ?? 0,
-    width: nc.size?.x ?? 100,
-    height: nc.size?.y ?? 100
-  }
+  const { x, y, width, height } = convertFigmaTransformProps(nc)
+  return { x, y, width, height }
 }
 
 function minimumSizeDimension(size: NodeChange['minSize'], axis: 'x' | 'y'): number | null {

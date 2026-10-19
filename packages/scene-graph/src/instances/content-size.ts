@@ -3,6 +3,8 @@ import { isEqual } from 'es-toolkit/predicate'
 import type { SceneGraph, SceneNode } from '../'
 import { TEXT_METRIC_FIELDS, TEXT_SHAPING_FIELDS } from '../fields/text'
 import { layoutSizing } from '../layout/sizing'
+import type { Rect } from '../primitives'
+import { resizedChildRect } from '../resize'
 
 const METRIC_FIELDS: ReadonlySet<string> = new Set(TEXT_METRIC_FIELDS)
 
@@ -46,11 +48,22 @@ export function keepOwnContentSize(
   graph: SceneGraph,
   updates: Partial<SceneNode>,
   copy: SceneNode,
-  source: SceneNode
+  source: SceneNode,
+  placement?: { placed: Rect; x: boolean; y: boolean }
 ): void {
   const axes = contentSizedAxes(graph, copy, source, updates)
   if (axes.width) Reflect.deleteProperty(updates, 'width')
   if (axes.height) Reflect.deleteProperty(updates, 'height')
+  if (!placement) return // An instance root keeps its own position.
+  const final = { ...copy, ...updates }
+  const anchored = resizedChildRect(
+    placement.placed,
+    final,
+    final.horizontalConstraint,
+    final.verticalConstraint
+  )
+  if (placement.x && final.width !== placement.placed.width) updates.x = anchored.x
+  if (placement.y && final.height !== placement.placed.height) updates.y = anchored.y
 }
 
 /**

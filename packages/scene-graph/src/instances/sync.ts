@@ -124,7 +124,6 @@ export function sourceInTargetCoordinates(source: SceneNode, targetScale: number
 interface SyncedFieldsInput {
   compParent: SceneNode
   instParent: SceneNode
-  /** The component's coordinates in the copy's. */
   factor: number
   /** Fields the copy keeps: overridden, bound, or driven by a property. */
   skip: (key: string) => boolean
@@ -136,7 +135,7 @@ function copySyncedFields(
   copy: SceneNode,
   source: SceneNode,
   { compParent, instParent, factor, skip }: SyncedFieldsInput
-): void {
+) {
   // In an auto layout flow the layout places the copy, as it placed the component's layer.
   const placedByLayout = instParent.layoutMode !== 'NONE' && source.layoutPositioning !== 'ABSOLUTE'
   const placed = placedByLayout
@@ -155,6 +154,7 @@ function copySyncedFields(
   }
   followVectorGeometry(updates, copy, source)
   remeasureChangedText(updates, copy)
+  return { placed, x: !placedByLayout && !skip('x'), y: !placedByLayout && !skip('y') }
 }
 
 export function updateSyncedProps(
@@ -251,7 +251,7 @@ function definesProperty(graph: SceneGraph, instance: SceneNode, propertyId: str
 }
 
 /**
- * What the nearest enclosing instance assigns `propertyId`, if any does. A property id belongs
+ * What the parent context assigns `propertyId`; an instance assigns its children, not itself. It belongs
  * to the component that defines it, so the walk stops at an instance of that component even
  * when it assigns nothing; otherwise an outer instance's unrelated property of the same id wins.
  */
@@ -260,7 +260,7 @@ function enclosingAssignment(
   node: SceneNode,
   propertyId: string
 ): string | undefined {
-  let current: SceneNode | undefined = node
+  let current = node.parentId ? graph.nodes.get(node.parentId) : undefined
   while (current) {
     if (current.type === 'INSTANCE') {
       if (Object.hasOwn(current.componentPropertyAssignments, propertyId))
@@ -574,14 +574,14 @@ export function syncChildren(
       componentPropertyReferences: structuredClone(compChild.componentPropertyReferences)
     }
     syncBindingFields(instChild, source, updates, protectedField)
-    copySyncedFields(updates, instChild, source, {
+    const placement = copySyncedFields(updates, instChild, source, {
       compParent,
       instParent,
       factor: componentScale / compChild.componentScale,
       skip: (key) => driven.has(key) || isProtectedSyncField(instChild, key, protectedField)
     })
     Object.assign(updates, assignedFieldValues(graph, instChild, compChild))
-    keepOwnContentSize(graph, updates, instChild, source)
+    keepOwnContentSize(graph, updates, instChild, source, placement)
     updateSyncedProps(graph, instChild, updates)
 
     if (

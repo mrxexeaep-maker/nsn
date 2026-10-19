@@ -203,6 +203,34 @@ describe('@open-pencil/fig NodeChange policy', () => {
     expect(y + centerY - (sin * centerX + cos * centerY)).toBeCloseTo(transform.m12, 5)
   })
 
+  test('saved Hug geometry uses the decomposed position for rotated and reflected containers', () => {
+    const transforms = [
+      { m00: 1, m01: 0, m02: 0, m10: 0, m11: 1, m12: 0 },
+      { m00: 0, m01: -1, m02: 60, m10: 1, m11: 0, m12: -20 },
+      { m00: -1, m01: 0, m02: 80, m10: 0, m11: -1, m12: 40 },
+      { m00: -1, m01: 0, m02: 80, m10: 0, m11: 1, m12: 0 },
+      { m00: 1, m01: 0, m02: 0, m10: 0, m11: -1, m12: 40 }
+    ]
+    for (const transform of transforms) {
+      const props = nodeChangeToProps(
+        {
+          type: 'FRAME',
+          size: { x: 80, y: 40 },
+          transform,
+          stackMode: 'VERTICAL',
+          stackPrimarySizing: 'RESIZE_TO_FIT',
+          fillPaints: [{ type: 'SOLID', color: { r: 1, g: 1, b: 1, a: 1 } }]
+        },
+        []
+      )
+      expect(props.x).toBeCloseTo(0)
+      expect(props.y).toBeCloseTo(0)
+      expect(props.derivedLayout?.x).toBeCloseTo(0)
+      expect(props.derivedLayout?.y).toBeCloseTo(0)
+      expect(props.derivedLayout).toMatchObject({ width: 80, height: 40 })
+    }
+  })
+
   test('keeps resolved variable alpha in paint opacity', () => {
     setVariableColorResolver(() => ({ r: 1, g: 0, b: 0, a: 0.4 }))
     try {
