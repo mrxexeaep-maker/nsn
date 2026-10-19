@@ -3,8 +3,8 @@ import * as v from 'valibot'
 import {
   collectionPluginDataNodeChange,
   parseGuidOrNull,
-  preservedVariableData,
-  visitPreservedVariableReferences,
+  mapUnsupportedExpressionReferences,
+  unsupportedExpressionData,
   variableAlias,
   variableMetadataNodeChange
 } from '@open-pencil/fig/node-change'
@@ -151,17 +151,16 @@ function variableValueToKiwi(
   modes?: ReadonlyMap<string, GUID>
 ): VariableDataEntry {
   if (isUnsupportedVariableValue(value)) {
-    const raw = structuredClone(preservedVariableData(value.value))
-    visitPreservedVariableReferences(
-      raw,
-      (reference) => {
-        if (!reference.guid) return
-        const mapped = ids.get(guidToString(reference.guid))
-        if (mapped) reference.guid = mapped
+    const data = unsupportedExpressionData(value.value)
+    mapUnsupportedExpressionReferences(
+      data,
+      (_, index) => {
+        const id = value.references[index]
+        return id && graph.variables.has(id) ? variableAlias(graph, id, ids) : undefined
       },
       (guid) => modes?.get(guidToString(guid)) ?? guid
     )
-    return raw
+    return data
   }
   if (typeof value === 'object' && 'expression' in value && value.expression === 'FORMULA') {
     const formula = v.parse(variableFormulaSchema, value)

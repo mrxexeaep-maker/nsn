@@ -1,3 +1,4 @@
+import { compact } from 'es-toolkit/array'
 import * as v from 'valibot'
 
 import type { VariableLiteral, VariableValue, VariableUnsupportedExpression } from '../types'
@@ -16,7 +17,7 @@ export function isUnsupportedVariableValue(
 
 /** All references in one definition, including color and opacity operands. */
 export function variableValueReferences(value: VariableValue): string[] {
-  if (isUnsupportedVariableValue(value)) return value.references
+  if (isUnsupportedVariableValue(value)) return compact(value.references)
   if (typeof value !== 'object') return []
   if ('aliasId' in value) return [value.aliasId]
   if ('expression' in value && value.expression === 'FORMULA') {
@@ -38,7 +39,10 @@ export function mapVariableValueReferences(
   map: (id: string) => string
 ): VariableValue {
   if (isUnsupportedVariableValue(value))
-    throw new Error('Cannot remap an unsupported variable expression')
+    return {
+      ...structuredClone(value),
+      references: value.references.map((id) => (id === null ? null : map(id)))
+    }
   if (typeof value !== 'object') return value
   if ('aliasId' in value) return { aliasId: map(value.aliasId) }
   if ('expression' in value && value.expression === 'FORMULA')

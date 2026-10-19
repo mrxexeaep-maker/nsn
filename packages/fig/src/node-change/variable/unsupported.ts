@@ -54,43 +54,43 @@ const data: v.GenericSchema<VariableDataEntry> = v.lazy(() =>
     )
   })
 )
-/** Visit references without interpreting the function or changing its expression tree. */
-export function visitPreservedVariableReferences(
+type Alias = NonNullable<NonNullable<VariableDataEntry['value']>['alias']>
+
+/**
+ * Walk the aliases and mode keys of an expression OpenPencil does not evaluate, always in the same
+ * order, without reading the function. `alias` gets each alias with its position and may return a
+ * replacement; `mode` may replace each mode key. Changes `entry` in place.
+ */
+export function mapUnsupportedExpressionReferences(
   entry: VariableDataEntry,
-  alias: (reference: NonNullable<NonNullable<VariableDataEntry['value']>['alias']>) => void,
+  alias: (reference: Alias, index: number) => Alias | undefined,
   mode: (guid: GUID) => GUID = (guid) => guid
 ): void {
-  const value = entry.value
-  if (!value) return
-  if (value.alias) alias(value.alias)
-  const nested = [
-    ...(value.expressionValue?.expressionArguments ?? []),
-    ...(value.colorArrayValue?.colors ?? []),
-    value.fontStyleValue?.asString,
-    value.fontStyleValue?.asFloat,
-    value.fontStyleValue?.asVariations
-  ]
-  for (const item of value.mapValue?.values ?? []) {
-    if (item.guidKey) item.guidKey = mode(item.guidKey)
-    nested.push(item.value)
+  let index = 0
+  const visit = (data: VariableDataEntry): void => {
+    const value = data.value
+    if (!value) return
+    if (value.alias) value.alias = alias(value.alias, index++) ?? value.alias
+    const nested = [
+      ...(value.expressionValue?.expressionArguments ?? []),
+      ...(value.colorArrayValue?.colors ?? []),
+      value.fontStyleValue?.asString,
+      value.fontStyleValue?.asFloat,
+      value.fontStyleValue?.asVariations
+    ]
+    for (const item of value.mapValue?.values ?? []) {
+      if (item.guidKey) item.guidKey = mode(item.guidKey)
+      nested.push(item.value)
+    }
+    for (const child of nested) if (child) visit(child)
   }
-  for (const child of nested) if (child) visitPreservedVariableReferences(child, alias, mode)
+  visit(entry)
 }
 
-/** Validate recovered opaque trees before writing them back to .fig. */
-export function preservedVariableData(raw: unknown): VariableDataEntry {
-  const pending: Array<{ value: unknown; depth: number }> = [{ value: raw, depth: 0 }]
-  let count = 0
-  while (pending.length) {
-    const item = pending.pop()
-    if (!item) break
-    if (++count > 100000 || item.depth > 256)
-      throw new Error('Invalid preserved variable expression')
-    if (item.value && typeof item.value === 'object')
-      for (const value of Object.values(item.value)) pending.push({ value, depth: item.depth + 1 })
-  }
-  const parsed = v.parse(data, raw)
+/** Check a kept expression, which may have come back through the clipboard, before writing it. */
+export function unsupportedExpressionData(raw: unknown): VariableDataEntry {
+  const parsed = v.parse(data, structuredClone(raw))
   if (parsed.dataType !== 'EXPRESSION' || !parsed.value?.expressionValue)
-    throw new Error('Invalid preserved variable expression')
+    throw new Error('Invalid unsupported variable expression')
   return parsed
 }

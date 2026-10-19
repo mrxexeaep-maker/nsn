@@ -866,11 +866,17 @@ export interface VariableFormula {
   type: 'FLOAT' | 'BOOLEAN'
   value: VariableFormulaNode
 }
-/** An imported expression whose semantics are unavailable; its original .fig tree stays opaque. */
+/**
+ * An imported expression OpenPencil cannot evaluate, kept as the file wrote it so saving writes it
+ * back. `references` holds one entry per alias in `value`, in the order the format walks them, and
+ * `null` where the alias names a variable this document does not have.
+ */
 export interface VariableUnsupportedExpression {
   expression: 'UNSUPPORTED'
+  /** The function name the file gives, such as `TERNARY`. */
+  function: string
   value: Record<string, unknown>
-  references: string[]
+  references: (string | null)[]
 }
 export type VariableValue =
   | VariableLiteral

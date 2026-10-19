@@ -16,15 +16,12 @@ import {
 import { extractPluginData } from '../node-change/plugin-data'
 import { readVariableMetadata } from '../node-change/variable/metadata'
 import {
-  preservedVariableData,
-  visitPreservedVariableReferences
-} from '../node-change/variable/preserved'
-import {
   readModeAttribute,
   readModeConditions,
   readVariableToken,
   withoutTokenPluginData
 } from '../node-change/variable/token'
+import { mapUnsupportedExpressionReferences } from '../node-change/variable/unsupported'
 import { createResourceResolver } from './resource-reference'
 
 export interface UnsupportedVariableExpressionDiagnostic {
@@ -131,13 +128,18 @@ function modeValues(
       value = valueOf(entry.variableData, resolve)
     } catch (error) {
       if (!(error instanceof UnsupportedExpressionError) || !onUnsupportedExpression) throw error
-      const raw = structuredClone(preservedVariableData(entry.variableData))
-      const references: string[] = []
-      visitPreservedVariableReferences(raw, (reference) => {
-        const id = resolve(reference)
-        if (id) references.push(id)
+      const data = structuredClone(entry.variableData)
+      const references: (string | null)[] = []
+      mapUnsupportedExpressionReferences(data, (reference) => {
+        references.push(resolve(reference) ?? null)
+        return undefined
       })
-      value = { expression: 'UNSUPPORTED', value: { ...raw }, references }
+      value = {
+        expression: 'UNSUPPORTED',
+        function: data.value?.expressionValue?.expressionFunction ?? '',
+        value: { ...data },
+        references
+      }
       onUnsupportedExpression({
         sourceId: resource.guid ? guidToString(resource.guid) : '',
         modeId,
