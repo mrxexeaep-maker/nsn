@@ -2,6 +2,9 @@
   "name": "@open-pencil/emoji-metrics-tools",
   "private": true,
   "type": "module",
+  "imports": {
+    "#emoji-metrics/*": "./src/*.ts"
+  },
   "scripts": {
     "test": "bun test tests"
   },

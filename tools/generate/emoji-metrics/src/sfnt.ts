@@ -44,7 +44,9 @@ export function writeFontTables(tables: FontTables): Uint8Array {
   let offset = headerLength
   let headOffset = -1
   for (const [index, tag] of tags.entries()) {
-    const data = tables.get(tag) ?? new Uint8Array()
+    const data = new Uint8Array(tables.get(tag) ?? new Uint8Array())
+    // The checksums count `head`'s adjustment as zero; a source font's own value would skew both.
+    if (tag === 'head') data.fill(0, 8, 12)
     const record = 12 + index * 16
     for (let char = 0; char < 4; char++) bytes[record + char] = tag.charCodeAt(char)
     view.setUint32(record + 4, checksum(data))

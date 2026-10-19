@@ -18,6 +18,12 @@ const KEPT_TABLES = ['GSUB', 'OS/2', 'post'] as const
 const TEXT_CHARACTER_LIMIT = 0x80
 const COMBINING_KEYCAP = 0x20e3
 
+/**
+ * The missing glyph's outline: a glyph header with no contours, all zero. Browsers' font
+ * sanitizer rejects an empty `glyf` table, so the font keeps this one valid, empty outline.
+ */
+const NOTDEF_OUTLINE = 10
+
 function required(tables: FontTables, tag: string): Uint8Array {
   const table = tables.get(tag)
   if (!table) throw new Error(`The source font has no ${tag} table`)
@@ -102,8 +108,12 @@ export function emojiMetricsFont(source: FontTables, copyright: string): FontTab
     const advance = sourceView.getUint16(Math.min(glyph, sourceMetricCount - 1) * 4)
     hmtxView.setUint16(glyph * 4, advance > 0 && !zeroWidth.has(glyph) ? unitsPerEm : 0)
   }
-  // Short offsets, all zero: every glyph is empty.
+  // Short offsets, in words: the missing glyph holds the only outline, and every other is empty.
   headView.setInt16(50, 0)
+  const loca = new Uint8Array((glyphCount + 1) * 2)
+  const locaView = new DataView(loca.buffer)
+  for (let glyph = 1; glyph <= glyphCount; glyph++)
+    locaView.setUint16(glyph * 2, NOTDEF_OUTLINE / 2)
   hheaView.setUint16(10, unitsPerEm)
   for (const field of [12, 14, 16]) hheaView.setInt16(field, 0)
   hheaView.setUint16(34, glyphCount)
@@ -113,9 +123,8 @@ export function emojiMetricsFont(source: FontTables, copyright: string): FontTab
     ['hhea', hhea],
     ['maxp', maxp],
     ['hmtx', hmtx],
-    ['loca', new Uint8Array((glyphCount + 1) * 2)],
-    // Browsers' font sanitizer rejects an empty table, so it holds padding no glyph points into.
-    ['glyf', new Uint8Array(4)],
+    ['loca', loca],
+    ['glyf', new Uint8Array(NOTDEF_OUTLINE)],
     ['name', nameTable(EMOJI_METRICS_FAMILY, copyright)],
     ['cmap', writeCharacterMap(characters)]
   ])

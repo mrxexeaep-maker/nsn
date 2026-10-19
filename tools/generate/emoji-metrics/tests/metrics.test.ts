@@ -2,11 +2,11 @@ import { expect, test } from 'bun:test'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { resolveWorkspaceRoot } from '@open-pencil/package-artifacts-tools'
+import { readCharacterMap } from '#emoji-metrics/cmap'
+import { EMOJI_METRICS_ASSET, EMOJI_METRICS_FAMILY } from '#emoji-metrics/metrics'
+import { readFontTables } from '#emoji-metrics/sfnt'
 
-import { readCharacterMap } from '../src/cmap'
-import { EMOJI_METRICS_ASSET, EMOJI_METRICS_FAMILY } from '../src/metrics'
-import { readFontTables } from '../src/sfnt'
+import { resolveWorkspaceRoot } from '@open-pencil/package-artifacts-tools'
 
 async function committedFont() {
   const root = await resolveWorkspaceRoot(import.meta.dir)
