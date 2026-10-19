@@ -15,7 +15,8 @@ export const COLLAB_ACTIONS = {
   syncStep1: 'sync-step1',
   syncReply: 'sync-reply',
   awareness: 'awareness',
-  agentPreview: 'agent-preview'
+  agentPreview: 'agent-preview',
+  upload: 'upload'
 } as const
 
 /**

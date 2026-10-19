@@ -68,7 +68,8 @@ keeps on its own, and versions someone named (`document_version`, one per revisi
 - In the editor, File → Show version history makes the document read-only and lists its versions in
   the right sidebar, as Figma does. Choosing a version shows it in a read-only editor of its own in
   place of the document, whose room keeps syncing underneath; Save to version history (⌥⌘S) names
-  the document once the saver's edits are uploaded.
+  the document once it is uploaded. A tab that does not save asks the room's saver on the `upload`
+  channel, after its own edits, and names it when the saver answers that its upload finished.
 - A document's address is `/cloud/documents/:id?server=…`, with `&version=…` for a version; the
   editor keeps the address bar on the active tab's document and the version it shows, and a
   version's Copy link builds the address on the server's advertised editor URL. The address carries
