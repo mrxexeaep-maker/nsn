@@ -12,6 +12,7 @@ import { SceneGraph } from '@open-pencil/scene-graph'
 import { accountRoomIdentity } from '@/app/cloud/rooms/identity'
 import { openCloudDocumentRoom } from '@/app/cloud/rooms/live'
 import { versionListRevision } from '@/app/cloud/versions/history'
+import { useCollabIdentity } from '@/app/collab/identity'
 import { connectCollabRoom } from '@/app/collab/room/connection'
 import { createEditorStore } from '@/app/editor/session'
 
@@ -132,7 +133,10 @@ describe('Cloud document rooms, identity', () => {
     const relay = await startRelay()
     const documentId = crypto.randomUUID()
     const [grace, again] = await openedTwice()
-    const account = { id: crypto.randomUUID(), name: 'Grace' }
+    // Three different names, so each assertion shows which one a tab took.
+    useCollabIdentity().setName('This device')
+    cleanups.push(() => useCollabIdentity().setName(''))
+    const account = { id: crypto.randomUUID(), name: 'Grace Hopper' }
     const open = (store: typeof grace) => {
       const room = openCloudDocumentRoom(store, {
         roomId: `cloud:${documentId}:0`,
@@ -150,8 +154,9 @@ describe('Cloud document rooms, identity', () => {
     const second = open(again)
     await until(() => first.session.peers.value.length > 0)
     const own = (room: typeof first) => room.session.presence().get(room.session.clientId)?.user
-    expect(own(first)).toMatchObject({ name: 'Grace' })
+    expect(own(first)).toMatchObject({ name: 'Grace Hopper' })
     expect(own(second)).toEqual(own(first))
+    // Others see the name on the ticket, which the server takes from the same account.
     expect(first.session.peers.value[0]).toMatchObject({ name: 'Grace' })
   })
 })
