@@ -71,7 +71,8 @@ export function hitTestEditRegion(editor: Editor, cx: number, cy: number): numbe
   }
   const network = { vertices: es.vertices, segments: es.segments, regions: es.regions }
   if (nearestPointOnNetwork(cx, cy, network, REGION_SEGMENT_CLEARANCE * iz)) return null
-  return regionAtPoint(network, { x: cx, y: cy })
+  // Past the segment clearance the point is off every edge, so half of it bounds the curve error.
+  return regionAtPoint(network, { x: cx, y: cy }, (REGION_SEGMENT_CLEARANCE * iz) / 2)
 }
 
 /** The points of the path being edited that lie inside a canvas rectangle. */

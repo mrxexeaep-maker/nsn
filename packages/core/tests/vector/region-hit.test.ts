@@ -82,6 +82,33 @@ describe('the region under a point', () => {
     expect(regionAtPoint(network, { x: 50, y: -30 })).toBe(0)
     expect(regionAtPoint(network, { x: 50, y: 10 })).toBeNull()
   })
+
+  test('places a point close inside a large curve on the right side', () => {
+    // A lens 100000 wide: a fixed number of steps would cut hundreds of units off its bulge.
+    const width = 100_000
+    const network: VectorNetwork = {
+      vertices: [
+        { x: 0, y: 0 },
+        { x: width, y: 0 }
+      ],
+      segments: [
+        {
+          start: 0,
+          end: 1,
+          tangentStart: { x: 0, y: -width },
+          tangentEnd: { x: 0, y: -width }
+        },
+        line(1, 0)
+      ],
+      regions: [{ windingRule: 'NONZERO', loops: [[0, 1]] }]
+    }
+    // The edge at t = 17/32, between where coarse steps would sample it.
+    const t = 17 / 32
+    const u = 1 - t
+    const edge = { x: (3 * u * t * t + t * t * t) * width, y: -3 * t * u * width }
+    expect(regionAtPoint(network, { x: edge.x, y: edge.y + 1 })).toBe(0)
+    expect(regionAtPoint(network, { x: edge.x, y: edge.y - 1 })).toBeNull()
+  })
 })
 
 test('segments stored against the loop’s direction still enclose it', () => {
