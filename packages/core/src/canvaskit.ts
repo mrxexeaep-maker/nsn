@@ -2,7 +2,7 @@ import CanvasKitInit, { type CanvasKit } from 'canvaskit-wasm'
 
 import { IS_BROWSER } from './constants'
 
-let instance: CanvasKit | null = null
+let instance: Promise<CanvasKit> | null = null
 
 /**
  * Maps a CanvasKit file name (`canvaskit.wasm`) to the URL it loads from. Mirrors the font
@@ -24,12 +24,13 @@ export function setCanvasKitLocator(locate: CanvasKitLocator): void {
   locator = locate
 }
 
-export async function getCanvasKit(options?: CanvasKitOptions): Promise<CanvasKit> {
+/** Loads CanvasKit once; callers that ask while it loads share the load, and a failed load is retried. */
+export function getCanvasKit(options?: CanvasKitOptions): Promise<CanvasKit> {
   if (instance) return instance
-
-  instance = await CanvasKitInit({
-    locateFile: options?.locateFile ?? locator
+  const loading = CanvasKitInit({ locateFile: options?.locateFile ?? locator })
+  instance = loading
+  loading.catch(() => {
+    if (instance === loading) instance = null
   })
-
-  return instance
+  return loading
 }
