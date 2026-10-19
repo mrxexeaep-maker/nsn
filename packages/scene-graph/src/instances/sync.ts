@@ -155,9 +155,9 @@ function copySyncedFields(
     if (isEqual(copy[key], from[key])) continue
     copyProp(updates, from, key)
   }
+  // New paints bring their style link, unless the copy keeps a style of its own.
   if (updates.fills)
-    updates.fillStyleId =
-      skip('fillStyleId') || skip('fills') ? copy.fillStyleId : source.fillStyleId
+    updates.fillStyleId = skip('fillStyleId') ? copy.fillStyleId : source.fillStyleId
   followVectorGeometry(updates, copy, source)
   remeasureChangedText(updates, copy)
   return { placed, x: !placedByLayout && !skip('x'), y: !placedByLayout && !skip('y') }

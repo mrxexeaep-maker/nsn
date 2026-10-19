@@ -2,6 +2,7 @@ import type { Canvas, Image, Paint } from 'canvaskit-wasm'
 
 import type { SceneNode, SceneGraph, Fill } from '@open-pencil/scene-graph'
 import { invertGradientTransform } from '@open-pencil/scene-graph/gradient'
+import Matrix from '@open-pencil/scene-graph/matrix'
 import type { Color, Rect, Vector } from '@open-pencil/scene-graph/primitives'
 
 import { figmaBlendModeToSkia } from './blend'
@@ -387,20 +388,22 @@ export function applyGradientFill(
  * Fill, Fit and Tile ignore it, as Figma does, and turn the image by `imageRotation` first.
  */
 export function makeImageFillLocalMatrix(
-  r: SkiaRenderer,
   fill: Fill,
   node: SceneNode,
   imgW: number,
   imgH: number,
   size: { width: number; height: number } = { width: imgW, height: imgH }
 ) {
-  const M = r.ck.Matrix
   const scaleMode = fill.imageScaleMode ?? 'FILL'
   if (scaleMode === 'CROP' && fill.imageTransform) {
     const t = fill.imageTransform
-    const inverse = M.invert([t.m00, t.m01, t.m02, t.m10, t.m11, t.m12, 0, 0, 1])
+    const inverse = Matrix.invert([t.m00, t.m01, t.m02, t.m10, t.m11, t.m12, 0, 0, 1])
     if (inverse)
-      return M.multiply(M.scaled(node.width, node.height), inverse, M.scaled(1 / imgW, 1 / imgH))
+      return Matrix.multiply(
+        Matrix.scaled(node.width, node.height),
+        inverse,
+        Matrix.scaled(1 / imgW, 1 / imgH)
+      )
   }
 
   const radians = ((fill.imageRotation ?? 0) * Math.PI) / 180
@@ -408,21 +411,21 @@ export function makeImageFillLocalMatrix(
   const sin = Math.abs(Math.sin(radians))
   const turnedW = size.width * cos + size.height * sin
   const turnedH = size.width * sin + size.height * cos
-  const turned = M.multiply(
-    M.translated(turnedW / 2, turnedH / 2),
-    M.rotated(radians),
-    M.translated(-size.width / 2, -size.height / 2),
-    M.scaled(size.width / imgW, size.height / imgH)
+  const turned = Matrix.multiply(
+    Matrix.translated(turnedW / 2, turnedH / 2),
+    Matrix.rotated(radians),
+    Matrix.translated(-size.width / 2, -size.height / 2),
+    Matrix.scaled(size.width / imgW, size.height / imgH)
   )
   if (scaleMode === 'TILE') {
     const scale = fill.scale && fill.scale > 0 ? fill.scale : 1
-    return M.multiply(M.scaled(scale, scale), turned)
+    return Matrix.multiply(Matrix.scaled(scale, scale), turned)
   }
   const fit = scaleMode === 'FIT'
   const scale = (fit ? Math.min : Math.max)(node.width / turnedW, node.height / turnedH)
-  return M.multiply(
-    M.translated((node.width - turnedW * scale) / 2, (node.height - turnedH * scale) / 2),
-    M.scaled(scale, scale),
+  return Matrix.multiply(
+    Matrix.translated((node.width - turnedW * scale) / 2, (node.height - turnedH * scale) / 2),
+    Matrix.scaled(scale, scale),
     turned
   )
 }
@@ -443,7 +446,6 @@ function setImageShader(
   const imgH = img.height()
   const scaleMode = fill.imageScaleMode ?? 'FILL'
   const localMatrix = makeImageFillLocalMatrix(
-    r,
     fill,
     node,
     imgW,

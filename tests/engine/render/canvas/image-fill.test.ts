@@ -5,11 +5,6 @@ import Matrix from '@open-pencil/scene-graph/matrix'
 
 import { makeImageFillLocalMatrix, patternTileLayout } from '#core/canvas/fills'
 
-import { asRenderer } from './helpers'
-
-/** The Scene Graph's 3 × 3 matrices stand in for CanvasKit's, which share their shape. */
-const renderer = asRenderer({ ck: { Matrix } })
-
 const node = {
   width: 120,
   height: 80
@@ -60,8 +55,14 @@ describe('canvas pattern fills', () => {
 
 /** Where image pixels land on the 120 × 80 layer. */
 function place(fill: Partial<Fill>, imageWidth: number, imageHeight: number, points: number[]) {
-  const image = { type: 'IMAGE', ...fill } as Fill
-  const matrix = makeImageFillLocalMatrix(renderer, image, node, imageWidth, imageHeight)
+  const image: Fill = {
+    type: 'IMAGE',
+    color: { r: 0, g: 0, b: 0, a: 1 },
+    opacity: 1,
+    visible: true,
+    ...fill
+  }
+  const matrix = makeImageFillLocalMatrix(image, node, imageWidth, imageHeight)
   // Adding zero turns -0 into 0, which reads the same on the layer.
   return Matrix.mapPoints(matrix, points).map((value) => Math.round(value * 1000) / 1000 + 0)
 }
