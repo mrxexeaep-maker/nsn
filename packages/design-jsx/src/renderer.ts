@@ -18,24 +18,17 @@ import {
   componentPropertyScope,
   inferComponentSetProperties
 } from './component-properties'
-import {
-  CONNECTOR_ELEMENT,
-  connectorBindingTarget,
-  ConnectorLayerProps,
-  renderConnectorNode,
-  resolveConnectorEnds
-} from './connectors'
-import { elementNodeType } from './elements'
+import { CONNECTOR_ELEMENT, resolveConnectorEnds } from './connectors'
+import { elementNodeType, elementOwnLayer, type OwnLayerRenderer } from './elements'
 import { applySizeOverrides, propsToOverrides } from './props-overrides'
 import { LayerRefs } from './refs'
 import { prepareScalarBindings } from './scalar-bindings'
 import type { DesignJSXServices } from './services'
-import { renderStickyNode, STICKY_ELEMENT, StickyLayerProps } from './stickies'
 import { isTextContent, TEXT_CONTENT_NAMES, textContentFields } from './text-content'
 import { FRAGMENT, isTreeNode } from './tree'
 import type { TreeNode } from './tree'
 import type { RenderOptions } from './types'
-import { readElementProps, type ElementPropsSchema } from './validation'
+import { readElementProps } from './validation'
 import { isVariable, resolveVariableId, type DesignVariable } from './vars'
 
 export interface RenderResult {
@@ -200,24 +193,6 @@ function preparePropsForRender(
   return { props, bindings }
 }
 
-/** An element that draws a layer of its own, such as a sticky note, from a template. */
-interface OwnLayerElement {
-  /** The layer props it takes, made into fields as any layer's are. */
-  layer: ElementPropsSchema
-  render(graph: SceneGraph, tree: TreeNode, parentId: string, layer: Partial<SceneNode>): SceneNode
-  /** The layer a variable binding of `field` goes on, when not the element's own. */
-  bindingTarget?(graph: SceneGraph, node: SceneNode, field: string): string
-}
-
-const OWN_LAYER_ELEMENTS: Readonly<Partial<Record<string, OwnLayerElement>>> = {
-  [STICKY_ELEMENT]: { layer: StickyLayerProps, render: renderStickyNode },
-  [CONNECTOR_ELEMENT]: {
-    layer: ConnectorLayerProps,
-    render: renderConnectorNode,
-    bindingTarget: connectorBindingTarget
-  }
-}
-
 /**
  * An element that draws its own layer. Its props are resolved as any layer's are, so a
  * `designVar()` binds, and its layer props become fields as any layer's do; the element reads the
@@ -227,7 +202,7 @@ function renderOwnLayerElement(
   graph: SceneGraph,
   tree: TreeNode,
   parentId: string,
-  element: OwnLayerElement
+  element: OwnLayerRenderer
 ): SceneNode {
   const { props, bindings } = preparePropsForRender(graph, tree.props, false, parentId)
   const parentLayout = graph.getNode(parentId)?.layoutMode ?? 'NONE'
@@ -551,7 +526,7 @@ function renderOwnElement<Artwork>(
     case 'instance':
       return renderInstanceNode(graph, tree, parentId)
     default: {
-      const element = OWN_LAYER_ELEMENTS[tree.type]
+      const element = elementOwnLayer(tree.type)
       return element ? Promise.resolve(renderOwnLayerElement(graph, tree, parentId, element)) : null
     }
   }

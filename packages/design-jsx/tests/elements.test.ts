@@ -30,10 +30,11 @@ describe('design JSX elements', () => {
     }
   )
 
-  test('every generated frame is written by an element that reads its props by a schema', () => {
+  test('every generated frame is written by an element that reads its props by a schema and draws its own layer', () => {
     for (const type of GENERATED_FRAME_TYPES) {
       const element = DESIGN_JSX_ELEMENTS.find((candidate) => candidate.writes?.includes(type))
       expect(element?.schema).toBeDefined()
+      expect(element?.ownLayer).toBeDefined()
     }
   })
 
