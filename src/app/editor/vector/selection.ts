@@ -76,10 +76,11 @@ export function createVectorEditSelectionActions(
     }
 
     live = deleteVectorParts(live, es.selectedSegmentIndices, es.selectedVertexIndices)
-    // As in Figma, deleting every point deletes the layer.
+    // As in Figma, deleting every point deletes the layer. The edits made before it are committed
+    // first, so undoing the delete brings back the path as it was just before.
     if (live.vertices.length === 0) {
       const { nodeId } = es
-      exitNodeEditMode(false)
+      exitNodeEditMode(true)
       editor.select([nodeId])
       editor.deleteSelected()
       return

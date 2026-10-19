@@ -36,10 +36,11 @@ function editPath() {
     vectorNetwork: PATH
   })
   const editor = createEditor({ graph })
-  const state = { nodeEditState: null } as VectorEditState
+  // The actions share the editor's own state, as the app wires them.
+  const state: VectorEditState = Object.assign(editor.state, { nodeEditState: null })
   const actions = createVectorEditActions(editor, state)
   actions.enterNodeEditMode(vector.id)
-  return { graph, vector, state, actions, es: expectDefined(state.nodeEditState) }
+  return { editor, graph, vector, state, actions, es: expectDefined(state.nodeEditState) }
 }
 
 test('Delete removes a selected segment, splitting the path and keeping its points', () => {
@@ -71,4 +72,18 @@ test('undo inside the path forgets the selected segments', () => {
   actions.nodeEditUndo()
   expect(expectDefined(state.nodeEditState).segments).toHaveLength(3)
   expect(expectDefined(state.nodeEditState).selectedSegmentIndices.size).toBe(0)
+})
+
+test('deleting every point keeps the edits made before it for undo', () => {
+  const { editor, graph, vector, state, actions, es } = editPath()
+  actions.nodeEditPushHistory()
+  es.vertices[3] = { ...es.vertices[3], y: 140 }
+  es.selectedSegmentIndices = new Set([0, 1, 2])
+  actions.nodeEditDeleteSelected()
+  expect(state.nodeEditState).toBeNull()
+  expect(graph.getNode(vector.id)).toBeUndefined()
+
+  editor.undo.undo()
+  const restored = expectDefined(graph.getNode(vector.id)?.vectorNetwork)
+  expect(restored.vertices.map(({ x, y }) => ({ x, y }))).toContainEqual({ x: 0, y: 140 })
 })

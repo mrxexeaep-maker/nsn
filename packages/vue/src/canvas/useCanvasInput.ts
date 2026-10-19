@@ -471,11 +471,12 @@ export function useCanvasInput(
     (event) => {
       if (event.code !== 'Escape' || event.isComposing || !isEnabled()) return
       const type = drag.value?.type
-      if (type !== 'draw' && type !== 'gradient' && type !== 'rotate' && type !== 'edit-marquee')
-        return
+      // A vector edit marquee carries on through Escape, as in Figma, and keeps the path open.
+      const swallowed = type === 'edit-marquee'
+      if (type !== 'draw' && type !== 'gradient' && type !== 'rotate' && !swallowed) return
       event.preventDefault()
       event.stopImmediatePropagation()
-      cancelPointerInteraction()
+      if (!swallowed) cancelPointerInteraction()
     },
     { capture: true }
   )

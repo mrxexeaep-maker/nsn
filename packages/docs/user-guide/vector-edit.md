@@ -49,7 +49,6 @@ This activates geometry editing for the selected vector.
 
 - Drag over empty space to select the anchors inside the rectangle and the segments between them.
 - <kbd>Shift</kbd> + drag adds them to the selection.
-- Press <kbd>Escape</kbd> during the drag to cancel it.
 
 ### Select a Region
 

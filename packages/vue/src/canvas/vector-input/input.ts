@@ -15,7 +15,7 @@ import {
   hitTestEditHandle,
   hitTestEditRegion,
   isEndpoint,
-  narrowAfterSegmentClick,
+  finishSegmentClick,
   NODE_HIT_THRESHOLD
 } from '#vue/shared/input/vector'
 
@@ -62,7 +62,7 @@ export function handleNodeEditPointerUp(drag: Ref<DragState | null>, editor: Edi
   }
   if (current.type === 'edit-node') {
     editor.setSnapGuides([])
-    narrowAfterSegmentClick(current, editor)
+    finishSegmentClick(current, editor)
     const state = getCanvasNodeEditState(editor)
     if (state && current.origPositions.size === 1) {
       const [draggedIndex] = current.origPositions.keys()

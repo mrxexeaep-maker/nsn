@@ -133,13 +133,14 @@ export function handleNodeEditDown(
   }
 
   // As in Figma, a press on a segment selects the segment itself, not its endpoints, and drags
-  // its two points with the rest of the selection.
+  // its two points with the rest of the selection. A press on a selected segment keeps the
+  // selection so all of it drags; the click acts only on a release without a drag.
   const si = hitTestEditSegment(editor, cx, cy)
   if (si !== null) {
-    const narrowTo = selectPressedSegment(es, si, e.shiftKey)
+    const segmentClick = selectPressedSegment(es, si, e.shiftKey)
     editor.requestRepaint()
     const { start, end } = es.segments[si]
-    startPointsDrag(es, [start, end], cx, cy, nodeEditEditor, setDrag, narrowTo)
+    startPointsDrag(es, [start, end], cx, cy, nodeEditEditor, setDrag, segmentClick)
     return
   }
 
@@ -154,26 +155,21 @@ export function handleNodeEditDown(
 }
 
 /**
- * Shift toggles the pressed segment; otherwise it replaces the selection unless already in it.
- * Returns the segment to select alone if the press ends without a drag.
+ * Selects a pressed segment: Shift adds it, otherwise it becomes the selection. A segment already
+ * selected stays as it is, so all of the selection drags; the result is what a release without a
+ * drag does to it then.
  */
 function selectPressedSegment(
   es: NodeEditState,
   segmentIndex: number,
-  toggle: boolean
-): number | undefined {
+  shift: boolean
+): DragEditNode['segmentClick'] {
   es.selectedHandles = new Set()
-  if (toggle) {
-    const next = new Set(es.selectedSegmentIndices)
-    if (next.has(segmentIndex)) next.delete(segmentIndex)
-    else next.add(segmentIndex)
-    es.selectedSegmentIndices = next
-  } else if (es.selectedSegmentIndices.has(segmentIndex)) {
-    return segmentIndex
-  } else {
-    es.selectedVertexIndices = new Set()
-    es.selectedSegmentIndices = new Set([segmentIndex])
-  }
+  if (es.selectedSegmentIndices.has(segmentIndex)) return { segment: segmentIndex, deselect: shift }
+  if (!shift) es.selectedVertexIndices = new Set()
+  es.selectedSegmentIndices = shift
+    ? new Set([...es.selectedSegmentIndices, segmentIndex])
+    : new Set([segmentIndex])
   return undefined
 }
 
@@ -195,8 +191,7 @@ function pickRegion(es: NodeEditState, regionIndex: number, add: boolean): numbe
 
 /**
  * Drags the selected points and segments, and `pressed` with them, from where the pointer went
- * down. Pressing a segment that is already selected keeps the selection so it all drags; as in
- * Figma, releasing it without a drag then selects only that segment (`narrowToSegment`).
+ * down. `segmentClick` is what a release without a drag does to a selected segment.
  */
 function startPointsDrag(
   es: NodeEditState,
@@ -205,7 +200,7 @@ function startPointsDrag(
   cy: number,
   nodeEditEditor: NodeEditEditor,
   setDrag: (d: DragState) => void,
-  narrowToSegment?: number
+  segmentClick?: DragEditNode['segmentClick']
 ) {
   const segmentEnds = [...es.selectedSegmentIndices].flatMap((index) => {
     const segment = es.segments.at(index)
@@ -216,20 +211,30 @@ function startPointsDrag(
     origPositions.set(index, { x: es.vertices[index].x, y: es.vertices[index].y })
   }
   nodeEditEditor.nodeEditPushHistory?.()
-  setDrag({ type: 'edit-node', startX: cx, startY: cy, origPositions, narrowToSegment })
+  setDrag({ type: 'edit-node', startX: cx, startY: cy, origPositions, segmentClick })
 }
 
-/** A press on a selected segment that ends without moving anything selects only that segment. */
-export function narrowAfterSegmentClick(d: DragEditNode, editor: Editor) {
+/**
+ * A press on a selected segment that ends without moving anything: as in Figma, a click selects
+ * only that segment and a Shift-click takes it out of the selection.
+ */
+export function finishSegmentClick(d: DragEditNode, editor: Editor) {
   const es = getNodeEditState(editor)
-  if (!es || d.narrowToSegment === undefined) return
+  if (!es || !d.segmentClick) return
   const moved = [...d.origPositions].some(([index, orig]) => {
     const vertex = es.vertices.at(index)
     return vertex !== undefined && (vertex.x !== orig.x || vertex.y !== orig.y)
   })
   if (moved) return
-  es.selectedVertexIndices = new Set()
-  es.selectedSegmentIndices = new Set([d.narrowToSegment])
+  const { segment, deselect } = d.segmentClick
+  if (deselect) {
+    const next = new Set(es.selectedSegmentIndices)
+    next.delete(segment)
+    es.selectedSegmentIndices = next
+  } else {
+    es.selectedVertexIndices = new Set()
+    es.selectedSegmentIndices = new Set([segment])
+  }
   editor.requestRepaint()
 }
 
