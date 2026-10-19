@@ -53,9 +53,15 @@ export function readElementProps<S extends ElementPropsSchema>(
   return v.parse(schema, fitting)
 }
 
+/** A value as a warning quotes it; one JSON cannot write, such as a BigInt inside it, by its brackets. */
 function quoted(value: unknown): string {
   if (typeof value === 'string') return `"${value}"`
-  return typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value)
+  if (typeof value !== 'object' || value === null) return String(value)
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return Array.isArray(value) ? '[…]' : '{…}'
+  }
 }
 
 /** A warning for each prop `props` sets that does not fit `schema`, naming the element. */

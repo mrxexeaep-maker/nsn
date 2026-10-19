@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
-import { DESIGN_JSX_ELEMENTS, elementTag } from '#design-jsx/elements'
+import { DESIGN_JSX_ELEMENTS, elementSchema, elementTag } from '#design-jsx/elements'
 import { createDesignJSXRenderer } from '#design-jsx/index'
+import { elementPropWarnings } from '#design-jsx/validation'
 
 import { GENERATED_FRAME_TYPES, SceneGraph } from '@open-pencil/scene-graph'
 
@@ -34,6 +35,15 @@ describe('design JSX elements', () => {
       const element = DESIGN_JSX_ELEMENTS.find((candidate) => candidate.writes?.includes(type))
       expect(element?.schema).toBeDefined()
     }
+  })
+
+  test('a prop value JSON cannot write is still reported', () => {
+    const schema = elementSchema('sticky')
+    expect(schema).toBeDefined()
+    if (!schema) return
+    expect(elementPropWarnings(schema, { wide: { flag: BigInt(1) } }, 'sticky')).toEqual([
+      'Invalid wide {…} on <sticky> is ignored; expected boolean.'
+    ])
   })
 
   test('every layer type an element writes is written by that element', () => {
