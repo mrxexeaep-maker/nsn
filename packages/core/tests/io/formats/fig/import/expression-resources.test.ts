@@ -3,8 +3,12 @@ import { expect, test } from 'bun:test'
 import { deflateSync } from 'fflate'
 
 import { compressFigDataSync, parseFigBuffer } from '@open-pencil/fig'
-import { getCompiledSchema, getSchemaBytes } from '@open-pencil/kiwi/fig/codec'
-import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
+import {
+  getCompiledSchema,
+  getSchemaBytes,
+  type VariableDataEntry,
+  type NodeChange
+} from '@open-pencil/kiwi/fig/codec'
 import { guidToString, stringToGuid } from '@open-pencil/kiwi/fig/guid'
 import { SceneGraph } from '@open-pencil/scene-graph'
 
@@ -19,6 +23,10 @@ import {
   releaseFigPopulationWorker
 } from '#core/kiwi/fig/population/client'
 import { populateFigPage, readerDiagnostics } from '#core/kiwi/fig/session/document-state'
+
+function mapOperand(entry: VariableDataEntry | undefined) {
+  return entry?.value?.expressionValue?.expressionArguments?.[0].value?.mapValue?.values?.[0]
+}
 
 test('tolerant import keeps cached layers, diagnostics and opaque values across recovery and saves', async () => {
   const source = new SceneGraph()
@@ -103,16 +111,11 @@ test('tolerant import keeps cached layers, diagnostics and opaque values across 
     )
     const mappedEntry = remapped.find((node) => node.name === 'Opaque')?.variableDataValues
       ?.entries?.[0].variableData
-    expect(
-      mappedEntry?.value?.expressionValue?.expressionArguments?.[0].value?.mapValue?.values?.[0]
-    ).toMatchObject({
+    expect(mapOperand(mappedEntry)).toMatchObject({
       guidKey: { sessionID: 99, localID: 2 },
       value: { value: { alias: { guid: { sessionID: 99, localID: 1 } } } }
     })
-    expect(
-      entry.variableData.value?.expressionValue?.expressionArguments?.[0].value?.mapValue
-        ?.values?.[0].guidKey
-    ).toEqual(stringToGuid(empty.defaultModeId))
+    expect(mapOperand(entry.variableData)?.guidKey).toEqual(stringToGuid(empty.defaultModeId))
     const editor = createEditor({ graph })
     expect(() => editor.updateVariableValue(opaque.id, mode, 9)).toThrow(
       'unsupported variable expression'
