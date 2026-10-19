@@ -192,8 +192,8 @@ export function designJSXElement(nodeId: string, graph: SceneGraph): DesignJSXEl
   const tag = node && elementTag(node.type)
   const printed = sceneNodeAttributes(nodeId, graph)
   if (!node || !tag || !printed) return null
-  // A text layer's content, or a connector's label, is written as its children, not as the
-  // `text` attribute; a connector's generated layers are not written at all.
+  // A text layer's content, a connector's label, or a sticky note's body is written as its
+  // children, not as the `text` attribute; the layers they generate are not written at all.
   const own = OWN_ELEMENTS[node.type]
   const hasContent = node.type === 'TEXT' || own !== undefined
   const attributes = Object.fromEntries(

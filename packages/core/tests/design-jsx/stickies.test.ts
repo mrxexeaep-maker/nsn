@@ -17,7 +17,13 @@ describe('sticky notes in design JSX', () => {
     const graph = new SceneGraph()
     const [result] = await renderJSX(graph, BOARD)
     const [plain, styled] = graph.getChildren(getNodeOrThrow(graph, result.id).id)
-    expect(plain).toMatchObject({ type: 'STICKY', name: 'Ship it', autoRename: true, x: 0, width: 240 })
+    expect(plain).toMatchObject({
+      type: 'STICKY',
+      name: 'Ship it',
+      autoRename: true,
+      x: 0,
+      width: 240
+    })
     expect(plain.fills[0]?.color).toEqual(STICKY_COLORS.yellow)
     const layers = stickySublayers(graph, plain)
     expect([layers?.body.text, layers?.author.text, layers?.author.visible]).toEqual([
@@ -41,5 +47,23 @@ describe('sticky notes in design JSX', () => {
     const again = new SceneGraph()
     const [reread] = await renderJSX(again, jsx)
     expect(sceneNodeToJSX(reread.id, again)).toBe(jsx)
+  })
+
+  test('join connectors to themselves, never to the layers they generate', async () => {
+    const graph = new SceneGraph()
+    const [result] = await renderJSX(
+      graph,
+      `<Frame name="Board" w={900} h={400}>
+  <Sticky x={0} y={0}>Ship it</Sticky>
+  <Text name="Text" x={600} y={0}>Done</Text>
+  <Connector from="Ship it" to="Text" />
+</Frame>`
+    )
+    const [sticky, text, connector] = graph.getChildren(result.id)
+    // The note's body is named as the layer the connector names, and is not joined.
+    expect(stickySublayers(graph, sticky)?.body.name).toBe('Text')
+    expect(result.warnings ?? []).toEqual([])
+    expect(connector.connectorStart?.nodeId).toBe(sticky.id)
+    expect(connector.connectorEnd?.nodeId).toBe(text.id)
   })
 })
