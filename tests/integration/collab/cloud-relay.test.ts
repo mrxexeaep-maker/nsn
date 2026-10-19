@@ -133,14 +133,14 @@ describe('Cloud document rooms, identity', () => {
     const relay = await startRelay()
     const documentId = crypto.randomUUID()
     const [grace, again] = await openedTwice()
-    // Three different names, so each assertion shows which one a tab took.
+    // The account's name differs from this device's, so the assertions show which one a tab took.
     useCollabIdentity().setName('This device')
     cleanups.push(() => useCollabIdentity().setName(''))
     const account = { id: crypto.randomUUID(), name: 'Grace Hopper' }
     const open = (store: typeof grace) => {
       const room = openCloudDocumentRoom(store, {
         roomId: `cloud:${documentId}:0`,
-        transport: relay.join(documentId, 'Grace', 'edit', 'user'),
+        transport: relay.join(documentId, 'Grace Hopper', 'edit', 'user'),
         permission: 'edit',
         identity: accountRoomIdentity(account)
       })
@@ -157,7 +157,7 @@ describe('Cloud document rooms, identity', () => {
     expect(own(first)).toMatchObject({ name: 'Grace Hopper' })
     expect(own(second)).toEqual(own(first))
     // Others see the name on the ticket, which the server takes from the same account.
-    expect(first.session.peers.value[0]).toMatchObject({ name: 'Grace' })
+    expect(first.session.peers.value[0]).toMatchObject({ name: 'Grace Hopper' })
   })
 })
 
