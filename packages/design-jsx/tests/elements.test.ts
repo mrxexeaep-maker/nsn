@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import { DESIGN_JSX_ELEMENTS, elementTag } from '#design-jsx/elements'
 import { createDesignJSXRenderer } from '#design-jsx/index'
 
-import { SceneGraph } from '@open-pencil/scene-graph'
+import { GENERATED_FRAME_TYPES, SceneGraph } from '@open-pencil/scene-graph'
 
 const renderer = createDesignJSXRenderer<never>({
   icon: () => Promise.resolve(null),
@@ -28,6 +28,13 @@ describe('design JSX elements', () => {
       expect(result.warnings ?? []).toEqual([])
     }
   )
+
+  test('every generated frame is written by an element that reads its props by a schema', () => {
+    for (const type of GENERATED_FRAME_TYPES) {
+      const element = DESIGN_JSX_ELEMENTS.find((candidate) => candidate.writes?.includes(type))
+      expect(element?.schema).toBeDefined()
+    }
+  })
 
   test('every layer type an element writes is written by that element', () => {
     for (const element of DESIGN_JSX_ELEMENTS) {
