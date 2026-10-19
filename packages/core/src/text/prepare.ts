@@ -1,5 +1,6 @@
-import type { SceneGraph } from '@open-pencil/scene-graph'
+import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 
+import { DEFAULT_FONT_FAMILY } from '#core/constants'
 import {
   canDrawPlatformEmoji,
   mayHoldEmoji,
@@ -7,10 +8,36 @@ import {
   savedEmojiCharacters
 } from '#core/text/emoji'
 import { fontManager } from '#core/text/fonts'
+import { fontGlyphCoverageSync } from '#core/text/opentype'
 import { collectGraphFontRequirements, collectNodeFontFaces } from '#core/text/requirements'
 import { missingGraphFontScripts } from '#core/text/resolved-requirements'
 
 import { documentFontStatus, type DocumentFontStatus } from './font/status'
+
+/**
+ * The characters of a text its layout falls back to the emoji metrics font for: ones that may be
+ * emoji and that none of the faces it draws in, nor the fallbacks after them, has. A face not
+ * loaded cannot tell, and leaves the character to it.
+ */
+function laidOutEmojiCharacters(node: SceneNode): string {
+  if (node.type !== 'TEXT' || !mayHoldEmoji(node.text)) return ''
+  const faces = [
+    ...collectNodeFontFaces(node),
+    { family: DEFAULT_FONT_FAMILY, style: 'Regular' },
+    ...[...fontManager.getArabicFallbackFamilies(), ...fontManager.getCJKFallbackFamilies()].map(
+      (family) => ({ family, style: 'Regular' })
+    )
+  ]
+  let characters = ''
+  for (const character of node.text) {
+    if (!mayHoldEmoji(character)) continue
+    const drawnByText = faces.some(
+      ({ family, style }) => fontGlyphCoverageSync(family, style, character) !== 'missing'
+    )
+    if (!drawnByText) characters += character
+  }
+  return characters
+}
 
 export async function prepareGraphFonts(
   graph: SceneGraph,
@@ -26,10 +53,10 @@ export async function prepareGraphFonts(
     requirements.characters
   )
   // Without a platform that draws emoji, emoji are drawn with Noto, loaded for just these: the
-  // saved ones, and the characters of the text that may be drawn as emoji.
+  // saved ones, and the ones the layout leaves to the emoji metrics font.
   const emoji =
     requirements.nodes.map(savedEmojiCharacters).join('') +
-    Array.from(requirements.characters).filter(mayHoldEmoji).join('')
+    requirements.nodes.map(laidOutEmojiCharacters).join('')
   if (emoji && !canDrawPlatformEmoji())
     await fontManager.loadRemoteFont(NOTO_COLOR_EMOJI_FAMILY, 'Regular', emoji)
   return documentFontStatus(graph, nodeIds)
