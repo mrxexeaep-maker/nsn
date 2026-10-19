@@ -1,8 +1,13 @@
 import { randomUUID } from 'node:crypto'
 
-import { McpServer, WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/server'
-import * as v from 'valibot'
+import {
+  isJSONRPCResultResponse,
+  McpServer,
+  WebStandardStreamableHTTPServerTransport
+} from '@modelcontextprotocol/server'
+import { withTimeout } from 'es-toolkit/promise'
 
+import { createPendingRequests } from '#mcp/server/pending-requests'
 import type { MCPAgentKind, MCPAgentSession, MCPToolSettled } from '#mcp/tool/registration'
 
 export type MCPTransport = {
@@ -13,6 +18,7 @@ export type MCPTransport = {
 type MCPSession = {
   transport: MCPTransport
   server: McpServer
+  requests: ReturnType<typeof createPendingRequests>
   lastSeen: number
   activeRequests: number
   initialized: boolean
@@ -32,70 +38,58 @@ type MCPSessionManagerOptions = {
 }
 
 const MAX_MCP_SESSIONS = 10
-const MCP_SESSION_TTL_MS = 15 * 60_000
+const MCP_SESSION_IDLE_TIMEOUT_MS = 15 * 60_000
+const MAX_SWEEP_INTERVAL_MS = 60_000
+// The MCP SDK's close() does not enforce a timeout internally.
 const SESSION_CLOSE_TIMEOUT_MS = 5_000
 
-const InitializeResponse = v.pipe(
-  v.string(),
-  v.parseJson(),
-  v.object({ result: v.object({ protocolVersion: v.string() }) })
-)
-
-/**
- * Wraps a promise with a timeout. Resolves with undefined if the timeout
- * elapses before the promise settles. Used to prevent `transport.close()`
- * from hanging indefinitely — the MCP SDK's close() does not enforce a
- * timeout internally.
- */
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
-  let timer: ReturnType<typeof setTimeout> | undefined
-  return Promise.race([
-    promise.finally(() => {
-      if (timer) clearTimeout(timer)
-    }),
-    new Promise<T | undefined>((resolve) => {
-      timer = setTimeout(() => resolve(undefined), ms)
-    })
-  ])
+function describeError(e: unknown): string {
+  return e instanceof Error ? e.message : String(e)
 }
 
 async function closeSession(session: Pick<MCPSession, 'transport' | 'server'>): Promise<void> {
   try {
-    await withTimeout(session.transport.close(), SESSION_CLOSE_TIMEOUT_MS)
-  } catch {
+    await withTimeout(() => session.transport.close(), SESSION_CLOSE_TIMEOUT_MS)
+  } catch (e) {
     // Best-effort: the transport may already be closed or in a bad state
-    process.stderr.write('  MCP session: transport close failed\n')
+    process.stderr.write(`  MCP session: transport close warning (${describeError(e)})\n`)
   }
   try {
-    await withTimeout(session.server.close(), SESSION_CLOSE_TIMEOUT_MS)
-  } catch {
+    await withTimeout(() => session.server.close(), SESSION_CLOSE_TIMEOUT_MS)
+  } catch (e) {
     // Best-effort
-    process.stderr.write('  MCP session: server close failed\n')
+    process.stderr.write(`  MCP session: server close warning (${describeError(e)})\n`)
   }
+}
+
+/**
+ * The SDK assigns the session ID before it validates the InitializeRequest,
+ * so a 200 carrying the session header can still be a JSON-RPC error.
+ */
+async function isInitializeResult(response: Response, id: string): Promise<boolean> {
+  if (!response.ok || response.headers.get('mcp-session-id') !== id) return false
+  const message: unknown = await response
+    .clone()
+    .json()
+    .catch(() => undefined)
+  return isJSONRPCResultResponse(message)
 }
 
 export function createMCPSessionManager({
   serverVersion,
   registerTools,
   onSessionClosed,
-  sessionIdleTimeoutMs = MCP_SESSION_TTL_MS
+  sessionIdleTimeoutMs = MCP_SESSION_IDLE_TIMEOUT_MS
 }: MCPSessionManagerOptions) {
-  if (
-    !Number.isSafeInteger(sessionIdleTimeoutMs) ||
-    sessionIdleTimeoutMs < 0 ||
-    sessionIdleTimeoutMs > 2_147_483_647
-  ) {
-    throw new Error('MCP session idle timeout must be an integer in 0–2147483647 ms')
-  }
   const sessions = new Map<string, MCPSession>()
   const closing = new Map<string, Promise<void>>()
 
   function scheduleClose(session: MCPSession, id: string): Promise<void> {
     try {
       if (session.initialized) onSessionClosed?.(id)
-    } catch {
+    } catch (e) {
       // Application notification must not prevent resource cleanup.
-      process.stderr.write('  MCP session: close notification failed\n')
+      process.stderr.write(`  MCP session: close notification warning (${describeError(e)})\n`)
     }
     const task = closeSession(session).finally(() => closing.delete(id))
     closing.set(id, task)
@@ -125,7 +119,7 @@ export function createMCPSessionManager({
 
   const sweep =
     sessionIdleTimeoutMs > 0
-      ? setInterval(cleanupExpired, Math.min(sessionIdleTimeoutMs, 60_000)).unref()
+      ? setInterval(cleanupExpired, Math.min(sessionIdleTimeoutMs, MAX_SWEEP_INTERVAL_MS)).unref()
       : undefined
 
   const creating = new Map<string, Promise<MCPTransport>>()
@@ -143,30 +137,12 @@ export function createMCPSessionManager({
         sessionIdGenerator: () => id,
         enableJsonResponse: true
       })
-      const sessionClosed = new AbortController()
-      const pendingResponses = new WeakMap<Request, (response: Response) => void>()
-      const onToolSettled: MCPToolSettled = async (context) => {
-        const request = context.http?.req
-        if (!request || !context.mcpReq.signal.aborted || sessionClosed.signal.aborted) return
-        const respond = pendingResponses.get(request)
-        if (!respond) return
-        // The SDK suppresses cancelled results but leaves JSON HTTP promises
-        // pending. End HTTP without a JSON-RPC response, then settle the SDK's
-        // internal response to release its stream and request bookkeeping.
-        respond(new Response(null, { status: 202 }))
-        await transport
-          .send({
-            jsonrpc: '2.0',
-            id: context.mcpReq.id,
-            error: { code: -32800, message: 'Request cancelled' }
-          })
-          .catch(() => undefined)
-      }
+      const requests = createPendingRequests(transport)
       // Connect the SDK before exposing its transport. The client's HTTP
       // InitializeRequest is processed later by handleRequest; connect() alone
       // does not establish a valid MCP session.
       try {
-        registerTools(server, { id, kind }, onToolSettled)
+        registerTools(server, { id, kind }, requests.releaseCancelled)
         await server.connect(transport)
       } catch (e) {
         await closeSession({ transport, server })
@@ -182,58 +158,20 @@ export function createMCPSessionManager({
       }
       const session: MCPSession = {
         server,
+        requests,
         lastSeen: Date.now(),
         activeRequests: 0,
         initialized: false,
         transport: {
           close: () => transport.close(),
-          async handleRequest(request) {
-            session.activeRequests++
-            session.lastSeen = Date.now()
-            let onClosed: (() => void) | undefined
-            try {
-              // SDK JSON response promises are not settled by close(). Do not
-              // leave HTTP handlers waiting forever after DELETE or shutdown.
-              const handling = transport.handleRequest(request)
-              const response = await (request.method === 'POST'
-                ? Promise.race([
-                    handling,
-                    new Promise<Response>((resolve) => {
-                      pendingResponses.set(request, resolve)
-                      onClosed = () =>
-                        resolve(Response.json({ error: 'MCP session not found' }, { status: 404 }))
-                      if (sessionClosed.signal.aborted) onClosed()
-                      else sessionClosed.signal.addEventListener('abort', onClosed, { once: true })
-                    })
-                  ])
-                : handling)
-              if (!session.initialized) {
-                // The SDK assigns an ID before validating InitializeRequest params.
-                // HTTP 200 + a session header can therefore still be a JSON-RPC error.
-                session.initialized =
-                  response.ok &&
-                  response.headers.get('mcp-session-id') === id &&
-                  v.safeParse(InitializeResponse, await response.clone().text()).success
-                if (!session.initialized) await deleteSession(id)
-              }
-              return response
-            } catch (error) {
-              if (!session.initialized) await deleteSession(id)
-              throw error
-            } finally {
-              pendingResponses.delete(request)
-              if (onClosed) sessionClosed.signal.removeEventListener('abort', onClosed)
-              session.activeRequests--
-              session.lastSeen = Date.now()
-            }
-          }
+          handleRequest: (request) => handleSessionRequest(id, session, request)
         }
       }
-      // Preserve the SDK's protocol cleanup; only full transport closure ends
-      // the session. Closing a GET/SSE connection does not invoke this callback.
+      // Closing a GET/SSE stream does not close the transport, so only a full
+      // close ends the session. Keep the SDK's own protocol cleanup.
       const onclose = transport.onclose
       transport.onclose = () => {
-        sessionClosed.abort()
+        requests.close()
         try {
           onclose?.()
         } finally {
@@ -250,6 +188,29 @@ export function createMCPSessionManager({
       return await promise
     } finally {
       creating.delete(id)
+    }
+  }
+
+  async function handleSessionRequest(
+    id: string,
+    session: MCPSession,
+    request: Request
+  ): Promise<Response> {
+    session.activeRequests++
+    session.lastSeen = Date.now()
+    try {
+      const response = await session.requests.handle(request)
+      if (!session.initialized) {
+        session.initialized = await isInitializeResult(response, id)
+        if (!session.initialized) await deleteSession(id)
+      }
+      return response
+    } catch (error) {
+      if (!session.initialized) await deleteSession(id)
+      throw error
+    } finally {
+      session.activeRequests--
+      session.lastSeen = Date.now()
     }
   }
 
