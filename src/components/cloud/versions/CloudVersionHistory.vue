@@ -25,7 +25,7 @@ import {
   previewVersion,
   showCurrentVersion,
   versionHistoryOf,
-  versionListRevision
+  versionsChanged
 } from '@/app/cloud/versions/history'
 import { useVersionList } from '@/app/cloud/versions/list'
 import { useEditorStore } from '@/app/editor/active-store'
@@ -101,7 +101,7 @@ async function select(version: DocumentVersion) {
 async function run(action: () => Promise<unknown>) {
   try {
     await action()
-    versionListRevision.value++
+    versionsChanged(shown)
   } catch (error) {
     console.warn('[Cloud] Changing the version history failed:', error)
     toast.error(t.value.versionChangeFailed)

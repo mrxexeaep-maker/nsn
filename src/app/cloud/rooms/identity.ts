@@ -1,4 +1,4 @@
-import { shallowRef } from 'vue'
+import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 
 import type { RoomIdentity } from '@/app/collab/session'
 import { PEER_COLORS } from '@/constants'
@@ -14,11 +14,13 @@ function colorIndex(id: string): number {
 
 /**
  * Who a signed-in member is in their documents' rooms: their account's name, as the relay shows
- * them to everyone else, on one color for every tab they have open.
+ * them to everyone else and following a rename, on one color for every tab they have open.
  */
-export function accountRoomIdentity(account: Pick<CloudAccount, 'id' | 'name'>): RoomIdentity {
+export function accountRoomIdentity(
+  account: MaybeRefOrGetter<Pick<CloudAccount, 'id' | 'name'>>
+): RoomIdentity {
   return {
-    name: shallowRef(account.name),
-    color: PEER_COLORS[colorIndex(account.id)] ?? PEER_COLORS[0]
+    name: computed(() => toValue(account).name),
+    color: PEER_COLORS[colorIndex(toValue(account).id)] ?? PEER_COLORS[0]
   }
 }
