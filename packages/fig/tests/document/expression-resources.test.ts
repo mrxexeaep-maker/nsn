@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test'
 
 import { guid } from '#fig-tests/helpers/guid'
 import { materializeDocument } from '#fig/document/materialize'
+import { preservedVariableData } from '#fig/node-change/variable/preserved'
 
 import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
 
@@ -96,4 +97,17 @@ test('only explicit tolerance preserves unsupported variable expressions without
     }
   }
   expect(open).toThrow('Invalid preserved variable expression')
+  const opaque = {
+    dataType: 'EXPRESSION',
+    value: {
+      expressionValue: {
+        expressionFunction: 'TERNARY',
+        expressionArguments: [
+          { value: { colorValue: { r: 1, g: 0, b: 0, a: 1, colorSpace: 'DISPLAY_P3' } } },
+          { value: { alias: { assetRef: { key: 'remote', version: 'v1', futureField: true } } } }
+        ]
+      }
+    }
+  }
+  expect(preservedVariableData(opaque)).toEqual(opaque)
 })

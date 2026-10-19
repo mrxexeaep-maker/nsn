@@ -8,7 +8,7 @@ const guid = v.looseObject({
 })
 const reference = v.looseObject({
   guid: v.optional(guid),
-  assetRef: v.optional(v.object({ key: v.string(), version: v.optional(v.string()) }))
+  assetRef: v.optional(v.looseObject({ key: v.string(), version: v.optional(v.string()) }))
 })
 const data: v.GenericSchema<VariableDataEntry> = v.lazy(() =>
   v.looseObject({
@@ -42,7 +42,7 @@ const data: v.GenericSchema<VariableDataEntry> = v.lazy(() =>
         floatValue: v.optional(v.number()),
         textValue: v.optional(v.string()),
         colorValue: v.optional(
-          v.object({ r: v.number(), g: v.number(), b: v.number(), a: v.number() })
+          v.looseObject({ r: v.number(), g: v.number(), b: v.number(), a: v.number() })
         ),
         expressionValue: v.optional(
           v.looseObject({
