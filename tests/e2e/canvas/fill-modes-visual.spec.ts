@@ -65,7 +65,7 @@ test('FIT avatar preserves the full clipboard fixture image', async () => {
 
 test('gradients and image fill modes', async () => {
   await editor.page.evaluate(async () => {
-    const figURL = '/packages/fig/src/node-change/index.ts'
+    const figURL = '/@id/@open-pencil/fig/node-change'
     const { convertFills, nodeChangeToProps }: typeof FigNodeChange = await import(figURL)
     const store = window.openPencil?.getStore?.()
     if (!store) throw new Error('OpenPencil store not initialized')
@@ -255,7 +255,11 @@ test('gradients and image fill modes', async () => {
     { x: 750, y: 130 }
   ])
   expect(cropPixel.slice(0, 3)).toEqual([17, 24, 39])
-  for (const [r, g, b] of linePixels) expect(b).toBeGreaterThan(Math.max(r, g))
+  for (const [r, g, b] of linePixels) {
+    expect(Math.abs(r - 26)).toBeLessThanOrEqual(4)
+    expect(Math.abs(g - 51)).toBeLessThanOrEqual(4)
+    expect(Math.abs(b - 153)).toBeLessThanOrEqual(4)
+  }
   await expectCanvas('gradients-and-image-fill-modes')
 })
 

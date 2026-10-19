@@ -309,7 +309,13 @@ const collectionInspector = computed(() => {
     onRename: (name: string) => current && ctx.renameCollection(current.id, name),
     onRemove: () => {
       if (!current) return
-      if (!canRemoveVariables(editor.graph, current.variableIds)) {
+      if (
+        !canRemoveVariables(editor.graph, [
+          current.id,
+          ...current.modes.map((mode) => mode.modeId),
+          ...current.variableIds
+        ])
+      ) {
         removalRefused.value = true
         return
       }
