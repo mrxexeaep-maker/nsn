@@ -209,9 +209,11 @@ describe('Cloud document rooms, reopening', () => {
       second.session.dispose()
     })
     await until(() => reopened.graph.getNode(stray.id) === undefined)
+    // One of the room's pages, which the tab that seeded the room has too.
     await until(() =>
-      reopened.graph.getPages().some((page) => page.id === reopened.state.currentPageId)
+      grace.graph.getPages().some((page) => page.id === reopened.state.currentPageId)
     )
+    expect(reopened.graph.getNode(reopened.state.currentPageId)?.type).toBe('CANVAS')
   })
 })
 
