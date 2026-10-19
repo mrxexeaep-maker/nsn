@@ -6,6 +6,7 @@ import { computeBounds, rotatedCorners } from '@open-pencil/scene-graph/geometry
 import Matrix from '@open-pencil/scene-graph/matrix'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
 
+import { drawConnectorHover, drawConnectorSelection } from '#core/canvas/overlays/connectors'
 import type { RenderOverlays, SkiaRenderer } from '#core/canvas/renderer'
 import {
   HANDLE_HALF_SIZE,
@@ -17,6 +18,7 @@ import {
 import {
   createSceneGeometry,
   hasTransformHandles,
+  isLineLike,
   viewportMatrix,
   selectionPath,
   rotationHandleLayout,
@@ -39,6 +41,10 @@ export function drawHoverHighlight(
 ): void {
   const node = hoveredNodeId ? graph.getNode(hoveredNodeId) : undefined
   if (!node) return
+  if (node.type === 'CONNECTOR') {
+    drawConnectorHover(r, canvas, graph, node, preview)
+    return
+  }
   r.auxStroke.setStrokeWidth((node.type === 'SECTION' ? SECTION_HOVER_STROKE_WIDTH : 1) / r.zoom)
   r.auxStroke.setColor(r.outlineColor(node, graph))
   r.auxStroke.setPathEffect(null)
@@ -111,7 +117,9 @@ function drawSingleSelection(
   r.selectionPaint.setStrokeWidth(1 / r.zoom)
 
   const rotation = node.rotation
-  if (isPathText) {
+  if (node.type === 'CONNECTOR') {
+    drawConnectorSelection(r, canvas, graph, node, preview)
+  } else if (isPathText) {
     drawTextPathSelection(r, canvas, node, rotation, graph, preview)
     if (!editing) r.drawSelectionLabels(canvas, graph, selectedIds, overlays)
   } else {
@@ -355,8 +363,8 @@ export function drawNodeSelection(
         y1,
         x2,
         y2,
-        // A generated frame such as a sticky note may stay upright.
-        !layerRotates(node)
+        // A generated frame such as a sticky note may stay upright, and a line turns by its ends.
+        !layerRotates(node) || isLineLike(node)
           ? null
           : rotationHandleLayout(node, createSceneGeometry(graph, preview), r.zoom, {
               x: x1,

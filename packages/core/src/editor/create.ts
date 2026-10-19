@@ -35,12 +35,16 @@ import { createClipboardPropertiesActions } from './clipboard/paste/properties'
 import { createColorSpaceActions } from './color-space'
 import { createComponentSyncScheduler } from './component-sync'
 import { createComponentActions } from './components'
+import { createConnectorDrawActions, createConnectorEndpointActions } from './connectors/draw'
+import { createConnectorRouting } from './connectors/routing'
+import { createConnectorStyleActions } from './connectors/style'
 import { createDesignTokenActions } from './design-tokens'
 import { createGraphEventSubscription } from './graph-events'
 import { createGraphReadActions } from './graph-reads'
 import { createGuideActions } from './guides'
 import { createIconActions } from './icons'
 import { createDesignIssueActions } from './issues'
+import { createLineEndActions } from './line-ends'
 import { createNodeActions } from './nodes'
 import { createPageActions } from './pages'
 import { createPlayActions } from './play/actions'
@@ -202,7 +206,10 @@ export function createEditor(options?: EditorOptions) {
     const previous = state.activeTool
     state.activeTool = tool
     if (tool !== 'SELECT') state.measurementMode = 'off'
-    if (previous !== tool) emitEditorEvent('tool:changed', tool, previous)
+    if (previous === tool) return
+    // Guides the pen showed for its next point do not belong to the next tool.
+    if (previous === 'PEN') state.snapGuides = []
+    emitEditorEvent('tool:changed', tool, previous)
   }
 
   const graphReads = createGraphReadActions(() => _graph)
@@ -273,7 +280,6 @@ export function createEditor(options?: EditorOptions) {
   const pages = createPageActions(ctx, shaderFrames)
   const guides = createGuideActions(ctx)
   const designIssues = createDesignIssueActions(ctx)
-  const shapes = createShapeActions(ctx)
   const structure = createStructureActions(ctx)
   const components = createComponentActions(ctx)
   const clipboard = createClipboardActions(ctx)
@@ -281,6 +287,7 @@ export function createEditor(options?: EditorOptions) {
   const undoActions = createUndoActions(ctx)
   const text = createTextActions(ctx)
   const nodes = createNodeActions(ctx)
+  const shapes = createShapeActions(ctx, nodes.updateNodeWithUndo)
   const clipboardProperties = createClipboardPropertiesActions(
     ctx,
     nodes.updateNodeWithUndo,
@@ -292,6 +299,15 @@ export function createEditor(options?: EditorOptions) {
   const icons = createIconActions(ctx)
   const stickies = createStickyActions(ctx)
   const statuses = createStatusActions(ctx)
+  createConnectorRouting(ctx)
+  const connectorDrawing = createConnectorDrawActions(ctx)
+  const connectorEndpoints = createConnectorEndpointActions(
+    ctx,
+    nodes.beginNodePreview,
+    clipboard.deleteNodes
+  )
+  const connectorStyles = createConnectorStyleActions(ctx)
+  const lineEnds = createLineEndActions(ctx, nodes.beginNodePreview)
   const shaders = createShaderActions(ctx, nodes)
   const alignment = createAlignmentActions(ctx)
   const preview = createPlayActions(ctx)
@@ -463,6 +479,10 @@ export function createEditor(options?: EditorOptions) {
     getShownStatus: statuses.getShownStatus,
     setStatus: statuses.setStatus,
     setStatusWorkflow: statuses.setStatusWorkflow,
+    ...connectorDrawing,
+    ...connectorEndpoints,
+    ...lineEnds,
+    ...connectorStyles,
     ...shaders,
     ...shaderFrames,
 
