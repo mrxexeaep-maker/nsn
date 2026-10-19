@@ -1,7 +1,7 @@
-import type { SceneGraph, VariableValue } from '@open-pencil/scene-graph'
+import type { SceneGraph, VariableLiteral, VariableValue } from '@open-pencil/scene-graph'
 
 import { resolveVariableInModes } from '../resolution'
-import { VariableFormulaError } from './evaluate'
+import { isFormulaOperation, VariableFormulaError, type FormulaValueType } from './evaluate'
 import { parseFormulaSyntax, type FormulaReference } from './parse'
 import { printFormula, type PrintFormulaOptions } from './print'
 
@@ -17,10 +17,13 @@ export {
 export {
   evaluateVariableFormula,
   formulaArity,
-  formulaOperandType,
-  formulaResultType,
+  formulaSymbol,
+  formulaValueType,
+  inferFormulaType,
+  isFormulaOperation,
   MAX_FORMULA_DEPTH,
-  VariableFormulaError
+  VariableFormulaError,
+  type FormulaValueType
 } from './evaluate'
 
 function qualifiedName(graph: SceneGraph, id: string) {
@@ -49,22 +52,17 @@ export function variableFormulaReference(graph: SceneGraph, id: string): string 
     : `{${qualified}}`
 }
 
-/** The formula's source text, with `{name}` for each reference, as the clipboard and scripts write it. */
+/** The formula's source text, with `{name}` for each reference, as the clipboard and scripts write it; text is quoted. */
 export function formatVariableFormula(
   graph: SceneGraph,
   value: VariableValue,
   options?: PrintFormulaOptions
 ): string {
   const reference = (id: string) => variableFormulaReference(graph, id)
-  if (typeof value === 'object' && 'expression' in value && value.expression === 'FORMULA')
-    return printFormula(value.value, reference, options)
-  if (
-    typeof value === 'number' ||
-    typeof value === 'boolean' ||
-    (typeof value === 'object' && 'aliasId' in value)
-  )
-    return printFormula(value, reference, options)
-  return ''
+  const typed = { type: (id: string) => graph.variables.get(id)?.type, ...options }
+  if (typeof value !== 'object' || !('expression' in value))
+    return printFormula(value, reference, typed)
+  return value.expression === 'FORMULA' ? printFormula(value.value, reference, typed) : ''
 }
 
 /**
@@ -84,9 +82,14 @@ function resolveReference(graph: SceneGraph, collectionId: string, name: string)
   if (!match) throw new VariableFormulaError(`No variable named ${name}`)
   if (matches.length !== 1)
     throw new VariableFormulaError(`More than one variable is named ${name}`)
-  if (match.type !== 'FLOAT' && match.type !== 'BOOLEAN')
-    throw new VariableFormulaError(`${match.name} is not a number or true/false variable`)
   return { id: match.id, type: match.type }
+}
+
+const TYPE_NAMES: Record<FormulaValueType, string> = {
+  FLOAT: 'a number',
+  BOOLEAN: 'true or false',
+  STRING: 'text',
+  COLOR: 'a color'
 }
 
 /** Validate a draft without changing the document. Formulas operate on stored units. */
@@ -95,26 +98,22 @@ export function parseVariableFormula(
   variableId: string,
   modeId: string,
   source: string
-): { value: VariableValue; resolved: number | boolean } {
+): { value: VariableValue; resolved: VariableLiteral } {
   const variable = graph.variables.get(variableId)
-  if (!variable || (variable.type !== 'FLOAT' && variable.type !== 'BOOLEAN'))
-    throw new VariableFormulaError('Select a number or Boolean variable')
+  if (!variable) throw new VariableFormulaError('Select a variable')
   const collection = graph.variableCollections.get(variable.collectionId)
   if (!collection?.modes.some((mode) => mode.modeId === modeId))
     throw new VariableFormulaError('Unknown variable mode')
   const { node, type } = parseFormulaSyntax(source, (name) =>
     resolveReference(graph, variable.collectionId, name)
   )
-  if (type !== variable.type) {
-    const kind = (of: string) => (of === 'FLOAT' ? 'a number' : 'true or false')
+  if (type !== variable.type)
     throw new VariableFormulaError(
-      `This gives ${kind(type)}, but ${variable.name} holds ${kind(variable.type)}`
+      `This gives ${TYPE_NAMES[type]}, but ${variable.name} holds ${TYPE_NAMES[variable.type]}`
     )
-  }
-  const value: VariableValue =
-    typeof node === 'object' && 'operator' in node
-      ? { expression: 'FORMULA', type: variable.type, value: node }
-      : node
+  const value: VariableValue = isFormulaOperation(node)
+    ? { expression: 'FORMULA', type: variable.type, value: node }
+    : node
   const resolved = resolveVariableInModes(
     graph,
     variableId,
@@ -124,7 +123,5 @@ export function parseVariableFormula(
     new Map(),
     new Map([[variableId, value]])
   )
-  if (typeof resolved !== 'number' && typeof resolved !== 'boolean')
-    throw new VariableFormulaError('Expected a number or Boolean result')
   return { value, resolved }
 }

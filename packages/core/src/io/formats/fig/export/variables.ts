@@ -14,7 +14,9 @@ import {
   modesDefaultFirst,
   isUnsupportedVariableValue,
   MAX_FORMULA_DEPTH,
-  formulaResultType,
+  formulaValueType,
+  inferFormulaType,
+  isFormulaOperation,
   variableFormulaSchema,
   variableColorExpressionSchema,
   type SceneGraph,
@@ -210,17 +212,19 @@ function formulaToKiwi(
   depth = 0
 ): VariableDataEntry {
   if (depth > MAX_FORMULA_DEPTH) throw new Error('Variable formula is too deeply nested')
-  if (typeof node === 'number') return variableValueToKiwi(graph, node, 'FLOAT', ids)
-  if (typeof node === 'boolean') return variableValueToKiwi(graph, node, 'BOOLEAN', ids)
-  if ('aliasId' in node) {
-    const type = graph.variables.get(node.aliasId)?.type
-    if (type !== 'FLOAT' && type !== 'BOOLEAN')
-      throw new Error('Formula references a missing variable')
+  const typeOf = (id: string) => graph.variables.get(id)?.type
+  if (!isFormulaOperation(node)) {
+    if (typeof node !== 'object' || !('aliasId' in node))
+      return variableValueToKiwi(graph, node, formulaValueType(node), ids)
+    const type = typeOf(node.aliasId)
+    if (!type) throw new Error('Formula references a missing variable')
     return variableValueToKiwi(graph, node, type, ids)
   }
+  const type = inferFormulaType(node, typeOf)
+  if (!type) throw new Error('Formula references a missing variable')
   return {
     dataType: 'EXPRESSION',
-    resolvedDataType: formulaResultType(node.operator),
+    resolvedDataType: type,
     value: {
       expressionValue: {
         expressionFunction: node.operator,

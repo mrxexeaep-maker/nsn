@@ -1,4 +1,8 @@
-import type { Variable, VariableFormulaNode } from '@open-pencil/scene-graph'
+import {
+  isFormulaOperation,
+  type Variable,
+  type VariableFormulaNode
+} from '@open-pencil/scene-graph'
 
 import { tokenNumberToCSS, variableUnit } from './values'
 
@@ -55,7 +59,10 @@ export function formulaToCSS(
 function convert(node: VariableFormulaNode, context: FormulaContext): Term {
   if (typeof node === 'number') return { kind: 'literal', value: node }
   if (typeof node === 'boolean') throw new UnsupportedFormulaError('mixes true/false into a number')
-  if ('aliasId' in node) return reference(node.aliasId, context)
+  if (!isFormulaOperation(node)) {
+    if (typeof node === 'object' && 'aliasId' in node) return reference(node.aliasId, context)
+    throw new UnsupportedFormulaError('mixes text or a color into a number')
+  }
   const operands = node.operands.map((operand) => convert(operand, context))
   const [a, b] = operands
   if (node.operator === 'NEGATE' && operands.length === 1) return negate(a, context)

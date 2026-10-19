@@ -1,8 +1,11 @@
-import type { VariableFormulaNode, VariableFormulaOperator } from '@open-pencil/scene-graph'
+import * as v from 'valibot'
+
+import type { Color, VariableFormulaNode, VariableFormulaOperator } from '@open-pencil/scene-graph'
+import { tryParseColor } from '@open-pencil/scene-graph/color'
 
 import {
   checkFormulaOperands,
-  formulaResultType,
+  formulaCallOperator,
   MAX_FORMULA_DEPTH,
   MAX_FORMULA_LENGTH,
   VariableFormulaError,
@@ -58,12 +61,28 @@ function checkedTokens(source: string): FormulaToken[] {
   const tokens = formulaTokens(source)
   for (const token of tokens) {
     if (token.kind === 'invalid') throw new VariableFormulaError(`Unexpected ${token.text}`)
+    if (token.kind === 'string' && (token.text.length < 2 || !token.text.endsWith('"')))
+      throw new VariableFormulaError('A text is missing its closing "')
     if (token.kind !== 'reference') continue
     if (!token.text.endsWith('}'))
       throw new VariableFormulaError('A reference is missing its closing }')
     if (!formulaTokenName(token)) throw new VariableFormulaError('Empty variable reference')
   }
   return tokens
+}
+
+/** A quoted string's text, read with JSON's escapes, as Figma reads it. */
+function stringValue(token: FormulaToken): string {
+  const parsed = v.safeParse(v.pipe(v.string(), v.parseJson(), v.string()), token.text)
+  if (!parsed.success) throw new VariableFormulaError(`Invalid text ${token.text}`)
+  return parsed.output
+}
+
+/** `#RRGGBB`, or `#RRGGBBAA` with opacity. */
+function colorValue(token: FormulaToken): Color {
+  const color = tryParseColor(token.text)
+  if (!color) throw new VariableFormulaError(`Invalid color ${token.text}`)
+  return color
 }
 
 export interface FormulaReference {
@@ -96,14 +115,26 @@ export function parseFormulaSyntax(
       : ''
 
   function operation(operator: VariableFormulaOperator, operands: ParsedFormula[]): ParsedFormula {
-    checkFormulaOperands(
+    const type = checkFormulaOperands(
       operator,
       operands.map((operand) => operand.type)
     )
-    return {
-      node: { operator, operands: operands.map((operand) => operand.node) },
-      type: formulaResultType(operator)
+    return { node: { operator, operands: operands.map((operand) => operand.node) }, type }
+  }
+
+  /** A call's operands, `(a, b)`, after its name. */
+  function call(operator: VariableFormulaOperator, name: string, depth: number): ParsedFormula {
+    if (symbolAt(tokens.at(index++)) !== '(') throw new VariableFormulaError(`Write ${name}(…)`)
+    const operands: ParsedFormula[] = []
+    if (symbolAt(peek()) !== ')') {
+      operands.push(expression(0, depth + 1))
+      while (peek()?.kind === 'comma') {
+        index++
+        operands.push(expression(0, depth + 1))
+      }
     }
+    if (symbolAt(tokens.at(index++)) !== ')') throw new VariableFormulaError('Missing )')
+    return operation(operator, operands)
   }
 
   function prefix(depth: number): ParsedFormula {
@@ -111,6 +142,10 @@ export function parseFormulaSyntax(
     const token = tokens.at(index++)
     if (!token) throw new VariableFormulaError('The formula ends too early')
     if (token.kind === 'number') return { node: Number(token.text), type: 'FLOAT' }
+    if (token.kind === 'string') return { node: stringValue(token), type: 'STRING' }
+    if (token.kind === 'color') return { node: colorValue(token), type: 'COLOR' }
+    const callee = token.kind === 'function' ? formulaCallOperator(token.text) : undefined
+    if (callee) return call(callee, token.text.toLowerCase(), depth)
     if (token.kind === 'reference' || token.kind === 'name') {
       const { id, type } = reference(formulaTokenName(token))
       return { node: { aliasId: id }, type }
