@@ -1,9 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
 
 import { type FetchCall, createTestService, type TestService } from '#feedback-tests/harness'
+import { createFeedbackDatabase } from '#feedback/db'
 import { runSnapshot } from '#feedback/snapshot'
 import { releaseFileKind } from '#feedback/snapshot/assets'
 import { addDays, daysBetween } from '#feedback/snapshot/days'
+import { replaceDays } from '#feedback/snapshot/store'
 import * as v from 'valibot'
 
 let service: TestService
@@ -128,6 +130,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   await service.db.batch(TABLES.map((table) => service.db.prepare(`DELETE FROM ${table}`)))
   service.fetchCalls.length = 0
+  service.clearResponses()
   service.setNow(RUN_AT)
   answerGithub()
   answerCloudflare()
@@ -272,6 +275,19 @@ describe('metrics snapshot', () => {
     await runSnapshot(service.env, service.services)
     expect(await rows('site_visits', 'day, host')).toEqual([
       { day: '2026-10-19', host: 'openpencil.dev', visits: 4000 }
+    ])
+  })
+
+  test('a replacement that fails to insert leaves the day as it was', async () => {
+    await run("INSERT INTO site_visits VALUES ('2026-10-19', 'openpencil.dev', 4258)")
+    const store = { db: createFeedbackDatabase(service.db), d1: service.db }
+    // Two rows with the same key: the insert fails after the delete was already queued.
+    const duplicate = { day: '2026-10-19', host: 'openpencil.dev', visits: 1 }
+    await expect(
+      replaceDays(store, 'siteVisits', ['2026-10-19'], [duplicate, duplicate])
+    ).rejects.toThrow()
+    expect(await rows('site_visits')).toEqual([
+      { day: '2026-10-19', host: 'openpencil.dev', visits: 4258 }
     ])
   })
 

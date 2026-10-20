@@ -1,13 +1,11 @@
 import { createFeedbackDatabase } from '#feedback/db'
-import type { FeedbackDatabase } from '#feedback/db'
 import type { FeedbackBindings, FeedbackServices } from '#feedback/env'
 import { compact } from 'es-toolkit'
-import type { Kysely } from 'kysely'
 
 import { cloudflareClient } from './cloudflare'
 import { addDays, daysBetween, utcDay } from './days'
 import { githubClient } from './github'
-import { lastDay, replaceDays } from './store'
+import { lastDay, replaceDays, type SnapshotStore } from './store'
 
 /**
  * How far back the visit history is filled: Cloudflare's Free plan keeps 31 days and answers at
@@ -20,7 +18,7 @@ const SETTLING_DAYS = 3
 export type SnapshotSource = 'github' | 'traffic' | 'site'
 
 interface Run {
-  db: Kysely<FeedbackDatabase>
+  store: SnapshotStore
   env: FeedbackBindings
   services: FeedbackServices
   today: string
@@ -29,17 +27,17 @@ interface Run {
 }
 
 /** Stars, forks, and running download totals as of the end of yesterday. */
-async function recordGithub({ db, env, services, yesterday }: Run) {
+async function recordGithub({ store, env, services, yesterday }: Run) {
   const github = githubClient(services.fetch, env.GITHUB_REPOSITORY, env.GITHUB_TOKEN)
   const totals = await github.totals()
   await replaceDays(
-    db,
+    store,
     'githubStars',
     [yesterday],
     [{ day: yesterday, stars: totals.stars, forks: totals.forks }]
   )
   await replaceDays(
-    db,
+    store,
     'releaseDownloads',
     [yesterday],
     totals.downloads.map((file) => ({ day: yesterday, ...file }))
@@ -47,16 +45,16 @@ async function recordGithub({ db, env, services, yesterday }: Run) {
 }
 
 /** GitHub's last 14 days of views and clones, finished days only, and its referrer ranking. */
-async function recordTraffic({ db, env, services, today, yesterday }: Run) {
+async function recordTraffic({ store, env, services, today, yesterday }: Run) {
   const github = githubClient(services.fetch, env.GITHUB_REPOSITORY, env.GITHUB_TOKEN)
   const traffic = await github.traffic()
   const finished = traffic.days.filter((day) => day.day < today)
   const first = finished.at(0)
   // GitHub may not have counted yesterday yet; its window still ends there.
   const window = first ? daysBetween(first.day, yesterday) : []
-  await replaceDays(db, 'repoTraffic', window, finished)
+  await replaceDays(store, 'repoTraffic', window, finished)
   await replaceDays(
-    db,
+    store,
     'repoReferrers',
     [yesterday],
     traffic.referrers.map((referrer) => ({ day: yesterday, ...referrer }))
@@ -67,7 +65,7 @@ async function recordTraffic({ db, env, services, today, yesterday }: Run) {
  * Visits per hostname, and the website's pages and countries, for every day not recorded yet
  * plus the last few, which Cloudflare may still have been counting.
  */
-async function recordSite({ db, env, services, yesterday }: Run) {
+async function recordSite({ store, env, services, yesterday }: Run) {
   const cloudflare = cloudflareClient(
     services.fetch,
     env.SITE_ZONE_ID,
@@ -76,7 +74,7 @@ async function recordSite({ db, env, services, yesterday }: Run) {
   const hosts = env.SITE_HOSTS.split(',').map((host) => host.trim())
   const [website] = hosts
   const oldest = addDays(yesterday, 1 - BACKFILL_DAYS)
-  const recorded = await lastDay(db, 'siteVisits')
+  const recorded = await lastDay(store.db, 'siteVisits')
   const next = recorded ? addDays(recorded, 1) : oldest
   // Start at the first missing day or the first still settling, whichever is earlier, but never
   // before the oldest day Cloudflare still has.
@@ -87,13 +85,13 @@ async function recordSite({ db, env, services, yesterday }: Run) {
   if (website) {
     for (const day of days) {
       const { pages, countries } = await cloudflare.breakdown(day, website)
-      await replaceDays(db, 'sitePages', [day], pages)
-      await replaceDays(db, 'siteCountries', [day], countries)
+      await replaceDays(store, 'sitePages', [day], pages)
+      await replaceDays(store, 'siteCountries', [day], countries)
     }
   }
   // Recorded last: the newest visit day is where the next run resumes, so a breakdown failing
   // partway leaves the whole range to be fetched again rather than skipped for good.
-  await replaceDays(db, 'siteVisits', days, visits)
+  await replaceDays(store, 'siteVisits', days, visits)
 }
 
 const earlier = (a: string, b: string) => (a < b ? a : b)
@@ -117,7 +115,7 @@ export async function runSnapshot(
 ): Promise<{ failed: SnapshotSource[] }> {
   const today = utcDay(services.now())
   const run: Run = {
-    db: createFeedbackDatabase(env.DB),
+    store: { db: createFeedbackDatabase(env.DB), d1: env.DB },
     env,
     services,
     today,

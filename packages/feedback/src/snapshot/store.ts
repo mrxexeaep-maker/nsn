@@ -1,6 +1,13 @@
 import type { FeedbackDatabase } from '#feedback/db'
+import type { D1Database } from '@cloudflare/workers-types/index'
 import { chunk } from 'es-toolkit'
-import type { Insertable, Kysely } from 'kysely'
+import type { CompiledQuery, Insertable, Kysely } from 'kysely'
+
+/** Kysely builds the statements; D1 runs a day's replacement as one batch, which is atomic. */
+export interface SnapshotStore {
+  db: Kysely<FeedbackDatabase>
+  d1: D1Database
+}
 
 type SnapshotTable =
   | 'githubStars'
@@ -14,36 +21,41 @@ type SnapshotTable =
 // D1 binds at most 100 values per statement, so long lists go in several statements.
 const MAX_BOUND_VALUES = 100
 
-type ClearDays = (db: Kysely<FeedbackDatabase>, days: string[]) => Promise<unknown>
+type ClearDays = (db: Kysely<FeedbackDatabase>, days: string[]) => CompiledQuery
 
 // One query per table: Kysely cannot type a delete over a union of tables.
 const CLEAR_DAYS: Record<SnapshotTable, ClearDays> = {
-  githubStars: (db, days) => db.deleteFrom('githubStars').where('day', 'in', days).execute(),
+  githubStars: (db, days) => db.deleteFrom('githubStars').where('day', 'in', days).compile(),
   releaseDownloads: (db, days) =>
-    db.deleteFrom('releaseDownloads').where('day', 'in', days).execute(),
-  repoTraffic: (db, days) => db.deleteFrom('repoTraffic').where('day', 'in', days).execute(),
-  repoReferrers: (db, days) => db.deleteFrom('repoReferrers').where('day', 'in', days).execute(),
-  siteVisits: (db, days) => db.deleteFrom('siteVisits').where('day', 'in', days).execute(),
-  sitePages: (db, days) => db.deleteFrom('sitePages').where('day', 'in', days).execute(),
-  siteCountries: (db, days) => db.deleteFrom('siteCountries').where('day', 'in', days).execute()
+    db.deleteFrom('releaseDownloads').where('day', 'in', days).compile(),
+  repoTraffic: (db, days) => db.deleteFrom('repoTraffic').where('day', 'in', days).compile(),
+  repoReferrers: (db, days) => db.deleteFrom('repoReferrers').where('day', 'in', days).compile(),
+  siteVisits: (db, days) => db.deleteFrom('siteVisits').where('day', 'in', days).compile(),
+  sitePages: (db, days) => db.deleteFrom('sitePages').where('day', 'in', days).compile(),
+  siteCountries: (db, days) => db.deleteFrom('siteCountries').where('day', 'in', days).compile()
 }
 
 /**
  * Makes `days` hold exactly `rows`: whatever was recorded for those days goes first, so an
  * entry the latest answer no longer has (a host without visits, a page out of the ranking, a
  * removed release file) does not linger, and a rerun corrects a day instead of adding to it.
+ * The deletes and inserts run as one D1 batch, so a failure leaves the old rows in place.
  */
 export async function replaceDays<T extends SnapshotTable>(
-  db: Kysely<FeedbackDatabase>,
+  { db, d1 }: SnapshotStore,
   table: T,
   days: string[],
   rows: Insertable<FeedbackDatabase[T]>[]
 ): Promise<void> {
-  for (const batch of chunk(days, MAX_BOUND_VALUES)) await CLEAR_DAYS[table](db, batch)
+  const statements = chunk(days, MAX_BOUND_VALUES).map((batch) => CLEAR_DAYS[table](db, batch))
   const [first] = rows
-  if (!first) return
-  const perStatement = Math.max(1, Math.floor(MAX_BOUND_VALUES / Object.keys(first).length))
-  for (const batch of chunk(rows, perStatement)) await db.insertInto(table).values(batch).execute()
+  if (first) {
+    const perStatement = Math.max(1, Math.floor(MAX_BOUND_VALUES / Object.keys(first).length))
+    for (const batch of chunk(rows, perStatement))
+      statements.push(db.insertInto(table).values(batch).compile())
+  }
+  if (!statements.length) return
+  await d1.batch(statements.map((query) => d1.prepare(query.sql).bind(...query.parameters)))
 }
 
 /** The newest day recorded in a table, if any. */

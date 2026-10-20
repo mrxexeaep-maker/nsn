@@ -105,6 +105,10 @@ export async function createTestService() {
     db: proxy.env.DB,
     fetchCalls,
     sentEmails,
+    /** Forgets every answer registered with `respond`, so one test's answers do not reach the next. */
+    clearResponses() {
+      responses.clear()
+    },
     /** Answers outside requests whose URL starts with `prefix`; the longest matching prefix wins. */
     respond(prefix: string, response: (call: FetchCall) => Response) {
       responses.set(prefix, response)
