@@ -87,6 +87,10 @@ const supportsLayoutGuides = useSceneComputed(() => {
   const nodes = store.getSelectedNodes()
   return nodes.length > 0 && nodes.every((selected) => LAYOUT_GUIDE_TYPES.has(selected.type))
 })
+// A sticky note has no strokes or effects, so a selection holding one offers neither.
+const strokesAndEffects = useSceneComputed(() =>
+  store.getSelectedNodes().every((selected) => layerStrokesAndEffects(selected))
+)
 const { panels } = useI18n()
 </script>
 
@@ -124,8 +128,10 @@ const { panels } = useI18n()
     <AppearanceSection />
     <TypographySection />
     <FillSection />
-    <StrokeSection />
-    <EffectsSection />
+    <template v-if="strokesAndEffects">
+      <StrokeSection />
+      <EffectsSection />
+    </template>
     <SelectionColorsSection />
     <LayoutGridSection v-if="supportsLayoutGuides" />
     <ExportSection />
@@ -228,7 +234,7 @@ const { panels } = useI18n()
         <MaskSection />
         <TypographySection v-if="node.type === 'TEXT'" />
         <FillSection />
-        <template v-if="layerStrokesAndEffects(node)">
+        <template v-if="strokesAndEffects">
           <StrokeSection />
           <EffectsSection />
         </template>
