@@ -1,7 +1,11 @@
 import { toRaw, type FunctionalComponent } from 'vue'
 
 import { vectorNetworkToSVGPaths } from '@open-pencil/core/io'
-import { transformVectorNetwork, type VectorNetwork } from '@open-pencil/scene-graph'
+import {
+  transformVectorNetwork,
+  validateVectorNetwork,
+  type VectorNetwork
+} from '@open-pencil/scene-graph'
 import { getNodeLocalMatrix } from '@open-pencil/scene-graph/coordinate'
 import Matrix from '@open-pencil/scene-graph/matrix'
 import type { LayerVectorIcon } from '@open-pencil/vue'
@@ -19,13 +23,14 @@ const MAX_ELEMENTS = 129
 /**
  * A vector's outline as icon markup, as Figma draws its layer row (`generateObjectsPanelIcon`):
  * turned and reflected as the layer is, with the layer's box fitted to the icon and centred, and
- * never filled. Null for a network with nothing to draw or too much to draw.
+ * never filled. Null for a network with nothing to draw, too much to draw, or broken indices.
  */
 export function vectorIconSVG(vector: LayerVectorIcon): string | null {
   const { network, width, height } = vector
   const { vertices, segments } = network
   if (segments.length === 0 || vertices.length + segments.length >= MAX_ELEMENTS) return null
-  if (segments.some((segment) => !vertices[segment.start] || !vertices[segment.end])) return null
+  // A network whose segments or region loops name missing parts keeps the generic glyph.
+  if (validateVectorNetwork(network).length > 0) return null
 
   // Figma fits the layer's turned box, not the outline, so a turned shape keeps its size.
   const placement = getNodeLocalMatrix({ ...vector, type: 'VECTOR', x: 0, y: 0 })
