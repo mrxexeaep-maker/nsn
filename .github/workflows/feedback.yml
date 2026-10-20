@@ -5,19 +5,13 @@ on:
     branches: [master]
     paths:
       - packages/feedback/**
-      # The metrics dashboard page the Worker serves under /admin, and its dependencies.
+      # The metrics dashboard page the Worker serves under /admin. Its bundle is built from the
+      # app's src/ (views, components, theme, styles, and the build target in
+      # src/app/shell/support) and this package, so any change there redeploys it.
+      - src/**
+      - metrics.html
       - package.json
       - bun.lock
-      - metrics.html
-      - src/metrics/**
-      - src/views/metrics/**
-      - src/components/metrics/**
-      - src/components/ui/**
-      - src/app/metrics/**
-      - src/app/cloud-portal/theme.ts
-      - src/app.css
-      - src/components/brand/**
-      - src/theme/**
       - vite.config.ts
       - vite/**
   workflow_dispatch:
