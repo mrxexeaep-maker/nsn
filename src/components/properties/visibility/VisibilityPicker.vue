@@ -33,6 +33,9 @@ const open = computed({
 
 const properties = computed(() => (property.available.value ? property.compatible.value : []))
 
+/** A property the layer follows can only be let go of where properties are editable. */
+const lockedToProperty = computed(() => !!property.definition.value && !property.editable.value)
+
 const items = computed<AppPickerItem[]>(() => {
   const group = panels.value.propertiesInComponent({ name: property.ownerName.value ?? '' })
   return [
@@ -45,7 +48,8 @@ const items = computed<AppPickerItem[]>(() => {
     ...binding.variables.value.map((variable) => ({
       value: variable.id,
       label: variable.name,
-      group: binding.provider.collectionName?.(variable)
+      group: binding.provider.collectionName?.(variable),
+      disabled: lockedToProperty.value
     }))
   ]
 })
@@ -69,7 +73,7 @@ function variableType(value: string) {
 
 /** A layer follows one source at a time, so choosing one lets go of the other in the same step. */
 function select(value: string) {
-  if (value.startsWith(PROPERTY) && !property.editable.value) return
+  if (value.startsWith(PROPERTY) ? !property.editable.value : lockedToProperty.value) return
   editor.undo.runBatch('Bind visibility', () => {
     if (value.startsWith(PROPERTY)) {
       if (binding.state.value !== 'unbound') binding.actions.unbind()
