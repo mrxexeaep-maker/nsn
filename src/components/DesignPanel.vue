@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 import { getNodeEditCapability } from '@open-pencil/core/editor'
-import { layerResizes, readIcon } from '@open-pencil/scene-graph'
+import { layerResizes, layerStrokesAndEffects, readIcon } from '@open-pencil/scene-graph'
 import { useI18n, useSceneComputed, useSelectionState, useEditorCommands } from '@open-pencil/vue'
 
 import { useEditorStore } from '@/app/editor/active-store'
@@ -228,8 +228,10 @@ const { panels } = useI18n()
         <MaskSection />
         <TypographySection v-if="node.type === 'TEXT'" />
         <FillSection />
-        <StrokeSection />
-        <EffectsSection />
+        <template v-if="layerStrokesAndEffects(node)">
+          <StrokeSection />
+          <EffectsSection />
+        </template>
       </template>
       <SelectionColorsSection />
       <LayoutGridSection v-if="supportsLayoutGuides" />

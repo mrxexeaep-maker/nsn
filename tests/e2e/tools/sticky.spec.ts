@@ -2,6 +2,7 @@ import type { Vector } from '@open-pencil/scene-graph/primitives'
 
 import { expect, test, useEditorSetupWithClear } from '#tests/e2e/fixtures'
 import { stickyDriver } from '#tests/helpers/canvas/sticky-driver'
+import { propertyField, propertySection } from '#tests/helpers/properties'
 import { toolbarToolTestId } from '#tests/helpers/test-ids'
 
 const editor = useEditorSetupWithClear()
@@ -127,6 +128,19 @@ test('the Sticky note section recolours a note, sizes its text, and hides its au
 
   await section.getByRole('switch', { name: 'Show author' }).click()
   await expect.poll(async () => (await lastNote()).author.visible).toBe(false)
+})
+
+// Figma keeps a note upright and gives it no strokes or effects: its shadow is part of the note.
+test("a note's panel has its fill and opacity, but no rotation, stroke, or effects", async () => {
+  await sticky.add([{ x: 300, y: 200, text: 'Upright' }])
+  await clickNote(300, 200)
+
+  await expect(propertySection(editor.page, 'Fill')).toBeVisible()
+  await expect(propertySection(editor.page, 'Appearance')).toBeVisible()
+  await expect(propertyField(editor.page, 'x')).toBeVisible()
+  await expect(propertyField(editor.page, 'rotation')).toHaveCount(0)
+  await expect(propertySection(editor.page, 'Stroke')).toHaveCount(0)
+  await expect(propertySection(editor.page, 'Effects')).toHaveCount(0)
 })
 
 test('the sticky tool places notes in the colour picked last', async () => {
