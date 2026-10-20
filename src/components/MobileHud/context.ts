@@ -90,8 +90,9 @@ function createMobileHudContext() {
    * opened, and its link goes out through the system share sheet, or is copied without one.
    */
   async function share() {
+    // A Cloud document shares through its server; signed out, there is nothing to open yet.
     if (isCloudBinding(store.getStorageBinding())) {
-      openCloudShare()
+      openCloudShare(store)
       return
     }
     if (!collab) return

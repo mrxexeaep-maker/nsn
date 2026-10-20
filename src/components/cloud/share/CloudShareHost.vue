@@ -27,7 +27,7 @@ const target = computed(() => {
   return binding ? cloudShareTarget(binding) : null
 })
 const cloudSharing = useCloudSharing(target)
-const { sharing, inviting } = cloudSharing
+const { sharing, linkURL, inviting } = cloudSharing
 const { sendsLink, copied, send } = useSendLink()
 
 const workspace = computed(() => {
@@ -63,15 +63,23 @@ const changeMember = (id: string, permission: DocumentPermission | 'remove') =>
 const changeLink = (link: CloudShareLink) => changed(cloudSharing.changeLink(link))
 const resetLink = () => changed(cloudSharing.resetLink())
 
-async function sendLink() {
-  const url = await cloudSharing.linkURL()
-  if (url) await send(url, storeRef.value?.state.documentName)
+/** Sends the link prepared with the sharing, so the share sheet opens straight from the tap. */
+function sendLink() {
+  const url = linkURL.value
+  if (!url) {
+    toast.error(t.value.shareLoadFailed)
+    return
+  }
+  void send(url, storeRef.value?.state.documentName)
 }
 
 watch(
-  () => [cloudShareOpen.value, target.value?.documentId] as const,
-  ([open]) => {
-    if (open) void refresh()
+  () => [cloudShareOpen.value, target.value] as const,
+  ([open, current]) => {
+    // Nothing to share, such as after signing out, closes the dialog rather than leave it to pop
+    // up later on its own.
+    if (!current) cloudShareOpen.value = false
+    else if (open) void refresh()
   }
 )
 </script>

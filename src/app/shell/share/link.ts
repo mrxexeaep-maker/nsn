@@ -8,7 +8,8 @@ export type SentLink = 'shared' | 'copied' | 'cancelled'
 
 /**
  * Sends a link the way the device does: on a phone through the system share sheet, as other apps
- * send theirs, and elsewhere, or where the browser has no sheet, by copying it.
+ * send theirs, and elsewhere, or where the browser has no sheet, by copying it. Call it straight
+ * from the tap, before anything awaits, since the sheet opens only then.
  */
 export function useSendLink() {
   const { share, isSupported } = useShare()
@@ -24,9 +25,11 @@ export function useSendLink() {
     try {
       await share({ title, url })
       return 'shared'
-    } catch {
-      // Closing the sheet without sending is a choice, not a failure.
-      return 'cancelled'
+    } catch (error) {
+      // Closing the sheet without sending is a choice; any other failure still gets the link out.
+      if (error instanceof DOMException && error.name === 'AbortError') return 'cancelled'
+      await copy(url)
+      return 'copied'
     }
   }
 

@@ -15,8 +15,14 @@ type ShareTarget = NonNullable<ReturnType<typeof cloudShareTarget>>
 type Access = Awaited<ReturnType<CloudAPIClient['getDocumentAccess']>>
 
 /** A document on a server that answers with `client`. */
-function document(documentId: string, client: Partial<CloudAPIClient>) {
-  return asDouble<ShareTarget>({ documentId, workspaceId: null, client })
+function document(documentId: string, client: Partial<CloudAPIClient>, serverId = 'studio') {
+  return asDouble<ShareTarget>({
+    documentId,
+    workspaceId: null,
+    accountId: 'ada',
+    server: { id: serverId },
+    client
+  })
 }
 
 /** Access for someone who may not manage sharing, so a read needs nothing else. */
@@ -33,6 +39,18 @@ describe('a Cloud document’s sharing', () => {
     target.value = document('second', { getDocumentAccess: async () => closed })
     slow.resolve(closed)
     expect(await reading).toBe(true)
+    expect(sharing.sharing.value).toBeNull()
+  })
+
+  test('forgets what it showed when the same document id belongs to another server', async () => {
+    const target = shallowRef<ShareTarget | null>(
+      document('doc', { getDocumentAccess: async () => closed })
+    )
+    const sharing = useCloudSharing(target)
+    await sharing.refresh()
+    expect(sharing.sharing.value).not.toBeNull()
+    target.value = document('doc', { getDocumentAccess: async () => closed }, 'other server')
+    await Promise.resolve()
     expect(sharing.sharing.value).toBeNull()
   })
 
