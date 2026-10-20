@@ -2,7 +2,8 @@ import { describe, expect, test } from 'bun:test'
 
 import { formatDate, formatRelativeTime, formatTimeOrDay } from '@/app/i18n/date'
 
-const NOW = Date.parse('2026-10-09T12:00:00.000Z')
+// Dates are built at local noon, so the calendar day is the same in every time zone.
+const NOW = new Date(2026, 9, 9, 12).getTime()
 const ago = (ms: number) => new Date(NOW - ms).toISOString()
 
 describe('relative times', () => {
@@ -15,15 +16,16 @@ describe('relative times', () => {
   })
 
   test('turn into a short date after a week, and show nothing for a bad date', () => {
-    expect(formatRelativeTime('2026-09-01T12:00:00.000Z', NOW, 'en')).toBe('Sep 1')
+    expect(formatRelativeTime(new Date(2026, 8, 1, 12), NOW, 'en')).toBe('Sep 1')
     expect(formatRelativeTime('not a date', NOW, 'en')).toBe('')
   })
 })
 
 describe('dates', () => {
   test('follow the language they are given, not the browser’s', () => {
-    expect(formatDate('2026-10-19T12:00:00.000Z', 'date', 'en')).toBe('Oct 19, 2026')
-    expect(formatDate('2026-10-19T12:00:00.000Z', 'date', 'de')).toBe('19.10.2026')
+    const day = new Date(2026, 9, 19, 12)
+    expect(formatDate(day, 'date', 'en')).toBe('Oct 19, 2026')
+    expect(formatDate(day, 'date', 'de')).toBe('19.10.2026')
   })
 
   test('show nothing for a missing or bad date', () => {
