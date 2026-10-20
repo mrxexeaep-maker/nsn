@@ -80,8 +80,8 @@ export { IconFrame, IconSquare }
 
 /**
  * The glyph for a layer: its kind, or a slot or icon frame. A component keeps its own glyph, a
- * shape with text shows its kind, and a layer row's shape or vector shows its own outline unless
- * it masks or shows an image, as in Figma.
+ * shape with text shows its kind, a layer that masks shows the mask glyph, and a layer row's shape
+ * or vector shows its own outline, or the image glyph when it shows an image, as in Figma.
  */
 export function nodeIcon(node: {
   type: string
@@ -97,8 +97,9 @@ export function nodeIcon(node: {
   if (node.type === 'SHAPE_WITH_TEXT' && node.shapeWithTextType) {
     return SHAPE_KIND_ICONS[node.shapeWithTextType]
   }
+  // Figma marks any masking layer, frames and text too, but marks images on shapes only.
+  if (node.mask) return IconMask
   if (node.outline) {
-    if (node.mask) return IconMask
     if (node.image) return IconImage
     const icon = outlineIcon(node.outline)
     if (icon) return icon
