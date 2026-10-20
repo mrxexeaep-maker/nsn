@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import type { MetricsSnapshot } from '@open-pencil/feedback/contract'
+
 import { usePortalTheme } from '@/app/cloud-portal/theme'
 import { useMetricsSnapshot } from '@/app/metrics/load'
-import { presetRange } from '@/app/metrics/range'
+import type { MetricsRange } from '@/app/metrics/range'
 import MetricsDashboard from '@/components/metrics/MetricsDashboard.vue'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
@@ -13,9 +15,14 @@ import AppPlaceholder from '@/components/ui/feedback/AppPlaceholder.vue'
 // pages do; the editor's stored theme is not visible here.
 usePortalTheme()
 
-const today = new Date().toISOString().slice(0, 10)
-const range = ref(presetRange('7d', today))
-const { snapshot, loading, failed, refresh } = useMetricsSnapshot(range)
+/** The page mounts once its first numbers have loaded, or failed to, so it never shows half. */
+const { initialRange, initialSnapshot } = defineProps<{
+  initialRange: MetricsRange
+  initialSnapshot?: MetricsSnapshot
+}>()
+
+const range = ref(initialRange)
+const { snapshot, loading, failed, refresh } = useMetricsSnapshot(range, initialSnapshot)
 const host = globalThis.location.host
 // Access's session may have run out; reloading the page signs in again.
 const reload = () => globalThis.location.reload()

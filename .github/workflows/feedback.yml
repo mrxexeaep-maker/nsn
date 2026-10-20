@@ -5,7 +5,9 @@ on:
     branches: [master]
     paths:
       - packages/feedback/**
-      # The metrics dashboard page the Worker serves under /admin.
+      # The metrics dashboard page the Worker serves under /admin, and its dependencies.
+      - package.json
+      - bun.lock
       - metrics.html
       - src/metrics/**
       - src/views/metrics/**
