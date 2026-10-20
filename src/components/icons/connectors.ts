@@ -10,7 +10,7 @@ import {
 } from '@open-pencil/scene-graph/arrow-caps'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
 
-import { maskIcon } from '@/app/editor/mask-icon'
+import { maskIcon } from './mask'
 
 /** The icon box, and the weight its line is drawn at, as lucide draws its icons. */
 const BOX = 24

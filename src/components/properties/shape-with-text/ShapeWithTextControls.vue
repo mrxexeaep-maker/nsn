@@ -12,9 +12,9 @@ import type {
 import type { ShapeWithTextType } from '@open-pencil/scene-graph/shape-with-text'
 import { useFigJamMessages, useShapeMessages } from '@open-pencil/vue'
 
-import { SHAPE_KIND_ICONS } from '@/app/editor/shape-icons'
 import FigJamPalette from '@/components/figjam/FigJamPalette.vue'
 import { typefaceModel, useFigJamTextOptions } from '@/components/figjam/text-options'
+import { SHAPE_KIND_ICONS } from '@/components/icons/shapes'
 import { useShapeKindLabels } from '@/components/shapes/labels'
 import ShapeKindPicker from '@/components/shapes/ShapeKindPicker.vue'
 import IconButton from '@/components/ui/button/IconButton.vue'

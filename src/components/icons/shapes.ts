@@ -7,7 +7,7 @@ import {
   type ShapeWithTextType
 } from '@open-pencil/scene-graph/shape-with-text'
 
-import { maskIcon } from '@/app/editor/mask-icon'
+import { maskIcon } from './mask'
 
 /** The icon box, and the outline inside it, as lucide draws its icons. */
 const BOX = 24
