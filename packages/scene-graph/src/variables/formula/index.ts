@@ -1,9 +1,10 @@
 import type { SceneGraph, VariableLiteral, VariableValue } from '@open-pencil/scene-graph'
 
 import { resolveVariableInModes } from '../resolution'
-import { isFormulaOperation, VariableFormulaError, type FormulaValueType } from './evaluate'
 import { parseFormulaSyntax, type FormulaReference } from './parse'
 import { printFormula, type PrintFormulaOptions } from './print'
+import type { FormulaValueType } from './signatures'
+import { isFormulaOperation, VariableFormulaError } from './tree'
 
 export { printFormula, type PrintFormulaOptions } from './print'
 export {
@@ -14,17 +15,17 @@ export {
   type FormulaTokenKind
 } from './tokens'
 
+export { evaluateVariableFormula } from './evaluate'
+export { formulaValueType, inferFormulaType } from './check'
+export { formulaArity, formulaSymbol, type FormulaValueType } from './signatures'
 export {
-  evaluateVariableFormula,
-  formulaArity,
-  formulaSymbol,
-  formulaValueType,
-  inferFormulaType,
+  foldFormula,
   isFormulaOperation,
+  isFormulaReference,
   MAX_FORMULA_DEPTH,
   VariableFormulaError,
-  type FormulaValueType
-} from './evaluate'
+  type FormulaFold
+} from './tree'
 
 function qualifiedName(graph: SceneGraph, id: string) {
   const variable = graph.variables.get(id)

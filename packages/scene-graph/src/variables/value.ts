@@ -2,12 +2,9 @@ import { compact } from 'es-toolkit/array'
 import * as v from 'valibot'
 
 import type { VariableLiteral, VariableValue, VariableUnsupportedExpression } from '../types'
-import {
-  evaluateVariableFormula,
-  formulaValueType,
-  mapFormulaReferences,
-  VariableFormulaError
-} from './formula/evaluate'
+import { formulaValueType } from './formula/check'
+import { evaluateVariableFormula } from './formula/evaluate'
+import { mapFormulaReferences, VariableFormulaError } from './formula/tree'
 import { variableColorExpressionSchema } from './schema'
 
 export function isUnsupportedVariableValue(

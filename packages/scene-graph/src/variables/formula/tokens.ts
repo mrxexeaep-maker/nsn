@@ -1,4 +1,4 @@
-import { formulaCallOperator } from './evaluate'
+import { formulaCallOperator, FORMULA_KEYWORDS } from './signatures'
 
 /**
  * What a piece of formula text is. `reference` is a braced `{name}` and `string` a quoted
@@ -32,7 +32,6 @@ const WORD = /[\p{L}_$][\p{L}\p{N}_$]*/uy
 const OPERATOR = /<=|>=|==|!=|&&|\|\||[-+*/<>!]/y
 const SPACE = /\s+/y
 const COLOR = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6})(?![\p{L}\p{N}_$])/uy
-const KEYWORDS = new Set(['and', 'or', 'not'])
 const BOOLEANS = new Set(['true', 'false'])
 
 function matchAt(pattern: RegExp, source: string, at: number) {
@@ -60,7 +59,7 @@ function referenceEnd(source: string, at: number) {
 
 function wordKind(word: string): FormulaTokenKind {
   const lower = word.toLowerCase()
-  if (KEYWORDS.has(lower)) return 'keyword'
+  if (FORMULA_KEYWORDS.has(lower)) return 'keyword'
   if (formulaCallOperator(lower)) return 'function'
   return BOOLEANS.has(lower) ? 'bool' : 'name'
 }

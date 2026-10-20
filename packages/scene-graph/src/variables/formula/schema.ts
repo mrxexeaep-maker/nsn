@@ -7,7 +7,9 @@ import {
 } from '@open-pencil/scene-graph/types'
 
 import { variableAliasSchema } from '../schema'
-import { MAX_FORMULA_DEPTH, formulaArity, inferFormulaType } from './evaluate'
+import { inferFormulaType } from './check'
+import { formulaArity } from './signatures'
+import { MAX_FORMULA_DEPTH } from './tree'
 
 type NodeSchema = v.GenericSchema<unknown, VariableFormulaNode>
 

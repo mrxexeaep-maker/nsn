@@ -5,22 +5,24 @@ import type {
 } from '@open-pencil/scene-graph'
 import { colorToHex8 } from '@open-pencil/scene-graph/color'
 
+import { inferFormulaType } from './check'
 import {
   formulaArity,
+  formulaPrecedence,
   formulaSymbol,
-  inferFormulaType,
+  FORMULA_NON_ASSOCIATIVE,
+  FORMULA_PREFIX_PRECEDENCE,
+  isFormulaAssociative,
   isFormulaCall,
-  isFormulaOperation,
-  MAX_FORMULA_DEPTH,
   type FormulaValueType
-} from './evaluate'
-import { FORMULA_NON_ASSOCIATIVE, FORMULA_PRECEDENCE, FORMULA_PREFIX_PRECEDENCE } from './parse'
+} from './signatures'
+import { isFormulaOperation, isFormulaReference, MAX_FORMULA_DEPTH } from './tree'
 
 const ATOM = FORMULA_PREFIX_PRECEDENCE + 1
-/** Grouping these differently gives the same value, so `a + (b + c)` prints as `a + b + c`. */
-const ASSOCIATIVE = new Set<VariableFormulaOperator>(['ADDITION', 'MULTIPLY', 'AND', 'OR'])
 /** A long formula breaks before these: `or`, `and`, and `+` and `-`. */
-const BREAKABLE = new Set([1, 2, 5])
+const BREAKABLE = new Set(
+  (['OR', 'AND', 'ADDITION'] satisfies VariableFormulaOperator[]).map(formulaPrecedence)
+)
 const CONTINUATION = '\n  '
 
 interface Printed {
@@ -49,7 +51,7 @@ export interface PrintFormulaOptions {
 function nodePrecedence(node: VariableFormulaNode) {
   if (!isFormulaOperation(node) || isFormulaCall(node.operator)) return ATOM
   if (formulaArity(node.operator) === 1) return FORMULA_PREFIX_PRECEDENCE
-  return FORMULA_PRECEDENCE[node.operator] ?? 0
+  return formulaPrecedence(node.operator) ?? 0
 }
 
 type Operation = VariableFormulaOperation
@@ -69,8 +71,9 @@ function printUnary(node: Operation, depth: number, print: Print): Printed {
   const operand = print(operandNode, depth + 1)
   const text = operand.precedence < ATOM ? group(operand) : operand.text
   const symbol = formulaSymbol(node.operator)
+  // A word, such as `not`, needs a space before its operand; a sign, such as `-`, does not.
   return {
-    text: node.operator === 'NOT' ? `${symbol} ${text}` : `${symbol}${text}`,
+    text: /^\p{L}/u.test(symbol) ? `${symbol} ${text}` : `${symbol}${text}`,
     precedence: FORMULA_PREFIX_PRECEDENCE
   }
 }
@@ -83,11 +86,11 @@ function printBinary(
   regroups: Regroups,
   breakAt?: number
 ): Printed {
-  const precedence = FORMULA_PRECEDENCE[node.operator] ?? 0
+  const precedence = formulaPrecedence(node.operator) ?? 0
   const chained = FORMULA_NON_ASSOCIATIVE.has(precedence)
   const [leftNode, rightNode] = node.operands
   const sameAssociative =
-    ASSOCIATIVE.has(node.operator) &&
+    isFormulaAssociative(node.operator) &&
     isFormulaOperation(rightNode) &&
     rightNode.operator === node.operator &&
     (node.operator !== 'ADDITION' || regroups(node))
@@ -152,7 +155,7 @@ function printWith(
     if (typeof node === 'string') return { text: JSON.stringify(node), precedence: ATOM }
     if (!isFormulaOperation(node))
       return {
-        text: 'aliasId' in node ? reference(node.aliasId) : colorToHex8(node),
+        text: isFormulaReference(node) ? reference(node.aliasId) : colorToHex8(node),
         precedence: ATOM
       }
     if (isFormulaCall(node.operator)) return printCall(node, depth, print)
