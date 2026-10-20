@@ -56,7 +56,7 @@ export function githubClient(
         Accept: 'application/vnd.github+json',
         Authorization: `Bearer ${token}`,
         'User-Agent': 'openpencil-feedback',
-        'X-GitHub-Api-Version': '2022-11-28'
+        'X-GitHub-Api-Version': '2026-03-10'
       },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
     })
