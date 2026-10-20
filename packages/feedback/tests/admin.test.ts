@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
 
 import { createTestService, type TestService } from '#feedback-tests/harness'
-import type { MetricsSnapshot } from '#feedback/contract'
+import { MetricsSnapshotSchema, type MetricsSnapshot } from '#feedback/contract'
 import { createFeedbackDatabase } from '#feedback/db'
 import { exportJWK, generateKeyPair, SignJWT, type CryptoKey } from 'jose'
+import * as v from 'valibot'
 
 let service: TestService
 let signingKey: CryptoKey
@@ -362,6 +363,23 @@ describe('metrics snapshot API', () => {
     })
     const call = service.fetchCalls.findLast((candidate) => candidate.url === POSTHOG_QUERY)
     expect(new Headers(call?.init?.headers).get('Authorization')).toBe('Bearer phx_test')
+  })
+
+  test('the answer matches the schema the dashboard parses it with', async () => {
+    await ping('2026-10-15', { platform: 'macos', app: 'desktop' }, 400)
+    await database()
+      .insertInto('siteVisits')
+      .values({ day: '2026-10-15', host: 'openpencil.dev', visits: 3000 })
+      .execute()
+    const response = await getSnapshot(
+      'start=2026-10-14&end=2026-10-20',
+      await accessToken(signingKey)
+    )
+    const parsed = v.safeParse(
+      v.pipe(v.string(), v.parseJson(), MetricsSnapshotSchema),
+      await response.text()
+    )
+    expect(parsed.issues).toBeUndefined()
   })
 
   test('PostHog failing leaves usage empty and the rest of the page intact', async () => {

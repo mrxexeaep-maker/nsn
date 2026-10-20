@@ -39,67 +39,78 @@ export const MetricsQuerySchema = v.pipe(
 
 export type MetricsQuery = v.InferOutput<typeof MetricsQuerySchema>
 
-export interface RankedCount {
-  name: string
-  value: number
-}
+// The answer is described once, as schemas: the Worker builds values of their types, and the
+// dashboard parses the network answer with them before using it.
+const Count = v.pipe(v.number(), v.minValue(0))
 
-export interface DailyGrowth {
-  day: string
-  added: number
-}
+const RankedCountSchema = v.object({ name: v.string(), value: Count })
+export type RankedCount = v.InferOutput<typeof RankedCountSchema>
+
+const DailyGrowthSchema = v.object({ day: IsoDay, added: v.number() })
+export type DailyGrowth = v.InferOutput<typeof DailyGrowthSchema>
 
 /** What PostHog knows about the installs that share usage stats; `null` when it could not be asked. */
-export interface MetricsUsage {
+const MetricsUsageSchema = v.object({
   /** Different installs that opened the app in the range. */
-  installs: number
-  daily: { day: string; installs: number }[]
+  installs: Count,
+  daily: v.array(v.object({ day: IsoDay, installs: Count })),
   /** Per first day: index 0 is how many installs started then, index n how many came back n days later. */
-  retention: { cohort: string; values: number[] }[]
-  documents: RankedCount[]
-  exports: RankedCount[]
-  aiProviders: RankedCount[]
-}
+  retention: v.array(v.object({ cohort: IsoDay, values: v.array(Count) })),
+  documents: v.array(RankedCountSchema),
+  exports: v.array(RankedCountSchema),
+  aiProviders: v.array(RankedCountSchema)
+})
+export type MetricsUsage = v.InferOutput<typeof MetricsUsageSchema>
 
 /**
  * Everything the metrics dashboard shows for a range of UTC days. Days are ISO dates; `today`
  * is still being counted, and snapshot-based numbers only reach the last finished day.
  */
-export interface MetricsSnapshot {
-  asOf: string
-  today: string
-  start: string
-  end: string
+export const MetricsSnapshotSchema = v.object({
+  asOf: v.pipe(v.string(), v.isoTimestamp()),
+  today: IsoDay,
+  start: IsoDay,
+  end: IsoDay,
   /** Installs that pinged each day, by desktop and web. */
-  dailyActive: { day: string; desktop: number; web: number }[]
+  dailyActive: v.array(v.object({ day: IsoDay, desktop: Count, web: Count })),
   /** Pings in the range by OS, desktop and web. */
-  platforms: { os: string; desktop: number; web: number }[]
+  platforms: v.array(v.object({ os: v.string(), desktop: Count, web: Count })),
   /** Pings each day on the newest stable version and on everything else. */
-  versions: { latest: string | null; daily: { day: string; latest: number; other: number }[] }
+  versions: v.object({
+    latest: v.nullable(v.string()),
+    daily: v.array(v.object({ day: IsoDay, latest: Count, other: Count }))
+  }),
   /** The first day each stable version sent a ping, within the range. */
-  releases: { day: string; version: string }[]
+  releases: v.array(v.object({ day: IsoDay, version: v.string() })),
   /** Cloudflare visits each day to the website and to the web app. */
-  visits: { day: string; site: number; app: number }[]
-  website: { pages: RankedCount[]; countries: RankedCount[] }
-  github: {
-    stars: { total: number | null; daily: DailyGrowth[] }
+  visits: v.array(v.object({ day: IsoDay, site: Count, app: Count })),
+  website: v.object({ pages: v.array(RankedCountSchema), countries: v.array(RankedCountSchema) }),
+  github: v.object({
+    stars: v.object({ total: v.nullable(Count), daily: v.array(DailyGrowthSchema) }),
     /** Installer downloads across every release, and update checks from running desktop apps. */
-    downloads: {
-      total: number | null
-      latestTag: string | null
-      latestTotal: number | null
-      daily: DailyGrowth[]
-      updateChecks: DailyGrowth[]
-    }
-    traffic: { day: string; views: number; uniqueViews: number; clones: number }[]
-    referrers: RankedCount[]
-  }
-  waitlist: {
-    total: number
-    confirmed: number
-    added: number
+    downloads: v.object({
+      total: v.nullable(Count),
+      latestTag: v.nullable(v.string()),
+      latestTotal: v.nullable(Count),
+      daily: v.array(DailyGrowthSchema),
+      updateChecks: v.array(DailyGrowthSchema)
+    }),
+    traffic: v.array(v.object({ day: IsoDay, views: Count, uniqueViews: Count, clones: Count })),
+    referrers: v.array(RankedCountSchema)
+  }),
+  waitlist: v.object({
+    total: Count,
+    confirmed: Count,
+    added: Count,
     /** Newest first, by email domain only. */
-    recent: { domain: string; signedUpAt: string; confirmed: boolean }[]
-  }
-  usage: MetricsUsage | null
-}
+    recent: v.array(
+      v.object({
+        domain: v.string(),
+        signedUpAt: v.pipe(v.string(), v.isoTimestamp()),
+        confirmed: v.boolean()
+      })
+    )
+  }),
+  usage: v.nullable(MetricsUsageSchema)
+})
+export type MetricsSnapshot = v.InferOutput<typeof MetricsSnapshotSchema>
