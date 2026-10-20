@@ -20,7 +20,7 @@ import { useLibraryService } from '@/app/libraries'
 import { openExternalLink } from '@/app/shell/ui'
 import AssetThumbnail from '@/components/assets-panel/AssetThumbnail.vue'
 import { findAssetPage } from '@/components/assets-panel/page'
-import { nodeIcon } from '@/components/icons'
+import { sceneNodeIcon } from '@/components/icons'
 import LibraryManagerDialog from '@/components/libraries/LibraryManagerDialog.vue'
 import { useLibraryEntry } from '@/components/libraries/useLibraryEntry'
 import AppButton from '@/components/ui/button/AppButton.vue'
@@ -399,7 +399,7 @@ async function insertSelectedAsset() {
                   "
                 />
                 <component
-                  :is="nodeIcon(asset.node)"
+                  :is="sceneNodeIcon(asset.node)"
                   v-else
                   class="size-4 shrink-0 text-component"
                   aria-hidden="true"
@@ -514,7 +514,10 @@ async function insertSelectedAsset() {
     >
       <div class="flex items-center justify-between border-b border-border px-4 py-3">
         <div class="flex min-w-0 items-center gap-2">
-          <component :is="nodeIcon(selectedAsset.node)" class="size-4 shrink-0 text-component" />
+          <component
+            :is="sceneNodeIcon(selectedAsset.node)"
+            class="size-4 shrink-0 text-component"
+          />
           <div class="min-w-0">
             <DialogTitle :class="dialog.title" class="truncate">{{
               selectedAsset.name
@@ -557,7 +560,7 @@ async function insertSelectedAsset() {
               />
               <component
                 v-else
-                :is="nodeIcon(selectedAsset.node)"
+                :is="sceneNodeIcon(selectedAsset.node)"
                 class="mx-auto size-8 text-component"
               />
               <p class="mt-2 max-w-44 truncate text-xs font-medium text-surface">

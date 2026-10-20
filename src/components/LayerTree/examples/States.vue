@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { VectorNetwork } from '@open-pencil/scene-graph'
 import type { LayerNode } from '@open-pencil/vue'
 
 import type { LayerIssueMark } from '@/app/editor/design-check/layers'
@@ -44,6 +45,31 @@ function node(id: string, overrides: Partial<LayerNode> = {}): LayerNode {
     locked: false,
     ...overrides
   }
+}
+
+const STRAIGHT = { tangentStart: { x: 0, y: 0 }, tangentEnd: { x: 0, y: 0 } }
+
+/** A closed triangle and an open curve, which vector rows draw as their icons. */
+const triangle: VectorNetwork = {
+  vertices: [
+    { x: 0, y: 100 },
+    { x: 50, y: 0 },
+    { x: 100, y: 100 }
+  ],
+  segments: [
+    { start: 0, end: 1, ...STRAIGHT },
+    { start: 1, end: 2, ...STRAIGHT },
+    { start: 2, end: 0, ...STRAIGHT }
+  ],
+  regions: [{ windingRule: 'NONZERO', loops: [[0, 1, 2]] }]
+}
+const curve: VectorNetwork = {
+  vertices: [
+    { x: 0, y: 50 },
+    { x: 100, y: 50 }
+  ],
+  segments: [{ start: 0, end: 1, tangentStart: { x: 0, y: -100 }, tangentEnd: { x: 0, y: -100 } }],
+  regions: []
 }
 
 function chrome(overrides: Partial<LayerTreeChrome> = {}): LayerTreeChrome {
@@ -116,6 +142,24 @@ const states: Array<{
   {
     label: 'Component',
     node: node('Component', { type: 'COMPONENT' }),
+    selected: false,
+    chrome: chrome()
+  },
+  {
+    label: 'Vector',
+    node: node('Vector', { type: 'VECTOR', vectorNetwork: triangle }),
+    selected: false,
+    chrome: chrome()
+  },
+  {
+    label: 'Selected vector',
+    node: node('Selected vector', { type: 'VECTOR', vectorNetwork: curve }),
+    selected: true,
+    chrome: chrome({ focused: true })
+  },
+  {
+    label: 'Hidden vector',
+    node: node('Hidden vector', { type: 'VECTOR', vectorNetwork: triangle, visible: false }),
     selected: false,
     chrome: chrome()
   },

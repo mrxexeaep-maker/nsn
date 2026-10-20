@@ -1,6 +1,7 @@
 import { type ComputedRef, type InjectionKey, type Ref, inject, provide } from 'vue'
 
 import type { Editor } from '@open-pencil/core/editor'
+import type { VectorNetwork } from '@open-pencil/scene-graph'
 import type { ShapeWithTextType } from '@open-pencil/scene-graph/shape-with-text'
 
 export interface LayerNode {
@@ -14,10 +15,10 @@ export interface LayerNode {
   icon?: boolean
   /** A shape with text's kind, which its row draws. */
   shapeWithTextType?: ShapeWithTextType
+  /** A vector's network, which its row draws as its icon. */
+  vectorNetwork?: VectorNetwork
   visible: boolean
   locked: boolean
-  /** A vector's own outline as SVG path data, fitted to `VECTOR_ICON_SIZE`, as its row icon. */
-  iconPath?: string
   /** The variable modes set on the layer itself, which Figma tags its row with. */
   modeIds?: string[]
   children?: LayerNode[]

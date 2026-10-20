@@ -24,11 +24,17 @@ import IconStickyNote from '~icons/lucide/sticky-note'
 import IconTriangle from '~icons/lucide/triangle'
 import IconType from '~icons/lucide/type'
 
-import { readIcon, slotPropertyId, type SceneNode } from '@open-pencil/scene-graph'
+import {
+  readIcon,
+  slotPropertyId,
+  type SceneNode,
+  type VectorNetwork
+} from '@open-pencil/scene-graph'
 import type { ShapeWithTextType } from '@open-pencil/scene-graph/shape-with-text'
 import type { Tool } from '@open-pencil/vue'
 
 import { SHAPE_KIND_ICONS } from './shapes'
+import { vectorIcon } from './vectors'
 
 export const toolIcons: Record<Tool, Component> = {
   SELECT: IconMousePointer,
@@ -76,8 +82,8 @@ export const COMPONENT_TYPES = new Set(['COMPONENT', 'COMPONENT_SET', 'INSTANCE'
 export { IconFrame, IconSquare }
 
 /**
- * The glyph for a layer: its kind, or a slot or icon frame. A component keeps its own glyph, and
- * a shape with text shows its outline.
+ * The glyph for a layer: its kind, or a slot or icon frame. A component keeps its own glyph, a
+ * shape with text shows its outline, and a vector given its network shows its own shape.
  */
 export function nodeIcon(node: {
   type: string
@@ -85,10 +91,15 @@ export function nodeIcon(node: {
   slot?: boolean
   icon?: boolean
   shapeWithTextType?: ShapeWithTextType
+  vectorNetwork?: VectorNetwork
 }) {
   if (node.slot) return IconSlot
   if (node.type === 'SHAPE_WITH_TEXT' && node.shapeWithTextType) {
     return SHAPE_KIND_ICONS[node.shapeWithTextType]
+  }
+  if (node.type === 'VECTOR' && node.vectorNetwork) {
+    const icon = vectorIcon(node.vectorNetwork)
+    if (icon) return icon
   }
   if (node.icon && node.type === 'FRAME') return IconSmile
   if (node.type === 'FRAME' && node.layoutMode !== 'NONE')
@@ -96,7 +107,15 @@ export function nodeIcon(node: {
   return NODE_ICONS[node.type] ?? IconSquare
 }
 
-/** `nodeIcon` for a scene node, which carries slot and icon identity in its data. */
+/**
+ * `nodeIcon` for a scene node, which carries slot and icon identity in its data. Only the layers
+ * panel draws a vector's own shape; elsewhere it keeps the vector glyph.
+ */
 export function sceneNodeIcon(node: SceneNode) {
-  return nodeIcon({ ...node, slot: !!slotPropertyId(node), icon: !!readIcon(node) })
+  return nodeIcon({
+    ...node,
+    slot: !!slotPropertyId(node),
+    icon: !!readIcon(node),
+    vectorNetwork: undefined
+  })
 }
