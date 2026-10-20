@@ -29,6 +29,8 @@ For macOS release builds with ad-hoc signing (no Apple Developer account, local 
 APPLE_SIGNING_IDENTITY=- bun run tauri build -c '{"bundle": { "createUpdaterArtifacts": false }}'
 ```
 
+For a complete local macOS install, quit OpenPencil and run `bun run install:local` (without `sudo`). It installs dependencies, builds packages, links the MCP executables into the current npm global prefix, builds an ad-hoc-signed release for the host architecture, and copies it to `/Applications/OpenPencil.app`. It requires a writable npm prefix and Applications directory. After installation, it cleans its isolated Rust build directory; package `dist` outputs and shared caches remain intact.
+
 ## Making a change
 
 - Before adding a helper, type, component, state mechanism, parser, or test utility, inspect the owning folder, nearby implementations, existing dependencies, and tests. Reuse or extend the established mechanism; extract genuinely shared logic instead of introducing a parallel implementation.
