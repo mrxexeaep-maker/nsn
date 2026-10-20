@@ -69,10 +69,10 @@ test('a polygon and a star draw their points, and other layers have no outline',
   expect(nodeOutlinePath(shape('VECTOR', { vectorNetwork: null }))).toBeNull()
 })
 
-test('a whole donut draws its outer edge and its hole', () => {
+test('a whole donut draws its outer edge and its hole the other way, so the hole stays empty', () => {
   const donut = { startingAngle: 0, endingAngle: Math.PI * 2, innerRadius: 0.5 }
   expect(nodeOutlinePath(shape('ELLIPSE', { arcData: donut }))).toBe(
-    'M0 25A50 25 0 1 1 100 25A50 25 0 1 1 0 25ZM25 25A25 12.5 0 1 1 75 25A25 12.5 0 1 1 25 25Z'
+    'M0 25A50 25 0 1 1 100 25A50 25 0 1 1 0 25ZM25 25A25 12.5 0 1 0 75 25A25 12.5 0 1 0 25 25Z'
   )
 })
 

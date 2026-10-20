@@ -301,11 +301,13 @@ export function arcPath(node: Pick<SceneNode, 'width' | 'height' | 'arcData'>): 
   const ry = node.height / 2
 
   const fullCircle = Math.abs(endingAngle - startingAngle) >= Math.PI * 2 - 0.001
-  const ring = (rx: number, ry: number) =>
-    `M${round(cx - rx)} ${round(cy)}A${round(rx)} ${round(ry)} 0 1 1 ${round(cx + rx)} ${round(cy)}A${round(rx)} ${round(ry)} 0 1 1 ${round(cx - rx)} ${round(cy)}Z`
-  // A whole ring has no ends to join: it is its outer edge and, for a donut, its hole.
+  const ring = (rx: number, ry: number, sweep: 0 | 1) =>
+    `M${round(cx - rx)} ${round(cy)}A${round(rx)} ${round(ry)} 0 1 ${sweep} ${round(cx + rx)} ${round(cy)}A${round(rx)} ${round(ry)} 0 1 ${sweep} ${round(cx - rx)} ${round(cy)}Z`
+  // A whole ring has no ends to join: it is its outer edge and, for a donut, its hole, wound
+  // the other way so the default nonzero fill leaves the hole empty.
   if (fullCircle) {
-    return innerRadius > 0 ? ring(rx, ry) + ring(rx * innerRadius, ry * innerRadius) : ring(rx, ry)
+    const outer = ring(rx, ry, 1)
+    return innerRadius > 0 ? outer + ring(rx * innerRadius, ry * innerRadius, 0) : outer
   }
 
   const x1 = round(cx + rx * Math.cos(startingAngle))
