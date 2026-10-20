@@ -7,8 +7,28 @@ import {
   decompressFigKiwiData,
   decompressFigKiwiDataAsync,
   FIG_KIWI_DEFAULT_VERSION,
+  loadFigDataCompressor,
   parseFigKiwiChunks
 } from '../src/fig/container'
+import { isZstdCompressed } from '../src/fig/protocol'
+
+/** Text that compresses better the harder zstd works, generated the same way every run. */
+function sampleDocument(): Uint8Array {
+  let seed = 1
+  const next = () => (seed = (seed * 1103515245 + 12345) % 2 ** 31)
+  const records = Array.from(
+    { length: 4000 },
+    () => `{"name":"Layer ${next() % 500}","x":${next() % 2000},"fills":[${next() % 7}]}`
+  )
+  return new TextEncoder().encode(records.join('\n'))
+}
+
+/** Whether a zstd frame header records the decompressed size, which Figma requires. */
+function declaresContentSize(frame: Uint8Array): boolean {
+  const descriptor = frame[4]
+  const singleSegment = (descriptor >> 5) & 1
+  return singleSegment === 1 || descriptor >> 6 !== 0
+}
 
 describe('Figma FIG Kiwi container helpers', () => {
   test('builds and parses fig-kiwi chunks', async () => {
@@ -43,6 +63,22 @@ describe('Figma FIG Kiwi container helpers', () => {
 
     expect(decompressFigKiwiData(deflated)).toEqual(dataRaw)
     await expect(decompressFigKiwiDataAsync(deflated)).resolves.toEqual(dataRaw)
+  })
+
+  test('compresses at the requested zstd level into frames Figma opens', async () => {
+    const dataRaw = sampleDocument()
+    const sizes: number[] = []
+    for (const level of [3, 9, 19]) {
+      const compress = await loadFigDataCompressor(level)
+      const binary = buildFigKiwi(new Uint8Array([1]), dataRaw, FIG_KIWI_DEFAULT_VERSION, compress)
+      const dataChunk = parseFigKiwiChunks(binary)?.[1] ?? new Uint8Array()
+      expect(isZstdCompressed(dataChunk)).toBe(true)
+      expect(declaresContentSize(dataChunk)).toBe(true)
+      expect(decompressFigKiwiData(dataChunk)).toEqual(dataRaw)
+      sizes.push(dataChunk.length)
+    }
+    expect(sizes[1]).toBeLessThan(sizes[0])
+    expect(sizes[2]).toBeLessThan(sizes[1])
   })
 
   test('rejects non fig-kiwi data', () => {
