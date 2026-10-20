@@ -20,7 +20,7 @@ export interface FeedbackBindings {
   TURNSTILE_SECRET: string
   /** `owner/name` of the repository whose stars, downloads, and traffic are recorded. */
   GITHUB_REPOSITORY: string
-  /** A fine-grained token that can read the repository's traffic and releases (Administration and Contents: read). */
+  /** A fine-grained token that can read the repository's traffic (Administration: read). */
   GITHUB_TOKEN: string
   /** The Cloudflare zone holding `SITE_HOSTS`, for its visit analytics. */
   SITE_ZONE_ID: string
