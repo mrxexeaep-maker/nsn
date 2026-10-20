@@ -1,4 +1,6 @@
+import { utcDayOfTimestamp } from '#feedback/days'
 import type { FeedbackServices } from '#feedback/env'
+import type { CalendarDate } from '@internationalized/date'
 import { groupBy, sumBy } from 'es-toolkit'
 import * as v from 'valibot'
 
@@ -32,7 +34,7 @@ export interface GithubTotals {
 
 export interface GithubTraffic {
   days: {
-    day: string
+    day: CalendarDate
     views: number
     uniqueViews: number
     clones: number
@@ -112,14 +114,17 @@ export function githubClient(
         get('/traffic/clones?per=day', ClonesSchema),
         get('/traffic/popular/referrers', ReferrersSchema)
       ])
-      const clonesByDay = new Map(clones.clones.map((day) => [day.timestamp.slice(0, 10), day]))
+      // GitHub stamps each day with its UTC midnight; days are matched by their date.
+      const dayOf = (entry: { timestamp: string }) => utcDayOfTimestamp(entry.timestamp)
+      const clonesByDay = new Map(clones.clones.map((entry) => [dayOf(entry).toString(), entry]))
       return {
-        days: views.views.map((day) => {
-          const cloned = clonesByDay.get(day.timestamp.slice(0, 10))
+        days: views.views.map((entry) => {
+          const day = dayOf(entry)
+          const cloned = clonesByDay.get(day.toString())
           return {
-            day: day.timestamp.slice(0, 10),
-            views: day.count,
-            uniqueViews: day.uniques,
+            day,
+            views: entry.count,
+            uniqueViews: entry.uniques,
             clones: cloned?.count ?? 0,
             uniqueClones: cloned?.uniques ?? 0
           }

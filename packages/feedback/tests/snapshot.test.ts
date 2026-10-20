@@ -1,11 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
 
 import { type FetchCall, createTestService, type TestService } from '#feedback-tests/harness'
+import { eachDay } from '#feedback/days'
 import { createFeedbackDatabase } from '#feedback/db'
 import { runSnapshot } from '#feedback/snapshot'
 import { releaseFileKind } from '#feedback/snapshot/assets'
-import { addDays, daysBetween } from '#feedback/snapshot/days'
 import { replaceDays } from '#feedback/snapshot/store'
+import { parseDate } from '@internationalized/date'
 import * as v from 'valibot'
 
 let service: TestService
@@ -15,14 +16,14 @@ const GRAPHQL = 'https://api.cloudflare.com/client/v4/graphql'
 // The cron fires just after midnight, so the day that just ended is Oct 19.
 const RUN_AT = new Date('2026-10-20T00:05:00.000Z')
 const TABLES = [
-  'github_stars',
-  'release_downloads',
-  'repo_traffic',
-  'repo_referrers',
-  'site_visits',
-  'site_pages',
-  'site_countries'
-]
+  'githubStars',
+  'releaseDownloads',
+  'repoTraffic',
+  'repoReferrers',
+  'siteVisits',
+  'sitePages',
+  'siteCountries'
+] as const
 
 const RELEASES = [
   {
@@ -86,7 +87,8 @@ function answerCloudflare(pages: string[] = ['/', '/download']) {
 function answerOnce(call: FetchCall, pages: string[] = ['/', '/download']): Response {
   const variables = variablesOf(call)
   if (typeof variables.start === 'string' && typeof variables.end === 'string') {
-    const groups = daysBetween(variables.start, variables.end).flatMap((date) => [
+    const days = eachDay(parseDate(variables.start), parseDate(variables.end))
+    const groups = days.map(String).flatMap((date) => [
       { sum: { visits: 4000 }, dimensions: { date, clientRequestHTTPHost: 'openpencil.dev' } },
       { sum: { visits: 1000 }, dimensions: { date, clientRequestHTTPHost: 'app.openpencil.dev' } }
     ])
@@ -114,13 +116,19 @@ function answerOnce(call: FetchCall, pages: string[] = ['/', '/download']): Resp
   })
 }
 
-function run(statement: string) {
-  return service.db.prepare(statement).run()
-}
+/** The service's D1 through the same typed Kysely the Worker uses. */
+const database = () => createFeedbackDatabase(service.db)
 
-async function rows(table: string, order = 'day') {
-  const { results } = await service.db.prepare(`SELECT * FROM ${table} ORDER BY ${order}`).all()
-  return results
+/** Every row of a snapshot table, in a fixed order. */
+const rows = {
+  githubStars: () => database().selectFrom('githubStars').selectAll().orderBy('day').execute(),
+  releaseDownloads: () =>
+    database().selectFrom('releaseDownloads').selectAll().orderBy(['tag', 'kind']).execute(),
+  repoTraffic: () => database().selectFrom('repoTraffic').selectAll().orderBy('day').execute(),
+  repoReferrers: () => database().selectFrom('repoReferrers').selectAll().orderBy('day').execute(),
+  siteVisits: () =>
+    database().selectFrom('siteVisits').selectAll().orderBy(['day', 'host']).execute(),
+  siteCountries: () => database().selectFrom('siteCountries').selectAll().execute()
 }
 
 beforeAll(async () => {
@@ -128,7 +136,7 @@ beforeAll(async () => {
 })
 
 beforeEach(async () => {
-  await service.db.batch(TABLES.map((table) => service.db.prepare(`DELETE FROM ${table}`)))
+  for (const table of TABLES) await database().deleteFrom(table).execute()
   service.fetchCalls.length = 0
   service.clearResponses()
   service.setNow(RUN_AT)
@@ -155,8 +163,8 @@ describe('release files', () => {
 describe('metrics snapshot', () => {
   test('records GitHub totals as of the end of the day that just ended', async () => {
     expect(await runSnapshot(service.env, service.services)).toEqual({ failed: [] })
-    expect(await rows('github_stars')).toEqual([{ day: '2026-10-19', stars: 9120, forks: 933 }])
-    expect(await rows('release_downloads', 'tag, kind')).toEqual([
+    expect(await rows.githubStars()).toEqual([{ day: '2026-10-19', stars: 9120, forks: 933 }])
+    expect(await rows.releaseDownloads()).toEqual([
       { day: '2026-10-19', tag: 'v0.15.1', kind: 'linux-installer', downloads: 393 },
       { day: '2026-10-19', tag: 'v0.16.0', kind: 'linux-installer', downloads: 72 },
       { day: '2026-10-19', tag: 'v0.16.0', kind: 'macos-installer', downloads: 100 },
@@ -178,20 +186,21 @@ describe('metrics snapshot', () => {
     )
     service.respond(`${REPO}/releases?per_page=100&page=2`, () => Response.json([page('v1.0.0')]))
     await runSnapshot(service.env, service.services)
-    expect(await rows('release_downloads')).toHaveLength(101)
+    expect(await rows.releaseDownloads()).toHaveLength(101)
   })
 
   test('keeps finished traffic days only and replaces the day’s referrers', async () => {
-    await service.db
-      .prepare("INSERT INTO repo_referrers VALUES ('2026-10-19', 'github.com', 1, 1)")
-      .run()
+    await database()
+      .insertInto('repoReferrers')
+      .values({ day: '2026-10-19', referrer: 'github.com', views: 1, uniqueViews: 1 })
+      .execute()
     await runSnapshot(service.env, service.services)
-    expect(await rows('repo_traffic')).toEqual([
-      { day: '2026-10-18', views: 900, unique_views: 400, clones: 0, unique_clones: 0 },
-      { day: '2026-10-19', views: 1200, unique_views: 500, clones: 80, unique_clones: 40 }
+    expect(await rows.repoTraffic()).toEqual([
+      { day: '2026-10-18', views: 900, uniqueViews: 400, clones: 0, uniqueClones: 0 },
+      { day: '2026-10-19', views: 1200, uniqueViews: 500, clones: 80, uniqueClones: 40 }
     ])
-    expect(await rows('repo_referrers')).toEqual([
-      { day: '2026-10-19', referrer: 'news.ycombinator.com', views: 700, unique_views: 300 }
+    expect(await rows.repoReferrers()).toEqual([
+      { day: '2026-10-19', referrer: 'news.ycombinator.com', views: 700, uniqueViews: 300 }
     ])
   })
 
@@ -208,8 +217,8 @@ describe('metrics snapshot', () => {
     expect(breakdowns.map((call) => variablesOf(call).host)).toEqual(
       Array.from({ length: 28 }, () => 'openpencil.dev')
     )
-    expect(await rows('site_visits')).toHaveLength(56)
-    expect(await rows('site_countries')).toHaveLength(28)
+    expect(await rows.siteVisits()).toHaveLength(56)
+    expect(await rows.siteCountries()).toHaveLength(28)
   })
 
   test('the next night fetches only the days Cloudflare may still be counting', async () => {
@@ -223,24 +232,28 @@ describe('metrics snapshot', () => {
   })
 
   test('a gap longer than the settling days is filled from where the records stop', async () => {
-    const recorded = addDays('2026-10-19', -10)
-    await service.db
-      .prepare("INSERT INTO site_visits VALUES (?, 'openpencil.dev', 1)")
-      .bind(recorded)
-      .run()
+    const recorded = parseDate('2026-10-19').subtract({ days: 10 })
+    await database()
+      .insertInto('siteVisits')
+      .values({ day: recorded.toString(), host: 'openpencil.dev', visits: 1 })
+      .execute()
     await runSnapshot(service.env, service.services)
     const [visits] = cloudflareCalls()
-    expect(visits && variablesOf(visits)).toMatchObject({ start: addDays(recorded, 1) })
+    expect(visits && variablesOf(visits)).toMatchObject({
+      start: recorded.add({ days: 1 }).toString()
+    })
   })
 
   test('a page that drops out of the ranking is removed when its day is fetched again', async () => {
     await runSnapshot(service.env, service.services)
     answerCloudflare(['/'])
     await runSnapshot(service.env, service.services)
-    const { results } = await service.db
-      .prepare("SELECT path FROM site_pages WHERE day = '2026-10-19'")
-      .all()
-    expect(results).toEqual([{ path: '/' }])
+    const pages = await database()
+      .selectFrom('sitePages')
+      .select('path')
+      .where('day', '=', '2026-10-19')
+      .execute()
+    expect(pages).toEqual([{ path: '/' }])
   })
 
   test('a breakdown failing partway records no visits, so the next run fetches the range again', async () => {
@@ -249,18 +262,23 @@ describe('metrics snapshot', () => {
       return answerOnce(call)
     })
     expect(await runSnapshot(service.env, service.services)).toEqual({ failed: ['site'] })
-    expect(await rows('site_visits')).toEqual([])
+    expect(await rows.siteVisits()).toEqual([])
     answerCloudflare()
     service.fetchCalls.length = 0
     await runSnapshot(service.env, service.services)
     const [visits] = cloudflareCalls()
     expect(visits && variablesOf(visits)).toMatchObject({ start: '2026-09-22' })
-    expect(await rows('site_countries')).toHaveLength(28)
+    expect(await rows.siteCountries()).toHaveLength(28)
   })
 
   test('a host missing from a rerun loses its row for that day', async () => {
-    await run("INSERT INTO site_visits VALUES ('2026-10-19', 'app.openpencil.dev', 999)")
-    await run("INSERT INTO site_visits VALUES ('2026-10-18', 'openpencil.dev', 5)")
+    await database()
+      .insertInto('siteVisits')
+      .values([
+        { day: '2026-10-19', host: 'app.openpencil.dev', visits: 999 },
+        { day: '2026-10-18', host: 'openpencil.dev', visits: 5 }
+      ])
+      .execute()
     service.respond(GRAPHQL, (call) => {
       const variables = variablesOf(call)
       if (typeof variables.start !== 'string') return answerOnce(call)
@@ -273,20 +291,23 @@ describe('metrics snapshot', () => {
       })
     })
     await runSnapshot(service.env, service.services)
-    expect(await rows('site_visits', 'day, host')).toEqual([
+    expect(await rows.siteVisits()).toEqual([
       { day: '2026-10-19', host: 'openpencil.dev', visits: 4000 }
     ])
   })
 
   test('a replacement that fails to insert leaves the day as it was', async () => {
-    await run("INSERT INTO site_visits VALUES ('2026-10-19', 'openpencil.dev', 4258)")
-    const store = { db: createFeedbackDatabase(service.db), d1: service.db }
+    await database()
+      .insertInto('siteVisits')
+      .values({ day: '2026-10-19', host: 'openpencil.dev', visits: 4258 })
+      .execute()
+    const store = { db: database(), d1: service.db }
     // Two rows with the same key: the insert fails after the delete was already queued.
     const duplicate = { day: '2026-10-19', host: 'openpencil.dev', visits: 1 }
     await expect(
-      replaceDays(store, 'siteVisits', ['2026-10-19'], [duplicate, duplicate])
+      replaceDays(store, 'siteVisits', [parseDate('2026-10-19')], [duplicate, duplicate])
     ).rejects.toThrow()
-    expect(await rows('site_visits')).toEqual([
+    expect(await rows.siteVisits()).toEqual([
       { day: '2026-10-19', host: 'openpencil.dev', visits: 4258 }
     ])
   })
@@ -295,14 +316,14 @@ describe('metrics snapshot', () => {
     service.respond(REPO, () => new Response('unavailable', { status: 503 }))
     service.respond(`${REPO}/releases`, () => new Response('unavailable', { status: 503 }))
     expect(await runSnapshot(service.env, service.services)).toEqual({ failed: ['github'] })
-    expect(await rows('github_stars')).toEqual([])
-    expect(await rows('repo_traffic')).toHaveLength(2)
-    expect(await rows('site_visits')).toHaveLength(56)
+    expect(await rows.githubStars()).toEqual([])
+    expect(await rows.repoTraffic()).toHaveLength(2)
+    expect(await rows.siteVisits()).toHaveLength(56)
   })
 
   test('an answer of the wrong shape fails that source rather than recording it', async () => {
     service.respond(GRAPHQL, () => Response.json({ data: null, errors: [{ message: 'quota' }] }))
     expect(await runSnapshot(service.env, service.services)).toEqual({ failed: ['site'] })
-    expect(await rows('site_visits')).toEqual([])
+    expect(await rows.siteVisits()).toEqual([])
   })
 })

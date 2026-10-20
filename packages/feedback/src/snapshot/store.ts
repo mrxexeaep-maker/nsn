@@ -1,5 +1,6 @@
 import type { FeedbackDatabase } from '#feedback/db'
 import type { D1Database } from '@cloudflare/workers-types/index'
+import type { CalendarDate } from '@internationalized/date'
 import { chunk } from 'es-toolkit'
 import type { CompiledQuery, Insertable, Kysely } from 'kysely'
 
@@ -44,10 +45,13 @@ const CLEAR_DAYS: Record<SnapshotTable, ClearDays> = {
 export async function replaceDays<T extends SnapshotTable>(
   { db, d1 }: SnapshotStore,
   table: T,
-  days: string[],
+  days: CalendarDate[],
   rows: Insertable<FeedbackDatabase[T]>[]
 ): Promise<void> {
-  const statements = chunk(days, MAX_BOUND_VALUES).map((batch) => CLEAR_DAYS[table](db, batch))
+  const statements = chunk(
+    days.map((day) => day.toString()),
+    MAX_BOUND_VALUES
+  ).map((batch) => CLEAR_DAYS[table](db, batch))
   const [first] = rows
   if (first) {
     const perStatement = Math.max(1, Math.floor(MAX_BOUND_VALUES / Object.keys(first).length))

@@ -1,4 +1,5 @@
 import type { FeedbackServices } from '#feedback/env'
+import { type CalendarDate, parseDate } from '@internationalized/date'
 import * as v from 'valibot'
 
 const GRAPHQL_URL = 'https://api.cloudflare.com/client/v4/graphql'
@@ -82,17 +83,23 @@ export function cloudflareClient(fetcher: FeedbackServices['fetch'], zone: strin
 
   return {
     /** Visits per day and hostname from `start` to `end`, both included. */
-    async visits(start: string, end: string, hosts: string[]) {
-      const zoneData = await query(VisitsZone, VISITS_QUERY, { start, end, hosts })
+    async visits(start: CalendarDate, end: CalendarDate, hosts: string[]) {
+      const zoneData = await query(VisitsZone, VISITS_QUERY, {
+        start: start.toString(),
+        end: end.toString(),
+        hosts
+      })
       return zoneData.httpRequestsAdaptiveGroups.map((group) => ({
-        day: group.dimensions.date,
+        // Parsed rather than copied, so a malformed date fails the run instead of being stored.
+        day: parseDate(group.dimensions.date).toString(),
         host: group.dimensions.clientRequestHTTPHost,
         visits: group.sum.visits
       }))
     },
 
     /** One day of a host's most visited pages and its visits by country. */
-    async breakdown(day: string, host: string) {
+    async breakdown(date: CalendarDate, host: string) {
+      const day = date.toString()
       const zoneData = await query(BreakdownZone, BREAKDOWN_QUERY, {
         day,
         host,

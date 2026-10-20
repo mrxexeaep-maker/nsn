@@ -1,9 +1,10 @@
+import { eachDay, utcDayOf } from '#feedback/days'
 import { createFeedbackDatabase } from '#feedback/db'
 import type { FeedbackBindings, FeedbackServices } from '#feedback/env'
+import { type CalendarDate, maxDate, minDate, parseDate } from '@internationalized/date'
 import { compact } from 'es-toolkit'
 
 import { cloudflareClient } from './cloudflare'
-import { addDays, daysBetween, utcDay } from './days'
 import { githubClient } from './github'
 import { lastDay, replaceDays, type SnapshotStore } from './store'
 
@@ -21,26 +22,27 @@ interface Run {
   store: SnapshotStore
   env: FeedbackBindings
   services: FeedbackServices
-  today: string
+  today: CalendarDate
   /** The day that just ended, which this run records. */
-  yesterday: string
+  yesterday: CalendarDate
 }
 
 /** Stars, forks, and running download totals as of the end of yesterday. */
 async function recordGithub({ store, env, services, yesterday }: Run) {
   const github = githubClient(services.fetch, env.GITHUB_REPOSITORY, env.GITHUB_TOKEN)
   const totals = await github.totals()
+  const day = yesterday.toString()
   await replaceDays(
     store,
     'githubStars',
     [yesterday],
-    [{ day: yesterday, stars: totals.stars, forks: totals.forks }]
+    [{ day, stars: totals.stars, forks: totals.forks }]
   )
   await replaceDays(
     store,
     'releaseDownloads',
     [yesterday],
-    totals.downloads.map((file) => ({ day: yesterday, ...file }))
+    totals.downloads.map((file) => ({ day, ...file }))
   )
 }
 
@@ -48,16 +50,21 @@ async function recordGithub({ store, env, services, yesterday }: Run) {
 async function recordTraffic({ store, env, services, today, yesterday }: Run) {
   const github = githubClient(services.fetch, env.GITHUB_REPOSITORY, env.GITHUB_TOKEN)
   const traffic = await github.traffic()
-  const finished = traffic.days.filter((day) => day.day < today)
+  const finished = traffic.days.filter((day) => day.day.compare(today) < 0)
   const first = finished.at(0)
   // GitHub may not have counted yesterday yet; its window still ends there.
-  const window = first ? daysBetween(first.day, yesterday) : []
-  await replaceDays(store, 'repoTraffic', window, finished)
+  const window = first ? eachDay(first.day, yesterday) : []
+  await replaceDays(
+    store,
+    'repoTraffic',
+    window,
+    finished.map((day) => ({ ...day, day: day.day.toString() }))
+  )
   await replaceDays(
     store,
     'repoReferrers',
     [yesterday],
-    traffic.referrers.map((referrer) => ({ day: yesterday, ...referrer }))
+    traffic.referrers.map((referrer) => ({ day: yesterday.toString(), ...referrer }))
   )
 }
 
@@ -73,14 +80,15 @@ async function recordSite({ store, env, services, yesterday }: Run) {
   )
   const hosts = env.SITE_HOSTS.split(',').map((host) => host.trim())
   const [website] = hosts
-  const oldest = addDays(yesterday, 1 - BACKFILL_DAYS)
+  const oldest = yesterday.subtract({ days: BACKFILL_DAYS - 1 })
   const recorded = await lastDay(store.db, 'siteVisits')
-  const next = recorded ? addDays(recorded, 1) : oldest
+  const next = recorded ? parseDate(recorded).add({ days: 1 }) : oldest
+  const settling = yesterday.subtract({ days: SETTLING_DAYS - 1 })
   // Start at the first missing day or the first still settling, whichever is earlier, but never
   // before the oldest day Cloudflare still has.
-  const start = later(earlier(next, addDays(yesterday, 1 - SETTLING_DAYS)), oldest)
+  const start = maxDate(minDate(next, settling), oldest) ?? oldest
 
-  const days = daysBetween(start, yesterday)
+  const days = eachDay(start, yesterday)
   const visits = await cloudflare.visits(start, yesterday, hosts)
   if (website) {
     for (const day of days) {
@@ -93,9 +101,6 @@ async function recordSite({ store, env, services, yesterday }: Run) {
   // partway leaves the whole range to be fetched again rather than skipped for good.
   await replaceDays(store, 'siteVisits', days, visits)
 }
-
-const earlier = (a: string, b: string) => (a < b ? a : b)
-const later = (a: string, b: string) => (a > b ? a : b)
 
 const SOURCES: [SnapshotSource, (run: Run) => Promise<void>][] = [
   ['github', recordGithub],
@@ -113,13 +118,13 @@ export async function runSnapshot(
   env: FeedbackBindings,
   services: FeedbackServices
 ): Promise<{ failed: SnapshotSource[] }> {
-  const today = utcDay(services.now())
+  const today = utcDayOf(services.now())
   const run: Run = {
     store: { db: createFeedbackDatabase(env.DB), d1: env.DB },
     env,
     services,
     today,
-    yesterday: addDays(today, -1)
+    yesterday: today.subtract({ days: 1 })
   }
   const failed = await Promise.all(
     SOURCES.map(async ([source, record]) => {
