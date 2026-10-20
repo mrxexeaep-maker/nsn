@@ -1,3 +1,7 @@
+import { parseDate } from '@internationalized/date'
+
+import { METRICS_TIME_ZONE } from './days'
+
 /** Metrics are counted in UTC days, so every label is formatted in UTC too. */
 const DAY = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -19,7 +23,7 @@ const PERCENT = new Intl.NumberFormat('en-US', {
 })
 const CHANGE = new Intl.NumberFormat('en-US', { signDisplay: 'exceptZero' })
 
-export const formatDay = (day: string) => DAY.format(new Date(day))
+export const formatDay = (day: string) => DAY.format(parseDate(day).toDate(METRICS_TIME_ZONE))
 export const formatTime = (iso: string) => `${TIME.format(new Date(iso))} UTC`
 export const formatCount = (value: number) => COUNT.format(value)
 export const formatPercent = (value: number) => PERCENT.format(value)

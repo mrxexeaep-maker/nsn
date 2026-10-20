@@ -218,11 +218,12 @@ describe('metrics snapshot API', () => {
 
   test('earliest is the first day with pings or backfilled visits', async () => {
     expect((await snapshot()).earliest).toBeNull()
-    await run(
-      "INSERT INTO usage_pings VALUES ('2026-10-12', '0.16.0-beta.2', 'macos', 'arm64', 'desktop', 'unknown', 'unset', 6)"
-    )
+    await ping('2026-10-12', { version: '0.16.0-beta.2', platform: 'macos', app: 'desktop' }, 6)
     expect((await snapshot()).earliest).toBe('2026-10-12')
-    await run("INSERT INTO site_visits VALUES ('2026-09-22', 'openpencil.dev', 2000)")
+    await database()
+      .insertInto('siteVisits')
+      .values({ day: '2026-09-22', host: 'openpencil.dev', visits: 2000 })
+      .execute()
     expect((await snapshot()).earliest).toBe('2026-09-22')
   })
 

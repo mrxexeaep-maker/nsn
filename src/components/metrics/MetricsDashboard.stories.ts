@@ -1,10 +1,12 @@
+import { parseDate } from '@internationalized/date'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { sumBy } from 'es-toolkit'
 import { computed, ref } from 'vue'
 
 import type { MetricsSnapshot } from '@open-pencil/feedback/contract'
 
-import { isInRange, presetRange } from '@/app/metrics/range'
+import { utcDayOfTimestamp } from '@/app/metrics/days'
+import { presetRange } from '@/app/metrics/range'
 import type { MetricsRange } from '@/app/metrics/range'
 
 import MetricsDashboard from './MetricsDashboard.vue'
@@ -84,11 +86,18 @@ const retention = [
   { cohort: '2026-10-19', values: [31] }
 ]
 
+/** Whether a day falls within the range, both ends included. */
+const isInRange = (day: string, range: MetricsRange) =>
+  parseDate(day).compare(parseDate(range.start)) >= 0 &&
+  parseDate(day).compare(parseDate(range.end)) <= 0
+
 /** What the feedback Worker answers for a range; `withUsage` false is PostHog not answering. */
 function scope(range: MetricsRange, withUsage: boolean): MetricsSnapshot {
   const inRange = <T extends { day: string }>(rows: T[]) =>
     rows.filter((row) => isInRange(row.day, range))
-  const recent = signups.filter((signup) => isInRange(signup.signedUpAt, range))
+  const recent = signups.filter((signup) =>
+    isInRange(utcDayOfTimestamp(signup.signedUpAt).toString(), range)
+  )
   return {
     asOf: '2026-10-19T11:36:00Z',
     today: TODAY,

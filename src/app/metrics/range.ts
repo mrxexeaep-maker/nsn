@@ -56,9 +56,6 @@ export function rangeLabel(range: MetricsRange): string {
   return `${formatDay(range.start)} – ${formatDay(range.end)}`
 }
 
-export const isInRange = (day: string, range: MetricsRange) =>
-  day.slice(0, 10) >= range.start && day.slice(0, 10) <= range.end
-
 const RANGE_PHRASES: Record<Exclude<MetricsRangePreset, 'custom'>, string> = {
   today: 'today',
   '7d': 'in the last 7 days',

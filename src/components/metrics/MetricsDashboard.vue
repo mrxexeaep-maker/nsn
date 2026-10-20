@@ -5,6 +5,7 @@ import { computed } from 'vue'
 
 import type { MetricsSnapshot } from '@open-pencil/feedback/contract'
 
+import { utcDayOfTimestamp } from '@/app/metrics/days'
 import {
   formatCount,
   formatCountry,
@@ -83,7 +84,9 @@ const added = (daily: Growth) => (daily.length ? sumBy(daily, (day) => day.added
 const growthDetail = (daily: Growth) => (daily.length ? phrase.value : 'no daily history yet')
 const fullTrend = (daily: Growth) => daily.filter(isFull).map((day) => day.added)
 const signupTrend = computed(() => {
-  const perDay = countBy(snapshot.waitlist.recent, (signup) => signup.signedUpAt.slice(0, 10))
+  const perDay = countBy(snapshot.waitlist.recent, (signup) =>
+    utcDayOfTimestamp(signup.signedUpAt).toString()
+  )
   return fullDays.value.map((day) => perDay[day.day] ?? 0)
 })
 
