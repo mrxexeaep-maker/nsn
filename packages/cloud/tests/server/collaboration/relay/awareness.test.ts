@@ -37,6 +37,19 @@ describe('relay presence stamping', () => {
     })
   })
 
+  test('cuts a long verified name to what peers accept, so the member still shows', () => {
+    const long = `  ${'Bartholomew '.repeat(5)}  `
+    const source = presence({ user: { name: 'x', color: '#f00' } })
+    const stamped = stampAwareness(
+      source.update,
+      { principal: user('bart', long), permission: 'edit' },
+      () => false
+    )
+    if (!stamped.update) throw new Error('Expected a forwarded update')
+    const state = received(stamped.update).getStates().get(source.awareness.clientID)
+    expect(state?.user).toEqual({ name: long.trim().slice(0, 40), color: '#f00' })
+  })
+
   test('never exposes a user email', () => {
     const source = presence({ user: { name: 'x' } })
     const stamped = stampAwareness(

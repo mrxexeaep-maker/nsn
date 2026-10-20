@@ -19,7 +19,7 @@ import { onStorageWorkspaceEvent } from '@/app/storage/workspace/events'
 import { allTabs, getTabForStore, getTabsSnapshot, reloadStorageDocumentInTab } from '@/app/tabs'
 
 import { isCloudBinding } from '../documents/status'
-import { cloudConnection, cloudConnections } from '../sessions/connection'
+import { cloudConnection, cloudConnections, type CloudSessionState } from '../sessions/connection'
 import { cloudShareTarget } from '../sharing/document'
 import { versionsChanged } from '../versions/history'
 import { accountRoomIdentity } from './identity'
@@ -229,6 +229,8 @@ type LiveRoom = Pick<ReturnType<typeof openCloudDocumentRoom>, 'stop' | 'upload'
 
 /** Each tab's live Cloud room, stopped when the tab closes or the room starts over. */
 const liveRooms = new Map<EditorStore, LiveRoom>()
+/** The server and account each tab joined its room as, so a change of account joins again. */
+const joinedAs = new WeakMap<EditorStore, { serverId: string; accountId: string | null }>()
 
 /** Leaves the room's saving and status behind once its tab closes. */
 export function stopWithTab(store: EditorStore, room: LiveRoom): void {
@@ -262,6 +264,7 @@ export async function startCloudRoom(store: EditorStore): Promise<void> {
     const nextTicket = () => target.client.getCollaborationTicket(binding.documentId)
     const restart = () => void restartCloudRoom(store)
     const account = cloudConnection(target.server.id).account
+    joinedAs.set(store, { serverId: target.server.id, accountId: account?.id ?? null })
     const room = openCloudDocumentRoom(store, {
       // The account as the connection knows it now, so a new name reaches the room.
       identity: account
@@ -289,6 +292,46 @@ export function uploadCloudDocument(store: EditorStore): Promise<boolean> {
 
 const restarting = new WeakSet<EditorStore>()
 
+/** Takes the tab out of its room, leaving the document it shows as it is. */
+function leaveCloudRoom(store: EditorStore): void {
+  liveRooms.get(store)?.stop()
+  liveRooms.delete(store)
+  joinedAs.delete(store)
+  const session = roomForStore(store)
+  if (session) leaveRoom(session)
+}
+
+/**
+ * Joins the room again as whoever is signed in now, after signing in as another account or out.
+ * The relay knows a peer by the account on its ticket, so the old connection cannot carry on.
+ */
+async function rejoinCloudRoom(store: EditorStore): Promise<void> {
+  if (restarting.has(store)) return
+  restarting.add(store)
+  try {
+    leaveCloudRoom(store)
+    await startCloudRoom(store)
+  } finally {
+    restarting.delete(store)
+  }
+}
+
+/** Sessions that ended for good, unlike a check in progress or a server out of reach for now. */
+const ENDED: ReadonlySet<CloudSessionState> = new Set(['signed-out', 'expired', 'closed'])
+
+/**
+ * Whether the tab's room was joined as someone the server no longer has signed in here: another
+ * account now, or a session that ended. The connection keeps the account after signing out, so
+ * its state decides that, and a passing check or outage changes nothing.
+ */
+function accountChanged(store: EditorStore): boolean {
+  const joined = joinedAs.get(store)
+  if (!joined) return false
+  const connection = cloudConnection(joined.serverId)
+  if (connection.state === 'signed-in') return (connection.account?.id ?? null) !== joined.accountId
+  return ENDED.has(connection.state)
+}
+
 /**
  * Moves a tab to its document's new room after the document was restored to a version: the old
  * room's edits are left behind, the tab shows the restored document, and it joins again.
@@ -298,10 +341,7 @@ export async function restartCloudRoom(store: EditorStore): Promise<void> {
   if (!binding || restarting.has(store)) return
   restarting.add(store)
   try {
-    liveRooms.get(store)?.stop()
-    liveRooms.delete(store)
-    const session = roomForStore(store)
-    if (session) leaveRoom(session)
+    leaveCloudRoom(store)
     // The tab shows what it downloaded: another tab of the document may still write the local copy.
     await reloadStorageDocumentInTab(store, await adoptStoredVersion(binding.documentId))
     // The restore is in the history now; the old room closed before it could say so.
@@ -322,7 +362,10 @@ export function watchCloudRooms(): () => void {
       return getTabsSnapshot().map((tab) => [tab.store, tab.store.getStorageBinding()] as const)
     },
     (entries) => {
-      for (const [store] of entries) void startCloudRoom(store).catch(() => undefined)
+      for (const [store] of entries) {
+        const joining = accountChanged(store) ? rejoinCloudRoom(store) : startCloudRoom(store)
+        void joining.catch(() => undefined)
+      }
     },
     { immediate: true }
   )

@@ -20,6 +20,11 @@ describe('a member’s identity in rooms', () => {
     expect(identity.name.value).toBe('Alice Liddell')
   })
 
+  test('cuts a long name as the relay does, so this tab shows what everyone else sees', () => {
+    const identity = accountRoomIdentity({ id: 'bart', name: `  ${'Bartholomew '.repeat(5)}` })
+    expect(identity.name.value).toBe('Bartholomew Bartholomew Bartholomew Bart')
+  })
+
   test('picks its color from the account, so people tell each other apart', () => {
     const alice = accountRoomIdentity({ id: 'alice', name: 'Alice' })
     const carol = accountRoomIdentity({ id: 'carol', name: 'Carol' })

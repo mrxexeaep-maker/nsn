@@ -1,5 +1,7 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 
+import { presenceName } from '@open-pencil/cloud/contract'
+
 import type { RoomIdentity } from '@/app/collab/session'
 import { PEER_COLORS } from '@/constants'
 
@@ -20,7 +22,8 @@ export function accountRoomIdentity(
   account: MaybeRefOrGetter<Pick<CloudAccount, 'id' | 'name'>>
 ): RoomIdentity {
   return {
-    name: computed(() => toValue(account).name),
+    // Cut as the relay cuts it for everyone else, so this tab shows what they see.
+    name: computed(() => presenceName(toValue(account).name)),
     color: PEER_COLORS[colorIndex(toValue(account).id)] ?? PEER_COLORS[0]
   }
 }
