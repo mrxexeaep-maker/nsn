@@ -54,8 +54,8 @@ function nodePrecedence(node: VariableFormulaNode) {
 
 type Operation = VariableFormulaOperation
 type Print = (node: VariableFormulaNode, depth: number, breakAt?: number) => Printed
-/** Whether two operations give one known type, so that regrouping them keeps the result. */
-type SameType = (a: VariableFormulaNode, b: VariableFormulaNode) => boolean
+/** Whether `a + (b + c)` may print as `a + b + c` and still read back as the same value. */
+type Regroups = (node: Operation) => boolean
 
 const group = ({ text }: Printed) => `(${text})`
 
@@ -80,7 +80,7 @@ function printBinary(
   node: Operation,
   depth: number,
   print: Print,
-  sameType: SameType,
+  regroups: Regroups,
   breakAt?: number
 ): Printed {
   const precedence = FORMULA_PRECEDENCE[node.operator] ?? 0
@@ -90,7 +90,7 @@ function printBinary(
     ASSOCIATIVE.has(node.operator) &&
     isFormulaOperation(rightNode) &&
     rightNode.operator === node.operator &&
-    (node.operator !== 'ADDITION' || sameType(node, rightNode))
+    (node.operator !== 'ADDITION' || regroups(node))
   // The chain continues through a left operand and an unparenthesized right one of its level.
   const breaking = breakAt === precedence
   const left = print(leftNode, depth + 1, breaking ? breakAt : undefined)
@@ -120,20 +120,27 @@ export function printFormula(
       return undefined
     }
   }
-  const sameType: SameType = (a, b) => {
-    const left = typeOf(a)
-    return left !== undefined && left === typeOf(b)
+  // Text printed without parentheses reads left to right, so `"a" + (1 + 2)` would read as
+  // `"a" + 1 + 2`: regroup only when every operand of the chain gives the sum's type.
+  const chain = (of: VariableFormulaNode): VariableFormulaNode[] =>
+    isFormulaOperation(of) && of.operator === 'ADDITION'
+      ? [...chain(of.operands[0]), of.operands[1]]
+      : [of]
+  const regroups: Regroups = (sum) => {
+    const result = typeOf(sum)
+    const [left, right] = sum.operands
+    return result !== undefined && [left, ...chain(right)].every((of) => typeOf(of) === result)
   }
-  const line = printWith(reference, sameType, node)
+  const line = printWith(reference, regroups, node)
   const outer = nodePrecedence(node)
-  const shown = display ? printWith(display, sameType, node) : line
+  const shown = display ? printWith(display, regroups, node) : line
   if (width === undefined || shown.length <= width || !BREAKABLE.has(outer)) return line
-  return printWith(reference, sameType, node, outer)
+  return printWith(reference, regroups, node, outer)
 }
 
 function printWith(
   reference: (id: string) => string,
-  sameType: SameType,
+  regroups: Regroups,
   root: VariableFormulaNode,
   rootBreak?: number
 ): string {
@@ -151,7 +158,7 @@ function printWith(
     if (isFormulaCall(node.operator)) return printCall(node, depth, print)
     return formulaArity(node.operator) === 1
       ? printUnary(node, depth, print)
-      : printBinary(node, depth, print, sameType, breakAt)
+      : printBinary(node, depth, print, regroups, breakAt)
   }
   return print(root, 0, rootBreak).text
 }

@@ -78,6 +78,8 @@ function reference(id: string, { variables, names }: FormulaContext): Term {
   const name = names.get(id)
   if (!target || !name)
     throw new UnsupportedFormulaError('refers to a variable that does not exist')
+  if (target.type !== 'FLOAT')
+    throw new UnsupportedFormulaError('uses a variable that is not a number')
   const dimension = variableUnit(target) !== 'none'
   return { kind: 'css', text: `var(--${name})`, precedence: ATOM, dimension }
 }

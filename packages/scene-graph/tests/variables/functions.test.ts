@@ -105,6 +105,9 @@ test.each([
   ['"a" + (1 + 2)', '"a" + (1 + 2)'],
   ['"a" + ("b" + "c")', '"a" + "b" + "c"'],
   ['{name} + ({count} + 1)', '{name} + ({count} + 1)'],
+  ['"a" + (1 + 2 + "b")', '"a" + (1 + 2 + "b")'],
+  ['1 + (2 + "b")', '1 + (2 + "b")'],
+  ['"a" + ("b" + 1 + "c")', '"a" + ("b" + 1 + "c")'],
   ['IF({dark}, "Hi", "Hello, " + {name})', 'if({dark}, "Hi", "Hello, " + {name})'],
   ['"say \\"hi\\"" + text({count})', '"say \\"hi\\"" + text({count})']
 ] as const)('text formulas print so that they read back the same: %s', (source, printed) => {
