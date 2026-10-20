@@ -1,11 +1,3 @@
-<script lang="ts">
-/** A span of whole days, both ends included, as ISO dates (`2026-10-19`). */
-export interface DayRange {
-  start: string
-  end: string
-}
-</script>
-
 <script setup lang="ts">
 import { parseDate } from '@internationalized/date'
 import type { DateRange } from 'reka-ui'
@@ -27,6 +19,8 @@ import { computed, shallowRef, watch } from 'vue'
 
 import IconButton from '@/components/ui/button/IconButton.vue'
 import { rangeCalendar } from '@/theme/date/range-calendar'
+
+import type { DayRange } from './range'
 
 /**
  * One month for picking a span of days. The model changes only once both ends are chosen, so a

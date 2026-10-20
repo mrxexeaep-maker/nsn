@@ -7,7 +7,7 @@ import { METRICS_RANGE_PRESETS, presetRange, rangeLabel } from '@/app/metrics/ra
 import type { MetricsRange, MetricsRangePreset } from '@/app/metrics/range'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import AppRangeCalendar from '@/components/ui/date/AppRangeCalendar.vue'
-import type { DayRange } from '@/components/ui/date/AppRangeCalendar.vue'
+import type { DayRange } from '@/components/ui/date/range'
 import { usePopoverUI } from '@/components/ui/overlay/popover'
 import { metricsRangePicker } from '@/theme/metrics/dashboard'
 

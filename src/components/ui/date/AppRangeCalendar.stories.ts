@@ -3,7 +3,7 @@ import { expect, userEvent, within } from 'storybook/test'
 import { ref } from 'vue'
 
 import AppRangeCalendar from './AppRangeCalendar.vue'
-import type { DayRange } from './AppRangeCalendar.vue'
+import type { DayRange } from './range'
 
 const meta = {
   title: 'Design System/Inputs/Range Calendar',
