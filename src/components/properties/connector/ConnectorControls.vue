@@ -1,25 +1,47 @@
 <script setup lang="ts">
+import { tv } from 'tailwind-variants'
 import { computed } from 'vue'
 
-import type { ConnectorLineType, StrokeCap } from '@open-pencil/scene-graph'
+import type { ConnectorLineType, FigJamColorName, StrokeCap } from '@open-pencil/scene-graph'
 import { useI18n } from '@open-pencil/vue'
 
+import FigJamPalette from '@/components/figjam/FigJamPalette.vue'
+import IconButton from '@/components/ui/button/IconButton.vue'
 import PanelFieldGroup from '@/components/ui/panel/PanelFieldGroup.vue'
 import AppSelect from '@/components/ui/select/AppSelect.vue'
+import theme from '@/theme/figjam/controls'
 
-const { lineType, startCap, endCap } = defineProps<{
+/**
+ * A connector's line, as FigJam's selection toolbar sets it: its colour from FigJam's palette,
+ * Thick and Dashed as toggles, its line type, and the caps at its ends.
+ */
+const {
+  lineType,
+  startCap,
+  endCap,
+  color = null,
+  thick = false,
+  dashed = false
+} = defineProps<{
   lineType: ConnectorLineType | null
   startCap: StrokeCap | null
   endCap: StrokeCap | null
+  color?: FigJamColorName | null
+  thick?: boolean
+  dashed?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:lineType': [value: ConnectorLineType]
   'update:startCap': [value: StrokeCap]
   'update:endCap': [value: StrokeCap]
+  'update:color': [value: FigJamColorName]
+  'update:thick': [value: boolean]
+  'update:dashed': [value: boolean]
 }>()
 
 const { panels } = useI18n()
+const styles = tv(theme)()
 
 const lineOptions = computed<Array<{ value: ConnectorLineType; label: string }>>(() => [
   { value: 'ELBOWED', label: panels.value.connectorElbowed },
@@ -52,7 +74,37 @@ const selectedEnd = computed<StrokeCap>({
 </script>
 
 <template>
-  <div class="grid gap-2.5">
+  <div :class="styles.root()">
+    <div>
+      <div :class="styles.header()">
+        <span :class="styles.label()">{{ panels.connectorColor }}</span>
+        <div class="flex items-center gap-0.5">
+          <IconButton
+            toggle
+            :label="panels.connectorThick"
+            :active="thick"
+            data-property="connector-thick"
+            @click="emit('update:thick', !thick)"
+          >
+            <icon-lucide-minus class="size-3.5 [stroke-width:4]" />
+          </IconButton>
+          <IconButton
+            toggle
+            :label="panels.connectorDashed"
+            :active="dashed"
+            data-property="connector-dashed"
+            @click="emit('update:dashed', !dashed)"
+          >
+            <icon-lucide-circle-dashed class="size-3.5" />
+          </IconButton>
+        </div>
+      </div>
+      <FigJamPalette
+        :label="panels.connectorColor"
+        :selected="color"
+        @select="emit('update:color', $event)"
+      />
+    </div>
     <PanelFieldGroup :label="panels.connectorLine">
       <AppSelect
         v-model="selectedLine"

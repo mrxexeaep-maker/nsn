@@ -1,4 +1,4 @@
-const shapeWithTextControlsTheme = {
+const figJamControlsTheme = {
   slots: {
     root: 'grid gap-3',
     header: 'mb-1 flex items-center justify-between',
@@ -6,5 +6,5 @@ const shapeWithTextControlsTheme = {
   }
 }
 
-export type ShapeWithTextControlsTheme = typeof shapeWithTextControlsTheme
-export default shapeWithTextControlsTheme
+export type FigJamControlsTheme = typeof figJamControlsTheme
+export default figJamControlsTheme

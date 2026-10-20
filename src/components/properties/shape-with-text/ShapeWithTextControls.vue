@@ -20,8 +20,8 @@ import ShapeKindPicker from '@/components/shapes/ShapeKindPicker.vue'
 import IconButton from '@/components/ui/button/IconButton.vue'
 import PanelFieldGroup from '@/components/ui/panel/PanelFieldGroup.vue'
 import AppSelect from '@/components/ui/select/AppSelect.vue'
+import theme from '@/theme/figjam/controls'
 import selectTheme from '@/theme/select/app'
-import theme from '@/theme/shape-with-text-controls'
 
 /**
  * A shape with text's kind, colour, outline and text, as FigJam's selection toolbar sets them:
