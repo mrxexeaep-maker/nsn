@@ -147,6 +147,7 @@ describe('admin access', () => {
   test('rejects a missing, malformed, or reversed range', async () => {
     const token = await accessToken(signingKey)
     for (const query of [
+      'start=2026-02-30&end=2026-03-02',
       'start=2026-10-14',
       'start=yesterday&end=2026-10-20',
       'start=2026-10-20&end=2026-10-14'

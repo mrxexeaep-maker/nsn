@@ -4,7 +4,16 @@ import * as v from 'valibot'
 export const MAX_METRICS_RANGE_DAYS = 400
 
 const DAY_MS = 24 * 60 * 60 * 1000
-const IsoDay = v.pipe(v.string(), v.isoDate())
+// `isoDate` checks only the shape, so `2026-02-30` would pass; the day must also exist.
+const IsoDay = v.pipe(
+  v.string(),
+  v.isoDate(),
+  v.check((day) => {
+    // An impossible day is either an invalid date or one that rolls over into the next month.
+    const time = Date.parse(`${day}T00:00:00Z`)
+    return !Number.isNaN(time) && new Date(time).toISOString().slice(0, 10) === day
+  }, 'Not a calendar day.')
+)
 
 /** The UTC days the dashboard asks about, both included. */
 export const MetricsQuerySchema = v.pipe(
