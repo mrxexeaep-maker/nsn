@@ -19,6 +19,7 @@ import {
   type CloudSharing
 } from '@/app/cloud/sharing/document'
 import { useEditorStore } from '@/app/editor/active-store'
+import { useDateFormat } from '@/app/i18n/date'
 import { toast } from '@/app/shell/ui'
 import { shareButton } from '@/theme/collaboration/share-button'
 
@@ -26,7 +27,7 @@ import CloudShareDialog from './CloudShareDialog.vue'
 
 /** Share for a Cloud document: who can open it and its link, managed on the server. */
 const store = useEditorStore()
-const { collaboration, locale } = useI18n()
+const { collaboration } = useI18n()
 const t = useCloudMessages()
 const sharing = shallowRef<CloudSharing | null>(null)
 const inviting = ref(false)
@@ -44,12 +45,11 @@ const workspace = computed(() => {
   )
   return found ? { name: found.name, permission: 'edit' as const } : null
 })
-const expires = (iso: string) =>
-  new Intl.DateTimeFormat(locale.value, { day: 'numeric', month: 'short' }).format(new Date(iso))
+const dates = useDateFormat()
 const members = computed(() =>
   (sharing.value?.members ?? []).map((member) => ({
     ...member,
-    pendingUntil: member.pendingUntil ? expires(member.pendingUntil) : undefined
+    pendingUntil: member.pendingUntil ? dates.format(member.pendingUntil, 'day') : undefined
   }))
 )
 
