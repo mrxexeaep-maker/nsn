@@ -7,7 +7,7 @@ import type { Kysely } from 'kysely'
 import { cloudflareClient } from './cloudflare'
 import { addDays, daysBetween, utcDay } from './days'
 import { githubClient } from './github'
-import { lastDay, replaceDay, replaceRows } from './store'
+import { lastDay, replaceDays } from './store'
 
 /**
  * How far back the visit history is filled: Cloudflare's Free plan keeps 31 days and answers at
@@ -32,12 +32,16 @@ interface Run {
 async function recordGithub({ db, env, services, yesterday }: Run) {
   const github = githubClient(services.fetch, env.GITHUB_REPOSITORY, env.GITHUB_TOKEN)
   const totals = await github.totals()
-  await replaceRows(db, 'githubStars', [
-    { day: yesterday, stars: totals.stars, forks: totals.forks }
-  ])
-  await replaceRows(
+  await replaceDays(
+    db,
+    'githubStars',
+    [yesterday],
+    [{ day: yesterday, stars: totals.stars, forks: totals.forks }]
+  )
+  await replaceDays(
     db,
     'releaseDownloads',
+    [yesterday],
     totals.downloads.map((file) => ({ day: yesterday, ...file }))
   )
 }
@@ -46,15 +50,15 @@ async function recordGithub({ db, env, services, yesterday }: Run) {
 async function recordTraffic({ db, env, services, today, yesterday }: Run) {
   const github = githubClient(services.fetch, env.GITHUB_REPOSITORY, env.GITHUB_TOKEN)
   const traffic = await github.traffic()
-  await replaceRows(
-    db,
-    'repoTraffic',
-    traffic.days.filter((day) => day.day < today)
-  )
-  await replaceDay(
+  const finished = traffic.days.filter((day) => day.day < today)
+  const first = finished.at(0)
+  // GitHub may not have counted yesterday yet; its window still ends there.
+  const window = first ? daysBetween(first.day, yesterday) : []
+  await replaceDays(db, 'repoTraffic', window, finished)
+  await replaceDays(
     db,
     'repoReferrers',
-    yesterday,
+    [yesterday],
     traffic.referrers.map((referrer) => ({ day: yesterday, ...referrer }))
   )
 }
@@ -78,13 +82,18 @@ async function recordSite({ db, env, services, yesterday }: Run) {
   // before the oldest day Cloudflare still has.
   const start = later(earlier(next, addDays(yesterday, 1 - SETTLING_DAYS)), oldest)
 
-  await replaceRows(db, 'siteVisits', await cloudflare.visits(start, yesterday, hosts))
-  if (!website) return
-  for (const day of daysBetween(start, yesterday)) {
-    const { pages, countries } = await cloudflare.breakdown(day, website)
-    await replaceDay(db, 'sitePages', day, pages)
-    await replaceDay(db, 'siteCountries', day, countries)
+  const days = daysBetween(start, yesterday)
+  const visits = await cloudflare.visits(start, yesterday, hosts)
+  if (website) {
+    for (const day of days) {
+      const { pages, countries } = await cloudflare.breakdown(day, website)
+      await replaceDays(db, 'sitePages', [day], pages)
+      await replaceDays(db, 'siteCountries', [day], countries)
+    }
   }
+  // Recorded last: the newest visit day is where the next run resumes, so a breakdown failing
+  // partway leaves the whole range to be fetched again rather than skipped for good.
+  await replaceDays(db, 'siteVisits', days, visits)
 }
 
 const earlier = (a: string, b: string) => (a < b ? a : b)

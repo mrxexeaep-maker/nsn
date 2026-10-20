@@ -11,45 +11,39 @@ type SnapshotTable =
   | 'sitePages'
   | 'siteCountries'
 
-// D1 binds at most 100 values per statement, so long lists go in several inserts.
+// D1 binds at most 100 values per statement, so long lists go in several statements.
 const MAX_BOUND_VALUES = 100
 
-/** Writes rows over any already recorded under the same key, so a rerun corrects a day. */
-export async function replaceRows<T extends SnapshotTable>(
-  db: Kysely<FeedbackDatabase>,
-  table: T,
-  rows: Insertable<FeedbackDatabase[T]>[]
-): Promise<void> {
-  const [first] = rows
-  if (!first) return
-  const perStatement = Math.max(1, Math.floor(MAX_BOUND_VALUES / Object.keys(first).length))
-  for (const batch of chunk(rows, perStatement)) await db.replaceInto(table).values(batch).execute()
-}
-
-type RankingTable = 'repoReferrers' | 'sitePages' | 'siteCountries'
+type ClearDays = (db: Kysely<FeedbackDatabase>, days: string[]) => Promise<unknown>
 
 // One query per table: Kysely cannot type a delete over a union of tables.
-const CLEAR_DAY: Record<
-  RankingTable,
-  (db: Kysely<FeedbackDatabase>, day: string) => Promise<unknown>
-> = {
-  repoReferrers: (db, day) => db.deleteFrom('repoReferrers').where('day', '=', day).execute(),
-  sitePages: (db, day) => db.deleteFrom('sitePages').where('day', '=', day).execute(),
-  siteCountries: (db, day) => db.deleteFrom('siteCountries').where('day', '=', day).execute()
+const CLEAR_DAYS: Record<SnapshotTable, ClearDays> = {
+  githubStars: (db, days) => db.deleteFrom('githubStars').where('day', 'in', days).execute(),
+  releaseDownloads: (db, days) =>
+    db.deleteFrom('releaseDownloads').where('day', 'in', days).execute(),
+  repoTraffic: (db, days) => db.deleteFrom('repoTraffic').where('day', 'in', days).execute(),
+  repoReferrers: (db, days) => db.deleteFrom('repoReferrers').where('day', 'in', days).execute(),
+  siteVisits: (db, days) => db.deleteFrom('siteVisits').where('day', 'in', days).execute(),
+  sitePages: (db, days) => db.deleteFrom('sitePages').where('day', 'in', days).execute(),
+  siteCountries: (db, days) => db.deleteFrom('siteCountries').where('day', 'in', days).execute()
 }
 
 /**
- * Replaces everything recorded for `day` in a table holding a ranking, so entries that dropped
- * out of the ranking since the last run do not linger.
+ * Makes `days` hold exactly `rows`: whatever was recorded for those days goes first, so an
+ * entry the latest answer no longer has (a host without visits, a page out of the ranking, a
+ * removed release file) does not linger, and a rerun corrects a day instead of adding to it.
  */
-export async function replaceDay<T extends RankingTable>(
+export async function replaceDays<T extends SnapshotTable>(
   db: Kysely<FeedbackDatabase>,
   table: T,
-  day: string,
+  days: string[],
   rows: Insertable<FeedbackDatabase[T]>[]
 ): Promise<void> {
-  await CLEAR_DAY[table](db, day)
-  await replaceRows(db, table, rows)
+  for (const batch of chunk(days, MAX_BOUND_VALUES)) await CLEAR_DAYS[table](db, batch)
+  const [first] = rows
+  if (!first) return
+  const perStatement = Math.max(1, Math.floor(MAX_BOUND_VALUES / Object.keys(first).length))
+  for (const batch of chunk(rows, perStatement)) await db.insertInto(table).values(batch).execute()
 }
 
 /** The newest day recorded in a table, if any. */

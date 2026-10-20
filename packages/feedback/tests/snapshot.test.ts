@@ -78,36 +78,42 @@ function answerGithub() {
 
 /** Answers every day with the same visits, and each breakdown with `pages` for the website. */
 function answerCloudflare(pages: string[] = ['/', '/download']) {
-  service.respond(GRAPHQL, (call) => {
-    const variables = variablesOf(call)
-    if (typeof variables.start === 'string' && typeof variables.end === 'string') {
-      const groups = daysBetween(variables.start, variables.end).flatMap((date) => [
-        { sum: { visits: 4000 }, dimensions: { date, clientRequestHTTPHost: 'openpencil.dev' } },
-        { sum: { visits: 1000 }, dimensions: { date, clientRequestHTTPHost: 'app.openpencil.dev' } }
-      ])
-      return Response.json({
-        data: { viewer: { zones: [{ httpRequestsAdaptiveGroups: groups }] } }
-      })
-    }
+  service.respond(GRAPHQL, (call) => answerOnce(call, pages))
+}
+
+function answerOnce(call: FetchCall, pages: string[] = ['/', '/download']): Response {
+  const variables = variablesOf(call)
+  if (typeof variables.start === 'string' && typeof variables.end === 'string') {
+    const groups = daysBetween(variables.start, variables.end).flatMap((date) => [
+      { sum: { visits: 4000 }, dimensions: { date, clientRequestHTTPHost: 'openpencil.dev' } },
+      { sum: { visits: 1000 }, dimensions: { date, clientRequestHTTPHost: 'app.openpencil.dev' } }
+    ])
     return Response.json({
-      data: {
-        viewer: {
-          zones: [
-            {
-              pages: pages.map((clientRequestPath, index) => ({
-                sum: { visits: 100 - index },
-                dimensions: { clientRequestPath }
-              })),
-              countries: [
-                { sum: { visits: 60 }, dimensions: { clientCountryName: 'US' } },
-                { sum: { visits: 0 }, dimensions: { clientCountryName: 'XX' } }
-              ]
-            }
-          ]
-        }
-      }
+      data: { viewer: { zones: [{ httpRequestsAdaptiveGroups: groups }] } }
     })
+  }
+  return Response.json({
+    data: {
+      viewer: {
+        zones: [
+          {
+            pages: pages.map((clientRequestPath, index) => ({
+              sum: { visits: 100 - index },
+              dimensions: { clientRequestPath }
+            })),
+            countries: [
+              { sum: { visits: 60 }, dimensions: { clientCountryName: 'US' } },
+              { sum: { visits: 0 }, dimensions: { clientCountryName: 'XX' } }
+            ]
+          }
+        ]
+      }
+    }
   })
+}
+
+function run(statement: string) {
+  return service.db.prepare(statement).run()
 }
 
 async function rows(table: string, order = 'day') {
@@ -232,6 +238,41 @@ describe('metrics snapshot', () => {
       .prepare("SELECT path FROM site_pages WHERE day = '2026-10-19'")
       .all()
     expect(results).toEqual([{ path: '/' }])
+  })
+
+  test('a breakdown failing partway records no visits, so the next run fetches the range again', async () => {
+    service.respond(GRAPHQL, (call) => {
+      if (variablesOf(call).day === '2026-09-26') return new Response('busy', { status: 503 })
+      return answerOnce(call)
+    })
+    expect(await runSnapshot(service.env, service.services)).toEqual({ failed: ['site'] })
+    expect(await rows('site_visits')).toEqual([])
+    answerCloudflare()
+    service.fetchCalls.length = 0
+    await runSnapshot(service.env, service.services)
+    const [visits] = cloudflareCalls()
+    expect(visits && variablesOf(visits)).toMatchObject({ start: '2026-09-22' })
+    expect(await rows('site_countries')).toHaveLength(28)
+  })
+
+  test('a host missing from a rerun loses its row for that day', async () => {
+    await run("INSERT INTO site_visits VALUES ('2026-10-19', 'app.openpencil.dev', 999)")
+    await run("INSERT INTO site_visits VALUES ('2026-10-18', 'openpencil.dev', 5)")
+    service.respond(GRAPHQL, (call) => {
+      const variables = variablesOf(call)
+      if (typeof variables.start !== 'string') return answerOnce(call)
+      const group = {
+        sum: { visits: 4000 },
+        dimensions: { date: '2026-10-19', clientRequestHTTPHost: 'openpencil.dev' }
+      }
+      return Response.json({
+        data: { viewer: { zones: [{ httpRequestsAdaptiveGroups: [group] }] } }
+      })
+    })
+    await runSnapshot(service.env, service.services)
+    expect(await rows('site_visits', 'day, host')).toEqual([
+      { day: '2026-10-19', host: 'openpencil.dev', visits: 4000 }
+    ])
   })
 
   test('one source failing still records the others', async () => {
