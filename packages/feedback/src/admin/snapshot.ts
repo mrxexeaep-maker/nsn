@@ -1,9 +1,10 @@
 import type { DailyGrowth, MetricsQuery, MetricsSnapshot, RankedCount } from '#feedback/contract'
+import { eachDay, utcDayOf } from '#feedback/days'
 import { createFeedbackDatabase, type FeedbackDatabase } from '#feedback/db'
 import type { FeedbackBindings, FeedbackServices } from '#feedback/env'
-import { addDays, daysBetween, utcDay } from '#feedback/snapshot/days'
+import { minDate, parseDate, toZoned } from '@internationalized/date'
 import { groupBy, maxBy, sumBy } from 'es-toolkit'
-import { sql, type Kysely } from 'kysely'
+import type { Kysely } from 'kysely'
 
 import { fetchUsage } from './posthog'
 
@@ -36,7 +37,7 @@ function newestStable(versions: string[]): string | undefined {
 function dailyGrowth(days: string[], totals: Map<string, number>): DailyGrowth[] {
   return days.flatMap((day) => {
     const total = totals.get(day)
-    const before = totals.get(addDays(day, -1))
+    const before = totals.get(parseDate(day).subtract({ days: 1 }).toString())
     return total === undefined || before === undefined ? [] : [{ day, added: total - before }]
   })
 }
@@ -150,7 +151,7 @@ async function site(
 
 async function github(db: Kysely<FeedbackDatabase>, range: MetricsQuery, days: string[]) {
   // One day earlier than the range, so its first day has something to grow from.
-  const from = addDays(range.start, -1)
+  const from = parseDate(range.start).subtract({ days: 1 }).toString()
   const [stars, downloads, traffic, lastReferrerDay] = await Promise.all([
     db
       .selectFrom('githubStars')
@@ -196,10 +197,11 @@ async function github(db: Kysely<FeedbackDatabase>, range: MetricsQuery, days: s
       ])
     )
   const installerTotals = totalsByDay(installers)
-  const lastDay = maxBy([...installerTotals.keys()], (day) => Date.parse(day))
+  // ISO dates sort in calendar order, as D1 compares them too.
+  const lastDay = [...installerTotals.keys()].toSorted().at(-1)
   const latestTag = newestStable(installers.map((row) => row.tag.replace(/^v/, '')))
   const starTotals = new Map(stars.map((row) => [row.day, row.stars]))
-  const lastStars = maxBy(stars, (row) => Date.parse(row.day))
+  const lastStars = stars.toSorted((a, b) => a.day.localeCompare(b.day)).at(-1)
   return {
     stars: { total: lastStars?.stars ?? null, daily: dailyGrowth(days, starTotals) },
     downloads: {
@@ -228,23 +230,35 @@ async function github(db: Kysely<FeedbackDatabase>, range: MetricsQuery, days: s
   }
 }
 
+/** The range as sign-up timestamps: from the start day's UTC midnight up to the day after the end. */
+function timestampRange(range: MetricsQuery) {
+  const midnight = (day: string) => toZoned(parseDate(day), 'UTC').toDate().toISOString()
+  return {
+    from: midnight(range.start),
+    until: midnight(parseDate(range.end).add({ days: 1 }).toString())
+  }
+}
+
 async function waitlist(db: Kysely<FeedbackDatabase>, range: MetricsQuery) {
+  const { from, until } = timestampRange(range)
   const [totals, recent] = await Promise.all([
     db
       .selectFrom('waitlist')
-      .select([
-        (eb) => eb.fn.countAll<number>().as('total'),
-        (eb) => eb.fn.count<number>('confirmedAt').as('confirmed'),
-        sql<number>`sum(substr(created_at, 1, 10) BETWEEN ${range.start} AND ${range.end})`.as(
-          'added'
-        )
+      .select((eb) => [
+        eb.fn.countAll<number>().as('total'),
+        eb.fn.count<number>('confirmedAt').as('confirmed'),
+        eb.fn
+          .countAll<number>()
+          .filterWhere('createdAt', '>=', from)
+          .filterWhere('createdAt', '<', until)
+          .as('added')
       ])
       .executeTakeFirst(),
     db
       .selectFrom('waitlist')
       .select(['email', 'createdAt', 'confirmedAt'])
-      .where(sql<string>`substr(created_at, 1, 10)`, '>=', range.start)
-      .where(sql<string>`substr(created_at, 1, 10)`, '<=', range.end)
+      .where('createdAt', '>=', from)
+      .where('createdAt', '<', until)
       .orderBy('createdAt', 'desc')
       .limit(RECENT_SIGNUPS)
       .execute()
@@ -272,9 +286,10 @@ export async function buildSnapshot(
   query: MetricsQuery
 ): Promise<MetricsSnapshot> {
   const now = services.now()
-  const today = utcDay(now)
-  const range = { start: query.start, end: query.end > today ? today : query.end }
-  const days = range.start <= range.end ? daysBetween(range.start, range.end) : []
+  const today = utcDayOf(now)
+  const end = minDate(parseDate(query.end), today) ?? today
+  const range = { start: query.start, end: end.toString() }
+  const days = eachDay(parseDate(range.start), end).map(String)
   const db = createFeedbackDatabase(env.DB)
   const [pinged, visited, repository, signups, usage] = await Promise.all([
     pings(db, range, days),
@@ -288,7 +303,7 @@ export async function buildSnapshot(
   ])
   return {
     asOf: now.toISOString(),
-    today,
+    today: today.toString(),
     ...range,
     ...pinged,
     ...visited,

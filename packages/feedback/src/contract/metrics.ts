@@ -1,28 +1,40 @@
+import { type CalendarDate, parseDate } from '@internationalized/date'
 import * as v from 'valibot'
 
 /** The longest range one request covers; a year and a bit leaves room for "all time" for now. */
 export const MAX_METRICS_RANGE_DAYS = 400
 
-const DAY_MS = 24 * 60 * 60 * 1000
-// `isoDate` checks only the shape, so `2026-02-30` would pass; the day must also exist.
+/** The day a `YYYY-MM-DD` string names, or `undefined` for one that does not exist (`2026-02-30`). */
+function calendarDay(day: string): CalendarDate | undefined {
+  try {
+    return parseDate(day)
+  } catch {
+    return undefined
+  }
+}
+
+// `isoDate` checks only the shape, so `2026-02-30` would pass without the calendar check.
 const IsoDay = v.pipe(
   v.string(),
   v.isoDate(),
-  v.check((day) => {
-    // An impossible day is either an invalid date or one that rolls over into the next month.
-    const time = Date.parse(`${day}T00:00:00Z`)
-    return !Number.isNaN(time) && new Date(time).toISOString().slice(0, 10) === day
-  }, 'Not a calendar day.')
+  v.check((day) => calendarDay(day) !== undefined, 'Not a calendar day.')
 )
+
+/**
+ * Days from `start` to `end`. Valibot runs the range checks even when a day failed its own
+ * check, so an impossible day counts as no span and only its own issue is reported.
+ */
+function span({ start, end }: { start: string; end: string }): number {
+  const from = calendarDay(start)
+  const to = calendarDay(end)
+  return from && to ? to.compare(from) : 0
+}
 
 /** The UTC days the dashboard asks about, both included. */
 export const MetricsQuerySchema = v.pipe(
   v.object({ start: IsoDay, end: IsoDay }),
-  v.check(({ start, end }) => start <= end, 'The range ends before it starts.'),
-  v.check(
-    ({ start, end }) => (Date.parse(end) - Date.parse(start)) / DAY_MS < MAX_METRICS_RANGE_DAYS,
-    'The range is too long.'
-  )
+  v.check((range) => span(range) >= 0, 'The range ends before it starts.'),
+  v.check((range) => span(range) < MAX_METRICS_RANGE_DAYS, 'The range is too long.')
 )
 
 export type MetricsQuery = v.InferOutput<typeof MetricsQuerySchema>

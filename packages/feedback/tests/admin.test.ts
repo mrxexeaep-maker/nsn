@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:tes
 
 import { createTestService, type TestService } from '#feedback-tests/harness'
 import type { MetricsSnapshot } from '#feedback/contract'
+import { createFeedbackDatabase } from '#feedback/db'
 import { exportJWK, generateKeyPair, SignJWT, type CryptoKey } from 'jose'
 
 let service: TestService
@@ -13,16 +14,16 @@ const AUDIENCE = 'admin-audience'
 const POSTHOG_QUERY = 'https://eu.posthog.com/api/projects/267806/query/'
 const NOW = new Date('2026-10-20T12:00:00.000Z')
 const TABLES = [
-  'usage_pings',
+  'usagePings',
   'waitlist',
-  'github_stars',
-  'release_downloads',
-  'repo_traffic',
-  'repo_referrers',
-  'site_visits',
-  'site_pages',
-  'site_countries'
-]
+  'githubStars',
+  'releaseDownloads',
+  'repoTraffic',
+  'repoReferrers',
+  'siteVisits',
+  'sitePages',
+  'siteCountries'
+] as const
 
 /** An Access token as Cloudflare would issue it, signed with `key`. */
 function accessToken(key: CryptoKey, claims: { aud?: string; iss?: string } = {}) {
@@ -52,11 +53,28 @@ async function snapshot(start = '2026-10-14', end = '2026-10-20'): Promise<Metri
   return response.json()
 }
 
-function run(sqlText: string, ...values: unknown[]) {
-  return service.db
-    .prepare(sqlText)
-    .bind(...values)
-    .run()
+/** The service's D1 through the same typed Kysely the Worker uses. */
+const database = () => createFeedbackDatabase(service.db)
+
+/** A day's pings from one build, as the ping route counts them. */
+function ping(
+  day: string,
+  build: { version?: string; platform: string; arch?: string; app: string; browser?: string },
+  count: number
+) {
+  return database()
+    .insertInto('usagePings')
+    .values({
+      day,
+      version: build.version ?? '0.16.0',
+      platform: build.platform,
+      arch: build.arch ?? 'arm64',
+      app: build.app,
+      browser: build.browser ?? 'unknown',
+      usageStats: 'unset',
+      count
+    })
+    .execute()
 }
 
 /** PostHog answers the usage query, then the retention query. */
@@ -96,7 +114,7 @@ beforeAll(async () => {
 })
 
 beforeEach(async () => {
-  await service.db.batch(TABLES.map((table) => service.db.prepare(`DELETE FROM ${table}`)))
+  for (const table of TABLES) await database().deleteFrom(table).execute()
   service.setNow(NOW)
   answerPostHog()
 })
@@ -158,11 +176,11 @@ describe('admin access', () => {
 
 describe('metrics snapshot API', () => {
   test('daily active installs cover every day, with no pings counting as zero', async () => {
-    await run(
-      "INSERT INTO usage_pings VALUES ('2026-10-15', '0.16.0', 'macos', 'arm64', 'desktop', 'unknown', 'unset', 400)"
-    )
-    await run(
-      "INSERT INTO usage_pings VALUES ('2026-10-15', '0.16.0', 'windows', 'x64', 'web', 'chrome', 'unset', 300)"
+    await ping('2026-10-15', { platform: 'macos', app: 'desktop' }, 400)
+    await ping(
+      '2026-10-15',
+      { platform: 'windows', arch: 'x64', app: 'web', browser: 'chrome' },
+      300
     )
     const { dailyActive } = await snapshot('2026-10-14', '2026-10-16')
     expect(dailyActive).toEqual([
@@ -186,17 +204,7 @@ describe('metrics snapshot API', () => {
       ['2026-10-14', '0.16.0-beta.2', 9],
       ['2026-10-15', '0.0.0-smoke', 1]
     ] as const)
-      await run(
-        'INSERT INTO usage_pings VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        day,
-        version,
-        'macos',
-        'arm64',
-        'desktop',
-        'unknown',
-        'unset',
-        count
-      )
+      await ping(day, { version, platform: 'macos', app: 'desktop' }, count)
     const { versions, releases } = await snapshot('2026-10-14', '2026-10-15')
     expect(versions.latest).toBe('0.16.0')
     expect(versions.daily).toEqual([
@@ -210,15 +218,9 @@ describe('metrics snapshot API', () => {
   })
 
   test('platforms add desktop and web per OS, largest first', async () => {
-    await run(
-      "INSERT INTO usage_pings VALUES ('2026-10-15', '0.16.0', 'linux', 'x64', 'web', 'firefox', 'unset', 5)"
-    )
-    await run(
-      "INSERT INTO usage_pings VALUES ('2026-10-15', '0.16.0', 'macos', 'arm64', 'desktop', 'unknown', 'unset', 9)"
-    )
-    await run(
-      "INSERT INTO usage_pings VALUES ('2026-10-16', '0.16.0', 'macos', 'arm64', 'web', 'safari', 'unset', 3)"
-    )
+    await ping('2026-10-15', { platform: 'linux', arch: 'x64', app: 'web', browser: 'firefox' }, 5)
+    await ping('2026-10-15', { platform: 'macos', app: 'desktop' }, 9)
+    await ping('2026-10-16', { platform: 'macos', app: 'web', browser: 'safari' }, 3)
     expect((await snapshot()).platforms).toEqual([
       { os: 'macos', desktop: 9, web: 3 },
       { os: 'linux', desktop: 0, web: 5 }
@@ -226,13 +228,25 @@ describe('metrics snapshot API', () => {
   })
 
   test('downloads and stars grow by the difference between end-of-day totals', async () => {
-    await run(
-      "INSERT INTO github_stars VALUES ('2026-10-13', 9000, 900), ('2026-10-14', 9030, 905), ('2026-10-15', 9068, 910)"
-    )
-    await run(`INSERT INTO release_downloads VALUES
-      ('2026-10-13', 'v0.15.1', 'windows-installer', 2000), ('2026-10-13', 'v0.15.1', 'update-check', 15000),
-      ('2026-10-14', 'v0.15.1', 'windows-installer', 2010), ('2026-10-14', 'v0.16.0', 'macos-installer', 100),
-      ('2026-10-14', 'v0.16.0', 'update-check', 1110), ('2026-10-14', 'v0.15.1', 'update-check', 15400)`)
+    await database()
+      .insertInto('githubStars')
+      .values([
+        { day: '2026-10-13', stars: 9000, forks: 900 },
+        { day: '2026-10-14', stars: 9030, forks: 905 },
+        { day: '2026-10-15', stars: 9068, forks: 910 }
+      ])
+      .execute()
+    await database()
+      .insertInto('releaseDownloads')
+      .values([
+        { day: '2026-10-13', tag: 'v0.15.1', kind: 'windows-installer', downloads: 2000 },
+        { day: '2026-10-13', tag: 'v0.15.1', kind: 'update-check', downloads: 15000 },
+        { day: '2026-10-14', tag: 'v0.15.1', kind: 'windows-installer', downloads: 2010 },
+        { day: '2026-10-14', tag: 'v0.16.0', kind: 'macos-installer', downloads: 100 },
+        { day: '2026-10-14', tag: 'v0.16.0', kind: 'update-check', downloads: 1110 },
+        { day: '2026-10-14', tag: 'v0.15.1', kind: 'update-check', downloads: 15400 }
+      ])
+      .execute()
     const { github } = await snapshot('2026-10-14', '2026-10-15')
     expect(github.stars).toEqual({
       total: 9068,
@@ -251,15 +265,28 @@ describe('metrics snapshot API', () => {
   })
 
   test('visits pivot to the website and the web app, and rankings add up the range', async () => {
-    await run(
-      "INSERT INTO site_visits VALUES ('2026-10-14', 'openpencil.dev', 3884), ('2026-10-14', 'app.openpencil.dev', 729)"
-    )
-    await run(
-      "INSERT INTO site_pages VALUES ('2026-10-14', '/', 900), ('2026-10-15', '/', 1000), ('2026-10-15', '/download', 80)"
-    )
-    await run(
-      "INSERT INTO site_countries VALUES ('2026-10-14', 'US', 800), ('2026-10-15', 'CN', 200)"
-    )
+    await database()
+      .insertInto('siteVisits')
+      .values([
+        { day: '2026-10-14', host: 'openpencil.dev', visits: 3884 },
+        { day: '2026-10-14', host: 'app.openpencil.dev', visits: 729 }
+      ])
+      .execute()
+    await database()
+      .insertInto('sitePages')
+      .values([
+        { day: '2026-10-14', path: '/', visits: 900 },
+        { day: '2026-10-15', path: '/', visits: 1000 },
+        { day: '2026-10-15', path: '/download', visits: 80 }
+      ])
+      .execute()
+    await database()
+      .insertInto('siteCountries')
+      .values([
+        { day: '2026-10-14', country: 'US', visits: 800 },
+        { day: '2026-10-15', country: 'CN', visits: 200 }
+      ])
+      .execute()
     const result = await snapshot('2026-10-14', '2026-10-15')
     expect(result.visits).toEqual([
       { day: '2026-10-14', site: 3884, app: 729 },
@@ -278,9 +305,29 @@ describe('metrics snapshot API', () => {
   })
 
   test('the waitlist shows email domains only', async () => {
-    await run(`INSERT INTO waitlist (email, email_key, note, token, created_at, confirmation_sent_at, confirmed_at) VALUES
-      ('Ada@Example.com', 'ada@example.com', NULL, 't1', '2026-10-15T08:00:00.000Z', '2026-10-15T08:00:00.000Z', '2026-10-15T08:01:00.000Z'),
-      ('bob@studio.io', 'bob@studio.io', 'note', 't2', '2026-10-01T08:00:00.000Z', '2026-10-01T08:00:00.000Z', NULL)`)
+    await database()
+      .insertInto('waitlist')
+      .values([
+        {
+          email: 'Ada@Example.com',
+          emailKey: 'ada@example.com',
+          note: null,
+          token: 't1',
+          createdAt: '2026-10-15T08:00:00.000Z',
+          confirmationSentAt: '2026-10-15T08:00:00.000Z',
+          confirmedAt: '2026-10-15T08:01:00.000Z'
+        },
+        {
+          email: 'bob@studio.io',
+          emailKey: 'bob@studio.io',
+          note: 'note',
+          token: 't2',
+          createdAt: '2026-10-01T08:00:00.000Z',
+          confirmationSentAt: '2026-10-01T08:00:00.000Z',
+          confirmedAt: null
+        }
+      ])
+      .execute()
     const { waitlist } = await snapshot()
     expect(waitlist).toEqual({
       total: 2,
