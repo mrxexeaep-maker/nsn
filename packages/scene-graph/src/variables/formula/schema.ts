@@ -14,38 +14,41 @@ import { MAX_FORMULA_DEPTH } from './tree'
 type NodeSchema = v.GenericSchema<unknown, VariableFormulaNode>
 
 const finiteNumber = v.pipe(v.number(), v.finite())
-const literal = v.union([
-  finiteNumber,
-  v.boolean(),
-  v.string(),
-  variableAliasSchema,
-  v.object({ r: finiteNumber, g: finiteNumber, b: finiteNumber, a: finiteNumber })
-])
+const boolean = v.boolean()
+const string = v.string()
+const color = v.object({ r: finiteNumber, g: finiteNumber, b: finiteNumber, a: finiteNumber })
 
-/** A bounded recursive schema rejects excessively deep data before traversing it. */
+/**
+ * A bounded recursive schema rejects excessively deep data before traversing it. Each node's
+ * schema is picked by its shape rather than tried in turn, which would build an issue for
+ * every literal kind an operation is not.
+ */
 function nodeSchema(depth: number, cache: Map<number, NodeSchema>): NodeSchema {
   const cached = cache.get(depth)
   if (cached) return cached
-  const schema: NodeSchema =
-    depth === 0
-      ? literal
-      : v.union([
-          literal,
-          v.pipe(
-            v.object({
-              operator: v.picklist(VARIABLE_FORMULA_OPERATORS),
-              operands: v.pipe(
-                v.array(nodeSchema(depth - 1, cache)),
-                v.minLength(1),
-                v.maxLength(3)
-              )
-            }),
-            v.check(
-              (node) => node.operands.length === formulaArity(node.operator),
-              'Wrong number of operands'
-            )
+  const operation =
+    depth > 0
+      ? v.pipe(
+          v.object({
+            operator: v.picklist(VARIABLE_FORMULA_OPERATORS),
+            operands: v.pipe(v.array(nodeSchema(depth - 1, cache)), v.minLength(1), v.maxLength(3))
+          }),
+          v.check(
+            (node) => node.operands.length === formulaArity(node.operator),
+            'Wrong number of operands'
           )
-        ])
+        )
+      : undefined
+  const schema: NodeSchema = v.lazy((input) => {
+    if (typeof input === 'number') return finiteNumber
+    if (typeof input === 'boolean') return boolean
+    if (typeof input === 'string') return string
+    if (typeof input === 'object' && input !== null && 'operator' in input && operation)
+      return operation
+    if (typeof input === 'object' && input !== null && 'aliasId' in input)
+      return variableAliasSchema
+    return color
+  })
   cache.set(depth, schema)
   return schema
 }

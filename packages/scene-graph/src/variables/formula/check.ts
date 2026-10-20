@@ -19,13 +19,27 @@ export function formulaResultTypes(
   operator: VariableFormulaOperator,
   types: readonly (FormulaValueType | undefined)[]
 ): FormulaValueType[] {
-  if (types.length !== formulaArity(operator)) return []
-  const results = formulaOverloads(operator)
-    .filter(({ operands }) =>
-      operands.every((type, index) => types[index] === undefined || types[index] === type)
-    )
-    .map(({ result }) => result)
-  return [...new Set(results)]
+  const results: FormulaValueType[] = []
+  if (types.length !== formulaArity(operator)) return results
+  for (const { operands, result } of formulaOverloads(operator)) {
+    let fits = true
+    for (let index = 0; fits && index < operands.length; index++)
+      fits = types[index] === undefined || types[index] === operands[index]
+    if (fits && !results.includes(result)) results.push(result)
+  }
+  return results
+}
+
+/** The first overload whose operand types are `types`, checked on every operation evaluated. */
+function matchingOverload(operator: VariableFormulaOperator, types: readonly FormulaValueType[]) {
+  for (const overload of formulaOverloads(operator)) {
+    const { operands } = overload
+    let fits = operands.length === types.length
+    for (let index = 0; fits && index < operands.length; index++)
+      fits = operands[index] === types[index]
+    if (fits) return overload
+  }
+  return undefined
 }
 
 /** Check operand types against an operator's signatures; the message says what it needs. */
@@ -33,6 +47,8 @@ export function checkFormulaOperands(
   operator: VariableFormulaOperator,
   types: readonly FormulaValueType[]
 ): FormulaValueType {
+  const match = matchingOverload(operator, types)
+  if (match) return match.result
   const arity = formulaArity(operator)
   const { name, needs } = formulaNeeds(operator)
   if (types.length !== arity) {
@@ -40,9 +56,7 @@ export function checkFormulaOperands(
       throw new VariableFormulaError(`Wrong number of operands for ${operator}`)
     throw new VariableFormulaError(`${name} takes ${arity} ${arity === 1 ? 'value' : 'values'}`)
   }
-  const result = formulaResultTypes(operator, types).at(0)
-  if (!result) throw new VariableFormulaError(`${name} ${needs}`)
-  return result
+  throw new VariableFormulaError(`${name} ${needs}`)
 }
 
 function isColor(value: object): value is Color {
