@@ -5,7 +5,13 @@ import { shallowRef } from 'vue'
 
 import { FigmaAPI } from '@open-pencil/core/figma-api'
 import { ALL_TOOLS } from '@open-pencil/core/tools'
-import { readComments, writeComments, type CommentThread } from '@open-pencil/scene-graph'
+import {
+  COMMENT_SORTS,
+  listCommentThreads,
+  readComments,
+  writeComments,
+  type CommentThread
+} from '@open-pencil/scene-graph'
 
 import { executeWithDocumentUndo } from '@/app/automation/execution/editor'
 import { openDocumentRoom, roomForStore, leaveRoom } from '@/app/collab/rooms'
@@ -171,9 +177,20 @@ test('a comment is signed by who the tab is in its room, and “Only mine” fol
     color
   })
   try {
+    // Someone else's thread first, then this tab's own.
+    writeComments(store.graph, [thread('theirs', store.state.currentPageId)])
     const added = comment(store, 10, 10, 'from the account')
     expect(added).toMatchObject({ author: 'Grace Hopper', authorColor: color })
-    expect(useComments().author.value).toBe('Grace Hopper')
+    const mine = listCommentThreads(useComments().threads.value, {
+      query: '',
+      showResolved: true,
+      onlyPage: false,
+      pageId: store.state.currentPageId,
+      onlyMine: true,
+      author: useComments().author.value,
+      sort: COMMENT_SORTS[0]
+    })
+    expect(ids(mine)).toEqual([added.id])
   } finally {
     const room = roomForStore(store)
     if (room) leaveRoom(room)
