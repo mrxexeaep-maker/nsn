@@ -69,4 +69,34 @@ describe('a Cloud document’s sharing', () => {
     expect(sharing.inviting.value).toBe(false)
     expect(sharing.sharing.value).toMatchObject({ canManage: false })
   })
+
+  test('shows the members and access when the link cannot be read, leaving the link empty', async () => {
+    let shareReads = 0
+    const target = document('doc', {
+      getDocumentAccess: async () => asDouble<Access>({ canManageSharing: true }),
+      listDocumentGrants: async () => [],
+      listDocumentInvitations: async () => [],
+      listDocumentShares: async () => {
+        shareReads += 1
+        if (shareReads > 1) throw new Error('Offline')
+        return asDouble<Awaited<ReturnType<CloudAPIClient['listDocumentShares']>>>([
+          { id: 'share', permission: 'view', revokedAt: null }
+        ])
+      }
+    })
+    const sharing = useCloudSharing(target)
+    expect(await sharing.refresh()).toBe(false)
+    expect(sharing.sharing.value).toMatchObject({ canManage: true, link: { access: 'link' } })
+    expect(sharing.linkURL.value).toBeNull()
+  })
+
+  test('says a change failed when what it left cannot be read', async () => {
+    const target = document('doc', {
+      createDocumentInvitation: async () => asDouble({}),
+      getDocumentAccess: () => Promise.reject(new Error('Offline'))
+    })
+    const sharing = useCloudSharing(target)
+    expect(await sharing.invite('ada@example.com', 'view')).toBe(false)
+    expect(sharing.linkURL.value).toBeNull()
+  })
 })

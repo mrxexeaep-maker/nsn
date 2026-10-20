@@ -46,37 +46,53 @@ export function useCloudSharing(target: MaybeRefOrGetter<ShareTarget | null>) {
     }
   )
 
-  /** Reads the document's sharing; false when it could not be read. */
+  /**
+   * Reads the document's sharing, then its link; false when either could not be read. Members and
+   * access show even when the link does not, which then stays empty rather than out of date.
+   */
   async function refresh(): Promise<boolean> {
     const current = toValue(target)
     if (!current) return true
     const read = ++latestRead
     const still = () => read === latestRead && identityOf(toValue(target)) === identityOf(current)
+    let next: CloudSharing
     try {
-      const next = await readCloudSharing(current)
-      const url = next.link.access === 'link' ? await cloudLinkURL(current) : null
-      if (still()) {
-        sharing.value = next
-        linkURL.value = url
-      }
+      next = await readCloudSharing(current)
+    } catch {
+      return !still()
+    }
+    if (!still()) return true
+    sharing.value = next
+    if (next.link.access !== 'link') {
+      linkURL.value = null
+      return true
+    }
+    try {
+      const url = await cloudLinkURL(current)
+      if (still()) linkURL.value = url
       return true
     } catch {
-      return read !== latestRead
+      if (still()) linkURL.value = null
+      return !still()
     }
   }
 
-  /** Runs a change on the server and reads what it left; false when the change failed. */
+  /**
+   * Runs a change on the server and reads what it left; false when the change failed or what it
+   * left could not be read. The link is dropped first, since a change such as a reset retires it.
+   */
   async function change(run: (current: ShareTarget) => Promise<void>): Promise<boolean> {
     const current = toValue(target)
     if (!current) return true
+    linkURL.value = null
     let changed = true
     try {
       await run(current)
     } catch {
       changed = false
     }
-    await refresh()
-    return changed
+    const read = await refresh()
+    return changed && read
   }
 
   async function invite(email: string, permission: DocumentPermission): Promise<boolean> {
