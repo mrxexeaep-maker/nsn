@@ -1,8 +1,8 @@
-import { afterAll, describe, test } from 'bun:test'
+import { afterAll, describe, expect, test } from 'bun:test'
 
 import { SkiaRenderer } from '@open-pencil/core'
-import { initCanvasKit } from '@open-pencil/core/io'
-import type { SceneGraph, SceneNode, Stroke } from '@open-pencil/scene-graph'
+import { initCanvasKit, renderNodesToImage } from '@open-pencil/core/io'
+import { SceneGraph, type SceneNode, type Stroke } from '@open-pencil/scene-graph'
 
 import { expectDefined } from '#core-tests/helpers/assert'
 import { expectFigmaRow, renderRow } from '#core-tests/helpers/figma-rows'
@@ -96,5 +96,22 @@ describe('dashes with caps, joins, and smoothed corners, as in Figma', () => {
   test('dash each curve of a smoothed corner on its own', () => {
     const smoothed = { width: 170, height: 100, cornerRadius: 25, cornerSmoothing: 0.6 }
     expectFigmaRow(row(smoothed, 66, 112, 170), FIGMA.smoothed)
+  })
+
+  test('redraw the dashes when the layer is resized', () => {
+    const graph = new SceneGraph()
+    const page = graph.getPages()[0].id
+    dashedRect({ strokeCap: 'ROUND' })(graph, page)
+    const [id] = expectDefined(graph.getNode(page)).childIds
+    const draw = (target: SkiaRenderer) =>
+      renderNodesToImage(ck, target, graph, page, [id], { scale: 1, format: 'PNG' })
+    draw(renderer)
+    graph.updateNode(id, { width: 170 })
+    const fresh = new SkiaRenderer(ck, expectDefined(ck.MakeSurface(1, 1)))
+    try {
+      expect(draw(renderer)).toEqual(draw(fresh))
+    } finally {
+      fresh.destroy()
+    }
   })
 })

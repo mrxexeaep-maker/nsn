@@ -31,7 +31,12 @@ export function drawOutlinedDashes(
 ): void {
   const cap = stroke.cap ?? node.strokeCap
   const join = stroke.join ?? node.strokeJoin
-  const key = `${node.id}|outlined-dashes|${stroke.align}|${stroke.weight}|${cap}|${join}|${pattern.join(',')}`
+  // Geometry changes do not all clear a node's paths, so the key carries what shapes the dashes.
+  const corners = node.independentCorners
+    ? `${node.topLeftRadius},${node.topRightRadius},${node.bottomRightRadius},${node.bottomLeftRadius}`
+    : `${node.cornerRadius}`
+  const shape = `${node.width}x${node.height}|${corners}|${node.cornerSmoothing}|${node.strokeMiterLimit}`
+  const key = `${node.id}|outlined-dashes|${shape}|${stroke.align}|${stroke.weight}|${cap}|${join}|${pattern.join(',')}`
   let dashes = r.nodePaths.strokeOutline.get(key)
   const edge = edgePath(r, node)
   try {
