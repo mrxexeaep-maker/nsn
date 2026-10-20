@@ -1,28 +1,29 @@
 import { fromUint8Array, isValid, toUint8Array } from 'js-base64'
 
-import type {
-  GroupFitOptions,
-  SceneGraph,
-  SceneNode as CoreSceneNode,
-  NodeType,
-  Variable,
-  VariableCollection,
-  VariableType,
-  VariableValue
+import {
+  createConnector,
+  freeEndpoint,
+  updateTokenExpression,
+  type GroupFitOptions,
+  type SceneGraph,
+  type SceneNode as CoreSceneNode,
+  type NodeType,
+  type Variable,
+  type VariableCollection,
+  type VariableType,
+  type VariableValue
 } from '@open-pencil/scene-graph'
-import { copyFills } from '@open-pencil/scene-graph/copy'
 import { computeBounds } from '@open-pencil/scene-graph/geometry'
 import { computeImageHash } from '@open-pencil/scene-graph/images'
 import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
 
 import type { SkiaRenderer } from '#core/canvas'
-import { canMakeBooleanSourceNode, groupFitOptions } from '#core/canvas/boolean'
-import { flattenNodesToVectorProps } from '#core/canvas/flatten'
+import { groupFitOptions } from '#core/canvas/boolean'
 import { IS_BROWSER, type InterfaceTheme } from '#core/constants'
 import { newLayerDefaults } from '#core/editor/shapes/defaults'
 import { booleanOperationPaints, createBooleanOperation } from '#core/editor/structure/boolean'
 import { wrapNodes } from '#core/editor/structure/container-wrap'
-import { ungroupNode } from '#core/editor/structure/group'
+import { ungroupNode } from '#core/editor/structure/group/ungroup'
 import { setDefaultPageBackground } from '#core/figma-api/page-backgrounds'
 import { iconify, type IconProvider } from '#core/icons'
 import type { RasterCodec } from '#core/io/formats/raster'
@@ -33,10 +34,12 @@ import { documentFontStatus, type DocumentFontStatus } from '#core/text/font/sta
 import { fontManager } from '#core/text/fonts'
 
 import { combineComponentsAsVariants, componentFromNode, exposeInstanceSwap } from './components'
+import { flattenSceneNodes } from './flatten'
 import type {
   FigmaBooleanOperationNode,
   FigmaComponentNode,
   FigmaComponentSetNode,
+  FigmaConnectorNode,
   FigmaEllipseNode,
   FigmaFrameNode,
   FigmaGroupNode,
@@ -70,6 +73,7 @@ export type {
   FigmaBooleanOperationNode,
   FigmaComponentNode,
   FigmaComponentSetNode,
+  FigmaConnectorNode,
   FigmaEllipseNode,
   FigmaFrameNode,
   FigmaGroupNode,
@@ -227,6 +231,20 @@ export class FigmaAPI implements NodeProxyHost {
     return this.wrapNode(node.id) as FigmaFrameNode
   }
 
+  /**
+   * A connector as Figma's plugin API makes one: "Connector line", free from the page origin to
+   * 200 px right of it, with no start cap and an arrow at the end.
+   */
+  createConnector(): FigmaConnectorNode {
+    const node = createConnector(this.graph, this._currentPageId, {
+      start: freeEndpoint(0, 0),
+      end: freeEndpoint(200, 0),
+      startCap: 'NONE',
+      endCap: 'ARROW_LINES'
+    })
+    return this.wrapNode(node.id) as FigmaConnectorNode
+  }
+
   createComponent(): FigmaComponentNode {
     return this._createNode('COMPONENT') as FigmaComponentNode
   }
@@ -350,6 +368,7 @@ export class FigmaAPI implements NodeProxyHost {
     const variable = this.graph.variables.get(variableId)
     if (!variable) throw new Error(`Variable "${variableId}" not found`)
     variable.valuesByMode[modeId] = structuredClone(value)
+    updateTokenExpression(variable, modeId, value)
     reconcileVariableLayouts(this.graph, { variables: [variableId] })
   }
 
@@ -472,38 +491,12 @@ export class FigmaAPI implements NodeProxyHost {
       if (!raw) throw new Error('Node not found')
       sourceNodes.push(raw)
     }
-    const vector = this._renderer
-      ? this._flattenWithRenderer(sourceNodes, parentId)
-      : this._flattenPlaceholder(sourceNodes, parentId)
+    const vector = flattenSceneNodes(this.graph, this._renderer, sourceNodes, parentId)
     if (index != null) this.graph.reorderChild(vector.id, parentId, index)
     for (const node of nodes) {
       this.graph.deleteNode(this._nodeId(node))
     }
     return this.wrapNode(vector.id) as FigmaVectorNode
-  }
-
-  private _flattenPlaceholder(nodes: CoreSceneNode[], parentId: string): CoreSceneNode {
-    const first = nodes[0]
-    return this.graph.createNode('VECTOR', parentId, {
-      name: 'Flatten',
-      x: first.x,
-      y: first.y,
-      width: first.width,
-      height: first.height,
-      fills: copyFills(first.fills)
-    })
-  }
-
-  private _flattenWithRenderer(nodes: CoreSceneNode[], parentId: string): CoreSceneNode {
-    const renderer = this._renderer
-    if (!renderer) return this._flattenPlaceholder(nodes, parentId)
-    if (nodes.some((node) => !canMakeBooleanSourceNode(node, this.graph))) {
-      throw new Error('Cannot flatten unsupported node type')
-    }
-
-    const vectorProps = flattenNodesToVectorProps(renderer, this.graph, nodes)
-    if (!vectorProps) throw new Error('Cannot flatten empty node path')
-    return this.graph.createNode('VECTOR', parentId, vectorProps)
   }
 
   flattenNode(nodeIds: string[]): FigmaVectorNode {

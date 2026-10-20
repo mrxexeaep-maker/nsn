@@ -1,6 +1,7 @@
 import type { Ref } from 'vue'
 
 import { opacityFromBuffer } from '@open-pencil/core/editor'
+import { generatedFrameText } from '@open-pencil/scene-graph'
 import type { useEditorCommands, useViewportKind } from '@open-pencil/vue'
 
 import type { PropertiesTab } from '@/app/ai/chat/use'
@@ -26,6 +27,7 @@ export function createKeyboardActions({
     return (
       store.state.nodeEditState &&
       (store.state.nodeEditState.selectedVertexIndices.size > 0 ||
+        store.state.nodeEditState.selectedSegmentIndices.size > 0 ||
         store.state.nodeEditState.selectedHandles.size > 0)
     )
   }
@@ -54,13 +56,18 @@ export function createKeyboardActions({
       store.enterNodeEditMode(node.id)
       return
     }
-    if (node?.type === 'TEXT') {
+    // A sticky note opens its body and a connector its label, all of it selected, keeping the
+    // note or connector selected.
+    const text = (node && generatedFrameText(store.graph, node)) ?? node
+    if (text?.type === 'TEXT') {
       requestAnimationFrame(() => {
-        store.startTextEditing(node.id)
+        store.startTextEditing(text.id)
         store.textEditor?.selectAll()
         store.requestRender()
       })
+      return
     }
+    runCommand('selection.selectChildren')
   }
 
   function escapeOrDeselect() {
@@ -74,6 +81,10 @@ export function createKeyboardActions({
     }
     if (store.state.nodeEditState) {
       store.exitNodeEditMode(true)
+      return
+    }
+    if (store.state.pencilState) {
+      store.pencilCancel()
       return
     }
     // Figma keeps the path drawn so far; a lone point has nothing to keep.

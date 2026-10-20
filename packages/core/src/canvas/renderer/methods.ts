@@ -16,9 +16,10 @@ import type { SkiaRenderer } from '#core/canvas/renderer'
 import type { PresenceCursor, RenderOverlays } from '#core/canvas/renderer/types'
 import * as Rulers from '#core/canvas/rulers'
 import * as SceneRender from '#core/canvas/scene'
-import { renderEffects as renderShadowEffects } from '#core/canvas/shadows'
+import { type EffectPass, renderEffects as renderShadowEffects } from '#core/canvas/shadows'
 import * as Shapes from '#core/canvas/shapes'
 import * as Strokes from '#core/canvas/strokes'
+import { drawIndividualSideStrokes } from '#core/canvas/strokes/sides'
 import type { TextEditor } from '#core/text/editor'
 
 const rendererMethods: ThisType<SkiaRenderer> = {
@@ -117,6 +118,10 @@ const rendererMethods: ThisType<SkiaRenderer> = {
     Overlays.drawSnapGuides(this, canvas, guides)
   },
 
+  drawSnapMarks(canvas: Canvas, guides?: SnapGuide[]): void {
+    Overlays.drawSnapMarks(this, canvas, guides)
+  },
+
   drawMarquee(canvas: Canvas, marquee?: Rect | null): void {
     Overlays.drawMarquee(this, canvas, marquee)
   },
@@ -160,6 +165,10 @@ const rendererMethods: ThisType<SkiaRenderer> = {
 
   drawPenOverlay(canvas: Canvas, penState: RenderOverlays['penState']): void {
     PenOverlay.drawPenOverlay(this, canvas, penState)
+  },
+
+  drawPencilOverlay(canvas: Canvas, pencilState: RenderOverlays['pencilState']): void {
+    PenOverlay.drawPencilOverlay(this, canvas, pencilState)
   },
 
   drawPresenceCursors(canvas: Canvas, graph: SceneGraph, cursors?: PresenceCursor[]): void {
@@ -238,15 +247,19 @@ const rendererMethods: ThisType<SkiaRenderer> = {
     SceneRender.renderShapeUncached(this, canvas, node, graph)
   },
 
+  paintShapeContent(canvas: Canvas, node: SceneNode, graph: SceneGraph): void {
+    SceneRender.paintShapeContent(this, canvas, node, graph)
+  },
+
   renderEffects(
     canvas: Canvas,
     node: SceneNode,
+    graph: SceneGraph,
     rect: Float32Array,
     hasRadius: boolean,
-    pass: 'behind' | 'front',
-    shadowShapeChild?: SceneNode | null
+    pass: EffectPass
   ): void {
-    renderShadowEffects(this, canvas, node, rect, hasRadius, pass, shadowShapeChild)
+    renderShadowEffects(this, canvas, node, graph, rect, hasRadius, pass)
   },
 
   renderText(canvas: Canvas, node: SceneNode, fill?: Fill): void {
@@ -302,12 +315,8 @@ const rendererMethods: ThisType<SkiaRenderer> = {
     Strokes.drawRRectStrokeWithAlign(this, canvas, rrect, node, stroke)
   },
 
-  drawIndividualSideStrokes(
-    canvas: Canvas,
-    node: SceneNode,
-    align: 'INSIDE' | 'CENTER' | 'OUTSIDE'
-  ): void {
-    Strokes.drawIndividualSideStrokes(this, canvas, node, align)
+  drawIndividualSideStrokes(canvas: Canvas, node: SceneNode, stroke: Stroke): void {
+    drawIndividualSideStrokes(this, canvas, node, stroke)
   },
 
   strokeNodeShape(canvas: Canvas, node: SceneNode, paint: Paint): void {

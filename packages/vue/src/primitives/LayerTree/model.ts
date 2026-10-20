@@ -1,8 +1,9 @@
 import { isEqual } from 'es-toolkit'
 
 import { vectorIconPath } from '@open-pencil/core/vector'
-import { readIcon, slotPropertyId } from '@open-pencil/scene-graph'
+import { isGeneratedFrame, readIcon, slotPropertyId } from '@open-pencil/scene-graph'
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import type { ShapeWithTextType } from '@open-pencil/scene-graph/shape-with-text'
 
 import type { LayerNode, LayerRow, LayerSelectionMode } from '#vue/primitives/LayerTree/context'
 
@@ -17,6 +18,10 @@ function layerIconPath(node: SceneNode): string | undefined {
   return vectorIconPath(node.vectorNetwork) ?? undefined
 }
 
+function shapeWithTextTypeOf(node: SceneNode): ShapeWithTextType | undefined {
+  return node.type === 'SHAPE_WITH_TEXT' ? node.shapeWithTextType : undefined
+}
+
 function nodeToLayerNode(node: SceneNode): LayerNode {
   return {
     id: node.id,
@@ -26,6 +31,7 @@ function nodeToLayerNode(node: SceneNode): LayerNode {
     slot: !!slotPropertyId(node),
     icon: !!readIcon(node),
     iconPath: layerIconPath(node),
+    shapeWithTextType: shapeWithTextTypeOf(node),
     visible: node.visible,
     locked: node.locked,
     modeIds: explicitModeIds(node)
@@ -49,7 +55,10 @@ export function buildLayerTreeModel(graph: SceneGraph, parentId: string): LayerT
       if (!sceneNode || sceneNode.internalOnly) continue
       const node = nodeToLayerNode(sceneNode)
       byId.set(node.id, node)
-      if (sceneNode.childIds.length > 0) node.children = buildChildren(node.id)
+      // A generated frame, such as a sticky note, is one layer; its template owns what is inside.
+      if (sceneNode.childIds.length > 0 && !isGeneratedFrame(sceneNode)) {
+        node.children = buildChildren(node.id)
+      }
       children.push(node)
     }
     return children
@@ -79,6 +88,7 @@ export function patchLayerNode(target: LayerNode, source: SceneNode): boolean {
     target.layoutMode !== source.layoutMode ||
     target.slot !== !!slotPropertyId(source) ||
     target.icon !== !!readIcon(source) ||
+    target.shapeWithTextType !== shapeWithTextTypeOf(source) ||
     target.visible !== source.visible ||
     target.locked !== source.locked ||
     !isEqual(target.modeIds, explicitModeIds(source))
@@ -89,6 +99,7 @@ export function patchLayerNode(target: LayerNode, source: SceneNode): boolean {
   target.slot = !!slotPropertyId(source)
   target.icon = !!readIcon(source)
   target.iconPath = iconPath
+  target.shapeWithTextType = shapeWithTextTypeOf(source)
   target.visible = source.visible
   target.locked = source.locked
   target.modeIds = explicitModeIds(source)

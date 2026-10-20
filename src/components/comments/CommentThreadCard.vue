@@ -12,6 +12,7 @@ import { useCommentMessages, useCommonMessages } from '@open-pencil/vue'
 
 import IconButton from '@/components/ui/button/IconButton.vue'
 import { useMenuUI } from '@/components/ui/menu/menu'
+import MenuScrollArea from '@/components/ui/menu/MenuScrollArea.vue'
 import PanelHeader from '@/components/ui/panel/PanelHeader.vue'
 import { comments } from '@/theme/comments'
 
@@ -65,7 +66,9 @@ defineExpose({ focus: () => composer.value?.focus() })
           </DropdownMenuTrigger>
           <DropdownMenuPortal>
             <DropdownMenuContent :class="menuCls.content" align="end" :side-offset="4">
-              <slot name="menu" />
+              <MenuScrollArea>
+                <slot name="menu" />
+              </MenuScrollArea>
             </DropdownMenuContent>
           </DropdownMenuPortal>
         </DropdownMenuRoot>

@@ -1,4 +1,5 @@
 <script lang="ts">
+import { clamp } from 'es-toolkit'
 import type { VNode } from 'vue'
 
 import type { ComponentUI } from '@/components/ui/types'
@@ -51,6 +52,7 @@ export interface AppPickerSlots {
   leading?(props: { item: AppPickerItem }): VNode[]
   /** A control at the end of the search field that narrows the list, such as a category. */
   'search-trailing'?(): VNode[]
+  trailing?(props: { item: AppPickerItem }): VNode[]
   /** Actions or details below the list; `highlighted` is the item under the pointer or keys. */
   footer?(props: { close: () => void; highlighted: AppPickerItem | null }): VNode[]
 }
@@ -98,7 +100,11 @@ const {
   align = 'start',
   ui
 } = defineProps<AppPickerProps>()
-const emit = defineEmits<{ select: [value: string]; loadMore: [] }>()
+const emit = defineEmits<{
+  select: [value: string]
+  loadMore: []
+  closeAutoFocus: [event: Event]
+}>()
 const slots = defineSlots<AppPickerSlots>()
 const open = defineModel<boolean>('open', { default: false })
 const { portalActive } = useRetainedPopup(open, () => close())
@@ -151,7 +157,7 @@ function moveRow(event: KeyboardEvent) {
   const current = highlighted.value?.value
   const index = matches.value.findIndex((item) => item.value === current)
   const target = index === -1 ? 0 : index + rows * APP_PICKER_GRID_COLUMNS
-  const next = matches.value[Math.min(Math.max(target, 0), matches.value.length - 1)]
+  const next = matches.value[clamp(target, 0, matches.value.length - 1)]
   if (next) listbox.value?.highlightItem(next.value)
 }
 
@@ -192,6 +198,7 @@ function select(value: AcceptableValue) {
         :aria-label="heading"
         :class="styles.content({ class: ui?.content })"
         @open-auto-focus.prevent
+        @close-auto-focus="emit('closeAutoFocus', $event)"
       >
         <div :class="styles.header({ class: ui?.header })">
           <h3 :class="styles.title({ class: ui?.title })">{{ heading }}</h3>
@@ -269,6 +276,7 @@ function select(value: AcceptableValue) {
                     {{ item.description }}
                   </span>
                 </span>
+                <slot name="trailing" :item="item" />
                 <icon-lucide-check
                   v-if="item.value === selected"
                   :class="styles.check({ class: ui?.check })"

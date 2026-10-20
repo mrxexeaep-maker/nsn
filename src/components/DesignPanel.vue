@@ -2,13 +2,13 @@
 import { computed } from 'vue'
 
 import { getNodeEditCapability } from '@open-pencil/core/editor'
-import { readIcon } from '@open-pencil/scene-graph'
+import { layerResizes, readIcon } from '@open-pencil/scene-graph'
 import { useI18n, useSceneComputed, useSelectionState, useEditorCommands } from '@open-pencil/vue'
 
 import { useEditorStore } from '@/app/editor/active-store'
-import { COMPONENT_TYPES, sceneNodeIcon } from '@/app/editor/icons'
 import { openVariablesDialog } from '@/app/editor/tokens/dialog'
 import { openLibraryReview, useLibraryService } from '@/app/libraries'
+import { COMPONENT_TYPES, sceneNodeIcon } from '@/components/icons'
 import IconButton from '@/components/ui/button/IconButton.vue'
 import Tip from '@/components/ui/overlay/Tip.vue'
 import PanelHeader from '@/components/ui/panel/PanelHeader.vue'
@@ -23,6 +23,7 @@ import PropertyBoundField from './properties/component-properties/PropertyBoundF
 import SlotAuthoringSection from './properties/component-properties/slot/SlotAuthoringSection.vue'
 import { usePropertyBinding } from './properties/component-properties/usePropertyBinding'
 import VariantAuthoringSection from './properties/component-properties/variant/VariantAuthoringSection.vue'
+import ConnectorSection from './properties/connector/ConnectorSection.vue'
 import ConstraintsSection from './properties/constraints/ConstraintsSection.vue'
 import EffectsSection from './properties/EffectsSection.vue'
 import ExportSection from './properties/ExportSection.vue'
@@ -40,6 +41,10 @@ import PositionSection from './properties/PositionSection.vue'
 import SelectionColorsSection from './properties/selection/SelectionColorsSection.vue'
 import SelectionLayoutSection from './properties/selection/SelectionLayoutSection.vue'
 import SelectionActionsControl from './properties/SelectionActionsControl.vue'
+import ShapeWithTextSection from './properties/shape-with-text/ShapeWithTextSection.vue'
+import StatusesSection from './properties/status/StatusesSection.vue'
+import StatusSection from './properties/status/StatusSection.vue'
+import StickySection from './properties/sticky/StickySection.vue'
 import StrokeSection from './properties/stroke/StrokeSection.vue'
 import TypographySection from './properties/TypographySection.vue'
 import VariablesSection from './properties/VariablesSection.vue'
@@ -111,6 +116,7 @@ const { panels } = useI18n()
         <SelectionActionsControl :show-boolean-operations="showBooleanOperations" />
       </template>
     </PanelHeader>
+    <StatusSection />
     <ComponentPropertiesSection />
     <PositionSection />
     <ConstraintsSection />
@@ -188,6 +194,7 @@ const { panels } = useI18n()
         </template>
       </PanelHeader>
 
+      <StatusSection />
       <ComponentPropertiesSection v-if="node.type === 'INSTANCE'" />
       <VariantAuthoringSection
         v-if="
@@ -206,15 +213,24 @@ const { panels } = useI18n()
       <FramePresetSelect v-if="node.type === 'FRAME' && !readIcon(node)" />
 
       <IconSection />
-      <PositionSection />
-      <ConstraintsSection />
-      <LayoutSection />
+      <StickySection />
+      <ShapeWithTextSection />
+      <ConnectorSection />
+      <!-- A connector is placed and shaped by its ends, and styled by its line. -->
+      <template v-if="node.type !== 'CONNECTOR'">
+        <PositionSection />
+        <ConstraintsSection />
+        <!-- A sticky note's size follows its text and its scale; Figma leaves W and H read-only. -->
+        <LayoutSection v-if="layerResizes(node)" />
+      </template>
       <AppearanceSection />
-      <MaskSection />
-      <TypographySection v-if="node.type === 'TEXT'" />
-      <FillSection />
-      <StrokeSection />
-      <EffectsSection />
+      <template v-if="node.type !== 'CONNECTOR'">
+        <MaskSection />
+        <TypographySection v-if="node.type === 'TEXT'" />
+        <FillSection />
+        <StrokeSection />
+        <EffectsSection />
+      </template>
       <SelectionColorsSection />
       <LayoutGridSection v-if="supportsLayoutGuides" />
 
@@ -229,6 +245,7 @@ const { panels } = useI18n()
   >
     <PageSection />
     <VariablesSection @open-dialog="openVariablesDialog(store)" />
+    <StatusesSection />
     <ExportSection />
   </div>
 </template>
