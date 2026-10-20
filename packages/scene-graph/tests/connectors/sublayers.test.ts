@@ -21,4 +21,13 @@ describe('connector line style', () => {
     const solid = connectorLineStyleFields(thick, { dashed: false })
     expect(solid).toMatchObject({ strokeWeight: 8, dashPattern: [] })
   })
+
+  test('a new colour alone keeps a dash of its own', () => {
+    const line = { strokes: [{ ...connectorStroke(), dashPattern: [6, 4] }] }
+    const red = connectorLineStyleFields(line, { color: { r: 1, g: 0, b: 0, a: 1 } })
+    expect(red.dashPattern).toEqual([6, 4])
+    expect(red.strokes?.[0]?.dashPattern).toEqual([6, 4])
+    // A new weight takes FigJam's dash for it.
+    expect(connectorLineStyleFields(line, { weight: 8 }).dashPattern).toEqual([40, 24])
+  })
 })

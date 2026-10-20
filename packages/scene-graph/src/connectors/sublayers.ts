@@ -38,8 +38,9 @@ export function connectorLineStyle(line: Pick<SceneNode, 'strokes'>): ConnectorL
 
 /**
  * A connector's line restyled by `style`, each part left out kept, as FigJam's colour and line
- * menus set it. The dash follows the weight, and goes on the stroke, which draws with it, and on
- * the line, which files keep.
+ * menus set it. A new weight or dash takes FigJam's dash for the weight, while a new colour alone
+ * keeps the dash the line has, even one of its own. The dash goes on the stroke, which draws with
+ * it, and on the line, which files keep.
  */
 export function connectorLineStyleFields(
   line: Pick<SceneNode, 'strokes'>,
@@ -49,8 +50,10 @@ export function connectorLineStyleFields(
   const color = style.color ?? current.color
   const weight = style.weight ?? current.weight
   const dashed = style.dashed ?? current.dashed
-  const dashPattern = dashed ? connectorDash(weight) : []
   const [stroke = connectorStroke()] = line.strokes
+  const restyled = style.weight !== undefined || style.dashed !== undefined
+  const kept = stroke.dashPattern?.length ? [...stroke.dashPattern] : connectorDash(weight)
+  const dashPattern = dashed ? (restyled ? connectorDash(weight) : kept) : []
   return {
     strokes: [{ ...stroke, color: { ...color }, weight, dashPattern: [...dashPattern] }],
     strokeWeight: weight,
