@@ -1,1 +1,1 @@
-The Stroke section offers per-side weights only on rectangles, frames, components, component sets, and instances, as Figma does.
+- The Stroke section offers per-side weights only on rectangles, frames, components, component sets, and instances, as Figma does.
