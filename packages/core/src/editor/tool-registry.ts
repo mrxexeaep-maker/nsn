@@ -40,5 +40,6 @@ export const TOOL_SHORTCUTS: Partial<Record<string, Tool>> = {
   KeyP: 'PEN',
   'Shift+KeyP': 'PENCIL',
   KeyH: 'HAND',
-  KeyC: 'COMMENT'
+  KeyC: 'COMMENT',
+  KeyI: 'EYEDROPPER'
 }

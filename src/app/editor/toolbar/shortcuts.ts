@@ -20,7 +20,8 @@ const TOOL_SHORTCUT_KEYS: Readonly<Record<Tool, string>> = {
   SHAPE_WITH_TEXT: '',
   CONNECTOR: '',
   HAND: 'H',
-  COMMENT: 'C'
+  COMMENT: 'C',
+  EYEDROPPER: 'I'
 }
 
 /** Each tool's key as the toolbar and Settings print it on this platform. */
