@@ -320,16 +320,16 @@ async function rejoinCloudRoom(store: EditorStore): Promise<void> {
 const ENDED: ReadonlySet<CloudSessionState> = new Set(['signed-out', 'expired', 'closed'])
 
 /**
- * Whether the tab's room was joined as someone the server no longer has signed in here: another
- * account now, or a session that ended. The connection keeps the account after signing out, so
- * its state decides that, and a passing check or outage changes nothing.
+ * Whether the tab's room was joined as someone the server no longer has signed in here: a session
+ * that ended, which can keep its account, or another account or none, as signing out leaves. A
+ * check in progress or an outage keeps the account, so it changes nothing.
  */
 function accountChanged(store: EditorStore): boolean {
   const joined = joinedAs.get(store)
   if (!joined) return false
   const connection = cloudConnection(joined.serverId)
-  if (connection.state === 'signed-in') return (connection.account?.id ?? null) !== joined.accountId
-  return ENDED.has(connection.state)
+  if (ENDED.has(connection.state)) return true
+  return (connection.account?.id ?? null) !== joined.accountId
 }
 
 /**
