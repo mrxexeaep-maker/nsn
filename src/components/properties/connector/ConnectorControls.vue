@@ -5,6 +5,7 @@ import { computed } from 'vue'
 import type { ConnectorLineType, FigJamColorName, StrokeCap } from '@open-pencil/scene-graph'
 import { useI18n } from '@open-pencil/vue'
 
+import { CONNECTOR_LINE_TYPE_ICONS, connectorCapIcon } from '@/app/editor/connector-icons'
 import FigJamPalette from '@/components/figjam/FigJamPalette.vue'
 import IconButton from '@/components/ui/button/IconButton.vue'
 import PanelFieldGroup from '@/components/ui/panel/PanelFieldGroup.vue'
@@ -111,7 +112,17 @@ const selectedEnd = computed<StrokeCap>({
         :label="panels.connectorLine"
         :options="lineOptions"
         data-property="connector-line"
-      />
+      >
+        <template #leading>
+          <component :is="CONNECTOR_LINE_TYPE_ICONS[selectedLine]" :class="styles.leadingIcon()" />
+        </template>
+        <template #option="{ option }">
+          <span :class="styles.option()">
+            <component :is="CONNECTOR_LINE_TYPE_ICONS[option.value]" :class="styles.optionIcon()" />
+            {{ option.label }}
+          </span>
+        </template>
+      </AppSelect>
     </PanelFieldGroup>
     <PanelFieldGroup :label="panels.connectorStart">
       <AppSelect
@@ -119,7 +130,17 @@ const selectedEnd = computed<StrokeCap>({
         :label="panels.connectorStart"
         :options="capOptions"
         data-property="connector-start-cap"
-      />
+      >
+        <template #leading>
+          <component :is="connectorCapIcon(selectedStart, 'start')" :class="styles.leadingIcon()" />
+        </template>
+        <template #option="{ option }">
+          <span :class="styles.option()">
+            <component :is="connectorCapIcon(option.value, 'start')" :class="styles.optionIcon()" />
+            {{ option.label }}
+          </span>
+        </template>
+      </AppSelect>
     </PanelFieldGroup>
     <PanelFieldGroup :label="panels.connectorEnd">
       <AppSelect
@@ -127,7 +148,17 @@ const selectedEnd = computed<StrokeCap>({
         :label="panels.connectorEnd"
         :options="capOptions"
         data-property="connector-end-cap"
-      />
+      >
+        <template #leading>
+          <component :is="connectorCapIcon(selectedEnd, 'end')" :class="styles.leadingIcon()" />
+        </template>
+        <template #option="{ option }">
+          <span :class="styles.option()">
+            <component :is="connectorCapIcon(option.value, 'end')" :class="styles.optionIcon()" />
+            {{ option.label }}
+          </span>
+        </template>
+      </AppSelect>
     </PanelFieldGroup>
   </div>
 </template>
