@@ -26,16 +26,19 @@ const TABLES = [
   'siteCountries'
 ] as const
 
-/** An Access token as Cloudflare would issue it, signed with `key`. */
-function accessToken(key: CryptoKey, claims: { aud?: string; iss?: string } = {}) {
+/** An Access token as Cloudflare would issue it, signed with `key`; `expiresIn` null leaves `exp` out. */
+function accessToken(
+  key: CryptoKey,
+  claims: { aud?: string; iss?: string; expiresIn?: number | null } = {}
+) {
   const seconds = Math.floor(NOW.getTime() / 1000)
-  return new SignJWT({ email: 'dan@example.com' })
+  const token = new SignJWT({ email: 'dan@example.com' })
     .setProtectedHeader({ alg: 'RS256', kid: 'current' })
     .setIssuer(claims.iss ?? TEAM)
     .setAudience(claims.aud ?? AUDIENCE)
-    .setIssuedAt(seconds)
-    .setExpirationTime(seconds + 3600)
-    .sign(key)
+    .setIssuedAt(seconds - 7200)
+  const expiresIn = claims.expiresIn === undefined ? 3600 : claims.expiresIn
+  return (expiresIn === null ? token : token.setExpirationTime(seconds + expiresIn)).sign(key)
 }
 
 async function getSnapshot(query: string, token?: string) {
@@ -141,6 +144,13 @@ describe('admin access', () => {
     })
     expect((await getSnapshot('start=2026-10-14&end=2026-10-20', otherApp)).status).toBe(403)
     expect((await getSnapshot('start=2026-10-14&end=2026-10-20', otherTeam)).status).toBe(403)
+  })
+
+  test('refuses an expired token and one that never expires', async () => {
+    const expired = await accessToken(signingKey, { expiresIn: -60 })
+    const endless = await accessToken(signingKey, { expiresIn: null })
+    expect((await getSnapshot('start=2026-10-14&end=2026-10-20', expired)).status).toBe(403)
+    expect((await getSnapshot('start=2026-10-14&end=2026-10-20', endless)).status).toBe(403)
   })
 
   test('refuses everyone while Access is not configured', async () => {

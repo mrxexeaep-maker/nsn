@@ -44,7 +44,9 @@ export function requireAccess(services: FeedbackServices) {
       await jwtVerify(token, createLocalJWKSet(await keysFor(team)), {
         issuer: team,
         audience: c.env.ACCESS_AUD,
-        currentDate: services.now()
+        currentDate: services.now(),
+        // jose checks `exp` only when a token has one; Access always sets it, so one without is refused.
+        requiredClaims: ['exp']
       })
     } catch (error) {
       console.warn('Admin request refused', { error: String(error) })
