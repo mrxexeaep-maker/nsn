@@ -2,10 +2,15 @@ import { isEqual } from 'es-toolkit'
 import { toRaw } from 'vue'
 
 import { isGeneratedFrame, readIcon, slotPropertyId } from '@open-pencil/scene-graph'
-import type { SceneGraph, SceneNode, VectorNetwork } from '@open-pencil/scene-graph'
+import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 import type { ShapeWithTextType } from '@open-pencil/scene-graph/shape-with-text'
 
-import type { LayerNode, LayerRow, LayerSelectionMode } from '#vue/primitives/LayerTree/context'
+import type {
+  LayerNode,
+  LayerRow,
+  LayerSelectionMode,
+  LayerVectorIcon
+} from '#vue/primitives/LayerTree/context'
 
 function explicitModeIds(node: SceneNode): string[] | undefined {
   const ids = Object.values(node.variableModes)
@@ -16,9 +21,24 @@ function shapeWithTextTypeOf(node: SceneNode): ShapeWithTextType | undefined {
   return node.type === 'SHAPE_WITH_TEXT' ? node.shapeWithTextType : undefined
 }
 
-/** A vector's row draws its own shape, as in Figma, so the row carries the network. */
-function vectorNetworkOf(node: SceneNode): VectorNetwork | undefined {
-  return node.type === 'VECTOR' ? (node.vectorNetwork ?? undefined) : undefined
+/** A vector's row draws its own shape in its box, turned and reflected, as Figma's does. */
+function vectorIconOf(node: SceneNode): LayerVectorIcon | undefined {
+  if (node.type !== 'VECTOR' || !node.vectorNetwork) return undefined
+  const { vectorNetwork: network, width, height, rotation, flipX, flipY } = node
+  return { network, width, height, rotation, flipX, flipY }
+}
+
+function sameVectorIcon(target: LayerVectorIcon | undefined, source: LayerVectorIcon | undefined) {
+  if (!target || !source) return target === source
+  // The target may be a reactive row, which hands back a proxy of the network it holds.
+  return (
+    toRaw(target.network) === source.network &&
+    target.width === source.width &&
+    target.height === source.height &&
+    target.rotation === source.rotation &&
+    target.flipX === source.flipX &&
+    target.flipY === source.flipY
+  )
 }
 
 function nodeToLayerNode(node: SceneNode): LayerNode {
@@ -30,7 +50,7 @@ function nodeToLayerNode(node: SceneNode): LayerNode {
     slot: !!slotPropertyId(node),
     icon: !!readIcon(node),
     shapeWithTextType: shapeWithTextTypeOf(node),
-    vectorNetwork: vectorNetworkOf(node),
+    vector: vectorIconOf(node),
     visible: node.visible,
     locked: node.locked,
     modeIds: explicitModeIds(node)
@@ -79,6 +99,7 @@ export function indexLayerNodes(items: readonly LayerNode[]): Map<string, LayerN
 }
 
 export function patchLayerNode(target: LayerNode, source: SceneNode): boolean {
+  const vector = vectorIconOf(source)
   const changed =
     target.name !== source.name ||
     target.type !== source.type ||
@@ -86,8 +107,7 @@ export function patchLayerNode(target: LayerNode, source: SceneNode): boolean {
     target.slot !== !!slotPropertyId(source) ||
     target.icon !== !!readIcon(source) ||
     target.shapeWithTextType !== shapeWithTextTypeOf(source) ||
-    // The target may be a reactive row, which hands back a proxy of the network it holds.
-    toRaw(target.vectorNetwork) !== vectorNetworkOf(source) ||
+    !sameVectorIcon(target.vector, vector) ||
     target.visible !== source.visible ||
     target.locked !== source.locked ||
     !isEqual(target.modeIds, explicitModeIds(source))
@@ -98,7 +118,7 @@ export function patchLayerNode(target: LayerNode, source: SceneNode): boolean {
   target.slot = !!slotPropertyId(source)
   target.icon = !!readIcon(source)
   target.shapeWithTextType = shapeWithTextTypeOf(source)
-  target.vectorNetwork = vectorNetworkOf(source)
+  target.vector = vector
   target.visible = source.visible
   target.locked = source.locked
   target.modeIds = explicitModeIds(source)

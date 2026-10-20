@@ -85,8 +85,13 @@ const PATCHABLE_NODE_KEYS = new Set<keyof SceneNode>([
   'visible',
   'locked',
   'variableModes',
-  // A vector's row icon is drawn from its network.
-  'vectorNetwork'
+  // A vector's row icon is drawn from its network in its box, turned and reflected.
+  'vectorNetwork',
+  'width',
+  'height',
+  'rotation',
+  'flipX',
+  'flipY'
 ])
 
 function patchTreeNode(id: string, changes: Partial<SceneNode>) {

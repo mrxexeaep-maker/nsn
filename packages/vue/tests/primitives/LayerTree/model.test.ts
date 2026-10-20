@@ -57,7 +57,7 @@ describe('layer tree model', () => {
     expect(row.shapeWithTextType).toBe('ELLIPSE')
   })
 
-  test("carries a vector's network, so its row draws the shape, and follows edits", () => {
+  test("carries a vector's network and placement, so its row draws the shape", () => {
     const graph = new SceneGraph()
     const pageId = graph.getPages()[0].id
     const line = (x: number) => ({
@@ -74,14 +74,18 @@ describe('layer tree model', () => {
     const model = buildLayerTreeModel(graph, pageId)
     const row = model.byId.get(vector.id)
     if (!row) throw new Error('Expected the vector in the model')
-    expect(row.vectorNetwork).toBe(vector.vectorNetwork ?? undefined)
-    expect(model.byId.get(rect.id)?.vectorNetwork).toBeUndefined()
+    expect(row.vector?.network).toBe(vector.vectorNetwork ?? undefined)
+    expect(model.byId.get(rect.id)?.vector).toBeUndefined()
 
     // The layer tree patches its rows through their reactive proxies.
     expect(patchLayerNode(reactive(row), vector)).toBe(false)
     graph.updateNode(vector.id, { vectorNetwork: line(20) })
     expect(patchLayerNode(reactive(row), vector)).toBe(true)
-    expect(row.vectorNetwork).toBe(vector.vectorNetwork ?? undefined)
+    expect(row.vector?.network).toBe(vector.vectorNetwork ?? undefined)
+
+    graph.updateNode(vector.id, { rotation: 30, flipX: true })
+    expect(patchLayerNode(reactive(row), vector)).toBe(true)
+    expect(row.vector).toMatchObject({ rotation: 30, flipX: true })
   })
 })
 
