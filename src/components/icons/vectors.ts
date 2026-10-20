@@ -52,23 +52,18 @@ export function vectorIconSVG(vector: LayerVectorIcon): string | null {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SLOT} ${SLOT}"><path d="${d}" fill="none" stroke="black" stroke-width="${STROKE}"/></svg>`
 }
 
-const icons = new WeakMap<VectorNetwork, Map<string, FunctionalComponent | null>>()
+/** Each network's latest icon only, so a rotate or resize drag does not keep every frame's. */
+const icons = new WeakMap<VectorNetwork, { key: string; icon: FunctionalComponent | null }>()
 
 /** A vector's own outline as an icon component, built once per network and placement. */
 export function vectorIcon(vector: LayerVectorIcon): FunctionalComponent | null {
   const network = toRaw(vector.network)
-  let placements = icons.get(network)
-  if (!placements) {
-    placements = new Map()
-    icons.set(network, placements)
-  }
   const { width, height, rotation, flipX, flipY } = vector
   const key = `${width} ${height} ${rotation} ${flipX} ${flipY}`
-  let icon = placements.get(key)
-  if (icon === undefined) {
-    const svg = vectorIconSVG({ ...vector, network })
-    icon = svg ? maskIcon(svg) : null
-    placements.set(key, icon)
-  }
+  const cached = icons.get(network)
+  if (cached?.key === key) return cached.icon
+  const svg = vectorIconSVG({ ...vector, network })
+  const icon = svg ? maskIcon(svg) : null
+  icons.set(network, { key, icon })
   return icon
 }
