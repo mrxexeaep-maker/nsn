@@ -14,6 +14,9 @@ on:
       - src/components/metrics/**
       - src/components/ui/**
       - src/app/metrics/**
+      - src/app/cloud-portal/theme.ts
+      - src/app.css
+      - src/components/brand/**
       - src/theme/**
       - vite.config.ts
       - vite/**

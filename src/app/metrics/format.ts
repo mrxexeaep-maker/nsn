@@ -31,8 +31,20 @@ export const formatChange = (value: number) => CHANGE.format(value)
 
 const REGION = new Intl.DisplayNames('en-US', { type: 'region' })
 
+// Cloudflare's codes for traffic it cannot place in a country; neither is a region subtag, and
+// `Intl.DisplayNames` throws on `T1` rather than returning nothing.
+const CLOUDFLARE_PSEUDO_COUNTRIES: Record<string, string> = { T1: 'Tor', XX: 'Unknown' }
+
 /** A country's name from Cloudflare's two-letter code, or the code when it has none. */
-export const formatCountry = (code: string) => REGION.of(code) ?? code
+export function formatCountry(code: string): string {
+  const pseudo = CLOUDFLARE_PSEUDO_COUNTRIES[code]
+  if (pseudo) return pseudo
+  try {
+    return REGION.of(code) ?? code
+  } catch {
+    return code
+  }
+}
 
 const SHARE = new Intl.NumberFormat('en-US', {
   style: 'percent',

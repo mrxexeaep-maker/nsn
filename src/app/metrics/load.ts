@@ -1,7 +1,8 @@
+import * as v from 'valibot'
 import { ref, shallowRef, watch, type Ref } from 'vue'
 
 import { createFeedbackClient } from '@open-pencil/feedback/client'
-import type { MetricsSnapshot } from '@open-pencil/feedback/contract'
+import { MetricsSnapshotSchema, type MetricsSnapshot } from '@open-pencil/feedback/contract'
 
 import type { MetricsRange } from './range'
 
@@ -16,7 +17,13 @@ export async function fetchMetricsSnapshot(range: MetricsRange): Promise<Metrics
     query: { start: range.start, end: range.end }
   })
   if (response.status !== 200) throw new Error(`The metrics API answered ${response.status}`)
-  return response.json()
+  // Checked against the contract before use, as Cloud's client does with its answers.
+  const parsed = v.safeParse(
+    v.pipe(v.string(), v.parseJson(), MetricsSnapshotSchema),
+    await response.text()
+  )
+  if (!parsed.success) throw new Error('The metrics API sent an unexpected answer')
+  return parsed.output
 }
 
 /**
