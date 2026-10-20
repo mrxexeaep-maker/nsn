@@ -143,14 +143,14 @@ test("a note's panel has its fill and opacity, but no rotation, stroke, or effec
   await expect(propertySection(editor.page, 'Effects')).toHaveCount(0)
 })
 
-test('a selection holding notes offers no stroke or effects either', async () => {
-  await sticky.add([
-    { x: 150, y: 150, text: 'One' },
-    { x: 600, y: 150, text: 'Two' }
-  ])
-  await clickNote(150, 150)
+test('a note selected with a rectangle offers no stroke or effects either', async () => {
+  await sticky.add([{ x: 150, y: 150, text: 'One' }])
+  const from = sticky.point(550, 100)
+  const to = sticky.point(650, 200)
+  await editor.canvas.pressKey('r')
+  await editor.canvas.drag(from.x, from.y, to.x, to.y)
   await editor.page.keyboard.down('Shift')
-  await clickNote(600, 150)
+  await clickNote(150, 150)
   await editor.page.keyboard.up('Shift')
 
   await expect(editor.page.getByTestId('design-panel-multi')).toBeVisible()
