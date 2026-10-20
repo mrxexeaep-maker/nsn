@@ -39,7 +39,8 @@ const items = computed<AppPickerItem[]>(() => {
     ...properties.value.map((definition) => ({
       value: `${PROPERTY}${definition.id}`,
       label: definition.name,
-      group
+      group,
+      disabled: !property.editable.value
     })),
     ...binding.variables.value.map((variable) => ({
       value: variable.id,
@@ -68,6 +69,7 @@ function variableType(value: string) {
 
 /** A layer follows one source at a time, so choosing one lets go of the other in the same step. */
 function select(value: string) {
+  if (value.startsWith(PROPERTY) && !property.editable.value) return
   editor.undo.runBatch('Bind visibility', () => {
     if (value.startsWith(PROPERTY)) {
       if (binding.state.value !== 'unbound') binding.actions.unbind()
@@ -115,7 +117,6 @@ function openPicker() {
         :label="panels.applyVariableOrProperty"
         :disabled="!property.editable.value"
         :active="open"
-        data-visibility-bind
       >
         <icon-lucide-diamond-plus class="size-3.5" />
       </IconButton>

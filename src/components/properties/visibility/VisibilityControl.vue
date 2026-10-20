@@ -40,7 +40,6 @@ const targets = computed(() => (nodeId ? [{ nodeId, path: 'visible' }] : []))
             :active="visibility === 'hidden'"
             :disabled="binding.state !== 'unbound'"
             class="disabled:pointer-events-none"
-            data-visibility-toggle
             @click="emit('toggle')"
           >
             <icon-lucide-eye v-if="visibility === 'visible'" class="size-3.5" />
@@ -54,7 +53,6 @@ const targets = computed(() => (nodeId ? [{ nodeId, path: 'visible' }] : []))
     v-else
     :label="panels.toggleVisibility"
     :active="visibility === 'hidden'"
-    data-visibility-toggle
     @click="emit('toggle')"
   >
     <icon-lucide-eye v-if="visibility === 'visible'" class="size-3.5" />

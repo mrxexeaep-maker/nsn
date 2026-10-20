@@ -36,7 +36,11 @@ function valueText(variableId: string) {
       class="mb-1.5"
       :label="panels.layerVisibility"
     >
-      <div class="flex min-w-0 flex-1 items-center gap-1" data-visibility-bound>
+      <div
+        class="flex min-w-0 flex-1 items-center gap-1"
+        role="group"
+        :aria-label="panels.layerVisibility"
+      >
         <span
           class="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded bg-input px-2 text-xs text-surface"
           :class="binding.state === 'unresolved' && 'bg-error-bg text-error'"
