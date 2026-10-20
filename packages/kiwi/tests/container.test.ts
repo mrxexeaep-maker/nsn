@@ -8,7 +8,9 @@ import {
   decompressFigKiwiDataAsync,
   FIG_KIWI_DEFAULT_VERSION,
   loadFigDataCompressor,
-  parseFigKiwiChunks
+  loadWasmFigDataCompressor,
+  parseFigKiwiChunks,
+  type FigDataCompressor
 } from '../src/fig/container'
 import { isZstdCompressed } from '../src/fig/protocol'
 
@@ -65,21 +67,34 @@ describe('Figma FIG Kiwi container helpers', () => {
     await expect(decompressFigKiwiDataAsync(deflated)).resolves.toEqual(dataRaw)
   })
 
-  test('compresses at the requested zstd level into frames Figma opens', async () => {
-    const dataRaw = sampleDocument()
-    const sizes: number[] = []
-    for (const level of [3, 9, 19]) {
-      const compress = await loadFigDataCompressor(level)
-      const binary = buildFigKiwi(new Uint8Array([1]), dataRaw, FIG_KIWI_DEFAULT_VERSION, compress)
-      const dataChunk = parseFigKiwiChunks(binary)?.[1] ?? new Uint8Array()
-      expect(isZstdCompressed(dataChunk)).toBe(true)
-      expect(declaresContentSize(dataChunk)).toBe(true)
-      expect(decompressFigKiwiData(dataChunk)).toEqual(dataRaw)
-      sizes.push(dataChunk.length)
-    }
-    expect(sizes[1]).toBeLessThan(sizes[0])
-    expect(sizes[2]).toBeLessThan(sizes[1])
-  })
+  // Bun's own zstd where it runs, and the WebAssembly build browsers and webviews save with.
+  for (const [encoder, load] of [
+    ['native', loadFigDataCompressor],
+    ['WebAssembly', loadWasmFigDataCompressor]
+  ] as const satisfies ReadonlyArray<
+    readonly [string, (level: number) => Promise<FigDataCompressor>]
+  >) {
+    test(`${encoder} zstd compresses at the requested level into frames Figma opens`, async () => {
+      const dataRaw = sampleDocument()
+      const sizes: number[] = []
+      for (const level of [3, 9, 19]) {
+        const compress = await load(level)
+        const binary = buildFigKiwi(
+          new Uint8Array([1]),
+          dataRaw,
+          FIG_KIWI_DEFAULT_VERSION,
+          compress
+        )
+        const dataChunk = parseFigKiwiChunks(binary)?.[1] ?? new Uint8Array()
+        expect(isZstdCompressed(dataChunk)).toBe(true)
+        expect(declaresContentSize(dataChunk)).toBe(true)
+        expect(decompressFigKiwiData(dataChunk)).toEqual(dataRaw)
+        sizes.push(dataChunk.length)
+      }
+      expect(sizes[1]).toBeLessThan(sizes[0])
+      expect(sizes[2]).toBeLessThan(sizes[1])
+    })
+  }
 
   test('rejects non fig-kiwi data', () => {
     expect(parseFigKiwiChunks(new TextEncoder().encode('not-fig-kiwi'))).toBeNull()

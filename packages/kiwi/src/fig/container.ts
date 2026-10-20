@@ -27,25 +27,34 @@ export const defaultFigDataCompressor: FigDataCompressor = (data) =>
 
 let wasmZstd: Promise<(data: Uint8Array, level: number) => Uint8Array> | undefined
 
-function loadWasmZstd() {
+/** The WebAssembly zstd encoder, loaded once; a failed load is retried on the next call. */
+export async function loadWasmFigDataCompressor(
+  level = FIG_ZSTD_DEFAULT_LEVEL
+): Promise<FigDataCompressor> {
   wasmZstd ??= import('@hpcc-js/wasm-zstd')
     .then(({ Zstd }) => Zstd.load())
-    .then((zstd) => (data: Uint8Array, level: number) => zstd.compress(data, level))
-  return wasmZstd
+    .then(
+      (zstd) => (data: Uint8Array, compressionLevel: number) =>
+        zstd.compress(data, compressionLevel)
+    )
+    .catch((error: unknown) => {
+      wasmZstd = undefined
+      throw error
+    })
+  const compress = await wasmZstd
+  return (data) => compress(data, level)
 }
 
 /**
- * A zstd compressor at `level`: Bun's own where it runs, the WebAssembly build elsewhere, loaded
- * once on first use. Figma opens every level, but only frames that declare their decompressed
- * size, which both encoders write.
+ * A zstd compressor at `level`: Bun's own where it runs, the WebAssembly build elsewhere. Figma
+ * opens every level, but only frames that declare their decompressed size, which both write.
  */
 export async function loadFigDataCompressor(
   level = FIG_ZSTD_DEFAULT_LEVEL
 ): Promise<FigDataCompressor> {
   const native = bunZstdCompress()
   if (native) return (data) => native(data, { level })
-  const compress = await loadWasmZstd()
-  return (data) => compress(data, level)
+  return loadWasmFigDataCompressor(level)
 }
 
 function bunZstdDecompressSync(data: Uint8Array): Uint8Array | undefined {
