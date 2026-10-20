@@ -271,7 +271,28 @@ describe('metrics snapshot', () => {
     expect(await rows.siteCountries()).toHaveLength(28)
   })
 
-  test('a host missing from a rerun loses its row for that day', async () => {
+  test('a day Cloudflare leaves out is recorded as zero visits', async () => {
+    service.respond(GRAPHQL, (call) => {
+      const variables = variablesOf(call)
+      if (typeof variables.start !== 'string') return answerOnce(call)
+      // Only the website had visits, and only on the last day.
+      const group = {
+        sum: { visits: 3000 },
+        dimensions: { date: '2026-10-19', clientRequestHTTPHost: 'openpencil.dev' }
+      }
+      return Response.json({
+        data: { viewer: { zones: [{ httpRequestsAdaptiveGroups: [group] }] } }
+      })
+    })
+    await runSnapshot(service.env, service.services)
+    const visits = await rows.siteVisits()
+    expect(visits).toHaveLength(56)
+    expect(visits.filter((row) => row.visits > 0)).toEqual([
+      { day: '2026-10-19', host: 'openpencil.dev', visits: 3000 }
+    ])
+  })
+
+  test('a host missing from a rerun is set back to zero for that day', async () => {
     await database()
       .insertInto('siteVisits')
       .values([
@@ -291,7 +312,11 @@ describe('metrics snapshot', () => {
       })
     })
     await runSnapshot(service.env, service.services)
-    expect(await rows.siteVisits()).toEqual([
+    const visits = await rows.siteVisits()
+    expect(visits.filter((row) => row.day >= '2026-10-18')).toEqual([
+      { day: '2026-10-18', host: 'app.openpencil.dev', visits: 0 },
+      { day: '2026-10-18', host: 'openpencil.dev', visits: 0 },
+      { day: '2026-10-19', host: 'app.openpencil.dev', visits: 0 },
       { day: '2026-10-19', host: 'openpencil.dev', visits: 4000 }
     ])
   })

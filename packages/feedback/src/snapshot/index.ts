@@ -89,7 +89,16 @@ async function recordSite({ store, env, services, yesterday }: Run) {
   const start = maxDate(minDate(next, settling), oldest) ?? oldest
 
   const days = eachDay(start, yesterday)
-  const visits = await cloudflare.visits(start, yesterday, hosts)
+  const counted = await cloudflare.visits(start, yesterday, hosts)
+  // Cloudflare leaves out a host's day without visits; it is recorded as zero, so every fetched
+  // day has a row for every host and the newest one is truly where the records stop.
+  const visits = days.flatMap((date) => {
+    const day = date.toString()
+    return hosts.map(
+      (host) =>
+        counted.find((row) => row.day === day && row.host === host) ?? { day, host, visits: 0 }
+    )
+  })
   if (website) {
     for (const day of days) {
       const { pages, countries } = await cloudflare.breakdown(day, website)
