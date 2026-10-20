@@ -67,7 +67,9 @@ export function openDocumentRoom(
   identity?: RoomIdentity
 ): RoomSession {
   const existing = roomForStore(store)
-  if (existing) return existing
+  if (existing?.roomId === roomId) return existing
+  // A room the document was shared into by hand gives way to its own; leaving keeps the document.
+  if (existing) leaveRoom(existing)
   const session = openRoomSession({
     roomId,
     store,

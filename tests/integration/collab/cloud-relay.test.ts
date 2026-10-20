@@ -14,6 +14,7 @@ import { openCloudDocumentRoom } from '@/app/cloud/rooms/live'
 import { versionListRevision } from '@/app/cloud/versions/history'
 import { useCollabIdentity } from '@/app/collab/identity'
 import { connectCollabRoom } from '@/app/collab/room/connection'
+import { openDocumentRoom, roomById, roomForStore } from '@/app/collab/rooms'
 import { createEditorStore } from '@/app/editor/session'
 
 import { startTestRelay } from '#tests/helpers/collab/relay-server'
@@ -278,6 +279,32 @@ describe('Cloud document rooms, version history', () => {
     const before = versionListRevision.value
     relay.announceVersions(documentId)
     await until(() => versionListRevision.value > before)
+  })
+})
+
+describe('Cloud document rooms, another room first', () => {
+  test('a tab already in another room moves to its document’s own room', async () => {
+    const relay = await startRelay()
+    const documentId = crypto.randomUUID()
+    const [grace] = await openedTwice()
+    // Shared into a room by hand while the document's own was still being asked for.
+    const elsewhere = openDocumentRoom(
+      grace,
+      `cloud:${crypto.randomUUID()}:0`,
+      relay.join(documentId, 'Grace', 'edit', 'user')
+    )
+    const room = openCloudDocumentRoom(grace, {
+      roomId: `cloud:${documentId}:0`,
+      transport: relay.join(documentId, 'Grace', 'edit', 'user'),
+      permission: 'edit'
+    })
+    cleanups.push(() => {
+      room.stop()
+      room.session.dispose()
+    })
+    expect(room.session).not.toBe(elsewhere)
+    expect(roomForStore(grace)?.roomId).toBe(`cloud:${documentId}:0`)
+    expect(roomById(elsewhere.roomId)).toBeUndefined()
   })
 })
 
