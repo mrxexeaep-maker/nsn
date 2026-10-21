@@ -7,13 +7,13 @@ import {
 } from '#cloud/contract'
 import type { CloudActor } from '#cloud/server/auth'
 import type { CloudDatabase } from '#cloud/server/db'
-import type { DocumentService } from '#cloud/server/documents/service'
 import {
   DocumentConflictError,
   DocumentForbiddenError,
   DocumentNotFoundError,
   UploadInvalidError
-} from '#cloud/server/documents/service'
+} from '#cloud/server/documents/errors'
+import type { DocumentService } from '#cloud/server/documents/service'
 import { StorageQuotaExceededError } from '#cloud/server/quota'
 import { CLOUD_RATE_LIMITS, createActorRateLimiter } from '#cloud/server/rate-limit'
 import { validatedJSON } from '#cloud/server/validation'
