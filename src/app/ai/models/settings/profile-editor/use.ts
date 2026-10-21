@@ -35,6 +35,9 @@ export function useModelProfileEditor({ profileId, keyInput, labels: ai }: Profi
     providerDef,
     isACP,
     isHarness,
+    isCloud,
+    cloudWorkspaces,
+    cloudState,
     supportsThinking,
     providerDisplayName,
     modelOptions,
@@ -156,7 +159,13 @@ export function useModelProfileEditor({ profileId, keyInput, labels: ai }: Profi
   }
 
   watch(
-    () => [draft.customBaseURL, draft.customModelID, draft.customAPIType, draft.modelID],
+    () => [
+      draft.customBaseURL,
+      draft.customModelID,
+      draft.customAPIType,
+      draft.modelID,
+      draft.cloudWorkspaceId
+    ],
     resetConnectionTest
   )
 
@@ -169,6 +178,9 @@ export function useModelProfileEditor({ profileId, keyInput, labels: ai }: Profi
     providerDef,
     isACP,
     isHarness,
+    isCloud,
+    cloudWorkspaces,
+    cloudState,
     supportsThinking,
     providerDisplayName,
     modelOptions,
