@@ -41,6 +41,50 @@ test('dragging layers reorders scene nodes', async ({ page }) => {
   canvas.assertNoErrors()
 })
 
+test('an auto layout lists and reorders its layers in flow order', async ({ page }) => {
+  await page.goto('/')
+  const canvas = new CanvasHelper(page)
+  await canvas.waitForInit()
+  canvas.errors.length = 0
+  await canvas.clearCanvas()
+
+  const ids = await page.evaluate(() => {
+    const store = window.openPencil?.getStore?.()
+    if (!store) throw new Error('OpenPencil store not initialized')
+    const pageId = store.state.currentPageId
+    const row = store.graph.createNode('FRAME', pageId, {
+      name: 'Flow row',
+      layoutMode: 'HORIZONTAL',
+      width: 400,
+      height: 120
+    })
+    const child = (name: string) =>
+      store.graph.createNode('RECTANGLE', row.id, { name, width: 80, height: 80 }).id
+    const ids = {
+      row: row.id,
+      first: child('Item A'),
+      second: child('Item B'),
+      third: child('Item C')
+    }
+    // Selecting a child expands the row in the layers panel.
+    store.select([ids.first])
+    store.requestRender()
+    return ids
+  })
+  await canvas.waitForRender()
+
+  // The rows follow the flow, A, B, C, as in Figma; dropping C above A puts it first in the flow.
+  const rows = page.getByTestId('layers-item')
+  await expect(rows.filter({ hasText: /^Item/ })).toHaveText(['Item A', 'Item B', 'Item C'])
+  const source = page.locator(`[data-node-id="${ids.third}"]`).getByTestId('layers-item')
+  const target = page.locator(`[data-node-id="${ids.first}"]`).getByTestId('layers-item')
+  await source.dragTo(target, { targetPosition: { x: 20, y: 2 } })
+  await canvas.waitForRender()
+
+  expect(await layerOrder(page, ids.row)).toEqual([ids.third, ids.first, ids.second])
+  canvas.assertNoErrors()
+})
+
 test('dragging a layer into a container expands it and shows the child', async ({ page }) => {
   await page.goto('/')
   const canvas = new CanvasHelper(page)
