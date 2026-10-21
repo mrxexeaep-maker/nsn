@@ -17,7 +17,8 @@ export function isEditing(event: Event) {
 }
 
 const OVERLAY_SELECTOR = '[data-picker-content], [role="dialog"], [role="listbox"], [role="menu"]'
-export const PICKER_SELECTOR = '[data-picker-content]'
+const PICKER_SELECTOR = '[data-picker-content]'
+const OPEN_LAYER_SELECTOR = '[data-dismissable-layer]:not([data-state="closed"])'
 
 export function originatedInOverlay(event: KeyboardEvent, allowPickers = false) {
   return event
@@ -28,6 +29,13 @@ export function originatedInOverlay(event: KeyboardEvent, allowPickers = false) 
         target.matches(OVERLAY_SELECTOR) &&
         !(allowPickers && target.closest(PICKER_SELECTOR))
     )
+}
+
+/** A popover, menu, or dialog that is open; one fading out after closing no longer counts. */
+export function hasOpenDismissableLayer(allowPickers = false) {
+  return [...document.querySelectorAll(OPEN_LAYER_SELECTOR)].some(
+    (layer) => !(allowPickers && layer.closest(PICKER_SELECTOR))
+  )
 }
 
 export function hasDocumentTextSelection(): boolean {

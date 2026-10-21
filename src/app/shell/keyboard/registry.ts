@@ -16,10 +16,10 @@ import { TOOL_SHORTCUTS } from '@/app/editor/session'
 import { openSettingsDialog } from '@/app/settings/dialog'
 import { setSnappingPreference } from '@/app/settings/preferences/apply'
 import {
+  hasOpenDismissableLayer,
   isButtonActivation,
   isEditing,
-  originatedInOverlay,
-  PICKER_SELECTOR
+  originatedInOverlay
 } from '@/app/shell/keyboard/focus'
 import { shortcutEvent } from '@/app/shell/keyboard/layout'
 import { bindSpaceHandTool } from '@/app/shell/keyboard/space-tool'
@@ -94,15 +94,6 @@ function siblingShortcut(
     },
     shouldPreventDefault: isCanvasFocus
   }
-}
-
-const OPEN_LAYER_SELECTOR = '[data-dismissable-layer]:not([data-state="closed"])'
-
-/** A popover, menu, or dialog that is open; one fading out after closing no longer counts. */
-function hasOpenDismissableLayer(allowPickers = false) {
-  return [...document.querySelectorAll(OPEN_LAYER_SELECTOR)].some(
-    (layer) => !(allowPickers && layer.closest(PICKER_SELECTOR))
-  )
 }
 
 /**

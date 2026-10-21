@@ -10,6 +10,16 @@ async function getSelectedPosition() {
   return { x, y }
 }
 
+function getStatusLabelCenter(nodeId: string) {
+  return editor.page.evaluate((id) => {
+    const label = window.openPencil
+      ?.getStore?.()
+      ?.renderer?.statusLabels.find((entry) => entry.nodeId === id)
+    if (!label) throw new Error('Status label not drawn')
+    return { x: label.rect.x + label.rect.width / 2, y: label.rect.y + label.rect.height / 2 }
+  }, nodeId)
+}
+
 test.describe('arrow key nudging', () => {
   test.beforeEach(async () => {
     await editor.canvas.clearCanvas()
@@ -41,5 +51,29 @@ test.describe('arrow key nudging', () => {
     expect(await getSelectedPosition()).toEqual(start)
     await editor.page.keyboard.press('Escape')
     await expect(editor.page.getByRole('listbox')).toBeHidden()
+  })
+
+  test('leaves arrow keys to an open menu that took no focus', async () => {
+    await editor.canvas.drawSection(300, 100, 240, 160)
+    const section = expectDefined(await getSelectedNode(editor.page), 'section')
+    await propertySection(editor.page, 'Status')
+      .getByRole('combobox', { name: 'Add status' })
+      .click()
+    await editor.page.getByRole('option', { name: 'Ready for dev' }).click()
+    await editor.canvas.waitForRender()
+    const pill = await getStatusLabelCenter(section.id)
+    const canvasElement = editor.page.getByTestId('canvas-element')
+    await canvasElement.focus()
+
+    await editor.canvas.click(pill.x, pill.y)
+    const menu = editor.page.getByTestId('status-label-menu')
+    await expect(menu).toBeVisible()
+    await expect(canvasElement).toBeFocused()
+    await editor.page.keyboard.press('ArrowRight')
+    await editor.page.keyboard.press('Shift+ArrowDown')
+
+    expect(await getSelectedPosition()).toEqual({ x: section.x, y: section.y })
+    await editor.page.keyboard.press('Escape')
+    await expect(menu).toBeHidden()
   })
 })
