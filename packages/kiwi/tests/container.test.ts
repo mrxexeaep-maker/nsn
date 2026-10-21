@@ -34,6 +34,26 @@ function declaresContentSize(frame: Uint8Array): boolean {
   return singleSegment === 1 || descriptor >> 6 !== 0
 }
 
+/**
+ * A zstd frame of one raw block that declares no content size (RFC 8878 §3.1.1): a frame header
+ * descriptor with every flag clear, a window descriptor, and a last raw block of `data`.
+ */
+function rawZstdFrameWithoutContentSize(data: Uint8Array): Uint8Array {
+  const blockHeader = 1 | (0 << 1) | (data.length << 3)
+  return new Uint8Array([
+    0x28,
+    0xb5,
+    0x2f,
+    0xfd,
+    0x00,
+    0x70,
+    blockHeader & 0xff,
+    (blockHeader >> 8) & 0xff,
+    (blockHeader >> 16) & 0xff,
+    ...data
+  ])
+}
+
 describe('Figma FIG Kiwi container helpers', () => {
   test('builds and parses fig-kiwi chunks', async () => {
     const schemaDeflated = new Uint8Array([1, 2, 3])
@@ -115,6 +135,18 @@ describe('Figma FIG Kiwi container helpers', () => {
         expect(decompress(compress(dataRaw))).toEqual(dataRaw)
       }
       expect(decompress(deflateSync(dataRaw))).toEqual(dataRaw)
+    })
+
+    // Figma writes the size, but a frame from another tool may not; the decoder streams those.
+    test(`${decoder} zstd decompresses a frame that declares no content size`, async () => {
+      const dataRaw = new TextEncoder().encode('payload without a declared size')
+      const frame = rawZstdFrameWithoutContentSize(dataRaw)
+      expect(isZstdCompressed(frame)).toBe(true)
+      expect(declaresContentSize(frame)).toBe(false)
+
+      const decompress = await load()
+
+      expect(decompress(frame)).toEqual(dataRaw)
     })
   }
 })
