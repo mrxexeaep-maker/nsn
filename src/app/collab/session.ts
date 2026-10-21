@@ -181,6 +181,8 @@ export function openRoomSession({
       followsRoom = true
       suppressGraphSync = true
       try {
+        // What the person drew while the room loaded is theirs; the rest is the file's copy.
+        sync.syncHeldBackEdits()
         adopt(sync.dropLayersOutsideRoom)
       } finally {
         suppressGraphSync = false

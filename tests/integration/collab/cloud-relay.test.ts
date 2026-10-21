@@ -517,6 +517,40 @@ describe('Cloud document rooms, live order', () => {
 })
 
 describe('Cloud document rooms, drawing early', () => {
+  test('a shape a joining tab draws before the relay answers reaches the room', async () => {
+    const relay = await startRelay()
+    const documentId = crypto.randomUUID()
+    const roomId = `cloud:${documentId}:0`
+    const [grace, ada] = await openedTwice()
+    const first = openCloudDocumentRoom(grace, {
+      roomId,
+      transport: relay.join(documentId, 'Grace', 'edit', 'user'),
+      permission: 'edit'
+    })
+    cleanups.push(() => {
+      first.stop()
+      first.session.dispose()
+    })
+    await until(() => first.session.roomHasDocument())
+    await until(() => ada.state.preparation === null)
+    const second = openCloudDocumentRoom(ada, {
+      roomId,
+      transport: relay.join(documentId, 'Ada', 'edit', 'user'),
+      permission: 'edit'
+    })
+    cleanups.push(() => {
+      second.stop()
+      second.session.dispose()
+    })
+    // The tab shows its stored document at once, so the person may draw before the room arrives.
+    const page = ada.graph.getPages()[0]
+    if (!page) throw new Error('Expected a page')
+    ada.graph.createNode('ELLIPSE', page.id, { id: 'early:ada', name: 'Early' })
+
+    await until(() => grace.graph.getNode('early:ada') !== undefined)
+    expect(ada.graph.getNode('early:ada')?.parentId).toBe(page.id)
+  })
+
   test('a shape drawn before the relay answers is in the room once it is seeded', async () => {
     const relay = await startRelay()
     const documentId = crypto.randomUUID()
