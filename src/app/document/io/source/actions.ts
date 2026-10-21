@@ -251,6 +251,8 @@ export function createDocumentSourceActions({
     saveFigFileAs: () => saveAndTrack(saveFigFileAs),
     hasUnsavedChanges: changes.hasUnsavedChanges,
     markDocumentSaved,
+    markDocumentChanged: changes.markChanged,
+    adoptChanges: changes.adopt,
     getStorageBinding,
     getRecoveryId: () => recovery.getRecoveryId(),
     adoptRecoverySnapshot: (id: string) => {

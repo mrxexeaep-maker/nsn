@@ -15,7 +15,10 @@ import { versionListRevision } from '@/app/cloud/versions/history'
 import { useCollabIdentity } from '@/app/collab/identity'
 import { connectCollabRoom } from '@/app/collab/room/connection'
 import { openDocumentRoom, roomById, roomForStore } from '@/app/collab/rooms'
-import { createEditorStore } from '@/app/editor/session'
+import { createEditorStore, type EditorStore } from '@/app/editor/session'
+import { createMemoryLocalCanvasStore } from '@/app/storage/local-store'
+import { resetLocalCanvasStoreForTests } from '@/app/storage/local-store/store'
+import { emitStorageWorkspaceEvent } from '@/app/storage/workspace/events'
 
 import { startTestRelay } from '#tests/helpers/collab/relay-server'
 
@@ -489,5 +492,101 @@ describe('Cloud document rooms, drawing early', () => {
       second.session.dispose()
     })
     await until(() => watcher.graph.getNode('early:card') !== undefined)
+  })
+})
+
+describe('Cloud document rooms, unsaved edits', () => {
+  /** Grace's tab seeds the room and leaves, after `edit`, so Ada's tab opens it alone and saves. */
+  async function reopenAfter(edit: (grace: EditorStore) => void) {
+    const relay = await startRelay()
+    const documentId = crypto.randomUUID()
+    const roomId = `cloud:${documentId}:0`
+    const [grace, ada] = await openedTwice()
+    // Opening a stored document marks it saved, so the room takes it as the stored revision.
+    await until(() => grace.state.preparation === null)
+    grace.markDocumentSaved()
+    const first = openCloudDocumentRoom(grace, {
+      roomId,
+      transport: relay.join(documentId, 'Grace', 'edit', 'user'),
+      permission: 'edit'
+    })
+    await until(() => first.session.roomHasDocument())
+    edit(grace)
+    first.stop()
+    first.session.dispose()
+
+    await until(() => ada.state.preparation === null)
+    // The file read back differs from the room's copy, as a value the round trip changes would.
+    const card = ada.graph.getPages()[0]?.childIds[0]
+    if (!card) throw new Error('Expected a layer')
+    ada.graph.updateNode(card, { name: 'Read back' })
+    ada.markDocumentSaved()
+    let synced = false
+    const second = openCloudDocumentRoom(ada, {
+      roomId,
+      transport: relay.join(documentId, 'Ada', 'edit', 'user'),
+      permission: 'edit'
+    })
+    cleanups.push(
+      second.session.onSynced(() => {
+        synced = true
+      })
+    )
+    cleanups.push(() => {
+      second.stop()
+      second.session.dispose()
+    })
+    await until(() => synced && ada.state.autosaveEnabled)
+    return { ada, card, session: second.session }
+  }
+
+  test('a tab that takes in the room’s copy of its document has nothing to save', async () => {
+    const { ada, card, session } = await reopenAfter(() => undefined)
+
+    expect(ada.graph.getNode(card)?.name).toBe('Card')
+    expect(session.saves.unsaved()).toBe(false)
+    expect(ada.hasUnsavedChanges()).toBe(false)
+  })
+
+  test('the tab that saves next saves edits the room holds unsaved', async () => {
+    const { ada, session } = await reopenAfter((grace) => {
+      const page = grace.graph.getPages()[0]
+      if (!page) throw new Error('Expected a page')
+      grace.graph.createNode('ELLIPSE', page.id, { id: 'left:unsaved', name: 'Dot' })
+    })
+
+    expect(ada.graph.getNode('left:unsaved')).toBeDefined()
+    expect(session.saves.unsaved()).toBe(true)
+    expect(ada.hasUnsavedChanges()).toBe(true)
+  })
+
+  test('the room’s edits are saved once the saver’s upload of them is on the server', async () => {
+    const { ada, session } = await reopenAfter((grace) => {
+      const page = grace.graph.getPages()[0]
+      if (!page) throw new Error('Expected a page')
+      grace.graph.createNode('ELLIPSE', page.id, { name: 'Dot' })
+    })
+    const local = createMemoryLocalCanvasStore()
+    resetLocalCanvasStoreForTests(local)
+    cleanups.push(() => resetLocalCanvasStoreForTests())
+    const binding = { providerId: 'cloud', documentId: crypto.randomUUID() } as const
+    await local.writeCanvas({
+      id: binding.documentId,
+      providerId: 'cloud',
+      name: 'Poster',
+      figBytes: new Uint8Array([1]),
+      syncStatus: 'pending'
+    })
+    // The tab's save landed locally, as autosave leaves it, and is still on its way.
+    Object.assign(ada, { getStorageBinding: () => binding })
+    ada.markDocumentSaved()
+    await new Promise((resolve) => {
+      setTimeout(resolve, 10)
+    })
+    expect(session.saves.unsaved()).toBe(true)
+
+    await local.updateMeta(binding.documentId, { syncStatus: 'synced' })
+    emitStorageWorkspaceEvent({ ...binding, kind: 'changed' })
+    await until(() => !session.saves.unsaved())
   })
 })

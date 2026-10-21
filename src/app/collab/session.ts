@@ -11,6 +11,7 @@ import { buildRemotePeers } from '@/app/collab/awareness'
 import { useCollabIdentity } from '@/app/collab/identity'
 import { publishLocalAgents } from '@/app/collab/local-awareness'
 import { connectCollabRoom } from '@/app/collab/room/connection'
+import { trackRoomSaves, type RoomSaves } from '@/app/collab/room/saves'
 import { deriveRoomStatus, type RoomStatus } from '@/app/collab/room/status'
 import {
   readRoomName,
@@ -53,6 +54,8 @@ export interface RoomSession {
   readonly identity: RoomIdentity
   /** Whether the person may leave; a stored document's room stays open while its tab does. */
   readonly leavable: boolean
+  /** What of the room's document its stored revisions hold. */
+  readonly saves: RoomSaves
   updateCursor(x: number, y: number, pageId: string): void
   updateSelection(ids: string[]): void
   /** Writes the tab's whole document into the room and makes its root the room's. */
@@ -95,7 +98,8 @@ export interface RoomSessionOptions {
   tickMs?: number
   /**
    * The tab already shows the room's document, as a stored document opened before its room was:
-   * it counts as having the document until the room says it holds another.
+   * it counts as having the document until the room says it holds another, and what it takes
+   * from the room is no edit of its own, since the room says what is unsaved.
    */
   holdsDocument?: boolean
   /** False for a room the tab's document lives in, which the person never leaves by hand. */
@@ -128,6 +132,8 @@ export function openRoomSession({
   const yvariables: YRecords = ydoc.getMap('variables')
   const ycollections: YRecords = ydoc.getMap('collections')
   const persistence = openSavedCopy(roomId, ydoc)
+  const saves = trackRoomSaves(ydoc, [ynodes, yimages, yvariables, ycollections])
+  const adopt = (apply: () => void) => (holdsDocument ? store.adoptChanges(apply) : apply())
 
   const peers = shallowRef<RemotePeer[]>([])
   const hasDocument = ref(false)
@@ -174,7 +180,7 @@ export function openRoomSession({
       followsRoom = true
       suppressGraphSync = true
       try {
-        sync.dropLayersOutsideRoom()
+        adopt(sync.dropLayersOutsideRoom)
       } finally {
         suppressGraphSync = false
       }
@@ -210,7 +216,7 @@ export function openRoomSession({
       suppressGraphSync = value
     },
     applyYjsToGraph: (events) => {
-      sync.applyYjsToGraph(events)
+      adopt(() => sync.applyYjsToGraph(events))
       refreshDocument()
     }
   })
@@ -270,6 +276,7 @@ export function openRoomSession({
     voice,
     identity,
     leavable,
+    saves,
     updateCursor(x, y, pageId) {
       awareness.setLocalStateField('cursor', { x, y, pageId, zoom: store.state.zoom })
     },
@@ -303,6 +310,7 @@ export function openRoomSession({
       voice.dispose()
       meta.unobserve(refreshDocument)
       unregisterYjsObservers()
+      saves.dispose()
       // Destroying the awareness can emit a last change; nothing here should react to it.
       awareness.off('change', updatePeers)
       void connection.room.leave()
