@@ -107,16 +107,19 @@ async function fetchOpenRouterModels(fetcher: typeof fetch): Promise<ModelOption
 async function listOpenRouterModels(fetcher: typeof fetch = fetch): Promise<ModelOption[]> {
   modelsPromise ??= (async () => {
     try {
+      // Storage failures only skip the cache; they never hide the fetched list.
       const cached = await readCacheJSON(
         OPENROUTER_MODELS_CACHE_KEY,
         CachedModelOptions,
         OPENROUTER_MODELS_CACHE_TTL_MS
-      )
+      ).catch(() => null)
       if (cached?.length) return cached
 
       const models = await fetchOpenRouterModels(fetcher)
       if (!models.length) return curatedOpenRouterModels
-      await writeCacheJSON(OPENROUTER_MODELS_CACHE_KEY, models)
+      await writeCacheJSON(OPENROUTER_MODELS_CACHE_KEY, models).catch((error: unknown) => {
+        console.warn('OpenRouter model cache write skipped:', error)
+      })
       return models
     } catch {
       // Retried on the next call rather than held for the session.
