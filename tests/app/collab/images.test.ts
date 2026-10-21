@@ -38,7 +38,7 @@ function memoryImageStore(canStore = true, failStoring = false) {
 }
 
 /** A peer of a room: its document and the images its editor holds. */
-function peer(images: RoomImageStore) {
+function peer(images: RoomImageStore, retryDelayMs?: (attempt: number) => number) {
   const ydoc = new Y.Doc()
   const graphImages = new Map<string, Uint8Array>()
   let renders = 0
@@ -57,7 +57,8 @@ function peer(images: RoomImageStore) {
     images,
     report: (message) => {
       reports.push(message)
-    }
+    },
+    retryDelayMs
   })
   return { ydoc, graphImages, bound, reports, renders: () => renders }
 }
@@ -65,6 +66,14 @@ function peer(images: RoomImageStore) {
 /** Lets queued stores and loads finish. */
 async function settle() {
   for (let index = 0; index < 10; index++) await Promise.resolve()
+}
+
+/** Lets a retry's timer fire and the load it starts finish. */
+async function afterRetry() {
+  await new Promise((resolve) => {
+    setTimeout(resolve, 1)
+  })
+  await settle()
 }
 
 /** Sends everything `from` has that `to` lacks, as the relay would. */
@@ -112,5 +121,51 @@ describe('room images', () => {
     expect(editor.ydoc.getMap<Uint8Array>('images').get('a1')).toEqual(photo)
     expect(editor.ydoc.getMap('imageRefs').has('a1')).toBe(false)
     expect(editor.reports).toHaveLength(1)
+  })
+
+  test('an image that fails to load, or is left out, is asked for again until it loads', async () => {
+    const images = memoryImageStore()
+    const editor = peer(images.store)
+    editor.bound.share('a1', photo)
+    await settle()
+    const load = images.store.load.bind(images.store)
+    let failures = 2
+    const flaky: RoomImageStore = {
+      ...images.store,
+      async load(refs) {
+        failures--
+        if (failures === 1) throw new Error('Network is down')
+        if (failures === 0) return new Map()
+        return load(refs)
+      }
+    }
+    const loader = peer(flaky, () => 0)
+    sync(editor.ydoc, loader.ydoc)
+    await settle()
+    expect(loader.graphImages.has('a1')).toBe(false)
+    expect(loader.reports).toEqual(['Loading room images failed'])
+    await afterRetry()
+    expect(loader.graphImages.has('a1')).toBe(false)
+    await afterRetry()
+    expect(loader.graphImages.get('a1')).toEqual(photo)
+  })
+
+  test('a peer that leaves the room stops asking for images it could not load', async () => {
+    let loads = 0
+    const missing: RoomImageStore = {
+      canStore: false,
+      store: async () => new Map(),
+      load: async () => {
+        loads++
+        return new Map()
+      }
+    }
+    const loader = peer(missing, () => 0)
+    loader.ydoc.getMap<string>('imageRefs').set('a1', 'ref:a1')
+    await settle()
+    expect(loads).toBe(1)
+    loader.bound.dispose()
+    await afterRetry()
+    expect(loads).toBe(1)
   })
 })

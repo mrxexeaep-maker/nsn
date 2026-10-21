@@ -18,6 +18,11 @@ export interface RoomImageStore {
   load(refs: readonly { name: string; ref: string }[]): Promise<ReadonlyMap<string, Uint8Array>>
 }
 
+/** How long a peer waits before asking again for an image it could not load, by attempt. */
+export function imageRetryDelayMs(attempt: number): number {
+  return Math.min(1000 * 2 ** attempt, 60_000)
+}
+
 /** The room's image references by name, beside the `images` map of bytes. */
 export type YImageRefs = Y.Map<string>
 
@@ -40,7 +45,8 @@ export function bindRoomImages({
   yrefs,
   store,
   images,
-  report
+  report,
+  retryDelayMs = imageRetryDelayMs
 }: {
   ydoc: Y.Doc
   yimages: Y.Map<Uint8Array>
@@ -48,11 +54,15 @@ export function bindRoomImages({
   store: EditorStore
   images: RoomImageStore
   report: (message: string, error: unknown) => void
+  retryDelayMs?: (attempt: number) => number
 }): RoomImages {
   const toStore = new Map<string, Uint8Array>()
   const toLoad = new Set<string>()
   /** Images on their way to or from the store, so none is asked for twice at once. */
   const busy = new Set<string>()
+  /** Failed loads so far by name, and the timers that will ask for those images again. */
+  const attempts = new Map<string, number>()
+  const retries = new Set<ReturnType<typeof setTimeout>>()
   let scheduled = false
   let disposed = false
 
@@ -100,16 +110,33 @@ export function bindRoomImages({
     toLoad.clear()
     if (batch.length === 0) return
     for (const image of batch) busy.add(image.name)
+    let loaded: ReadonlyMap<string, Uint8Array> = new Map()
     try {
-      const loaded = await images.load(batch)
+      loaded = await images.load(batch)
       if (disposed) return
       for (const [name, bytes] of loaded) store.graph.images.set(name, bytes)
-      store.requestRender()
+      if (loaded.size > 0) store.requestRender()
     } catch (error) {
       report('Loading room images failed', error)
     } finally {
       for (const image of batch) busy.delete(image.name)
     }
+    for (const image of batch) {
+      if (loaded.has(image.name)) attempts.delete(image.name)
+      else retryLoad(image.name, image.ref)
+    }
+  }
+
+  /** Asks again later for an image a load left out, as long as the room still names it so. */
+  function retryLoad(name: string, ref: string) {
+    if (disposed) return
+    const attempt = attempts.get(name) ?? 0
+    attempts.set(name, attempt + 1)
+    const timer = setTimeout(() => {
+      retries.delete(timer)
+      if (!disposed && yrefs.get(name) === ref) wantLoad(name)
+    }, retryDelayMs(attempt))
+    retries.add(timer)
   }
 
   async function flush() {
@@ -130,6 +157,7 @@ export function bindRoomImages({
 
   function onRefs(event: Y.YMapEvent<string>) {
     for (const [name, change] of event.changes.keys) {
+      attempts.delete(name)
       if (change.action !== 'delete') wantLoad(name)
     }
   }
@@ -155,6 +183,8 @@ export function bindRoomImages({
     hasRef: (name) => yrefs.has(name),
     dispose() {
       disposed = true
+      for (const timer of retries) clearTimeout(timer)
+      retries.clear()
       yrefs.unobserve(onRefs)
       yimages.unobserve(onImages)
     }

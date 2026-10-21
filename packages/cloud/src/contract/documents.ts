@@ -4,6 +4,11 @@ export const CLOUD_PROTOCOL_MAX_UPLOAD_BYTES = 1024 * 1024 * 1024
 
 const checksumSchema = v.pipe(v.string(), v.regex(/^[A-Za-z0-9+/]{43}=$/))
 
+/** Whether a value is a SHA-256 checksum as the server names stored objects, base64 encoded. */
+export function isCloudChecksum(value: string): boolean {
+  return v.is(checksumSchema, value)
+}
+
 /** The most images one revision, or one request for image uploads, may name. */
 export const CLOUD_MAX_DOCUMENT_IMAGES = 10_000
 

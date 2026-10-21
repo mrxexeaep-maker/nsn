@@ -79,6 +79,7 @@ export {
   sharedDocumentSchema,
   type SharedDocument,
   workspaceUsageSchema,
+  isCloudChecksum,
   parseCommitImageUploads,
   parseCommitUpload,
   parseCreateDocument,

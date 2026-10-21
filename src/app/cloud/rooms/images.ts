@@ -1,24 +1,47 @@
-import { groupBy } from 'es-toolkit'
+import { groupBy, Semaphore } from 'es-toolkit'
 
 import type { CloudAPIClient } from '@open-pencil/cloud/client'
-import type { DocumentImageLink, ResolveDocumentShareInput } from '@open-pencil/cloud/contract'
+import {
+  isCloudChecksum,
+  type DocumentImageLink,
+  type ResolveDocumentShareInput
+} from '@open-pencil/cloud/contract'
 
 import type { RoomImageStore } from '@/app/collab/images'
 import { cloudChecksum, downloadCloudImage } from '@/app/integrations/storage/cloud/download'
 import { uploadCloudImages } from '@/app/integrations/storage/cloud/images'
 import { storageFetch } from '@/app/integrations/storage/s3/fetch'
 
-/** The bytes of each reference, downloaded once per checksum however many names share it. */
+const IMAGE_LOAD_CONCURRENCY = 6
+
+/**
+ * The bytes of each reference, downloaded once per checksum however many names share it. A
+ * reference that is no checksum, or an image whose download fails, is left out, so the others
+ * still load.
+ */
 async function loadLinked(
   refs: readonly { name: string; ref: string }[],
   links: (checksums: string[]) => Promise<DocumentImageLink[]>
 ): Promise<ReadonlyMap<string, Uint8Array>> {
-  const byChecksum = groupBy(refs, (ref) => ref.ref)
+  const byChecksum = groupBy(
+    refs.filter((ref) => isCloudChecksum(ref.ref)),
+    (ref) => ref.ref
+  )
+  const checksums = Object.keys(byChecksum)
   const loaded = new Map<string, Uint8Array>()
-  for (const link of await links(Object.keys(byChecksum))) {
-    const bytes = await downloadCloudImage(link, storageFetch)
-    for (const ref of byChecksum[link.checksum] ?? []) loaded.set(ref.name, bytes)
-  }
+  if (checksums.length === 0) return loaded
+  const semaphore = new Semaphore(IMAGE_LOAD_CONCURRENCY)
+  await Promise.allSettled(
+    (await links(checksums)).map(async (link) => {
+      await semaphore.acquire()
+      try {
+        const bytes = await downloadCloudImage(link, storageFetch)
+        for (const ref of byChecksum[link.checksum] ?? []) loaded.set(ref.name, bytes)
+      } finally {
+        semaphore.release()
+      }
+    })
+  )
   return loaded
 }
 
