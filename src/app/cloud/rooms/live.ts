@@ -24,7 +24,7 @@ import { cloudConnection, cloudConnections, type CloudSessionState } from '../se
 import { cloudShareTarget } from '../sharing/document'
 import { versionsChanged } from '../versions/history'
 import { accountRoomIdentity } from './identity'
-import { shareRoomUploads, uploadStoredDocument } from './upload'
+import { onceOnServer, shareRoomUploads, uploadStoredDocument } from './upload'
 
 /** Each Cloud tab's permission in its room, for the status beside the name. */
 export const cloudRoomPermissions = shallowRef<ReadonlyMap<EditorStore, 'edit' | 'view'>>(new Map())
@@ -293,7 +293,10 @@ export async function startCloudRoom(store: EditorStore): Promise<void> {
   if (!target?.discovery.capabilities.collaboration) return
   starting.add(store)
   try {
-    const first = await target.client.getCollaborationTicket(binding.documentId)
+    // A new document's room opens once its first upload has created it on the server.
+    const first = await onceOnServer(binding.documentId, () =>
+      target.client.getCollaborationTicket(binding.documentId)
+    )
     // The document may have moved, or its tab closed, while the ticket was on its way.
     const current = store.getStorageBinding() === binding && getTabForStore(store)
     if (first.provider !== 'relay' || !first.serverURL || !current) return
