@@ -1,5 +1,6 @@
 import { useFileDialog } from '@vueuse/core'
 import { uniq } from 'es-toolkit/array'
+import { decode } from 'ufo'
 
 import { BUILTIN_IO_FORMATS, IORegistry } from '@open-pencil/core/io'
 
@@ -57,14 +58,12 @@ if (IS_BROWSER && 'window' in globalThis) {
   })
 }
 
-/** The file name a URL ends in, decoded, so `my%20design.fig` opens as "my design". */
+/**
+ * The file name a URL ends in, decoded, so `my%20design.fig` opens as "my design"; a malformed
+ * escape stays as written.
+ */
 function fileNameFromURL(url: URL): string {
-  const segment = url.pathname.split('/').pop() ?? ''
-  try {
-    return decodeURIComponent(segment) || 'file.fig'
-  } catch {
-    return segment || 'file.fig'
-  }
+  return decode(url.pathname.split('/').pop() ?? '') || 'file.fig'
 }
 
 /** Fetches a document over HTTP and opens it in a new tab. Browser builds only. */
