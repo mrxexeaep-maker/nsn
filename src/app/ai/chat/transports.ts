@@ -94,9 +94,10 @@ function mergeProviderOptions(
 function callSettings(
   providerID: AIProviderID,
   cacheOptions: typeof ANTHROPIC_CACHE_CONTROL | undefined,
-  thinkingLevel: ThinkingLevel
+  thinkingLevel: ThinkingLevel,
+  modelID: string
 ) {
-  const { reasoning, providerOptions } = reasoningCallSettings(providerID, thinkingLevel)
+  const { reasoning, providerOptions } = reasoningCallSettings(providerID, thinkingLevel, modelID)
   return { reasoning, providerOptions: mergeProviderOptions(cacheOptions, providerOptions) }
 }
 
@@ -159,7 +160,7 @@ export function createToolLoopTransport({
         stopWhen: stepCountIs(currentRun(store).maxSteps),
         tools: offered,
         maxOutputTokens,
-        ...callSettings(providerID, cacheProviderOptions, thinkingLevel())
+        ...callSettings(providerID, cacheProviderOptions, thinkingLevel(), effectiveModelID)
       }
     },
     onFinish: () => {

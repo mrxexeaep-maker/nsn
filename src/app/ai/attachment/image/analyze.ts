@@ -72,7 +72,8 @@ export async function analyzeAttachedImages(
     maxOutputTokens: Math.min(runtime.role.profile.maxOutputTokens, MAX_IMAGE_ANALYSIS_TOKENS),
     ...reasoningCallSettings(
       runtime.role.connection.providerID,
-      runtime.role.profile.thinkingLevel
+      runtime.role.profile.thinkingLevel,
+      runtime.role.profile.customModelID.trim() || runtime.role.profile.modelID
     ),
     messages: [{ role: 'user', content }]
   })

@@ -6,6 +6,7 @@ import { AI_PROVIDERS } from '@open-pencil/core/constants'
 
 import { resolveLanguageModelID } from '@/app/ai/chat/model'
 import { normalizeOpenRouterModel } from '@/app/ai/chat/provider-models'
+import { reasoningCallSettings } from '@/app/ai/chat/reasoning'
 import { createAnthropicCompatibleAdapter } from '@/app/ai/providers/compatible'
 import { modelProviderAdapter } from '@/app/ai/providers/registry'
 import type { ModelConfig } from '@/app/ai/providers/types'
@@ -39,39 +40,80 @@ describe('resolveLanguageModelID', () => {
 })
 
 describe('model provider registry', () => {
-  test('offers MiniMax-M3 as the default MiniMax model', () => {
+  test('offers Flash first and M3 as the MiniMax fallback', () => {
     const provider = AI_PROVIDERS.find(({ id }) => id === 'minimax')
-    expect(provider?.defaultModel).toBe('MiniMax-M3')
-    expect(provider?.models[0]).toMatchObject({ id: 'MiniMax-M3' })
+    expect(provider?.defaultModel).toBe('MiniMax-M3.1-Flash')
+    expect(provider?.models.map(({ id }) => id)).toEqual(['MiniMax-M3.1-Flash', 'MiniMax-M3'])
   })
 
-  test('sends MiniMax-M3 through the OpenAI-compatible chat endpoint', async () => {
-    let requestURL = ''
-    let requestBody = ''
-    const fetchSpy: FetchFunction = async (input, init) => {
-      requestURL = String(input)
-      requestBody = String(init?.body)
-      throw new Error('stop')
-    }
-    const config: ModelConfig = {
-      providerID: 'minimax',
-      apiKey: 'test-key',
-      modelID: 'MiniMax-M3',
-      customModelID: '',
-      customBaseURL: '',
-      customAPIType: 'completions'
-    }
+  test.each(['MiniMax-M3.1-Flash', 'MiniMax-M3', 'MiniMax-M2.7'])(
+    'sends %s through the OpenAI-compatible chat endpoint',
+    async (modelID) => {
+      let requestURL = ''
+      let requestBody = ''
+      const fetchSpy: FetchFunction = async (input, init) => {
+        requestURL = String(input)
+        requestBody = String(init?.body)
+        throw new Error('stop')
+      }
+      const config: ModelConfig = {
+        providerID: 'minimax',
+        apiKey: 'test-key',
+        modelID,
+        customModelID: '',
+        customBaseURL: '',
+        customAPIType: 'completions'
+      }
 
-    const model = languageModelInstance(
-      modelProviderAdapter('minimax').create(config, { fetch: fetchSpy })
-    )
-    await Promise.resolve(
-      model.doGenerate({ prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }] })
-    ).catch(() => undefined)
+      const model = languageModelInstance(
+        modelProviderAdapter('minimax').create(config, { fetch: fetchSpy })
+      )
+      await Promise.resolve(
+        model.doGenerate({ prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }] })
+      ).catch(() => undefined)
 
-    expect(requestURL).toBe('https://api.minimax.io/v1/chat/completions')
-    expect(requestBody).toContain('"model":"MiniMax-M3"')
-  })
+      expect(requestURL).toBe('https://api.minimax.io/v1/chat/completions')
+      expect(JSON.parse(requestBody)).toMatchObject({ model: modelID })
+      expect(JSON.parse(requestBody)).not.toHaveProperty('reasoning_effort')
+      expect(JSON.parse(requestBody)).not.toHaveProperty('thinking')
+      expect(JSON.parse(requestBody)).not.toHaveProperty('service_tier')
+    }
+  )
+
+  test.each(['off', 'minimal', 'low', 'medium', 'high', 'xhigh'] as const)(
+    'serializes supported Flash effort for %s',
+    async (level) => {
+      let requestBody = ''
+      const fetchSpy: FetchFunction = async (_input, init) => {
+        requestBody = String(init?.body)
+        throw new Error('stop')
+      }
+      const model = languageModelInstance(
+        modelProviderAdapter('minimax').create(
+          {
+            providerID: 'minimax',
+            apiKey: 'test-key',
+            modelID: 'MiniMax-M3',
+            customModelID: ' MiniMax-M3.1-Flash ',
+            customBaseURL: '',
+            customAPIType: 'completions'
+          },
+          { fetch: fetchSpy }
+        )
+      )
+      await Promise.resolve(
+        model.doGenerate({
+          ...reasoningCallSettings('minimax', level, 'MiniMax-M3.1-Flash'),
+          prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }]
+        })
+      ).catch(() => undefined)
+      expect(JSON.parse(requestBody)).toMatchObject({
+        model: 'MiniMax-M3.1-Flash',
+        reasoning_effort: level === 'off' || level === 'minimal' ? 'low' : level
+      })
+      expect(JSON.parse(requestBody)).not.toHaveProperty('thinking')
+    }
+  )
 
   test('registers every direct provider without handling agent runtimes as models', () => {
     for (const provider of AI_PROVIDERS.filter((entry) => entry.id !== 'harness:pi')) {

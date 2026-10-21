@@ -18,9 +18,14 @@ export type ReasoningCallSettings = {
  */
 export function reasoningCallSettings(
   providerID: AIProviderID,
-  level: ThinkingLevel
+  level: ThinkingLevel,
+  modelID?: string
 ): ReasoningCallSettings {
   if (level === 'default') return {}
+  // Flash always thinks; use its lowest supported effort for existing off/minimal preferences.
+  if (providerID === 'minimax' && modelID === 'MiniMax-M3.1-Flash') {
+    return { reasoning: level === 'off' || level === 'minimal' ? 'low' : level }
+  }
   const reasoning = level === 'off' ? 'none' : level
   if (providerID === 'openrouter') {
     return { providerOptions: { openrouter: { reasoning: { effort: reasoning } } } }
