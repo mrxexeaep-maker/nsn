@@ -5,6 +5,7 @@ import type {
   CreateUploadInput,
   DocumentDownload,
   DocumentSummary,
+  ImageUploadOffer,
   RequestImageUploadsInput,
   SharedDocument
 } from '#cloud/contract'
@@ -24,8 +25,7 @@ import {
 import {
   createDocumentImages,
   documentImageLinks,
-  revisionImageDownloads,
-  type ImageUploadOffer
+  revisionImageDownloads
 } from '#cloud/server/documents/images'
 import { writableDocument } from '#cloud/server/documents/limits'
 import {

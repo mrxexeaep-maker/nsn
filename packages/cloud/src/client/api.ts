@@ -7,6 +7,7 @@ import {
   createInvitationContinuationSchema,
   documentAccessSchema,
   documentDownloadSchema,
+  objectUploadSchema,
   documentGrantSchema,
   documentInvitationSchema,
   documentShareSchema,
@@ -55,7 +56,7 @@ import { pickBy } from 'es-toolkit/object'
 import { hc } from 'hono/client'
 import * as v from 'valibot'
 
-import { createImageRequests, objectUploadSchema } from './images'
+import { createImageRequests } from './images'
 import { CloudAPIError, parseResponse, responseBody, type CloudClientDiagnostic } from './response'
 import { createWorkspaceRequests } from './workspaces'
 

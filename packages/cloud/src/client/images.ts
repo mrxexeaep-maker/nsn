@@ -1,7 +1,9 @@
 import {
   documentImageLinkSchema,
+  imageUploadOfferSchema,
   type CommitImageUploadsInput,
   type DocumentImageLink,
+  type ImageUploadOffer,
   type RequestImageUploadsInput,
   type ResolveDocumentShareInput
 } from '#cloud/contract'
@@ -11,43 +13,8 @@ import * as v from 'valibot'
 
 import { parseResponse, responseBody, type CloudClientDiagnostic } from './response'
 
-/** Where to put an object: one presigned PUT, or the parts of a multipart upload. */
-export const objectUploadSchema = v.variant('kind', [
-  v.object({
-    kind: v.literal('single'),
-    url: v.pipe(v.string(), v.url()),
-    method: v.literal('PUT'),
-    headers: v.record(v.string(), v.string()),
-    expiresAt: v.string()
-  }),
-  v.object({
-    kind: v.literal('multipart'),
-    uploadId: v.string(),
-    partSize: v.pipe(v.number(), v.integer(), v.minValue(1)),
-    parts: v.array(
-      v.object({
-        partNumber: v.pipe(v.number(), v.integer(), v.minValue(1)),
-        url: v.pipe(v.string(), v.url()),
-        method: v.literal('PUT'),
-        headers: v.record(v.string(), v.string())
-      })
-    ),
-    expiresAt: v.string()
-  })
-])
 const imageLinksResponseSchema = v.object({ images: v.array(documentImageLinkSchema) })
-const imageUploadsResponseSchema = v.object({
-  uploads: v.array(
-    v.object({
-      checksum: v.string(),
-      uploadId: v.pipe(v.string(), v.uuid()),
-      upload: objectUploadSchema
-    })
-  )
-})
-
-/** An upload offered for an image the workspace lacks. */
-export type CloudImageUpload = v.InferOutput<typeof imageUploadsResponseSchema>['uploads'][number]
+const imageUploadsResponseSchema = v.object({ uploads: v.array(imageUploadOfferSchema) })
 
 /** The images a save uploads apart from the document, and the links a live room loads them by. */
 export function createImageRequests(
@@ -60,7 +27,7 @@ export function createImageRequests(
     async requestImageUploads(
       documentId: string,
       input: RequestImageUploadsInput
-    ): Promise<CloudImageUpload[]> {
+    ): Promise<ImageUploadOffer[]> {
       const response = await parseResponse(
         client.documents[':documentId'].images.$post({
           param: { documentId },

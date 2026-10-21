@@ -40,6 +40,8 @@ export {
   documentImageDownloadSchema,
   documentImageLinkSchema,
   documentPermissionSchema,
+  imageUploadOfferSchema,
+  objectUploadSchema,
   documentSummarySchema,
   sharedDocumentSchema,
   type SharedDocument,
@@ -67,6 +69,8 @@ export {
   type DocumentPermission,
   type DocumentSummary,
   type RequestImageLinksInput,
+  type ImageUploadOffer,
+  type ObjectUploadTarget,
   type RequestImageUploadsInput,
   type WorkspaceUsage
 } from './documents'
