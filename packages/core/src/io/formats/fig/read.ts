@@ -46,10 +46,12 @@ function parseFigFileSync(buffer: ArrayBuffer, options: ParseFigFileOptions = {}
   return reader.graph
 }
 
-export function parseFigFileViaWorker(
+export async function parseFigFileViaWorker(
   buffer: ArrayBuffer,
   options: ParseFigFileOptions
 ): Promise<SceneGraph> {
+  // The worker loads its own; this thread patches the archive on save, which reads it again.
+  await loadFigDataDecompressor()
   return new Promise((resolve, reject) => {
     options.signal?.throwIfAborted()
     const worker = createFigSessionWorker()
