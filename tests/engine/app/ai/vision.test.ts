@@ -36,7 +36,7 @@ describe('isolated visual inspection', () => {
           role: {
             requestedRole: 'vision',
             profile: {
-              modelID: 'google/gemini-3.8-flash',
+              modelID: 'anthropic/claude-sonnet-4.6',
               customModelID: '',
               maxOutputTokens: 8000,
               thinkingLevel: 'low'
