@@ -3,7 +3,13 @@ import { clamp } from 'es-toolkit'
 import type { SceneNode, Vector } from '@open-pencil/scene-graph'
 import { POINT_COUNT_RANGE, polygonCorners } from '@open-pencil/scene-graph/polygon'
 
-import { ARC_HANDLE, arcHandles, arcHandleValue, type ArcHandleKind } from './arc-handles'
+import {
+  ARC_HANDLE,
+  arcHandles,
+  arcHandleValue,
+  unitOffset,
+  type ArcHandleKind
+} from './arc-handles'
 import type { SceneGeometry } from './scene'
 import type { ViewportTransform } from './types'
 
@@ -219,14 +225,6 @@ export function shapeHandleValue(node: SceneNode, handle: ShapeHandleKind): stri
   if (handle === 'count') return String(node.pointCount)
   if (handle === 'ratio') return `${Math.round(node.starInnerRadius * 100)}%`
   return String(Math.round(cornerRadiusOf(node, handle)))
-}
-
-/** A node-local point relative to the shape's centre, with its ellipse scaled to a unit circle. */
-function unitOffset(node: SceneNode, local: Vector): Vector {
-  return {
-    x: (local.x - node.width / 2) / (node.width / 2),
-    y: (local.y - node.height / 2) / (node.height / 2)
-  }
 }
 
 /**

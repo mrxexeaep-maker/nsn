@@ -78,8 +78,8 @@ export function arcHandles(
   ]
 }
 
-/** A node-local point relative to the ellipse's centre, with the ellipse scaled to a unit circle. */
-function unitOffset(node: SceneNode, local: Vector): Vector {
+/** A node-local point relative to the shape's centre, with its ellipse scaled to a unit circle. */
+export function unitOffset(node: SceneNode, local: Vector): Vector {
   return {
     x: (local.x - node.width / 2) / (node.width / 2),
     y: (local.y - node.height / 2) / (node.height / 2)
