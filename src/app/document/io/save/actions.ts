@@ -105,8 +105,10 @@ export function createSaveActions({
         return wrote
       } catch (error) {
         if (!isFileWriteRefused(error)) throw error
-        // The browser gave out the file but will not write to it: download it under that name.
+        // The browser gave out the file but will not write to it: download it under that name,
+        // and forget the file, so the tab is not taken for it.
         setFileHandle(null)
+        setSourceIdentity({ handle: null, path: null })
         return downloadAs(handle.name, data, version)
       }
     }
