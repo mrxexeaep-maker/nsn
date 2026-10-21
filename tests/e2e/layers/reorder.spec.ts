@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import { CanvasHelper } from '#tests/helpers/canvas'
+import { layerDriver } from '#tests/helpers/canvas/layers'
 
 async function layerOrder(page: Page, parentId?: string) {
   return page.evaluate((id) => {
@@ -48,40 +49,23 @@ test('an auto layout lists and reorders its layers in flow order', async ({ page
   canvas.errors.length = 0
   await canvas.clearCanvas()
 
-  const ids = await page.evaluate(() => {
-    const store = window.openPencil?.getStore?.()
-    if (!store) throw new Error('OpenPencil store not initialized')
-    const pageId = store.state.currentPageId
-    const row = store.graph.createNode('FRAME', pageId, {
-      name: 'Flow row',
-      layoutMode: 'HORIZONTAL',
-      width: 400,
-      height: 120
-    })
-    const child = (name: string) =>
-      store.graph.createNode('RECTANGLE', row.id, { name, width: 80, height: 80 }).id
-    const ids = {
-      row: row.id,
-      first: child('Item A'),
-      second: child('Item B'),
-      third: child('Item C')
-    }
-    // Selecting a child expands the row in the layers panel.
-    store.select([ids.first])
-    store.requestRender()
-    return ids
-  })
+  const { frame, items } = await layerDriver(() => page).autoLayoutWithItems(
+    'Flow row',
+    'HORIZONTAL',
+    ['Item A', 'Item B', 'Item C']
+  )
   await canvas.waitForRender()
 
   // The rows follow the flow, A, B, C, as in Figma; dropping C above A puts it first in the flow.
   const rows = page.getByTestId('layers-item')
   await expect(rows.filter({ hasText: /^Item/ })).toHaveText(['Item A', 'Item B', 'Item C'])
-  const source = page.locator(`[data-node-id="${ids.third}"]`).getByTestId('layers-item')
-  const target = page.locator(`[data-node-id="${ids.first}"]`).getByTestId('layers-item')
+  const [first, second, third] = items
+  const source = page.locator(`[data-node-id="${third}"]`).getByTestId('layers-item')
+  const target = page.locator(`[data-node-id="${first}"]`).getByTestId('layers-item')
   await source.dragTo(target, { targetPosition: { x: 20, y: 2 } })
   await canvas.waitForRender()
 
-  expect(await layerOrder(page, ids.row)).toEqual([ids.third, ids.first, ids.second])
+  expect(await layerOrder(page, frame)).toEqual([third, first, second])
   canvas.assertNoErrors()
 })
 
