@@ -3,7 +3,6 @@ import * as v from 'valibot'
 import { AI_PROVIDERS } from '@open-pencil/core/constants'
 import type { AIProviderID, ModelOption } from '@open-pencil/core/constants'
 
-import { currentMiniMaxModels } from '@/app/ai/models/catalog/minimax'
 import { readCacheJSON, writeCacheJSON } from '@/app/cache'
 
 const CachedModelOptions = v.array(
@@ -99,7 +98,7 @@ async function listOpenRouterModels(fetcher: typeof fetch = fetch): Promise<Mode
     }
   })()
 
-  return currentMiniMaxModels('openrouter', await modelsPromise)
+  return modelsPromise
 }
 
 export async function listProviderModels(

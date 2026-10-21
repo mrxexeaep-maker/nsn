@@ -6,8 +6,6 @@ import type { AIProviderID, ModelOption } from '@open-pencil/core/constants'
 
 import { readCacheJSON, writeCacheJSON } from '@/app/cache'
 
-import { currentMiniMaxModels } from './minimax'
-
 const MODELS_DEV_URL = 'https://models.dev/api.json'
 const MODELS_DEV_CACHE_KEY = 'models-dev/catalog'
 const MODELS_DEV_CACHE_TTL_MS = 24 * 60 * 60 * 1000
@@ -176,10 +174,7 @@ export async function listCatalogModels(
       .filter(([, model]) => supportsDesignWork(model))
       .map(([id, model]) => normalizeModel(id, model))
   )
-  return currentMiniMaxModels(
-    providerID,
-    models.length ? mergeCuratedModels(curated, models) : curated
-  )
+  return models.length ? mergeCuratedModels(curated, models) : curated
 }
 
 export async function resolveModelsDevModel(

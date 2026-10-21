@@ -15,33 +15,6 @@ function catalogResponse(body: unknown): typeof fetch {
 afterEach(() => resetModelsDevCatalogForTests())
 
 describe('models.dev catalog', () => {
-  test('filters MiniMax discovery while retaining explicit legacy model resolution', async () => {
-    const fetcher = catalogResponse({
-      minimax: {
-        models: {
-          'MiniMax-M2.7': { tool_call: true, modalities: { output: ['text'] } },
-          'MiniMax-M3': { tool_call: true, modalities: { output: ['text'] } },
-          'MiniMax-M3.1-Flash': { tool_call: true, modalities: { output: ['text'] } }
-        }
-      }
-    })
-    expect((await listCatalogModels('minimax', fetcher)).map(({ id }) => id)).toEqual([
-      'MiniMax-M3.1-Flash',
-      'MiniMax-M3'
-    ])
-    expect(await resolveModelsDevModel('minimax', 'MiniMax-M2.7', fetcher)).toMatchObject({
-      id: 'MiniMax-M2.7'
-    })
-  })
-
-  test('offers Flash and M3 when discovery is unavailable', async () => {
-    const fetcher = fetchStub(async () => new Response('', { status: 503 }))
-    expect((await listCatalogModels('minimax', fetcher)).map(({ id }) => id)).toEqual([
-      'MiniMax-M3.1-Flash',
-      'MiniMax-M3'
-    ])
-  })
-
   test('resolves provider model capabilities and output limits', async () => {
     const model = await resolveModelsDevModel(
       'anthropic',
