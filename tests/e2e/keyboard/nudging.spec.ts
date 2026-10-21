@@ -1,5 +1,6 @@
 import { expect, test, useEditorSetup } from '#tests/e2e/fixtures'
 import { expectDefined } from '#tests/helpers/assert'
+import { statusLabelCenter } from '#tests/helpers/canvas/status-labels'
 import { propertySection } from '#tests/helpers/properties'
 import { getSelectedNode } from '#tests/helpers/store'
 
@@ -8,16 +9,6 @@ const editor = useEditorSetup()
 async function getSelectedPosition() {
   const { x, y } = expectDefined(await getSelectedNode(editor.page), 'selected layer')
   return { x, y }
-}
-
-function getStatusLabelCenter(nodeId: string) {
-  return editor.page.evaluate((id) => {
-    const label = window.openPencil
-      ?.getStore?.()
-      ?.renderer?.statusLabels.find((entry) => entry.nodeId === id)
-    if (!label) throw new Error('Status label not drawn')
-    return { x: label.rect.x + label.rect.width / 2, y: label.rect.y + label.rect.height / 2 }
-  }, nodeId)
 }
 
 test.describe('arrow key nudging', () => {
@@ -61,7 +52,7 @@ test.describe('arrow key nudging', () => {
       .click()
     await editor.page.getByRole('option', { name: 'Ready for dev' }).click()
     await editor.canvas.waitForRender()
-    const pill = await getStatusLabelCenter(section.id)
+    const pill = await statusLabelCenter(editor.page, section.id)
     const canvasElement = editor.page.getByTestId('canvas-element')
     await canvasElement.focus()
 
