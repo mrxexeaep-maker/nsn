@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, spyOn, test } from 'bun:test'
 
 import { compact } from 'es-toolkit'
 import * as awarenessProtocol from 'y-protocols/awareness'
@@ -669,12 +669,20 @@ describe('Cloud document rooms, unsaved edits', () => {
       figBytes: new Uint8Array([1]),
       syncStatus: 'pending'
     })
-    // The tab's save landed locally, as autosave leaves it, and is still on its way.
-    Object.assign(ada, { getStorageBinding: () => binding })
-    ada.markDocumentSaved()
-    await new Promise((resolve) => {
-      setTimeout(resolve, 10)
+    const bound = spyOn(ada, 'getStorageBinding').mockReturnValue(binding)
+    cleanups.push(() => bound.mockRestore())
+    // The saver reads whether its upload is on the server; the room hears only after that.
+    let reads = 0
+    const getMeta = local.getMeta.bind(local)
+    const read = spyOn(local, 'getMeta').mockImplementation(async (id) => {
+      const meta = await getMeta(id)
+      reads++
+      return meta
     })
+    cleanups.push(() => read.mockRestore())
+    // The tab's save landed locally, as autosave leaves it, and is still on its way.
+    ada.markDocumentSaved()
+    await until(() => reads > 0)
     expect(session.saves.unsaved()).toBe(true)
 
     await local.updateMeta(binding.documentId, { syncStatus: 'synced' })
