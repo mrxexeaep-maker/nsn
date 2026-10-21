@@ -3,6 +3,7 @@ import { omit } from 'es-toolkit/object'
 import type { SceneGraph, Variable } from '@open-pencil/scene-graph'
 
 import {
+  assertProxyEditable,
   graph,
   raw,
   updateNode,
@@ -16,6 +17,7 @@ import {
   figmaBoundVariables,
   hasBindableField,
   isTextBindableField,
+  setEmptyTextBinding,
   setLayerBinding
 } from '#core/figma-api/variables/bindings'
 import type { FigmaVariableAlias } from '#core/figma-api/variables/values'
@@ -118,9 +120,12 @@ export function installVariableModeNodeProxyAccessors(
           variable === null ? null : bindingVariable(sceneGraph, 'setBoundVariable', name, variable)
         const node = raw(this, internals)
         if (!hasBindableField(node, name)) return
+        assertProxyEditable(this, internals)
         if (isTextBindableField(name)) {
-          // A text style field binds every character, as setting it on the whole text does.
-          this.setRangeBoundVariable(0, node.text.length, name, bound)
+          // A text style field binds every character, as setting it on the whole text does;
+          // text with none yet keeps it on the layer, which its characters then take.
+          if (node.text === '') setEmptyTextBinding(sceneGraph, node, name, bound)
+          else this.setRangeBoundVariable(0, node.text.length, name, bound)
           return
         }
         setLayerBinding(sceneGraph, node, name, bound)

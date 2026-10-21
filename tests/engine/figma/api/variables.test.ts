@@ -140,6 +140,16 @@ describe('figma.variables', () => {
     expect(collection.defaultModeId).toBe(dark)
   })
 
+  test('scopes the plugin API cannot name stay when a script sets scopes', () => {
+    const { api, size } = tokens()
+    expectDefined(api.graph.variables.get(size.id), 'size').scopes = ['GAP', 'TRANSFORM', 'STROKE']
+    expect(size.scopes).toEqual(['GAP', 'STROKE_COLOR'])
+    size.scopes = size.scopes.filter((scope) => scope !== 'GAP')
+    expect(api.graph.variables.get(size.id)?.scopes).toEqual(['STROKE', 'TRANSFORM'])
+    size.scopes = ['ALL_SCOPES']
+    expect(api.graph.variables.get(size.id)?.scopes).toBeUndefined()
+  })
+
   test('removing a variable or collection takes it out of the document', () => {
     const { api, collection, size } = tokens()
     size.remove()
@@ -205,6 +215,35 @@ describe('node variable bindings', () => {
     text.setBoundVariable('characters', label)
     expect(text.characters).toBe('String value')
     expect(text.boundVariables).toEqual({ characters: { type: 'VARIABLE_ALIAS', id: label.id } })
+  })
+
+  test('text with no characters yet keeps a style binding for the characters typed later', () => {
+    const { api, size } = tokens()
+    const text = api.createText()
+    text.setBoundVariable('fontSize', size)
+    expect(text.boundVariables).toEqual({ fontSize: [{ type: 'VARIABLE_ALIAS', id: size.id }] })
+    expect(text.fontSize).toBe(4.5)
+    text.characters = 'Hello'
+    expect(text.boundVariables).toEqual({ fontSize: [{ type: 'VARIABLE_ALIAS', id: size.id }] })
+    expect(text.fontSize).toBe(4.5)
+    expect(() => api.createText().setBoundVariable('fontWeight', size)).toThrow(
+      'in setBoundVariable: OpenPencil binds fontWeight only on text that has characters'
+    )
+  })
+
+  test('setBoundVariable refuses a layer of a library definition, as other setters do', () => {
+    const { api, size } = tokens()
+    const component = api.graph.createNode('COMPONENT', api.currentPage.id, {
+      name: 'Remote button',
+      librarySource: {
+        identity: { libraryId: 'design-system', assetKey: 'button', revisionId: 'r1' },
+        sourceNodeId: 'source',
+        readOnly: true
+      }
+    })
+    const proxy = expectDefined(api.getNodeById(component.id), 'component')
+    expect(() => proxy.setBoundVariable('width', size)).toThrow('belongs to library design-system')
+    expect(component.boundVariables).toEqual({})
   })
 
   test('setBoundVariable refuses unknown fields and paints, and ignores fields a layer lacks', () => {

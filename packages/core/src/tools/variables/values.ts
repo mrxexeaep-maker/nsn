@@ -38,11 +38,14 @@ export const createVariable = defineTool({
   }),
   execute: (figma, args) => {
     const type = args.type as VariableType
+    // The value is checked first, so a value the variable cannot hold creates nothing.
+    const value = args.value === undefined ? undefined : parseVariableValue(type, args.value)
+    if (typeof value === 'number' && !Number.isFinite(value))
+      return { error: `"${args.value}" is not a number` }
     const variable = figma.variables.createVariable(args.name, args.collection_id, type)
-    if (args.value !== undefined) {
-      const value = figmaValue(parseVariableValue(type, args.value))
+    if (value !== undefined) {
       for (const modeId of Object.keys(variable.valuesByMode))
-        variable.setValueForMode(modeId, value)
+        variable.setValueForMode(modeId, figmaValue(value))
     }
     return figma.graph.variables.get(variable.id)
   }
@@ -76,7 +79,9 @@ export const deleteVariable = defineTool({
     id: v.pipe(v.string(), v.description('Variable ID'))
   }),
   execute: (figma, { id }) => {
-    figma.variables.getVariableById(id)?.remove()
+    const variable = figma.variables.getVariableById(id)
+    if (!variable) return { error: `Variable "${id}" not found` }
+    variable.remove()
     return { deleted: id }
   }
 })

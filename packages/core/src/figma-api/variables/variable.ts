@@ -1,3 +1,5 @@
+import { uniq } from 'es-toolkit/array'
+
 import {
   updateTokenExpression,
   VARIABLE_SCOPES,
@@ -134,10 +136,15 @@ export class FigmaVariable {
     return (this.#variable.scopes ?? ['ALL_SCOPES']).flatMap(figmaScope)
   }
 
+  /** Scopes the plugin API cannot name stay, as the script never saw them. */
   set scopes(scopes: FigmaVariableScope[]) {
     const variable = this.#variable
-    if (scopes.includes('ALL_SCOPES')) delete variable.scopes
-    else variable.scopes = scopes.map(documentScope)
+    if (scopes.includes('ALL_SCOPES')) {
+      delete variable.scopes
+      return
+    }
+    const unnamed = (variable.scopes ?? []).filter((scope) => figmaScope(scope).length === 0)
+    variable.scopes = uniq([...scopes.map(documentScope), ...unnamed])
   }
 
   get codeSyntax(): Partial<Record<CodeSyntaxPlatform, string>> {

@@ -152,6 +152,34 @@ export function setLayerBinding(
   reconcileVariableLayouts(graph, { subtrees: [node.id] })
 }
 
+/** Text style fields a text layer itself can hold a binding for. */
+const LAYER_TEXT_FIELDS: ReadonlySet<TextBindableField> = new Set([
+  'fontFamily',
+  'fontSize',
+  'letterSpacing',
+  'lineHeight'
+])
+
+/**
+ * Binds a text style field of text with no characters on the layer, as Figma keeps it for the
+ * characters typed later. OpenPencil keeps only some of those fields on a layer.
+ */
+export function setEmptyTextBinding(
+  graph: SceneGraph,
+  node: SceneNode,
+  field: TextBindableField,
+  variable: Variable | null
+): void {
+  if (!LAYER_TEXT_FIELDS.has(field)) {
+    throw new Error(
+      `in setBoundVariable: OpenPencil binds ${field} only on text that has characters`
+    )
+  }
+  if (variable) graph.bindVariable(node.id, field, variable.id)
+  else graph.unbindVariable(node.id, field)
+  reconcileVariableLayouts(graph, { subtrees: [node.id] })
+}
+
 const FIGMA_FIELD_BY_DOCUMENT_FIELD = new Map<string, string>(
   Object.entries(NODE_FIELDS)
     .filter(([figma]) => figma !== 'cornerRadius')
