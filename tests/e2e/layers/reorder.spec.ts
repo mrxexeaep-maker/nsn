@@ -65,6 +65,7 @@ test('an auto layout lists and reorders its layers in flow order', async ({ page
   await source.dragTo(target, { targetPosition: { x: 20, y: 2 } })
   await canvas.waitForRender()
 
+  await expect(rows.filter({ hasText: /^Item/ })).toHaveText(['Item C', 'Item A', 'Item B'])
   expect(await layerOrder(page, frame)).toEqual([third, first, second])
   canvas.assertNoErrors()
 })
