@@ -10,7 +10,7 @@ async function scrolledFrame(page: Page) {
   canvas.errors.length = 0
   await canvas.clearCanvas()
 
-  const frameId = await page.evaluate(() => {
+  const ids = await page.evaluate(() => {
     const store = window.openPencil?.getStore?.()
     if (!store) throw new Error('OpenPencil store not initialized')
     const frame = store.graph.createNode('FRAME', store.state.currentPageId, {
@@ -26,7 +26,7 @@ async function scrolledFrame(page: Page) {
     // Selecting a child expands the frame in the layers panel.
     store.select([children[0]])
     store.requestRender()
-    return frame.id
+    return { frame: frame.id, children }
   })
   await canvas.waitForRender()
 
@@ -35,7 +35,7 @@ async function scrolledFrame(page: Page) {
   })
   const pinned = page.getByTestId('layers-sticky-row')
   await expect(pinned).toContainText('Pinned frame')
-  return { canvas, frameId, pinned }
+  return { canvas, frameId: ids.frame, children: ids.children, pinned }
 }
 
 test('right-clicking the pinned frame row opens the layer menu for it', async ({ page }) => {
@@ -60,5 +60,27 @@ test('double-clicking the pinned frame row renames it on its own row', async ({ 
   await expect(input).toHaveValue('Pinned frame')
   // The list scrolled back to the frame's row, so nothing is pinned while it is renamed.
   await expect(pinned).toHaveCount(0)
+  canvas.assertNoErrors()
+})
+
+test("selecting a pinned frame's child scrolls its row into view below the pin", async ({
+  page
+}) => {
+  const { canvas, children, pinned } = await scrolledFrame(page)
+  const scroller = page.getByTestId('layers-scroll')
+  // Scroll to the end of the list, then select a child further up from outside the panel, as on
+  // the canvas: the list scrolls back to it with the frame row pinned above.
+  await scroller.evaluate((el) => {
+    el.scrollTop = el.scrollHeight
+  })
+  const target = children[30]
+  await page.evaluate((id) => window.openPencil?.getStore?.()?.select([id]), target)
+
+  const row = page.locator(`[data-node-id="${target}"]`).getByTestId('layers-item')
+  await expect(row).toBeVisible()
+  await expect(pinned).toBeVisible()
+  const pinBox = await pinned.boundingBox()
+  const rowBox = await row.boundingBox()
+  expect(rowBox?.y ?? 0).toBeGreaterThanOrEqual((pinBox?.y ?? 0) + (pinBox?.height ?? 0) - 1)
   canvas.assertNoErrors()
 })

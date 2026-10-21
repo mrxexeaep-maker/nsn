@@ -14,6 +14,7 @@ import { LayerTreeRoot, LayerTreeItem, useInlineRename } from '@open-pencil/vue'
 import type {
   LayerDragInstruction,
   LayerNode,
+  LayerRow,
   LayerSelectionMode,
   LayerTreeVirtualizer
 } from '@open-pencil/vue'
@@ -152,11 +153,34 @@ function chrome(scope: Omit<LayerTreeSlotScope, 'actions'>) {
   }
 }
 
+/**
+ * Bring a row into view. A nested row stops below the top-level row pinned over the top of the
+ * list, so the pin never covers it; rows are one height, so their place is exact.
+ */
+function revealRow(rows: readonly LayerRow[], index: number) {
+  const el = viewport.value
+  const row = rows.at(index)
+  if (!el || !row) return
+  const top = index * LAYER_TREE_ROW_HEIGHT
+  const pinned = row.level > 1 ? LAYER_TREE_ROW_HEIGHT : 0
+  if (top - pinned < el.scrollTop) {
+    el.scrollTop = Math.max(0, top - pinned)
+  } else if (top + LAYER_TREE_ROW_HEIGHT > el.scrollTop + el.clientHeight) {
+    el.scrollTop = top + LAYER_TREE_ROW_HEIGHT - el.clientHeight
+  }
+}
+
 function registerVirtualizer(
   actions: LayerTreeRootActions,
-  virtualizer: LayerTreeVirtualizer
+  virtualizer: LayerTreeVirtualizer,
+  rows: () => readonly LayerRow[]
 ): boolean {
-  actions.setVirtualizer(virtualizer)
+  actions.setVirtualizer({
+    scrollToIndex: (index, options) => {
+      if ((options?.align ?? 'auto') === 'auto') revealRow(rows(), index)
+      else virtualizer.scrollToIndex(index, options)
+    }
+  })
   return true
 }
 
@@ -195,7 +219,9 @@ function onFocusOut(event: FocusEvent, actions: LayerTreeRootActions) {
               :estimate-size="LAYER_TREE_ROW_HEIGHT"
               :text-content="layerTextContent"
             >
-              <template v-if="registerVirtualizer(scope.actions, virtualizer)">
+              <template
+                v-if="registerVirtualizer(scope.actions, virtualizer, () => scope.visibleRows)"
+              >
                 <TreeItem
                   v-slot="{ isExpanded }"
                   v-bind="item.bind"
