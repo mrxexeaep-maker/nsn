@@ -213,6 +213,7 @@ The API is intentionally close to Figma's Plugin API, but it maps to OpenPencil'
 
 - `figma.createComponentFromNode(node)`
 - `figma.combineAsVariants(components, parent)` — properties come from names such as `State=On, Size=Large`
+- On a component set, `addComponentProperty(name, 'VARIANT', value)` appends the value to every variant's name and `editComponentProperty(name, { name })` renames the property in them, which instances follow; renaming a variant updates the set's values, and `variantProperties` reads a variant's or an instance's values
 - `component.createInstance()`
 - `instance.mainComponent`
 
@@ -258,7 +259,6 @@ These Figma APIs are not exposed as compatible helpers yet:
 
 - `node.exportAsync()`
 - Library variables, extended collections, and variable bindings on effects and layout grids
-- `figma.combineAsVariants(components, parent)`
 - Figma style APIs such as `figma.createPaintStyle()` / `figma.createTextStyle()`
 - Full vector boolean operation parity
 

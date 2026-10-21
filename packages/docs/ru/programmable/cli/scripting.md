@@ -151,7 +151,6 @@ API намеренно близок к Figma Plugin API, но работает �
 
 - `node.exportAsync()`
 - переменные из библиотек, расширенные коллекции и привязки переменных к эффектам и сеткам
-- `figma.combineAsVariants(components, parent)`
 - API стилей Figma, например `figma.createPaintStyle()` и `figma.createTextStyle()`
 - полная совместимость логических операций над векторами
 

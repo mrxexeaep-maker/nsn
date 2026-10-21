@@ -26,7 +26,7 @@ import { createSVGNodes } from '#core/io/formats/svg'
 import { textAutoResizeChanges } from '#core/layout/text-auto-resize'
 import { fontManager } from '#core/text/fonts'
 
-import { combineComponentsAsVariants, componentFromNode } from './components'
+import { componentFromNode } from './components'
 import { flattenSceneNodes } from './flatten'
 import type {
   FigmaBooleanOperationNode,
@@ -57,6 +57,7 @@ import {
 import { newShapeWithText } from './shape-with-text'
 import type { ExportImageOptions } from './types'
 import { FigmaVariablesAPI } from './variables'
+import { combineComponentsAsVariants } from './variants'
 
 const noop = () => undefined
 
