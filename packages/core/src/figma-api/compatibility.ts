@@ -267,10 +267,10 @@ type None<Names extends PropertyKey> = Record<Names, never>
 
 /** `figma` members Figma's Plugin API does not have. */
 const _figmaExtras: None<Exclude<keyof FigmaAPI, keyof PluginAPI | HostMembers>> = {}
-/** Listed members that no longer exist, or that are Figma's after all. */
-const _figmaStaleListings: None<
-  Exclude<HostMembers, keyof FigmaAPI> | Extract<HostMembers, keyof PluginAPI>
-> = {}
+/** Listed host members that no longer exist. */
+const _figmaGoneListings: None<Exclude<HostMembers, keyof FigmaAPI>> = {}
+/** Listed host members that are Figma's after all. */
+const _figmaFigmaListings: None<Extract<HostMembers, keyof PluginAPI>> = {}
 
 type SharedKeys = keyof FigmaAPI & keyof PluginAPI
 type DriftedKeys = {
@@ -286,9 +286,12 @@ type FigmaNodeKeys = KeysOfUnion<SceneNode | PageNode | DocumentNode>
 const _nodeExtras: None<
   Exclude<Extract<keyof FigmaNodeProxy, string>, FigmaNodeKeys | SerializationMembers>
 > = {}
-/** Variable, collection and `figma.variables` members Figma's do not have. */
-const _variableExtras: None<
-  | Exclude<keyof FigmaVariable, keyof Variable | SerializationMembers>
-  | Exclude<keyof FigmaVariableCollection, keyof VariableCollection | SerializationMembers>
-  | Exclude<keyof FigmaVariablesAPI, keyof VariablesAPI>
+/** Variable members Figma's do not have. */
+const _variableExtras: None<Exclude<keyof FigmaVariable, keyof Variable | SerializationMembers>> =
+  {}
+/** Collection members Figma's do not have. */
+const _collectionExtras: None<
+  Exclude<keyof FigmaVariableCollection, keyof VariableCollection | SerializationMembers>
 > = {}
+/** `figma.variables` members Figma's do not have. */
+const _variablesAPIExtras: None<Exclude<keyof FigmaVariablesAPI, keyof VariablesAPI>> = {}
