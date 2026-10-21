@@ -12,6 +12,7 @@ import type { SkiaRenderer } from '#core/canvas/renderer'
 import { recordWorldPicture } from '#core/canvas/renderer/picture'
 import { clearSubtreePictureCache } from '#core/canvas/renderer/state'
 import { worldNodeVisualBounds } from '#core/canvas/renderer/visual-bounds'
+import { createSceneGeometry, type RotationPreview } from '#core/geometry'
 import { emitNavigationTrace } from '#core/profiler'
 
 import { clamp, smoothAverage } from './retained-backing/timing'
@@ -215,11 +216,16 @@ function ensureSubtreePictureCacheScope(
  */
 export function computeRetainedSubtreeBounds(
   graph: SceneGraph,
-  childId: string
+  childId: string,
+  preview?: RotationPreview | null
 ): VisualBounds | null {
+  const geometry = createSceneGeometry(graph, preview)
   const visualBounds = computeDescendantVisualBounds(
     [childId],
-    (id) => graph.getNode(id),
+    (id) => {
+      const node = graph.getNode(id)
+      return node ? geometry.node(node) : undefined
+    },
     (id) => graph.getAbsolutePosition(id)
   )
   let transformedBounds: VisualBounds | null = null
@@ -231,7 +237,10 @@ export function computeRetainedSubtreeBounds(
     const node = graph.getNode(nodeId)
     if (!node?.visible) continue
 
-    transformedBounds = unionVisualBounds(transformedBounds, worldNodeVisualBounds(graph, node))
+    transformedBounds = unionVisualBounds(
+      transformedBounds,
+      worldNodeVisualBounds(graph, node, geometry.worldMatrix(node))
+    )
     pending.push(...node.childIds)
   }
 

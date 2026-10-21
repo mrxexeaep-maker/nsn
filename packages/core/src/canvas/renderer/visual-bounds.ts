@@ -5,12 +5,16 @@ import {
   strokeOverflow,
   type VisualBounds
 } from '@open-pencil/scene-graph/geometry'
-import Matrix from '@open-pencil/scene-graph/matrix'
+import Matrix, { type Mat3 } from '@open-pencil/scene-graph/matrix'
 
-export function worldNodeVisualBounds(graph: SceneGraph, node: SceneNode): VisualBounds {
+export function worldNodeVisualBounds(
+  graph: SceneGraph,
+  node: SceneNode,
+  worldMatrix: Mat3 = getWorldMatrix(node, graph)
+): VisualBounds {
   const stroke = strokeOverflow(node.strokes, node.strokeCap, node.vectorNetwork, node)
   const effects = effectOverflow(node.effects)
-  const points = Matrix.mapPoints(getWorldMatrix(node, graph), [
+  const points = Matrix.mapPoints(worldMatrix, [
     -stroke - effects.left,
     -stroke - effects.top,
     node.width + stroke + effects.right,

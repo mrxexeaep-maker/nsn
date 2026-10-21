@@ -10,7 +10,6 @@ import {
   lineArrowEndpoints,
   trimArrowShafts
 } from '@open-pencil/scene-graph/arrow-caps'
-import { getParentWorldMatrix } from '@open-pencil/scene-graph/coordinate'
 import type { VisualBounds } from '@open-pencil/scene-graph/geometry'
 import Matrix, { type Mat3 } from '@open-pencil/scene-graph/matrix'
 import type { Color } from '@open-pencil/scene-graph/primitives'
@@ -340,15 +339,12 @@ function nodeIsolationLayerBounds(
 ): Float32Array {
   const viewportBounds = viewportLayerBounds(r, graph, node, 0, preview)
   if (viewportBounds) return viewportBounds
-  const bounds = computeRetainedSubtreeBounds(graph, node.id)
-  const parent = node.parentId ? graph.getNode(node.parentId) : undefined
-  const positionedBeforeOrientation = Matrix.multiply(
-    getParentWorldMatrix(parent, graph),
-    Matrix.translated(node.x, node.y)
-  )
-  const toLayer = Matrix.invert(positionedBeforeOrientation)
-  return bounds && toLayer
-    ? mappedRect(r, toLayer, bounds, 0)
+  const bounds = computeRetainedSubtreeBounds(graph, node.id, preview)
+  const worldToNode = Matrix.invert(createSceneGeometry(graph, preview).worldMatrix(node))
+  const worldToLayer =
+    worldToNode && Matrix.multiply(nodeOrientationMatrix(node, preview), worldToNode)
+  return bounds && worldToLayer
+    ? mappedRect(r, worldToLayer, bounds, 0)
     : r.ck.LTRBRect(0, 0, node.width, node.height)
 }
 

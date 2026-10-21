@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, test } from 'bun:test'
 
 import { expectDefined } from '#core-tests/helpers/assert'
+import type { Canvas } from 'canvaskit-wasm'
 
 import { SkiaRenderer } from '@open-pencil/core'
 import { initCanvasKit } from '@open-pencil/core/io'
@@ -29,14 +30,28 @@ const SHADOW = {
 
 type Scene = (graph: SceneGraph, parentId: string, opacity: number) => void
 
-function alphaChannel(scene: Scene, opacity: number): Uint8Array {
+function renderPreviewed(canvas: Canvas, graph: SceneGraph, nodeId: string, angle: number) {
+  const viewport = renderer.worldViewport
+  renderer.worldViewport = { x: -SIZE, y: -SIZE, w: 3 * SIZE, h: 3 * SIZE }
+  try {
+    renderer.renderNode(canvas, graph, nodeId, { rotationPreview: { nodeId, angle } })
+  } finally {
+    renderer.worldViewport = viewport
+  }
+}
+
+function alphaChannel(scene: Scene, opacity: number, previewAngle?: number): Uint8Array {
   const graph = new SceneGraph()
   const page = graph.getPages()[0]
   scene(graph, page.id, opacity)
   renderer.pageId = page.id
   const canvas = renderer.surface.getCanvas()
   canvas.clear(ck.TRANSPARENT)
-  renderer.renderSceneToCanvas(canvas, graph, page.id)
+  if (previewAngle === undefined) {
+    renderer.renderSceneToCanvas(canvas, graph, page.id)
+  } else {
+    renderPreviewed(canvas, graph, page.childIds[0], previewAngle)
+  }
   renderer.surface.flush()
   const image = renderer.surface.makeImageSnapshot()
   try {
@@ -63,9 +78,9 @@ function worstDifference(actual: Uint8Array, expected: ArrayLike<number>): numbe
 }
 
 /** Half the opacity must halve every pixel's alpha, so no part of the layer is cut off. */
-function expectHalfAsOpaque(scene: Scene) {
-  const opaque = alphaChannel(scene, 1)
-  const faded = alphaChannel(scene, 0.5)
+function expectHalfAsOpaque(scene: Scene, previewAngle?: number) {
+  const opaque = alphaChannel(scene, 1, previewAngle)
+  const faded = alphaChannel(scene, 0.5, previewAngle)
   expect(opaque.filter((alpha) => alpha > 0).length).toBeGreaterThan(1000)
   const half = Array.from(opaque, (alpha) => alpha / 2)
   expect(worstDifference(faded, half)).toBeLessThanOrEqual(1)
@@ -119,6 +134,29 @@ describe('a layer drawn into an isolation layer', () => {
       })
       rectangle({ x: 60, y: 40 })(graph, frame.id, opacity)
     })
+  })
+
+  test('draws whole while a rotation preview turns it', () => {
+    expectHalfAsOpaque(rectangle({}), 90)
+  })
+
+  test('draws whole while a rotation preview turns it from a rotation', () => {
+    expectHalfAsOpaque(rectangle({ rotation: 30 }), 75)
+  })
+
+  test('draws its children whole while a rotation preview turns it', () => {
+    expectHalfAsOpaque((graph, parentId, opacity) => {
+      const frame = graph.createNode('FRAME', parentId, {
+        x: 100,
+        y: 100,
+        width: 120,
+        height: 40,
+        fills: [],
+        clipsContent: false,
+        opacity
+      })
+      rectangle({ x: 20, y: 0, width: 140, height: 40 })(graph, frame.id, 1)
+    }, 90)
   })
 
   test('draws whole with a blend mode when it is rotated', () => {
