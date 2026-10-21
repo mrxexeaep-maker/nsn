@@ -106,14 +106,14 @@ async function fetchOpenRouterModels(fetcher: typeof fetch): Promise<ModelOption
 
 async function listOpenRouterModels(fetcher: typeof fetch = fetch): Promise<ModelOption[]> {
   modelsPromise ??= (async () => {
-    const cached = await readCacheJSON(
-      OPENROUTER_MODELS_CACHE_KEY,
-      CachedModelOptions,
-      OPENROUTER_MODELS_CACHE_TTL_MS
-    )
-    if (cached?.length) return cached
-
     try {
+      const cached = await readCacheJSON(
+        OPENROUTER_MODELS_CACHE_KEY,
+        CachedModelOptions,
+        OPENROUTER_MODELS_CACHE_TTL_MS
+      )
+      if (cached?.length) return cached
+
       const models = await fetchOpenRouterModels(fetcher)
       if (!models.length) return curatedOpenRouterModels
       await writeCacheJSON(OPENROUTER_MODELS_CACHE_KEY, models)

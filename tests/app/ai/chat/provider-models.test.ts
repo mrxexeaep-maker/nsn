@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, spyOn, test } from 'bun:test'
 
 import {
   normalizeOpenRouterModel,
   resetOpenRouterModelsForTests,
   resolveProviderModel
 } from '@/app/ai/chat/provider-models'
+import * as cache from '@/app/cache'
 
 import { fetchStub } from '#tests/helpers/fetch'
 
@@ -78,22 +79,48 @@ describe('resolveProviderModel', () => {
     ).toMatchObject({ minReasoningEffort: 'low' })
   })
 
-  test('bounds the OpenRouter request and retries after a failure', async () => {
-    const signals: (AbortSignal | null | undefined)[] = []
-    let fail = true
+  test('falls back to curated models when the request times out, then retries', async () => {
+    const deadline = new AbortController()
+    const timeout = spyOn(AbortSignal, 'timeout').mockReturnValue(deadline.signal)
+    let stall = true
+    const { promise: started, resolve: start } = Promise.withResolvers<undefined>()
     const fetcher = fetchStub(async (_input, init) => {
-      signals.push(init?.signal)
-      if (fail) throw new Error('offline')
-      return Response.json({
-        data: [{ id: 'some/model', supported_parameters: ['tools'] }]
+      if (!stall) {
+        return Response.json({ data: [{ id: 'some/model', supported_parameters: ['tools'] }] })
+      }
+      start(undefined)
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(init.signal?.reason))
       })
     })
-    expect(await resolveProviderModel('openrouter', 'some/model', fetcher)).toBeUndefined()
-    fail = false
-    expect(await resolveProviderModel('openrouter', 'some/model', fetcher)).toMatchObject({
-      id: 'some/model'
-    })
-    expect(signals).toHaveLength(2)
-    expect(signals.every((signal) => signal instanceof AbortSignal)).toBe(true)
+    try {
+      const pending = resolveProviderModel('openrouter', 'some/model', fetcher)
+      await started
+      deadline.abort(new DOMException('The operation timed out.', 'TimeoutError'))
+      expect(await pending).toBeUndefined()
+      expect(timeout).toHaveBeenCalledWith(10_000)
+
+      stall = false
+      expect(await resolveProviderModel('openrouter', 'some/model', fetcher)).toMatchObject({
+        id: 'some/model'
+      })
+    } finally {
+      timeout.mockRestore()
+    }
+  })
+
+  test('retries after the model cache cannot be read', async () => {
+    const read = spyOn(cache, 'readCacheJSON').mockRejectedValueOnce(new Error('storage denied'))
+    const fetcher = fetchStub(async () =>
+      Response.json({ data: [{ id: 'some/model', supported_parameters: ['tools'] }] })
+    )
+    try {
+      expect(await resolveProviderModel('openrouter', 'some/model', fetcher)).toBeUndefined()
+      expect(await resolveProviderModel('openrouter', 'some/model', fetcher)).toMatchObject({
+        id: 'some/model'
+      })
+    } finally {
+      read.mockRestore()
+    }
   })
 })
