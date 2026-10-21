@@ -28,6 +28,36 @@ export function createDocumentImages(
   objects: ObjectStore,
   quota: StorageQuotaService
 ) {
+  /**
+   * Gives up uploads a request reserved when it could not offer them all, so a retry is not
+   * refused for space they hold. A multipart upload the store began is aborted first; one that
+   * cannot be stays pending for cleanup, which aborts it once it expires.
+   */
+  async function abandonUploads(
+    uploads: readonly { uploadId: string; objectKey: string }[],
+    offers: readonly ImageUploadOffer[]
+  ): Promise<void> {
+    const begun = new Map(offers.map((offer) => [offer.uploadId, offer.upload]))
+    for (const { uploadId, objectKey } of uploads) {
+      try {
+        const upload = begun.get(uploadId)
+        if (upload?.kind === 'multipart') {
+          await objects.abortUpload({ key: objectKey, uploadId: upload.uploadId })
+        }
+        await quota.release(uploadId)
+        await database
+          .updateTable('upload')
+          .set({ status: 'abandoned' })
+          .where('id', '=', uploadId)
+          .where('status', '=', 'pending')
+          .execute()
+      } catch (error) {
+        // Cleanup releases it once it expires.
+        console.warn('Giving up an image upload failed', error)
+      }
+    }
+  }
+
   return {
     /**
      * Uploads for the images of `input` the workspace lacks, each with its own object key and
@@ -100,22 +130,27 @@ export function createDocumentImages(
         }
       })
       const offers: ImageUploadOffer[] = []
-      for (const image of missing) {
-        const upload = await objects.createUpload({
-          key: image.objectKey,
-          byteSize: image.byteSize,
-          checksum: image.checksum,
-          contentType: IMAGE_CONTENT_TYPE,
-          expiresAt: input.expiresAt
-        })
-        if (upload.kind === 'multipart') {
-          await database
-            .updateTable('upload')
-            .set({ multipartUploadId: upload.uploadId })
-            .where('id', '=', image.uploadId)
-            .execute()
+      try {
+        for (const image of missing) {
+          const upload = await objects.createUpload({
+            key: image.objectKey,
+            byteSize: image.byteSize,
+            checksum: image.checksum,
+            contentType: IMAGE_CONTENT_TYPE,
+            expiresAt: input.expiresAt
+          })
+          offers.push({ checksum: image.checksum, uploadId: image.uploadId, upload })
+          if (upload.kind === 'multipart') {
+            await database
+              .updateTable('upload')
+              .set({ multipartUploadId: upload.uploadId })
+              .where('id', '=', image.uploadId)
+              .execute()
+          }
         }
-        offers.push({ checksum: image.checksum, uploadId: image.uploadId, upload })
+      } catch (error) {
+        await abandonUploads(missing, offers)
+        throw error
       }
       return offers
     },

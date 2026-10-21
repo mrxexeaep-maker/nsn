@@ -253,6 +253,41 @@ describe('Cloud document images', () => {
     }
   })
 
+  test('gives back what an image request reserved when the store cannot take every upload', async () => {
+    const context = await testApp()
+    const createUpload = context.objects.store.createUpload.bind(context.objects.store)
+    let calls = 0
+    context.objects.store.createUpload = async (input) => {
+      calls++
+      if (calls === 2) throw new Error('object store unavailable')
+      return createUpload(input)
+    }
+    try {
+      const response = await context.request(`/documents/${context.documentId}/images`, {
+        method: 'POST',
+        json: { images: [photo, logo].map(({ checksum, byteSize }) => ({ checksum, byteSize })) }
+      })
+      expect(response.status).toBe(500)
+      const uploads = await context.runtime.database
+        .selectFrom('upload')
+        .select('status')
+        .where('kind', '=', 'image')
+        .execute()
+      expect(uploads.map((upload) => upload.status)).toEqual(['abandoned', 'abandoned'])
+      const held = await context.runtime.database
+        .selectFrom('uploadStorageReservation')
+        .select('id')
+        .where('releasedAt', 'is', null)
+        .execute()
+      expect(held).toHaveLength(0)
+
+      // The retry gets both again.
+      expect(await context.uploadImages([photo, logo])).toHaveLength(2)
+    } finally {
+      await context.runtime.close()
+    }
+  })
+
   test('refuses a save that names an image the workspace does not hold', async () => {
     const context = await testApp()
     try {
