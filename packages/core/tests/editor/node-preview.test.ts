@@ -27,9 +27,8 @@ async function openRectangles() {
   }
 }
 
-async function savedLayerX(graph: SceneGraph, name: string) {
-  const saved = await parseFigFile((await exportFigFile(graph)).slice().buffer)
-  return layerNamed(saved, name).x
+async function saveAndReopen(graph: SceneGraph) {
+  return parseFigFile((await exportFigFile(graph)).slice().buffer)
 }
 
 describe('owned node previews', () => {
@@ -247,7 +246,7 @@ describe('owned node previews', () => {
       const preview = editor.beginNodePreview('Move')
       preview.update(layer('Moved').id, { x: 300 })
       preview.commit()
-      expect(await savedLayerX(graph, 'Moved')).toBe(300)
+      expect(layerNamed(await saveAndReopen(graph), 'Moved').x).toBe(300)
     } finally {
       editor.dispose()
     }
@@ -260,7 +259,9 @@ describe('owned node previews', () => {
       preview.update(layer('Moved').id, { x: 300 })
       preview.commit()
       editor.updateNodeWithUndo(layer('Other').id, { name: 'Renamed' }, 'Rename')
-      expect(await savedLayerX(graph, 'Moved')).toBe(300)
+      const saved = await saveAndReopen(graph)
+      expect(layerNamed(saved, 'Moved').x).toBe(300)
+      expect(layerNamed(saved, 'Renamed').x).toBe(10)
     } finally {
       editor.dispose()
     }
@@ -273,7 +274,7 @@ describe('owned node previews', () => {
       preview.update(layer('Moved').id, { x: 300 })
       preview.cancel()
       editor.updateNodeWithUndo(layer('Moved').id, { name: 'Renamed' }, 'Rename')
-      expect(await savedLayerX(graph, 'Renamed')).toBe(10)
+      expect(layerNamed(await saveAndReopen(graph), 'Renamed').x).toBe(10)
     } finally {
       editor.dispose()
     }
