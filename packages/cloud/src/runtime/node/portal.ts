@@ -2,16 +2,8 @@ import { readFile } from 'node:fs/promises'
 import { resolve, sep } from 'node:path'
 
 import { isCloudPortalPage } from '#cloud/contract'
+import { PORTAL_PAGE_HEADERS, portalFileCacheControl } from '#cloud/runtime/portal/headers'
 import { getMimeType } from 'hono/utils/mime'
-
-const PAGE_HEADERS = {
-  'Content-Type': 'text/html; charset=utf-8',
-  'Cache-Control': 'no-cache',
-  // Desktop sign-in approval must never be framed by another site.
-  'Content-Security-Policy': "frame-ancestors 'none'",
-  'Referrer-Policy': 'no-referrer',
-  'X-Content-Type-Options': 'nosniff'
-}
 
 function decodedPath(request: Request): string | null {
   try {
@@ -44,7 +36,7 @@ export function createNodeCloudPortal(directory: string) {
       if (request.method !== 'GET' && request.method !== 'HEAD') return null
       if (!isCloudPortalPage(new URL(request.url).pathname)) return null
       const page = await read('/cloud.html')
-      return page ? new Response(page, { headers: PAGE_HEADERS }) : null
+      return page ? new Response(page, { headers: PORTAL_PAGE_HEADERS }) : null
     },
 
     /** A portal file for `request`, or null when there is none. */
@@ -58,9 +50,7 @@ export function createNodeCloudPortal(directory: string) {
       return new Response(body, {
         headers: {
           'Content-Type': type,
-          'Cache-Control': path.startsWith('/assets/')
-            ? 'public, max-age=31536000, immutable'
-            : 'public, max-age=3600',
+          'Cache-Control': portalFileCacheControl(path),
           'X-Content-Type-Options': 'nosniff'
         }
       })
