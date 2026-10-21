@@ -45,14 +45,18 @@ export async function uploadStoredDocument(store: EditorStore): Promise<boolean>
 /**
  * What `request` gets from the document's server, asking once more after the document's upload
  * lands when the server does not know it yet, as a new document's tab asks before its first
- * upload has created it there.
+ * upload has created it there. Aborting `signal` stops waiting for that upload.
  */
-export async function onceOnServer<T>(documentId: string, request: () => Promise<T>): Promise<T> {
+export async function onceOnServer<T>(
+  documentId: string,
+  request: () => Promise<T>,
+  signal?: AbortSignal
+): Promise<T> {
   try {
     return await request()
   } catch (error) {
     const unknown = error instanceof CloudAPIError && error.status === 404
-    if (!unknown || (await followUpload(documentId)) !== 'uploaded') throw error
+    if (!unknown || (await followUpload(documentId, { signal })) !== 'uploaded') throw error
     return request()
   }
 }

@@ -233,4 +233,20 @@ describe('uploading the document a tab shows', () => {
     await expect(onceOnServer('doc', refuse(500))).rejects.toThrow('Refused')
     expect(calls).toBe(1)
   })
+
+  test('a tab that stops waiting for its document’s upload asks no more', async () => {
+    let calls = 0
+    const closed = new AbortController()
+    const asking = onceOnServer(
+      'doc',
+      async () => {
+        calls++
+        throw new CloudAPIError('Not found', 404)
+      },
+      closed.signal
+    )
+    closed.abort()
+    await expect(asking).rejects.toThrow('Not found')
+    expect(calls).toBe(1)
+  })
 })

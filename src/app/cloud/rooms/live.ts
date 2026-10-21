@@ -292,10 +292,17 @@ export async function startCloudRoom(store: EditorStore): Promise<void> {
   const target = cloudShareTarget(binding)
   if (!target?.discovery.capabilities.collaboration) return
   starting.add(store)
+  // A tab that closes while its document is on the way stops waiting for it.
+  const closed = new AbortController()
+  const stopWatching = watch(allTabs, () => {
+    if (!getTabForStore(store)) closed.abort()
+  })
   try {
     // A new document's room opens once its first upload has created it on the server.
-    const first = await onceOnServer(binding.documentId, () =>
-      target.client.getCollaborationTicket(binding.documentId)
+    const first = await onceOnServer(
+      binding.documentId,
+      () => target.client.getCollaborationTicket(binding.documentId),
+      closed.signal
     )
     // The document may have moved, or its tab closed, while the ticket was on its way.
     const current = store.getStorageBinding() === binding && getTabForStore(store)
@@ -317,6 +324,7 @@ export async function startCloudRoom(store: EditorStore): Promise<void> {
     })
     stopWithTab(store, room)
   } finally {
+    stopWatching()
     starting.delete(store)
   }
 }
