@@ -1,11 +1,19 @@
 import * as v from 'valibot'
 
-import type { VariableType, VariableValue } from '@open-pencil/scene-graph'
+import type { Color, VariableType } from '@open-pencil/scene-graph'
 import { parseColor } from '@open-pencil/scene-graph/color'
 
+import type { FigmaVariableValue } from '#core/figma-api'
 import { defineTool } from '#core/tools/schema'
 
-function parseVariableValue(type: VariableType, value: string): VariableValue {
+/** A parsed value as `setValueForMode` takes it; a colour gets a copy of its own. */
+function figmaValue(value: ToolValue): FigmaVariableValue {
+  return typeof value === 'object' ? { ...value } : value
+}
+
+type ToolValue = Color | number | string | boolean
+
+function parseVariableValue(type: VariableType, value: string): ToolValue {
   if (type === 'COLOR') return parseColor(value)
   if (type === 'FLOAT') return Number(value)
   if (type === 'BOOLEAN') return value === 'true'
@@ -30,8 +38,13 @@ export const createVariable = defineTool({
   }),
   execute: (figma, args) => {
     const type = args.type as VariableType
-    const parsedValue = args.value === undefined ? undefined : parseVariableValue(type, args.value)
-    return figma.createVariable(args.name, type, args.collection_id, parsedValue)
+    const variable = figma.variables.createVariable(args.name, args.collection_id, type)
+    if (args.value !== undefined) {
+      const value = figmaValue(parseVariableValue(type, args.value))
+      for (const modeId of Object.keys(variable.valuesByMode))
+        variable.setValueForMode(modeId, value)
+    }
+    return figma.graph.variables.get(variable.id)
   }
 })
 
@@ -46,10 +59,10 @@ export const setVariable = defineTool({
     value: v.pipe(v.string(), v.description('Value (hex for COLOR, number for FLOAT, etc.)'))
   }),
   execute: (figma, args) => {
-    const variable = figma.getVariableById(args.id)
+    const variable = figma.variables.getVariableById(args.id)
     if (!variable) return { error: `Variable "${args.id}" not found` }
-    const parsedValue = parseVariableValue(variable.type, args.value)
-    figma.setVariableValue(args.id, args.mode, parsedValue)
+    const parsedValue = parseVariableValue(variable.resolvedType, args.value)
+    variable.setValueForMode(args.mode, figmaValue(parsedValue))
     return { id: args.id, mode: args.mode, value: parsedValue }
   }
 })
@@ -63,7 +76,7 @@ export const deleteVariable = defineTool({
     id: v.pipe(v.string(), v.description('Variable ID'))
   }),
   execute: (figma, { id }) => {
-    figma.deleteVariable(id)
+    figma.variables.getVariableById(id)?.remove()
     return { deleted: id }
   }
 })

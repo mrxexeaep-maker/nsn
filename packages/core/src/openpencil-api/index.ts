@@ -8,6 +8,7 @@ import {
 } from '@open-pencil/scene-graph'
 
 import type { FigmaAPI } from '#core/figma-api/index'
+import { writeVariableValue } from '#core/figma-api/variables'
 
 import {
   getBehaviour,
@@ -77,12 +78,12 @@ export class OpenPencilAPI {
     const mode = modes.at(0)
     if (!mode || modes.length !== 1) throw new Error(`Unknown or ambiguous mode: ${modeName}`)
     const { value, resolved } = parseVariableFormula(graph, variable.id, mode.modeId, source)
-    this.figma.setVariableValue(variable.id, mode.modeId, value)
+    writeVariableValue(graph, variable, mode.modeId, value)
     return resolved
   }
 
   /**
-   * Bind a layer field to a variable from `figma.getLocalVariables()`, as the layer panel does:
+   * Bind a layer field to a variable from `figma.variables`, as the layer panel does:
    * fields by OpenPencil's names, such as `'text'`, `'visible'`, `'opacity'` or `'fills/0/color'`.
    * Text content takes a text or number variable, a number shown as text; visibility takes a
    * boolean, or text that shows the layer unless it is empty or reads false, no or off.

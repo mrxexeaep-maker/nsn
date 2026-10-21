@@ -4,7 +4,7 @@ import { reconcileVariableLayouts } from '#core/layout/variables'
 
 import { nodeOf, type NodeRef } from './behaviours'
 
-/** A variable as `figma` hands it out, such as from `figma.getLocalVariables()`. */
+/** A variable as `figma` hands it out, such as from `figma.variables.getLocalVariables()`. */
 export type VariableRef = { readonly id: string }
 
 function variableOf(graph: SceneGraph, ref: VariableRef) {

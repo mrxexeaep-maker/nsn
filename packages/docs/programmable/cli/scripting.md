@@ -40,10 +40,10 @@ References use variable names or `{Collection::variable}` and are stored as stab
 
 ## Variable bindings
 
-Use `openpencil.bindVariable(node, field, variable)` to bind a layer field to a variable from `figma.getLocalVariables()`, and `openpencil.unbindVariable(node, field)` to let it go; the field keeps the value the variable last gave it. Fields use OpenPencil's names, such as `text`, `visible`, `opacity`, `paddingLeft` or `fills/0/color`. Bindings follow the layer panel, which takes more than Figma's `setBoundVariable`: text content takes a text or number variable, a number shown as text, and visibility a boolean or a text variable that shows the layer unless it is empty or reads `false`, `no` or `off`.
+Figma's `node.setBoundVariable(field, variable)` binds with Figma's field names and type rules. Use `openpencil.bindVariable(node, field, variable)` to bind a layer field to a variable from `figma.variables` the way the layer panel does, and `openpencil.unbindVariable(node, field)` to let it go; the field keeps the value the variable last gave it. Fields use OpenPencil's names, such as `text`, `visible`, `opacity`, `paddingLeft` or `fills/0/color`. Bindings follow the layer panel, which takes more than Figma's `setBoundVariable`: text content takes a text or number variable, a number shown as text, and visibility a boolean or a text variable that shows the layer unless it is empty or reads `false`, `no` or `off`.
 
 ```js
-const [price] = figma.getLocalVariables('FLOAT')
+const [price] = figma.variables.getLocalVariables('FLOAT')
 const label = figma.currentPage.findOne((node) => node.name === 'Price')
 openpencil.bindVariable(label, 'text', price)
 ```
@@ -211,15 +211,12 @@ The API is intentionally close to Figma's Plugin API, but it maps to OpenPencil'
 
 ### Variables
 
-- `figma.getLocalVariables(type?)`
-- `figma.getVariableById(id)`
-- `figma.getLocalVariableCollections()`
-- `figma.getVariableCollectionById(id)`
-- `figma.createVariable(name, type, collectionId, value?)`
-- `figma.setVariableValue(variableId, modeId, value)`
-- `figma.deleteVariable(id)`
-- `figma.createVariableCollection(name)`
-- `figma.deleteVariableCollection(id)`
+- `figma.variables.getLocalVariables(type?)`, `getVariableById(id)`, `getLocalVariableCollections()`, `getVariableCollectionById(id)`, and their `…Async` forms
+- `figma.variables.createVariableCollection(name)` and `createVariable(name, collection, resolvedType)`, which starts every mode at Figma's default
+- `figma.variables.createVariableAlias(variable)` and `setBoundVariableForPaint(paint, 'color', variable)`
+- `variable.setValueForMode(modeId, value)`, `valuesByMode`, `resolveForConsumer(node)`, `name`, `description`, `scopes`, `codeSyntax`, and `remove()`
+- `collection.addMode(name)`, `renameMode(modeId, name)`, `removeMode(modeId)`, `modes`, `defaultModeId`, `variableIds`, and `remove()`
+- `node.boundVariables`, `node.setBoundVariable(field, variable)`, `node.setExplicitVariableModeForCollection(collection, modeId)`, and `node.clearExplicitVariableModeForCollection(collection)`
 
 ### Properties
 
@@ -253,7 +250,7 @@ Common node properties are readable/writable through the proxy, including:
 These Figma APIs are not exposed as compatible helpers yet:
 
 - `node.exportAsync()`
-- `node.setBoundVariable(field, variable)`
+- Library variables, extended collections, and variable bindings on effects and layout grids
 - `figma.combineAsVariants(components, parent)`
 - Figma style APIs such as `figma.createPaintStyle()` / `figma.createTextStyle()`
 - Full vector boolean operation parity

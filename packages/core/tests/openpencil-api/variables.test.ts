@@ -15,7 +15,7 @@ function document() {
 test('scripts bind what the layer panel binds, beyond Figma’s setBoundVariable', async () => {
   const { graph, figma } = document()
   const result = await compileScript(`
-    const [price, state] = figma.getLocalVariables()
+    const [price, state] = figma.variables.getLocalVariables()
     const label = figma.createText()
     openpencil.bindVariable(label, 'text', price)
     openpencil.bindVariable(label, 'visible', state)
@@ -31,7 +31,7 @@ test('unbinding keeps the value the variable last gave, and errors name the laye
   const id = (await compileScript(`
     const label = figma.createText()
     label.name = 'Label'
-    openpencil.bindVariable(label, 'text', figma.getLocalVariables()[0])
+    openpencil.bindVariable(label, 'text', figma.variables.getLocalVariables()[0])
     openpencil.unbindVariable(label, 'text')
     return label.id
   `)(figma)) as string
@@ -41,7 +41,7 @@ test('unbinding keeps the value the variable last gave, and errors name the laye
   ).rejects.toThrow('Label has no variable bound to text')
   await expect(
     compileScript(
-      `openpencil.bindVariable(${JSON.stringify(id)}, 'text', figma.getLocalVariables()[1]); openpencil.bindVariable(${JSON.stringify(id)}, 'fontFamily', figma.getLocalVariables()[0])`
+      `openpencil.bindVariable(${JSON.stringify(id)}, 'text', figma.variables.getLocalVariables()[1]); openpencil.bindVariable(${JSON.stringify(id)}, 'fontFamily', figma.variables.getLocalVariables()[0])`
     )(figma)
   ).rejects.toThrow('Cannot bind FLOAT variable to string field "fontFamily"')
 })

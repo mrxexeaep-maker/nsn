@@ -94,7 +94,7 @@ La API sigue el modelo de Figma Plugin API, pero actúa sobre SceneGraph y los f
 
 ### Componentes y variables
 
-Se admiten creación de componentes e instancias, consulta del componente principal, colecciones, modos, creación y eliminación de variables y enlaces mediante `openpencil.bindVariable` y `openpencil.unbindVariable`.
+Se admiten creación de componentes e instancias, consulta del componente principal y `figma.variables` como en la API de plugins de Figma: colecciones, modos, creación y eliminación de variables, `node.setBoundVariable` y `node.boundVariables`. Los enlaces tal como los hace el panel de capas usan `openpencil.bindVariable` y `openpencil.unbindVariable`.
 
 ### Propiedades
 
@@ -111,6 +111,6 @@ Las propiedades habituales se leen y modifican mediante el objeto correspondient
 
 ## Limitaciones
 
-Aún no hay equivalentes completos para `node.exportAsync()`, `node.setBoundVariable()`, `figma.combineAsVariants()`, estilos de pintura/texto y todas las operaciones booleanas vectoriales.
+Aún no hay equivalentes completos para `node.exportAsync()`, las variables de bibliotecas, `figma.combineAsVariants()`, estilos de pintura/texto y todas las operaciones booleanas vectoriales.
 
 Según la tarea, pueden usarse el comando de exportación, las herramientas del núcleo o las operaciones directas de SceneGraph.

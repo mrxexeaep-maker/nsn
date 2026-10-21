@@ -3,15 +3,10 @@ import { fromUint8Array, isValid, toUint8Array } from 'js-base64'
 import {
   createConnector,
   freeEndpoint,
-  updateTokenExpression,
   type GroupFitOptions,
   type SceneGraph,
   type SceneNode as CoreSceneNode,
-  type NodeType,
-  type Variable,
-  type VariableCollection,
-  type VariableType,
-  type VariableValue
+  type NodeType
 } from '@open-pencil/scene-graph'
 import { computeBounds } from '@open-pencil/scene-graph/geometry'
 import { computeImageHash } from '@open-pencil/scene-graph/images'
@@ -29,7 +24,6 @@ import { iconify, type IconProvider } from '#core/icons'
 import type { RasterCodec } from '#core/io/formats/raster'
 import { createSVGNodes } from '#core/io/formats/svg'
 import { textAutoResizeChanges } from '#core/layout/text-auto-resize'
-import { reconcileVariableLayouts } from '#core/layout/variables'
 import { documentFontStatus, type DocumentFontStatus } from '#core/text/font/status'
 import { fontManager } from '#core/text/fonts'
 
@@ -63,6 +57,7 @@ import {
 } from './proxy'
 import { newShapeWithText } from './shape-with-text'
 import type { ExportImageOptions } from './types'
+import { FigmaVariablesAPI } from './variables'
 
 const noop = () => undefined
 
@@ -71,6 +66,14 @@ export { getPageBackgrounds, setPageBackgrounds } from './page-backgrounds'
 export { flushPendingLayout } from './pending-layout'
 export type { FigmaEffect } from './effects'
 export type { ExportImageOptions } from './types'
+export {
+  FigmaVariable,
+  FigmaVariableCollection,
+  FigmaVariablesAPI,
+  type FigmaComposedColor,
+  type FigmaVariableAlias,
+  type FigmaVariableValue
+} from './variables'
 export type {
   FigmaBooleanOperationNode,
   FigmaComponentNode,
@@ -107,9 +110,12 @@ export class FigmaAPI implements NodeProxyHost {
   theme: InterfaceTheme = 'light'
 
   readonly mixed = MIXED
+  /** The document's variables and collections, as Figma's `figma.variables`. */
+  readonly variables: FigmaVariablesAPI
 
   constructor(graph: SceneGraph) {
     this.graph = graph
+    this.variables = new FigmaVariablesAPI(graph)
     startPendingLayout(graph)
     const pages = graph.getPages()
     this._currentPageId = pages[0]?.id ?? graph.rootId
@@ -340,55 +346,6 @@ export class FigmaAPI implements NodeProxyHost {
   ): FigmaNodeProxy {
     const host = exposeInstanceSwap(this.graph, slots, candidates, propertyName)
     return this.wrapNode(host.id)
-  }
-
-  getVariableById(id: string): Variable | null {
-    return this.graph.variables.get(id) ?? null
-  }
-
-  getLocalVariables(type?: string): Variable[] {
-    const vars = [...this.graph.variables.values()]
-    if (type) return vars.filter((v) => v.type === type)
-    return vars
-  }
-
-  getLocalVariableCollections(): VariableCollection[] {
-    return [...this.graph.variableCollections.values()]
-  }
-
-  getVariableCollectionById(id: string): VariableCollection | null {
-    return this.graph.variableCollections.get(id) ?? null
-  }
-
-  // --- Variable/Collection CRUD ---
-
-  createVariable(
-    name: string,
-    type: VariableType,
-    collectionId: string,
-    value?: VariableValue
-  ): Variable {
-    return this.graph.createVariable(name, type, collectionId, value)
-  }
-
-  setVariableValue(variableId: string, modeId: string, value: VariableValue): void {
-    const variable = this.graph.variables.get(variableId)
-    if (!variable) throw new Error(`Variable "${variableId}" not found`)
-    variable.valuesByMode[modeId] = structuredClone(value)
-    updateTokenExpression(variable, modeId, value)
-    reconcileVariableLayouts(this.graph, { variables: [variableId] })
-  }
-
-  deleteVariable(id: string): void {
-    this.graph.removeVariable(id)
-  }
-
-  createVariableCollection(name: string): VariableCollection {
-    return this.graph.createCollection(name)
-  }
-
-  deleteVariableCollection(id: string): void {
-    this.graph.removeCollection(id)
   }
 
   // --- Boolean Operations ---

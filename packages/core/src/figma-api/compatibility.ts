@@ -8,6 +8,7 @@ import type {
   FigmaSlotNode
 } from './node-types'
 import type { FigmaNodeProxy } from './proxy'
+import type { FigmaVariable, FigmaVariableCollection, FigmaVariablesAPI } from './variables'
 
 type Expect<T extends true> = T
 
@@ -186,3 +187,65 @@ type TextMixedMatch = Expect<
   >
 >
 const _textMixedMatch: TextMixedMatch = true
+
+type SupportedVariableKeys =
+  | 'id'
+  | 'name'
+  | 'description'
+  | 'hiddenFromPublishing'
+  | 'remote'
+  | 'variableCollectionId'
+  | 'key'
+  | 'resolvedType'
+  | 'valuesByMode'
+  | 'scopes'
+  | 'codeSyntax'
+  | 'setVariableCodeSyntax'
+  | 'removeVariableCodeSyntax'
+  | 'setValueForMode'
+  | 'remove'
+type VariableMatch = Expect<
+  Extends<Pick<FigmaVariable, SupportedVariableKeys>, Pick<Variable, SupportedVariableKeys>>
+>
+const _variableMatch: VariableMatch = true
+
+type SupportedCollectionKeys =
+  | 'id'
+  | 'name'
+  | 'hiddenFromPublishing'
+  | 'remote'
+  | 'isExtension'
+  | 'modes'
+  | 'variableIds'
+  | 'defaultModeId'
+  | 'key'
+  | 'remove'
+  | 'removeMode'
+  | 'addMode'
+  | 'renameMode'
+type CollectionMatch = Expect<
+  Extends<
+    Pick<FigmaVariableCollection, SupportedCollectionKeys>,
+    Pick<VariableCollection, SupportedCollectionKeys>
+  >
+>
+const _collectionMatch: CollectionMatch = true
+
+/** Every `figma.variables` member is Figma's, and takes what Figma's takes. */
+type VariablesAPIArguments = {
+  [K in keyof FigmaVariablesAPI]: K extends keyof VariablesAPI
+    ? Parameters<VariablesAPI[K]> extends Parameters<FigmaVariablesAPI[K]>
+      ? true
+      : K
+    : K
+}[keyof FigmaVariablesAPI]
+type VariablesAPIMatch = Expect<VariablesAPIArguments extends true ? true : false>
+const _variablesAPIMatch: VariablesAPIMatch = true
+
+type NodeBindingMatch = Expect<
+  Extends<
+    Parameters<SceneNodeMixin['setBoundVariable']>,
+    Parameters<FigmaNodeProxy['setBoundVariable']>
+  >
+>
+const _nodeBindingMatch: NodeBindingMatch = true
