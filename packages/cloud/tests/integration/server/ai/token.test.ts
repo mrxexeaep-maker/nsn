@@ -12,7 +12,9 @@ import {
 } from '#cloud/contract'
 import {
   CLOUD_FEATURE_KEYS,
+  CloudConfigError,
   createCloudApp,
+  loadAISigningKey,
   parseCloudServerConfig,
   StaticEntitlementSource,
   type CloudActor
@@ -77,7 +79,8 @@ async function testApp(options: {
     auth: unusedAuthAdapter(config),
     objects: createMemoryObjectStore().store,
     resolveSession: async () => options.actor,
-    entitlementSource: new StaticEntitlementSource(options.entitlements ?? {})
+    entitlementSource: new StaticEntitlementSource(options.entitlements ?? {}),
+    aiSigningKey: await loadAISigningKey(config)
   })
   const requestToken = () =>
     app.request('/api/ai/token', {
@@ -163,6 +166,27 @@ describe('AI service tokens', () => {
       expect((await context.requestToken()).status).toBe(404)
     } finally {
       await context.runtime.close()
+    }
+  })
+
+  test('an app configured with a key it was not given refuses to start', async () => {
+    const runtime = await createCloudTestDatabase()
+    try {
+      const config = parseCloudServerConfig({
+        ...baseConfig,
+        aiEndpoint: 'https://ai.example.com',
+        aiSigningKey: await signingKeyPEM()
+      })
+      expect(() =>
+        createCloudApp({
+          config,
+          database: runtime.database,
+          auth: unusedAuthAdapter(config),
+          objects: createMemoryObjectStore().store
+        })
+      ).toThrow(CloudConfigError)
+    } finally {
+      await runtime.close()
     }
   })
 })

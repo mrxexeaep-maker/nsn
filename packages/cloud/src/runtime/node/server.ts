@@ -4,6 +4,7 @@ import { createS3ObjectStore } from '#cloud/runtime/s3/objects'
 import {
   CLOUD_FEATURE_KEYS,
   createCloudApp,
+  loadAISigningKey,
   createCloudAuthenticationRuntime,
   createCollaborationRelay,
   createCollaborationStateStore,
@@ -106,6 +107,7 @@ export async function startNodeCloudServer(options: NodeCloudServerOptions = {})
     invitationOutbox,
     transactionalEmail: email,
     enrollment,
+    aiSigningKey: await loadAISigningKey(config),
     relayURL: config.relayURL ?? defaultRelayURL(config.publicURL),
     onDocumentRestored: (documentId) => relay.startOver(documentId),
     onDocumentVersionsChanged: (documentId) => relay.announceVersions(documentId)

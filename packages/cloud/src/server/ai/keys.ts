@@ -1,3 +1,4 @@
+import { CloudConfigError, type CloudServerConfig } from '#cloud/server/config/schema'
 import { calculateJwkThumbprint, exportJWK, importPKCS8, type JWK } from 'jose'
 
 const ALGORITHM = 'ES256'
@@ -21,6 +22,21 @@ export async function importAISigningKey(pem: string): Promise<AISigningKey> {
   return {
     privateKey: await importPKCS8(pem, ALGORITHM),
     publicJWK: { ...publicJWK, kid, alg: ALGORITHM, use: 'sig' }
+  }
+}
+
+/**
+ * Imports the configured signing key at startup, so a key that cannot sign stops the runtime
+ * instead of failing every token request after discovery has advertised the AI service.
+ */
+export async function loadAISigningKey(
+  config: Pick<CloudServerConfig, 'aiSigningKey'>
+): Promise<AISigningKey | undefined> {
+  if (!config.aiSigningKey) return undefined
+  try {
+    return await importAISigningKey(config.aiSigningKey)
+  } catch {
+    throw new CloudConfigError('AI signing key must be a PKCS #8 P-256 private key')
   }
 }
 

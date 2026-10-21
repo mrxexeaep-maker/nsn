@@ -235,7 +235,11 @@ function validateServiceConfig(config: CloudServerConfig): void {
       'The internal API writes database entitlements, which static entitlements would hide'
     )
   }
-  if (config.deployment === 'official' && config.aiEndpoint?.startsWith('http:')) {
+  if (
+    config.deployment === 'official' &&
+    config.aiEndpoint &&
+    new URL(config.aiEndpoint).protocol !== 'https:'
+  ) {
     throw new CloudConfigError('Official AI service endpoint must use HTTPS')
   }
 }

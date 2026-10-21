@@ -24,6 +24,7 @@ export {
   createAIRoutes,
   createAITokenService,
   importAISigningKey,
+  loadAISigningKey,
   type AIRouteEnvironment,
   type AISigningKey,
   type AITokenService,

@@ -14,7 +14,7 @@ import {
   type CloudDiscovery
 } from '#cloud/contract'
 import { createAccountRoutes } from '#cloud/server/account/routes'
-import { createAIRoutes, createAITokenService } from '#cloud/server/ai'
+import { createAIRoutes, createAITokenService, type AISigningKey } from '#cloud/server/ai'
 import {
   createCloudAPIRouter,
   createPublicCloudAPIRouter,
@@ -28,7 +28,11 @@ import {
   type CloudSessionResolver
 } from '#cloud/server/auth'
 import { createCollaborationTicketService } from '#cloud/server/collaboration'
-import { cloudDiscoveryFromConfig, type CloudServerConfig } from '#cloud/server/config'
+import {
+  CloudConfigError,
+  cloudDiscoveryFromConfig,
+  type CloudServerConfig
+} from '#cloud/server/config'
 import type { CloudDatabase } from '#cloud/server/db'
 import { createDocumentService } from '#cloud/server/documents'
 import { createDocumentVersionService } from '#cloud/server/documents/versions'
@@ -70,6 +74,8 @@ export type CloudServices = {
   enrollment?: EnrollmentService
   entitlementSource?: EntitlementSource
   policy?: CloudPolicy
+  /** The imported `aiSigningKey`, required when the config names one. See `loadAISigningKey`. */
+  aiSigningKey?: AISigningKey
   /**
    * Where clients reach this runtime's collaboration relay. Without one, Cloud rooms fall back to
    * peer-to-peer and writes are not enforced by the server.
@@ -241,13 +247,16 @@ export function createCloudApp(services: CloudServices) {
     policy,
     deploymentMode: services.config.deployment
   })
-  const aiTokens = services.config.aiSigningKey
+  if (services.config.aiSigningKey && !services.aiSigningKey) {
+    throw new CloudConfigError('The AI service needs the signing key imported by loadAISigningKey')
+  }
+  const aiTokens = services.aiSigningKey
     ? createAITokenService({
         database: services.database,
         policy,
         deploymentMode: services.config.deployment,
         issuer: new URL(services.config.publicURL).origin,
-        signingKeyPEM: services.config.aiSigningKey,
+        signingKey: services.aiSigningKey,
         lifetimeSeconds: services.config.aiTokenLifetimeSeconds
       })
     : undefined
@@ -378,7 +387,7 @@ export function createCloudApp(services: CloudServices) {
     })
     .get(CLOUD_DISCOVERY_PATH, (context) => context.json(discovery))
     .get(CLOUD_AI_JWKS_PATH, async (context) =>
-      aiTokens ? context.json(await aiTokens.jwks()) : context.notFound()
+      aiTokens ? context.json(aiTokens.jwks()) : context.notFound()
     )
     .on(['GET', 'POST'], '/api/auth/*', async (context) => {
       if (POLICY_MANAGED_AUTH_PATHS.has(context.req.path)) {

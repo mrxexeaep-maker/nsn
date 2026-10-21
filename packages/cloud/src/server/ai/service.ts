@@ -9,7 +9,7 @@ import { SignJWT } from 'jose'
 import type { Kysely } from 'kysely'
 
 import { AINotEntitledError } from './errors'
-import { AI_SIGNING_ALGORITHM, importAISigningKey, type AISigningKey } from './keys'
+import { AI_SIGNING_ALGORITHM, type AISigningKey } from './keys'
 
 export type AITokenServiceOptions = {
   database: Kysely<CloudDatabase>
@@ -17,13 +17,12 @@ export type AITokenServiceOptions = {
   deploymentMode: 'official' | 'self-hosted'
   /** The Cloud public URL, which services check as the token's `iss`. */
   issuer: string
-  signingKeyPEM: string
+  signingKey: AISigningKey
   lifetimeSeconds: number
 }
 
 export function createAITokenService(options: AITokenServiceOptions) {
-  let signingKey: Promise<AISigningKey> | undefined
-  const key = () => (signingKey ??= importAISigningKey(options.signingKeyPEM))
+  const { privateKey, publicJWK } = options.signingKey
 
   return {
     /**
@@ -46,7 +45,6 @@ export function createAITokenService(options: AITokenServiceOptions) {
         options.policy.number(CLOUD_FEATURE_KEYS.monthlyCreditAllowance, -1, context)
       ])
       if (!enabled) throw new AINotEntitledError()
-      const { privateKey, publicJWK } = await key()
       const issuedAt = Math.floor(Date.now() / 1000)
       const expiresAt = issuedAt + options.lifetimeSeconds
       const token = await new SignJWT({
@@ -63,8 +61,8 @@ export function createAITokenService(options: AITokenServiceOptions) {
       return { token, expiresAt: new Date(expiresAt * 1000).toISOString() }
     },
 
-    async jwks() {
-      return { keys: [(await key()).publicJWK] }
+    jwks() {
+      return { keys: [publicJWK] }
     }
   }
 }
