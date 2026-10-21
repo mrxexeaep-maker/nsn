@@ -50,6 +50,7 @@ export async function parseFigFileViaWorker(
   buffer: ArrayBuffer,
   options: ParseFigFileOptions
 ): Promise<SceneGraph> {
+  options.signal?.throwIfAborted()
   // The worker loads its own; this thread patches the archive on save, which reads it again.
   await loadFigDataDecompressor()
   return new Promise((resolve, reject) => {
