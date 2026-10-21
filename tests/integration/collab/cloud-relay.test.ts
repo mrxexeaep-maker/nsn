@@ -436,6 +436,12 @@ describe('Cloud document rooms, live order', () => {
       transport: relay.join(documentId, 'Ada', 'edit', 'user'),
       permission: 'edit'
     })
+    let synced = false
+    cleanups.push(
+      second.session.onSynced(() => {
+        synced = true
+      })
+    )
     cleanups.push(() => {
       second.stop()
       second.session.dispose()
@@ -447,7 +453,7 @@ describe('Cloud document rooms, live order', () => {
           node.type === 'RECTANGLE' &&
           store.graph.closest(node.id, (ancestor) => ancestor.id === store.graph.rootId)
       ).length
-    await until(() => second.session.hasDocument.value && rectangles(ada) === 1)
+    await until(() => synced && rectangles(ada) === 1)
     // Ada's updates arrive in order, so a copy pushed into the room would land before this marker.
     const adaPage = ada.graph.getPages()[0]
     if (!adaPage) throw new Error('Expected a page')
