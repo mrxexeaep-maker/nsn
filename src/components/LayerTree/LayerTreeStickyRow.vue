@@ -17,13 +17,18 @@ const { scrollTop, chrome } = defineProps<{
   chrome: LayerTreeChrome
 }>()
 
+const emit = defineEmits<{
+  /** Renaming happens on the layer's own row, which the list scrolls back to at `index`. */
+  renameStart: [id: string, name: string, index: number]
+}>()
+
 const tree = useLayerTree()
 
 const pinned = computed(() => {
   const rows = tree.visibleRows.value
   const sticky = stickyTopLevelRow(rows, scrollTop, LAYER_TREE_ROW_HEIGHT)
   if (!sticky) return null
-  return { row: rows[sticky.index], offset: sticky.offset }
+  return { row: rows[sticky.index], index: sticky.index, offset: sticky.offset }
 })
 
 const actions = computed<LayerTreeItemActions | null>(() => {
@@ -49,6 +54,7 @@ function select(event: MouseEvent) {
   <div
     v-if="pinned && actions"
     data-test-id="layers-sticky-row"
+    :data-node-id="pinned.row.node.id"
     :data-pushing-away="pinned.offset < 0 || undefined"
     class="absolute inset-x-1 top-0 z-10 border-b border-border bg-panel"
     :style="{ transform: `translateY(${pinned.offset}px)` }"
@@ -63,6 +69,7 @@ function select(event: MouseEvent) {
       :expanded="true"
       :actions="actions"
       :chrome="chrome"
+      @rename-start="(id, name) => pinned && emit('renameStart', id, name, pinned.index)"
     />
   </div>
 </template>

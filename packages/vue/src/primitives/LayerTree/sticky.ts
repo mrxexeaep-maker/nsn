@@ -32,7 +32,13 @@ export function stickyTopLevelRow(
   // Still in full view at the top: nothing to pin yet.
   if (!expanded || index * rowHeight >= scrollTop) return null
 
-  const next = rows.findIndex((row, i) => i > index && row.level === 1)
+  let next = -1
+  for (let i = index + 1; i < rows.length; i++) {
+    if (rows[i].level === 1) {
+      next = i
+      break
+    }
+  }
   const offset = next === -1 ? 0 : Math.min(0, (next - 1) * rowHeight - scrollTop)
   return { index, offset }
 }

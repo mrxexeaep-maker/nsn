@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useScroll } from '@vueuse/core'
 import {
   TreeItem,
   TreeVirtualizer,
@@ -7,7 +8,7 @@ import {
   ContextMenuPortal
 } from 'reka-ui'
 import { tv } from 'tailwind-variants'
-import { computed, ref, useAttrs, watch } from 'vue'
+import { computed, nextTick, useAttrs, useTemplateRef, watch } from 'vue'
 
 import { LayerTreeRoot, LayerTreeItem, useInlineRename } from '@open-pencil/vue'
 import type {
@@ -54,8 +55,9 @@ const attrs = useAttrs()
 const styles = tv(layerTreeTheme)()
 provideLayerTreeUI(() => ui)
 const store = useEditorStore()
+const viewport = useTemplateRef<HTMLElement>('viewport')
 /** How far the rows are scrolled, for the pinned top-level row. */
-const scrollTop = ref(0)
+const { y: scrollTop } = useScroll(viewport)
 const rename = useInlineRename((id, name) => store.renameNode(id, name))
 
 /** Issue marks follow the canvas markers' View → Design issues toggle. */
@@ -81,6 +83,13 @@ watch(
   },
   { immediate: true }
 )
+
+/** Rename the pinned layer on its own row: scroll the list back to it, then start. */
+async function renamePinned(id: string, name: string, index: number) {
+  if (viewport.value) viewport.value.scrollTop = index * LAYER_TREE_ROW_HEIGHT
+  await nextTick()
+  rename.start(id, name)
+}
 
 function onLayerRightClick(e: MouseEvent) {
   const row = (e.target as HTMLElement).closest<HTMLElement>('[data-node-id]')
@@ -167,18 +176,19 @@ function onFocusOut(event: FocusEvent, actions: LayerTreeRootActions) {
 <template>
   <LayerTreeRoot v-slot="scope" :indent-per-level="INDENT">
     <ContextMenuRoot :modal="false">
-      <div
-        v-bind="attrs"
-        class="relative min-h-0 flex-1 overflow-hidden"
-        @focusin="scope.actions.setFocused(true)"
-        @focusout="onFocusOut($event, scope.actions)"
-      >
-        <ContextMenuTrigger as-child @contextmenu="onLayerRightClick">
+      <!-- The trigger covers the pinned row too, so right-clicking it opens the layer menu. -->
+      <ContextMenuTrigger as-child @contextmenu="onLayerRightClick">
+        <div
+          v-bind="attrs"
+          class="relative min-h-0 flex-1 overflow-hidden"
+          @focusin="scope.actions.setFocused(true)"
+          @focusout="onFocusOut($event, scope.actions)"
+        >
           <div
+            ref="viewport"
             data-test-id="layers-scroll"
             data-slot="viewport"
             :class="styles.viewport({ class: ui?.viewport })"
-            @scroll="scrollTop = ($event.currentTarget as HTMLElement).scrollTop"
           >
             <TreeVirtualizer
               v-slot="{ item, virtualizer }"
@@ -247,12 +257,13 @@ function onFocusOut(event: FocusEvent, actions: LayerTreeRootActions) {
               </template>
             </TreeVirtualizer>
           </div>
-        </ContextMenuTrigger>
-        <LayerTreeStickyRow
-          :scroll-top="scrollTop"
-          :chrome="chrome({ ...scope, instruction: null, instructionTargetId: null })"
-        />
-      </div>
+          <LayerTreeStickyRow
+            :scroll-top="scrollTop"
+            :chrome="chrome({ ...scope, instruction: null, instructionTargetId: null })"
+            @rename-start="renamePinned"
+          />
+        </div>
+      </ContextMenuTrigger>
       <ContextMenuPortal>
         <CanvasMenu />
       </ContextMenuPortal>
