@@ -338,11 +338,18 @@ describe('Cloud document rooms, opening', () => {
       transport: relay.join(documentId, 'Ada', 'edit', 'user'),
       permission: 'edit'
     })
+    // The reply is applied before onSynced fires, so the check below sees the replay.
+    let synced = false
+    cleanups.push(
+      second.session.onSynced(() => {
+        synced = true
+      })
+    )
     cleanups.push(() => {
       second.stop()
       second.session.dispose()
     })
-    await until(() => second.session.hasDocument.value && second.session.peers.value.length > 0)
+    await until(() => synced)
     expect(updated).toEqual([])
     expect(ada.hasUnsavedChanges()).toBe(false)
   })
