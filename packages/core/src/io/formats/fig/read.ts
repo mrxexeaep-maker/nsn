@@ -1,4 +1,5 @@
 import type { FigPageManifestEntry } from '@open-pencil/kiwi/fig'
+import { loadFigDataDecompressor } from '@open-pencil/kiwi/fig/container'
 import type { SceneGraph } from '@open-pencil/scene-graph'
 
 import { IS_BROWSER } from '#core/constants'
@@ -125,6 +126,10 @@ export async function parseFigFile(
   buffer: ArrayBuffer,
   options: ParseFigFileOptions = {}
 ): Promise<SceneGraph> {
+  options.signal?.throwIfAborted()
+  // Loaded here even when a worker opens the file: recovering its pages later reads the archive
+  // again on this thread.
+  await loadFigDataDecompressor()
   options.signal?.throwIfAborted()
   if (typeof Worker !== 'undefined' && IS_BROWSER) {
     try {

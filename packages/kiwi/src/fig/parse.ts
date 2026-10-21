@@ -1,5 +1,4 @@
 import { inflateSync } from 'fflate'
-import { decompress as zstdDecompress } from 'fzstd'
 
 import {
   decodeBinarySchema,
@@ -9,8 +8,8 @@ import {
   type RuntimeMessage
 } from '../schema-runtime'
 import type { NodeChange } from './codec'
+import { decompressFigKiwiData } from './container'
 import { extractFigPageManifest, type FigPageManifestEntry } from './page-manifest'
-import { isZstdCompressed } from './protocol'
 
 export type { NodeChange } from './codec'
 
@@ -72,19 +71,7 @@ export function parseFigKiwiContainer(data: Uint8Array): FigKiwiPayload | null {
   }
   if (chunks.length < 2) return null
 
-  const compressed = chunks[1]
-  let dataRaw: Uint8Array
-  if (isZstdCompressed(compressed)) {
-    dataRaw = zstdDecompress(compressed)
-  } else {
-    try {
-      dataRaw = inflateSync(compressed)
-    } catch {
-      throw new Error('Failed to decompress fig-kiwi data chunk')
-    }
-  }
-
-  return { schemaDeflated: chunks[0], dataRaw, version }
+  return { schemaDeflated: chunks[0], dataRaw: decompressFigKiwiData(chunks[1]), version }
 }
 
 function isRuntimeMessage(value: unknown): value is RuntimeMessage {

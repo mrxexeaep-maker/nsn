@@ -8,7 +8,9 @@ import {
   decompressFigKiwiDataAsync,
   FIG_KIWI_DEFAULT_VERSION,
   loadFigDataCompressor,
+  loadFigDataDecompressor,
   loadWasmFigDataCompressor,
+  loadWasmFigDataDecompressor,
   parseFigKiwiChunks,
   type FigDataCompressor
 } from '../src/fig/container'
@@ -99,4 +101,20 @@ describe('Figma FIG Kiwi container helpers', () => {
   test('rejects non fig-kiwi data', () => {
     expect(parseFigKiwiChunks(new TextEncoder().encode('not-fig-kiwi'))).toBeNull()
   })
+
+  // Bun's own zstd where it runs, and the WebAssembly build browsers and webviews read with.
+  for (const [decoder, load] of [
+    ['native', loadFigDataDecompressor],
+    ['WebAssembly', loadWasmFigDataDecompressor]
+  ] as const) {
+    test(`${decoder} zstd decompresses every level, and deflate, synchronously`, async () => {
+      const dataRaw = sampleDocument()
+      const decompress = await load()
+      for (const level of [3, 19]) {
+        const compress = await loadWasmFigDataCompressor(level)
+        expect(decompress(compress(dataRaw))).toEqual(dataRaw)
+      }
+      expect(decompress(deflateSync(dataRaw))).toEqual(dataRaw)
+    })
+  }
 })
