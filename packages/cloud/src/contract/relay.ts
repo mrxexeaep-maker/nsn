@@ -107,8 +107,9 @@ const SERVER_FRAGMENT = 4
 
 /**
  * The most one WebSocket message carries. A frame past it travels as fragments of this size that
- * the receiver joins again, so a large paste, a room's first sync, or a host that caps messages
- * at 1 MiB, as Cloudflare does, does not end the connection.
+ * the receiver joins again, so a large paste or a room's first sync fits under any host's message
+ * cap, such as the 32 MiB of Cloudflare Workers, and the relay can turn away a viewer's or an
+ * unadmitted peer's large frame before holding it whole.
  */
 export const RELAY_FRAGMENT_BYTES = 256 * 1024
 
