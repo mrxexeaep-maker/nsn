@@ -108,7 +108,7 @@ export interface DocumentRevisionTable {
   createdAt: TimestampColumn
 }
 
-/** An image a workspace's documents use, stored once; see migration 022. */
+/** An image a workspace's documents use, stored once; see migration 023. */
 export interface WorkspaceImageTable {
   workspaceId: string
   /** The SHA-256 of the bytes, which the object store verified. */
@@ -230,6 +230,8 @@ export interface WorkspaceEntitlementTable {
   values: unknown
   source: string
   revision: Generated<number>
+  /** Set only by versioned writes; see `setVersioned`. */
+  externalVersion: number | null
   updatedAt: TimestampColumn
 }
 
