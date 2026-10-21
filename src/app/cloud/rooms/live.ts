@@ -227,22 +227,26 @@ export function cloudRelayTransport(
 
 type LiveRoom = Pick<ReturnType<typeof openCloudDocumentRoom>, 'stop' | 'upload'>
 
-/** Each tab's live Cloud room, stopped when the tab closes or the room starts over. */
-const liveRooms = new Map<EditorStore, LiveRoom>()
+/**
+ * Each tab's live Cloud room, stopped when the tab closes or the room starts over, with the
+ * watcher that notices the tab closing, which leaving the room stops as well.
+ */
+const liveRooms = new Map<EditorStore, { room: LiveRoom; stopWatching: () => void }>()
 /** The server and account each tab joined its room as, so a change of account joins again. */
 const joinedAs = new WeakMap<EditorStore, { serverId: string; accountId: string | null }>()
 
 /** Leaves the room's saving and status behind once its tab closes. */
 export function stopWithTab(store: EditorStore, room: LiveRoom): void {
-  liveRooms.set(store, room)
-  const stopLeaving = watch(allTabs, () => {
+  liveRooms.get(store)?.stopWatching()
+  const stopWatching = watch(allTabs, () => {
     if (roomForStore(store)) return
-    if (liveRooms.get(store) === room) {
+    if (liveRooms.get(store)?.room === room) {
       liveRooms.delete(store)
       room.stop()
     }
-    stopLeaving()
+    stopWatching()
   })
+  liveRooms.set(store, { room, stopWatching })
 }
 
 /**
@@ -287,14 +291,16 @@ export async function startCloudRoom(store: EditorStore): Promise<void> {
  * while the tab is in a room, or by uploading it itself. Whether it got there.
  */
 export function uploadCloudDocument(store: EditorStore): Promise<boolean> {
-  return liveRooms.get(store)?.upload() ?? uploadStoredDocument(store)
+  return liveRooms.get(store)?.room.upload() ?? uploadStoredDocument(store)
 }
 
 const restarting = new WeakSet<EditorStore>()
 
 /** Takes the tab out of its room, leaving the document it shows as it is. */
 function leaveCloudRoom(store: EditorStore): void {
-  liveRooms.get(store)?.stop()
+  const live = liveRooms.get(store)
+  live?.stopWatching()
+  live?.room.stop()
   liveRooms.delete(store)
   joinedAs.delete(store)
   const session = roomForStore(store)

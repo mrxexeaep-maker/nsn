@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { guest, user } from '#cloud-tests/helpers/relay'
+import { MAX_PRESENCE_NAME_LENGTH } from '#cloud/contract'
 import { stampAwareness } from '#cloud/server'
 import * as awarenessProtocol from 'y-protocols/awareness'
 import * as Y from 'yjs'
@@ -47,7 +48,10 @@ describe('relay presence stamping', () => {
     )
     if (!stamped.update) throw new Error('Expected a forwarded update')
     const state = received(stamped.update).getStates().get(source.awareness.clientID)
-    expect(state?.user).toEqual({ name: long.trim().slice(0, 40), color: '#f00' })
+    expect(state?.user).toEqual({
+      name: long.trim().slice(0, MAX_PRESENCE_NAME_LENGTH),
+      color: '#f00'
+    })
   })
 
   test('never exposes a user email', () => {
