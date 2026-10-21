@@ -35,9 +35,12 @@ describe('dates', () => {
   })
 
   test('give the time for today and the day as well before, as autosaves read', () => {
-    const today = new Date(NOW - 3_600_000)
-    const earlier = new Date(NOW - 3 * 24 * 3_600_000)
-    expect(formatTimeOrDay(today, NOW, 'en')).toBe(formatDate(today, 'time', 'en'))
-    expect(formatTimeOrDay(earlier, NOW, 'en')).toBe(formatDate(earlier, 'dayTime', 'en'))
+    // ICU puts a narrow no-break space before AM and PM; the words are what the test is about.
+    const read = (text: string) => text.replaceAll('\u202f', ' ')
+    expect(read(formatTimeOrDay(new Date(2026, 9, 9, 11), NOW, 'en'))).toBe('11:00 AM')
+    // How the day joins the time ("," or "at") changes between CLDR versions; both parts must show.
+    const earlier = read(formatTimeOrDay(new Date(2026, 9, 6, 15, 30), NOW, 'en'))
+    expect(earlier).toStartWith('Oct 6')
+    expect(earlier).toEndWith('3:30 PM')
   })
 })
