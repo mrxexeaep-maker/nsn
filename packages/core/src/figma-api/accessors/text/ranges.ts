@@ -38,10 +38,10 @@ import {
   rangeHasUnderline,
   type FigmaDecorationColor,
   type FigmaTextLength,
-  type FigmaVariableAlias,
   type StyledTextSegment,
   type TextSegmentField
 } from '#core/figma-api/text/style'
+import type { FigmaVariableAlias } from '#core/figma-api/variables/values'
 import { styleRunsWithPatch, type TextStylePatch } from '#core/text/character-style'
 
 import { hyperlinkTarget } from './hyperlink'
