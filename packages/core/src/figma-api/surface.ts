@@ -18,14 +18,6 @@ export const FIGMA_API_HOST_MEMBERS = [
   'changeBaseline'
 ] as const
 
-/** OpenPencil features still on `figma` that belong on `openpencil`; remove one when it moves. */
-export const FIGMA_API_PENDING_MOVES = [
-  'booleanOperation',
-  'flattenNode',
-  'exposeInstanceSwap',
-  'getFontStatus'
-] as const
-
 /**
  * Members named as in Figma whose types do not match Figma's yet, mostly because node proxies do
  * not implement every Figma node type; remove one when it matches.
@@ -41,16 +33,6 @@ export const FIGMA_API_INCOMPLETE_MEMBERS = [
   'root',
   'variables',
   'viewport'
-] as const
-
-/** OpenPencil features still on node proxies that belong on `openpencil`. */
-export const NODE_PENDING_MOVES = [
-  'getFillOkHCL',
-  'setFillOkHCL',
-  'getStrokeOkHCL',
-  'setStrokeOkHCL',
-  'layoutDirection',
-  'textDirection'
 ] as const
 
 /** The `JSON.stringify` hook hosts use to report what a script returns. */

@@ -4,12 +4,7 @@ import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 
 import { FigmaAPI } from '#core/figma-api/index'
-import {
-  FIGMA_API_HOST_MEMBERS,
-  FIGMA_API_PENDING_MOVES,
-  NODE_PENDING_MOVES,
-  SERIALIZATION_MEMBERS
-} from '#core/figma-api/surface'
+import { FIGMA_API_HOST_MEMBERS, SERIALIZATION_MEMBERS } from '#core/figma-api/surface'
 
 import { SceneGraph } from '@open-pencil/scene-graph'
 
@@ -58,20 +53,14 @@ describe('the scripting surface is Figma’s Plugin API', () => {
   const graph = new SceneGraph()
   const figma = new FigmaAPI(graph)
 
-  test('figma has no members beyond the listed host members and pending moves', () => {
-    expect(
-      beyondFigma(figma, figmaMembers('PluginAPI'), [
-        ...FIGMA_API_HOST_MEMBERS,
-        ...FIGMA_API_PENDING_MOVES
-      ])
-    ).toEqual([])
+  test('figma has no members beyond the listed host members', () => {
+    expect(beyondFigma(figma, figmaMembers('PluginAPI'), FIGMA_API_HOST_MEMBERS)).toEqual([])
   })
 
-  test('nodes have no members beyond the listed pending moves', () => {
+  test('nodes have only the members of Figma’s node types', () => {
     const nodeMembers = figmaMembers('SceneNode', 'PageNode', 'DocumentNode')
-    const listed = [...NODE_PENDING_MOVES, ...SERIALIZATION_MEMBERS]
     for (const node of [figma.createFrame(), figma.createText(), figma.currentPage, figma.root])
-      expect(beyondFigma(node, nodeMembers, listed)).toEqual([])
+      expect(beyondFigma(node, nodeMembers, SERIALIZATION_MEMBERS)).toEqual([])
   })
 
   test('variables, collections and figma.variables have only Figma’s members', () => {

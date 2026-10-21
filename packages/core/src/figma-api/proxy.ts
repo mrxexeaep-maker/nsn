@@ -15,13 +15,6 @@ import type {
   LayoutGrid,
   LayoutMode
 } from '@open-pencil/scene-graph'
-import {
-  getFillOkHCL,
-  getStrokeOkHCL,
-  setNodeFillOkHCL,
-  setNodeStrokeOkHCL
-} from '@open-pencil/scene-graph/color'
-import type { OkHCLColor, OkHCLPayload } from '@open-pencil/scene-graph/color'
 import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
 import type { ShapeWithTextType } from '@open-pencil/scene-graph/shape-with-text'
 
@@ -135,7 +128,6 @@ export class FigmaNodeProxy {
 
   declare layoutMode: LayoutMode
   declare layoutGrids: readonly LayoutGrid[]
-  declare layoutDirection: string
   declare primaryAxisAlignItems: string
   declare counterAxisAlignItems: string
   declare itemSpacing: number
@@ -207,7 +199,6 @@ export class FigmaNodeProxy {
   declare fontWeight: number | symbol
   declare textAlignHorizontal: string
   declare textAlignVertical: string
-  declare textDirection: string
   declare textAutoResize: string
   declare letterSpacing: FigmaLetterSpacing | symbol
   declare lineHeight: FigmaLineHeight | symbol
@@ -507,26 +498,6 @@ export class FigmaNodeProxy {
       this[INTERNAL_API],
       this[INTERNAL_ID],
       criteria
-    )
-  }
-
-  getFillOkHCL(index = 0): OkHCLPayload | null {
-    return getFillOkHCL(this._raw(), index)
-  }
-
-  setFillOkHCL(color: OkHCLColor, index = 0): void {
-    this._update(
-      setNodeFillOkHCL(this._raw(), index, color, this[INTERNAL_GRAPH].documentColorSpace)
-    )
-  }
-
-  getStrokeOkHCL(index = 0): OkHCLPayload | null {
-    return getStrokeOkHCL(this._raw(), index)
-  }
-
-  setStrokeOkHCL(color: OkHCLColor, index = 0): void {
-    this._update(
-      setNodeStrokeOkHCL(this._raw(), index, color, this[INTERNAL_GRAPH].documentColorSpace)
     )
   }
 

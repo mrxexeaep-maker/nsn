@@ -120,6 +120,9 @@ API намеренно близок к Figma Plugin API, но работает �
 - `node.boundVariables`, `node.setBoundVariable(field, variable)` — поля и типы как в Figma, `node.setExplicitVariableModeForCollection(collection, modeId)` и `node.clearExplicitVariableModeForCollection(collection)`
 - `openpencil.bindVariable(node, field, variable)` — привязки как в панели слоя: текст принимает текстовую или числовую переменную, видимость — логическую или текстовую
 - `openpencil.unbindVariable(node, field)`
+- `openpencil.getLayoutDirection(node)` / `setLayoutDirection(node, direction)` и `getTextDirection(node)` / `setTextDirection(node, direction)` — направление автолейаута и текста: `AUTO`, `LTR` или `RTL`
+- `openpencil.getFillOkHCL(node, index?)` / `setFillOkHCL(node, color, index?)` и пара для обводки — цвет заливки или обводки в OkHCL
+- `openpencil.exposeInstanceSwap(instances, candidates, name?)` и `openpencil.getFontStatus()`
 
 ### Свойства
 

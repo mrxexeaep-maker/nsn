@@ -161,6 +161,13 @@ openpencil eval design.fig -w -c '
 - `openpencil.getStatus(node)` reads the name of the status a layer shows, or `null`, also while a section around it shows its own.
 - `openpencil.setStatus(node, name)` sets one by name, and `null` clears it. Only sections, frames, components, component sets, and instances directly on a page or in a section take one; anything else fails with an error that says why, and an unknown name lists the statuses there are.
 
+Layer features Figma's API has no member for:
+
+- `openpencil.getLayoutDirection(node)` / `setLayoutDirection(node, direction)` and `getTextDirection(node)` / `setTextDirection(node, direction)` read and set which way an auto layout or a text runs: `AUTO`, `LTR`, or `RTL`.
+- `openpencil.getFillOkHCL(node, index?)` / `setFillOkHCL(node, color, index?)` and the `Stroke` pair read and set a paint's color in OkHCL, `{ h, c, l, a? }`; its RGB follows in the document's color space.
+- `openpencil.exposeInstanceSwap(instances, candidates, name?)` exposes swapping those instances as one instance swap property offering the candidate components, and returns the layer that holds it.
+- `openpencil.getFontStatus()` reports whether the current page's fonts are available: the faces asked for, where each loaded from, substitutions, and the layers affected.
+
 ## Supported API surface
 
 The API is intentionally close to Figma's Plugin API, but it maps to OpenPencil's scene graph and file format.

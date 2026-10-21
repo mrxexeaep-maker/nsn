@@ -94,7 +94,7 @@ La API sigue el modelo de Figma Plugin API, pero actúa sobre SceneGraph y los f
 
 ### Componentes y variables
 
-Se admiten creación de componentes e instancias, consulta del componente principal y `figma.variables` como en la API de plugins de Figma: colecciones, modos, creación y eliminación de variables, `node.setBoundVariable` y `node.boundVariables`. Los enlaces tal como los hace el panel de capas usan `openpencil.bindVariable` y `openpencil.unbindVariable`.
+Se admiten creación de componentes e instancias, consulta del componente principal y `figma.variables` como en la API de plugins de Figma: colecciones, modos, creación y eliminación de variables, `node.setBoundVariable` y `node.boundVariables`. Los enlaces tal como los hace el panel de capas usan `openpencil.bindVariable` y `openpencil.unbindVariable`. La dirección del diseño automático y del texto (`AUTO`, `LTR`, `RTL`) se fija con `openpencil.setLayoutDirection` y `openpencil.setTextDirection`, el color OkHCL con `openpencil.setFillOkHCL` y `setStrokeOkHCL`, y `openpencil.exposeInstanceSwap` y `openpencil.getFontStatus()` exponen el intercambio de instancias y el estado de las fuentes.
 
 ### Propiedades
 

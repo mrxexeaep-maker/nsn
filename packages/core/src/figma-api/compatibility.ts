@@ -11,8 +11,6 @@ import type { FigmaNodeProxy } from './proxy'
 import type {
   FIGMA_API_HOST_MEMBERS,
   FIGMA_API_INCOMPLETE_MEMBERS,
-  FIGMA_API_PENDING_MOVES,
-  NODE_PENDING_MOVES,
   SERIALIZATION_MEMBERS
 } from './surface'
 import type { FigmaVariable, FigmaVariableCollection, FigmaVariablesAPI } from './variables'
@@ -262,19 +260,16 @@ const _nodeBindingMatch: NodeBindingMatch = true
 // missing". Add a Figma member as Figma types it; put an OpenPencil feature on `openpencil`.
 
 type HostMembers = (typeof FIGMA_API_HOST_MEMBERS)[number]
-type PendingMoves = (typeof FIGMA_API_PENDING_MOVES)[number]
 type IncompleteMembers = (typeof FIGMA_API_INCOMPLETE_MEMBERS)[number]
-type NodePendingMoves = (typeof NODE_PENDING_MOVES)[number]
 type SerializationMembers = (typeof SERIALIZATION_MEMBERS)[number]
 type KeysOfUnion<T> = T extends unknown ? keyof T : never
 type None<Names extends PropertyKey> = Record<Names, never>
 
 /** `figma` members Figma's Plugin API does not have. */
-const _figmaExtras: None<Exclude<keyof FigmaAPI, keyof PluginAPI | HostMembers | PendingMoves>> = {}
+const _figmaExtras: None<Exclude<keyof FigmaAPI, keyof PluginAPI | HostMembers>> = {}
 /** Listed members that no longer exist, or that are Figma's after all. */
 const _figmaStaleListings: None<
-  | Exclude<HostMembers | PendingMoves, keyof FigmaAPI>
-  | Extract<HostMembers | PendingMoves, keyof PluginAPI>
+  Exclude<HostMembers, keyof FigmaAPI> | Extract<HostMembers, keyof PluginAPI>
 > = {}
 
 type SharedKeys = keyof FigmaAPI & keyof PluginAPI
@@ -289,16 +284,8 @@ const _figmaNowComplete: None<Exclude<IncompleteMembers, DriftedKeys>> = {}
 type FigmaNodeKeys = KeysOfUnion<SceneNode | PageNode | DocumentNode>
 /** Node proxy members no Figma node type has. */
 const _nodeExtras: None<
-  Exclude<
-    Extract<keyof FigmaNodeProxy, string>,
-    FigmaNodeKeys | NodePendingMoves | SerializationMembers
-  >
+  Exclude<Extract<keyof FigmaNodeProxy, string>, FigmaNodeKeys | SerializationMembers>
 > = {}
-/** Listed node members that no longer exist, or that are Figma's after all. */
-const _nodeStaleListings: None<
-  Exclude<NodePendingMoves, keyof FigmaNodeProxy> | Extract<NodePendingMoves, FigmaNodeKeys>
-> = {}
-
 /** Variable, collection and `figma.variables` members Figma's do not have. */
 const _variableExtras: None<
   | Exclude<keyof FigmaVariable, keyof Variable | SerializationMembers>

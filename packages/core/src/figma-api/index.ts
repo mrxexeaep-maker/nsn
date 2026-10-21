@@ -24,10 +24,9 @@ import { iconify, type IconProvider } from '#core/icons'
 import type { RasterCodec } from '#core/io/formats/raster'
 import { createSVGNodes } from '#core/io/formats/svg'
 import { textAutoResizeChanges } from '#core/layout/text-auto-resize'
-import { documentFontStatus, type DocumentFontStatus } from '#core/text/font/status'
 import { fontManager } from '#core/text/fonts'
 
-import { combineComponentsAsVariants, componentFromNode, exposeInstanceSwap } from './components'
+import { combineComponentsAsVariants, componentFromNode } from './components'
 import { flattenSceneNodes } from './flatten'
 import type {
   FigmaBooleanOperationNode,
@@ -339,15 +338,6 @@ export class FigmaAPI implements NodeProxyHost {
     return this.wrapNode(componentSet.id) as FigmaComponentSetNode
   }
 
-  exposeInstanceSwap(
-    slots: ReadonlyArray<FigmaNodeProxy>,
-    candidates: ReadonlyArray<FigmaNodeProxy>,
-    propertyName = 'Instance'
-  ): FigmaNodeProxy {
-    const host = exposeInstanceSwap(this.graph, slots, candidates, propertyName)
-    return this.wrapNode(host.id)
-  }
-
   // --- Boolean Operations ---
 
   private _booleanOperation(
@@ -371,52 +361,75 @@ export class FigmaAPI implements NodeProxyHost {
     return this.wrapNode(group.id) as FigmaBooleanOperationNode
   }
 
-  private _nodesById(nodeIds: string[]) {
-    return nodeIds.map((id) => {
-      const node = this.getNodeById(id)
-      if (!node) throw new Error(`Node ${id} not found`)
-      return node
-    })
-  }
-
-  booleanOperation(
-    operation: 'UNION' | 'SUBTRACT' | 'INTERSECT' | 'EXCLUDE',
-    nodeIds: string[]
-  ): FigmaBooleanOperationNode {
-    const first = this.graph.getNode(nodeIds[0])
-    const parent = this.wrapNode(first?.parentId ?? this._currentPageId)
-    return this._booleanOperation(operation, this._nodesById(nodeIds), parent)
-  }
-
+  union(
+    nodes: ReadonlyArray<FigmaNodeProxy>,
+    parent: FigmaNodeProxy,
+    index?: number
+  ): FigmaBooleanOperationNode
   union(
     nodes: ReadonlyArray<BaseNode>,
     parent: BaseNode & ChildrenMixin,
     index?: number
-  ): BooleanOperationNode {
+  ): BooleanOperationNode
+  union(
+    nodes: ReadonlyArray<BaseNode | FigmaNodeProxy>,
+    parent: (BaseNode & ChildrenMixin) | FigmaNodeProxy,
+    index?: number
+  ): FigmaBooleanOperationNode {
     return this._booleanOperation('UNION', nodes, parent, index)
   }
 
   subtract(
+    nodes: ReadonlyArray<FigmaNodeProxy>,
+    parent: FigmaNodeProxy,
+    index?: number
+  ): FigmaBooleanOperationNode
+  subtract(
     nodes: ReadonlyArray<BaseNode>,
     parent: BaseNode & ChildrenMixin,
     index?: number
-  ): BooleanOperationNode {
+  ): BooleanOperationNode
+  subtract(
+    nodes: ReadonlyArray<BaseNode | FigmaNodeProxy>,
+    parent: (BaseNode & ChildrenMixin) | FigmaNodeProxy,
+    index?: number
+  ): FigmaBooleanOperationNode {
     return this._booleanOperation('SUBTRACT', nodes, parent, index)
   }
 
   intersect(
+    nodes: ReadonlyArray<FigmaNodeProxy>,
+    parent: FigmaNodeProxy,
+    index?: number
+  ): FigmaBooleanOperationNode
+  intersect(
     nodes: ReadonlyArray<BaseNode>,
     parent: BaseNode & ChildrenMixin,
     index?: number
-  ): BooleanOperationNode {
+  ): BooleanOperationNode
+  intersect(
+    nodes: ReadonlyArray<BaseNode | FigmaNodeProxy>,
+    parent: (BaseNode & ChildrenMixin) | FigmaNodeProxy,
+    index?: number
+  ): FigmaBooleanOperationNode {
     return this._booleanOperation('INTERSECT', nodes, parent, index)
   }
 
   exclude(
+    nodes: ReadonlyArray<FigmaNodeProxy>,
+    parent: FigmaNodeProxy,
+    index?: number
+  ): FigmaBooleanOperationNode
+  exclude(
     nodes: ReadonlyArray<BaseNode>,
     parent: BaseNode & ChildrenMixin,
     index?: number
-  ): BooleanOperationNode {
+  ): BooleanOperationNode
+  exclude(
+    nodes: ReadonlyArray<BaseNode | FigmaNodeProxy>,
+    parent: (BaseNode & ChildrenMixin) | FigmaNodeProxy,
+    index?: number
+  ): FigmaBooleanOperationNode {
     return this._booleanOperation('EXCLUDE', nodes, parent, index)
   }
 
@@ -451,12 +464,6 @@ export class FigmaAPI implements NodeProxyHost {
       this.graph.deleteNode(this._nodeId(node))
     }
     return this.wrapNode(vector.id) as FigmaVectorNode
-  }
-
-  flattenNode(nodeIds: string[]): FigmaVectorNode {
-    const first = this.graph.getNode(nodeIds[0])
-    const parent = this.wrapNode(first?.parentId ?? this._currentPageId)
-    return this.flatten(this._nodesById(nodeIds), parent)
   }
 
   // --- Viewport ---
@@ -510,10 +517,6 @@ export class FigmaAPI implements NodeProxyHost {
     // Default: pure browser / test contexts have no enumeration surface.
     // Desktop hosts override this to return system + bundled fonts.
     return []
-  }
-
-  getFontStatus(): DocumentFontStatus {
-    return documentFontStatus(this.graph, this.currentPageId)
   }
 
   base64Encode(data: Uint8Array): string {
