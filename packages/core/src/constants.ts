@@ -230,6 +230,9 @@ export type AIProviderID =
   | 'harness:pi'
   | `acp:${ACPAgentID}`
 
+export const REASONING_EFFORTS = ['minimal', 'low', 'medium', 'high', 'xhigh'] as const
+export type ReasoningEffort = (typeof REASONING_EFFORTS)[number]
+
 export interface ModelOption {
   id: string
   name: string
@@ -239,7 +242,7 @@ export interface ModelOption {
   releaseDate?: string
   status?: 'active' | 'beta' | 'deprecated'
   /** Lowest reasoning effort the model accepts; lower thinking levels, Off included, use it. */
-  minReasoningEffort?: 'minimal' | 'low' | 'medium'
+  minReasoningEffort?: ReasoningEffort
 }
 
 export interface AIProviderDef {

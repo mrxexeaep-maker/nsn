@@ -12,7 +12,7 @@ import type { ComputedRef, Ref } from 'vue'
 import { ref } from 'vue'
 
 import { ACP_AGENTS } from '@open-pencil/core/constants'
-import type { ACPAgentID, AIProviderID } from '@open-pencil/core/constants'
+import type { ACPAgentID, AIProviderID, ReasoningEffort } from '@open-pencil/core/constants'
 
 import { AgentSetupError, assertAgentReady } from '@/app/ai/agents/readiness'
 import { classifyAIChatError, type AIChatFailure } from '@/app/ai/chat/failure'
@@ -62,6 +62,7 @@ export type ToolLoopTransportOptions = {
   providerID: AIProviderID
   model: LanguageModel
   effectiveModelID: string
+  minReasoningEffort?: ReasoningEffort
   maxOutputTokens: number
   /** Read per request, so the composer's level applies to the next message. */
   thinkingLevel: () => ThinkingLevel
@@ -93,11 +94,15 @@ function mergeProviderOptions(
 
 function callSettings(
   providerID: AIProviderID,
-  modelID: string,
   cacheOptions: typeof ANTHROPIC_CACHE_CONTROL | undefined,
-  thinkingLevel: ThinkingLevel
+  thinkingLevel: ThinkingLevel,
+  minReasoningEffort: ReasoningEffort | undefined
 ) {
-  const { reasoning, providerOptions } = reasoningCallSettings(providerID, modelID, thinkingLevel)
+  const { reasoning, providerOptions } = reasoningCallSettings(
+    providerID,
+    thinkingLevel,
+    minReasoningEffort
+  )
   return { reasoning, providerOptions: mergeProviderOptions(cacheOptions, providerOptions) }
 }
 
@@ -116,6 +121,7 @@ export function createToolLoopTransport({
   providerID,
   model,
   effectiveModelID,
+  minReasoningEffort,
   maxOutputTokens,
   thinkingLevel,
   onError,
@@ -160,7 +166,7 @@ export function createToolLoopTransport({
         stopWhen: stepCountIs(currentRun(store).maxSteps),
         tools: offered,
         maxOutputTokens,
-        ...callSettings(providerID, effectiveModelID, cacheProviderOptions, thinkingLevel())
+        ...callSettings(providerID, cacheProviderOptions, thinkingLevel(), minReasoningEffort)
       }
     },
     onFinish: () => {
@@ -392,6 +398,7 @@ export function createChatSessionManager({
         modelID: runtime.role.profile.modelID,
         customModelID: runtime.role.profile.customModelID
       }),
+      minReasoningEffort: runtime.minReasoningEffort,
       maxOutputTokens: runtime.role.profile.maxOutputTokens,
       thinkingLevel: () => chatThinkingLevel.value,
       onError: captureProviderError,

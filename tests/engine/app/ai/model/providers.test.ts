@@ -5,7 +5,7 @@ import type { LanguageModel } from 'ai'
 import { AI_PROVIDERS } from '@open-pencil/core/constants'
 
 import { resolveLanguageModelID } from '@/app/ai/chat/model'
-import { normalizeOpenRouterModel } from '@/app/ai/chat/provider-models'
+import { resolveProviderModel } from '@/app/ai/chat/provider-models'
 import { reasoningCallSettings } from '@/app/ai/chat/reasoning'
 import { createAnthropicCompatibleAdapter } from '@/app/ai/providers/compatible'
 import { modelProviderAdapter } from '@/app/ai/providers/registry'
@@ -103,7 +103,11 @@ describe('model provider registry', () => {
       )
       await Promise.resolve(
         model.doGenerate({
-          ...reasoningCallSettings('minimax', 'MiniMax-M3.1-Flash', level),
+          ...reasoningCallSettings(
+            'minimax',
+            level,
+            (await resolveProviderModel('minimax', 'MiniMax-M3.1-Flash'))?.minReasoningEffort
+          ),
           prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }]
         })
       ).catch(() => undefined)
@@ -159,34 +163,5 @@ describe('anthropic compatible adapter', () => {
       'anthropic-dangerous-direct-browser-access',
       'true'
     )
-  })
-})
-
-describe('normalizeOpenRouterModel', () => {
-  test('keeps tool-capable OpenRouter models', () => {
-    expect(
-      normalizeOpenRouterModel({
-        id: 'meta-llama/llama-3.3-70b-instruct',
-        name: 'Llama 3.3 70B Instruct',
-        supported_parameters: ['tools'],
-        architecture: { input_modalities: ['text', 'image'] },
-        top_provider: { max_completion_tokens: 32_768 }
-      })
-    ).toEqual({
-      id: 'meta-llama/llama-3.3-70b-instruct',
-      name: 'Llama 3.3 70B Instruct',
-      capabilities: ['tools', 'vision'],
-      recommendedMaxOutputTokens: 32_768
-    })
-  })
-
-  test('skips OpenRouter models without tool support', () => {
-    expect(
-      normalizeOpenRouterModel({
-        id: 'text-only/model',
-        name: 'Text Only',
-        supported_parameters: []
-      })
-    ).toBeNull()
   })
 })

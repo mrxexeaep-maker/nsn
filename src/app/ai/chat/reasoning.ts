@@ -1,14 +1,10 @@
 import type { LanguageModelCallOptions } from 'ai'
 
-import { AI_PROVIDERS } from '@open-pencil/core/constants'
-import type { AIProviderID } from '@open-pencil/core/constants'
+import { REASONING_EFFORTS } from '@open-pencil/core/constants'
+import type { AIProviderID, ReasoningEffort } from '@open-pencil/core/constants'
 
-import { resolveLanguageModelID } from '@/app/ai/chat/model'
-import {
-  THINKING_LEVELS,
-  type ResolvedAIModelRole,
-  type ThinkingLevel
-} from '@/app/ai/models/types'
+import type { DirectAIModelRuntime } from '@/app/ai/models/runtime'
+import type { ThinkingLevel } from '@/app/ai/models/types'
 
 type JSONValue = null | boolean | number | string | JSONValue[] | { [key: string]: JSONValue }
 export type AIProviderOptions = Record<string, { [key: string]: JSONValue }>
@@ -18,10 +14,10 @@ export type ReasoningCallSettings = {
   providerOptions?: AIProviderOptions
 }
 
-function minReasoningEffort(providerID: AIProviderID, modelID: string) {
-  return AI_PROVIDERS.find((provider) => provider.id === providerID)?.models.find(
-    (model) => model.id === modelID
-  )?.minReasoningEffort
+function raisedLevel(level: ThinkingLevel, minEffort: ReasoningEffort | undefined) {
+  if (!minEffort || level === 'default') return level
+  if (level === 'off') return minEffort
+  return REASONING_EFFORTS.indexOf(level) < REASONING_EFFORTS.indexOf(minEffort) ? minEffort : level
 }
 
 /**
@@ -31,13 +27,11 @@ function minReasoningEffort(providerID: AIProviderID, modelID: string) {
  */
 export function reasoningCallSettings(
   providerID: AIProviderID,
-  modelID: string,
-  level: ThinkingLevel
+  level: ThinkingLevel,
+  minEffort?: ReasoningEffort
 ): ReasoningCallSettings {
-  if (level === 'default') return {}
-  const floor = minReasoningEffort(providerID, modelID)
-  const effective =
-    floor && THINKING_LEVELS.indexOf(level) < THINKING_LEVELS.indexOf(floor) ? floor : level
+  const effective = raisedLevel(level, minEffort)
+  if (effective === 'default') return {}
   const reasoning = effective === 'off' ? 'none' : effective
   if (providerID === 'openrouter') {
     return { providerOptions: { openrouter: { reasoning: { effort: reasoning } } } }
@@ -45,14 +39,13 @@ export function reasoningCallSettings(
   return { reasoning }
 }
 
-/** Reasoning settings for a role's own model and thinking level. */
-export function roleReasoningSettings(
-  role: Pick<ResolvedAIModelRole, 'connection' | 'profile'>
+/** Reasoning settings for a runtime's own thinking level. */
+export function runtimeReasoningSettings(
+  runtime: Pick<DirectAIModelRuntime, 'role' | 'minReasoningEffort'>
 ): ReasoningCallSettings {
-  const { providerID } = role.connection
   return reasoningCallSettings(
-    providerID,
-    resolveLanguageModelID({ providerID, ...role.profile }),
-    role.profile.thinkingLevel
+    runtime.role.connection.providerID,
+    runtime.role.profile.thinkingLevel,
+    runtime.minReasoningEffort
   )
 }
