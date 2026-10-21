@@ -1,0 +1,1 @@
+- Use MiniMax-M3.1-Flash by default with MiniMax-M3 as the fallback, keep older saved and custom models usable, and map Flash's off/minimal thinking preferences to its lowest supported effort.
