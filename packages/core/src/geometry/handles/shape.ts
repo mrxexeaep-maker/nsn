@@ -3,22 +3,17 @@ import { clamp } from 'es-toolkit'
 import type { SceneNode, Vector } from '@open-pencil/scene-graph'
 import { POINT_COUNT_RANGE, polygonCorners } from '@open-pencil/scene-graph/polygon'
 
-import {
-  ARC_HANDLE,
-  arcHandles,
-  arcHandleValue,
-  unitOffset,
-  type ArcHandleKind
-} from './arc-handles'
-import type { SceneGeometry } from './scene'
-import type { ViewportTransform } from './types'
+import type { SceneGeometry } from '#core/geometry/scene'
+import type { ViewportTransform } from '#core/geometry/types'
+
+import { ARC_HANDLE, arcHandles, arcHandleValue, unitOffset, type ArcHandleKind } from './arc'
 
 /**
  * On-canvas shape handles, as Figma desktop draws and drags them on a selected rectangle, polygon,
  * or star. A radius handle sits at the centre of its corner's arc, kept a little inside small
  * corners, and dragging one sets the radius whose arc centre is under the pointer. A polygon's or
  * star's next outer point sets its point count, and a star's first inner point its inner ratio. An
- * ellipse's arc handles are in `arc-handles.ts`.
+ * ellipse's arc handles are in `arc.ts`.
  */
 export const SHAPE_HANDLE = {
   /** The shortest on-screen side, in pixels, at which a shape shows its handles. */
