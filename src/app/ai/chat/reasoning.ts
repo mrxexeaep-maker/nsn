@@ -1,8 +1,9 @@
 import type { LanguageModelCallOptions } from 'ai'
 
+import { AI_PROVIDERS } from '@open-pencil/core/constants'
 import type { AIProviderID } from '@open-pencil/core/constants'
 
-import type { ThinkingLevel } from '@/app/ai/models/types'
+import { THINKING_LEVELS, type ThinkingLevel } from '@/app/ai/models/types'
 
 type JSONValue = null | boolean | number | string | JSONValue[] | { [key: string]: JSONValue }
 export type AIProviderOptions = Record<string, { [key: string]: JSONValue }>
@@ -12,21 +13,27 @@ export type ReasoningCallSettings = {
   providerOptions?: AIProviderOptions
 }
 
+function minReasoningEffort(providerID: AIProviderID, modelID: string) {
+  return AI_PROVIDERS.find((provider) => provider.id === providerID)?.models.find(
+    (model) => model.id === modelID
+  )?.minReasoningEffort
+}
+
 /**
  * AI SDK providers map the standard `reasoning` level to their own thinking options.
  * OpenRouter's provider ignores it, so it receives the equivalent provider option.
+ * Models that always reason raise lower levels to the lowest effort they accept.
  */
 export function reasoningCallSettings(
   providerID: AIProviderID,
-  level: ThinkingLevel,
-  modelID?: string
+  modelID: string,
+  level: ThinkingLevel
 ): ReasoningCallSettings {
   if (level === 'default') return {}
-  // Flash always thinks; use its lowest supported effort for existing off/minimal preferences.
-  if (providerID === 'minimax' && modelID === 'MiniMax-M3.1-Flash') {
-    return { reasoning: level === 'off' || level === 'minimal' ? 'low' : level }
-  }
-  const reasoning = level === 'off' ? 'none' : level
+  const floor = minReasoningEffort(providerID, modelID)
+  const effective =
+    floor && THINKING_LEVELS.indexOf(level) < THINKING_LEVELS.indexOf(floor) ? floor : level
+  const reasoning = effective === 'off' ? 'none' : effective
   if (providerID === 'openrouter') {
     return { providerOptions: { openrouter: { reasoning: { effort: reasoning } } } }
   }

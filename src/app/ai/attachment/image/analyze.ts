@@ -4,6 +4,7 @@ import { computeContentBounds } from '@open-pencil/core/io'
 
 import { IMAGE_ATTACHMENT_MAX_EDGE } from '@/app/ai/attachment/image/prepare'
 import type { PreparedImageAttachment } from '@/app/ai/attachment/image/types'
+import { resolveLanguageModelID } from '@/app/ai/chat/model'
 import { reasoningCallSettings } from '@/app/ai/chat/reasoning'
 import { createAIModelRuntime } from '@/app/ai/models'
 import { boundedImageScale } from '@/app/ai/tools/vision'
@@ -72,8 +73,11 @@ export async function analyzeAttachedImages(
     maxOutputTokens: Math.min(runtime.role.profile.maxOutputTokens, MAX_IMAGE_ANALYSIS_TOKENS),
     ...reasoningCallSettings(
       runtime.role.connection.providerID,
-      runtime.role.profile.thinkingLevel,
-      runtime.role.profile.customModelID.trim() || runtime.role.profile.modelID
+      resolveLanguageModelID({
+        providerID: runtime.role.connection.providerID,
+        ...runtime.role.profile
+      }),
+      runtime.role.profile.thinkingLevel
     ),
     messages: [{ role: 'user', content }]
   })

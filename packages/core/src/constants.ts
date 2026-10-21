@@ -238,6 +238,8 @@ export interface ModelOption {
   recommendedMaxOutputTokens?: number
   releaseDate?: string
   status?: 'active' | 'beta' | 'deprecated'
+  /** Lowest reasoning effort the model accepts; lower thinking levels, Off included, use it. */
+  minReasoningEffort?: 'minimal' | 'low' | 'medium'
 }
 
 export interface AIProviderDef {
@@ -449,7 +451,12 @@ export const AI_PROVIDERS: AIProviderDef[] = [
     keyURL: 'https://platform.minimax.io/user-center/basic-information/interface-key',
     defaultModel: 'MiniMax-M3.1-Flash',
     models: [
-      { id: 'MiniMax-M3.1-Flash', name: 'MiniMax-M3.1-Flash', tag: 'Best' },
+      {
+        id: 'MiniMax-M3.1-Flash',
+        name: 'MiniMax-M3.1-Flash',
+        tag: 'Best',
+        minReasoningEffort: 'low'
+      },
       { id: 'MiniMax-M3', name: 'MiniMax-M3' }
     ]
   },

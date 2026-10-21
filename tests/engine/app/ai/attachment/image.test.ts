@@ -70,7 +70,12 @@ describe('image attachment analysis', () => {
           model: {} as LanguageModel,
           role: {
             requestedRole: 'vision',
-            profile: { maxOutputTokens: 8000, thinkingLevel: 'low' },
+            profile: {
+              modelID: 'google/gemini-3.8-flash',
+              customModelID: '',
+              maxOutputTokens: 8000,
+              thinkingLevel: 'low'
+            },
             connection: { providerID: 'openrouter' }
           }
         }) as never,

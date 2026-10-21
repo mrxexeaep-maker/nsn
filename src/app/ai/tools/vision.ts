@@ -4,6 +4,7 @@ import * as v from 'valibot'
 
 import { computeContentBounds } from '@open-pencil/core/io'
 
+import { resolveLanguageModelID } from '@/app/ai/chat/model'
 import { reasoningCallSettings } from '@/app/ai/chat/reasoning'
 import { createAIModelRuntime } from '@/app/ai/models'
 import { runPageId } from '@/app/ai/tools/run'
@@ -74,8 +75,11 @@ export async function inspectRenderedDesign(
     maxOutputTokens: Math.min(runtime.role.profile.maxOutputTokens, MAX_VISION_OUTPUT_TOKENS),
     ...reasoningCallSettings(
       runtime.role.connection.providerID,
-      runtime.role.profile.thinkingLevel,
-      runtime.role.profile.customModelID.trim() || runtime.role.profile.modelID
+      resolveLanguageModelID({
+        providerID: runtime.role.connection.providerID,
+        ...runtime.role.profile
+      }),
+      runtime.role.profile.thinkingLevel
     ),
     messages: [
       {

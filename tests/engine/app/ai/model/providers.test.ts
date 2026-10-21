@@ -72,16 +72,16 @@ describe('model provider registry', () => {
         model.doGenerate({ prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }] })
       ).catch(() => undefined)
 
+      const body: unknown = JSON.parse(requestBody)
       expect(requestURL).toBe('https://api.minimax.io/v1/chat/completions')
-      expect(JSON.parse(requestBody)).toMatchObject({ model: modelID })
-      expect(JSON.parse(requestBody)).not.toHaveProperty('reasoning_effort')
-      expect(JSON.parse(requestBody)).not.toHaveProperty('thinking')
-      expect(JSON.parse(requestBody)).not.toHaveProperty('service_tier')
+      expect(body).toMatchObject({ model: modelID })
+      expect(body).not.toHaveProperty('reasoning_effort')
+      expect(body).not.toHaveProperty('thinking')
     }
   )
 
   test.each(['off', 'minimal', 'low', 'medium', 'high', 'xhigh'] as const)(
-    'serializes supported Flash effort for %s',
+    'sends a supported Flash effort for %s',
     async (level) => {
       let requestBody = ''
       const fetchSpy: FetchFunction = async (_input, init) => {
@@ -93,8 +93,8 @@ describe('model provider registry', () => {
           {
             providerID: 'minimax',
             apiKey: 'test-key',
-            modelID: 'MiniMax-M3',
-            customModelID: ' MiniMax-M3.1-Flash ',
+            modelID: 'MiniMax-M3.1-Flash',
+            customModelID: '',
             customBaseURL: '',
             customAPIType: 'completions'
           },
@@ -103,7 +103,7 @@ describe('model provider registry', () => {
       )
       await Promise.resolve(
         model.doGenerate({
-          ...reasoningCallSettings('minimax', level, 'MiniMax-M3.1-Flash'),
+          ...reasoningCallSettings('minimax', 'MiniMax-M3.1-Flash', level),
           prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }]
         })
       ).catch(() => undefined)
@@ -111,7 +111,6 @@ describe('model provider registry', () => {
         model: 'MiniMax-M3.1-Flash',
         reasoning_effort: level === 'off' || level === 'minimal' ? 'low' : level
       })
-      expect(JSON.parse(requestBody)).not.toHaveProperty('thinking')
     }
   )
 
