@@ -3,6 +3,7 @@ import { clamp } from 'es-toolkit'
 import type { SceneNode, Vector } from '@open-pencil/scene-graph'
 import { POINT_COUNT_RANGE, polygonCorners } from '@open-pencil/scene-graph/polygon'
 
+import { ARC_HANDLE, arcHandles, arcHandleValue, type ArcHandleKind } from './arc-handles'
 import type { SceneGeometry } from './scene'
 import type { ViewportTransform } from './types'
 
@@ -10,7 +11,8 @@ import type { ViewportTransform } from './types'
  * On-canvas shape handles, as Figma desktop draws and drags them on a selected rectangle, polygon,
  * or star. A radius handle sits at the centre of its corner's arc, kept a little inside small
  * corners, and dragging one sets the radius whose arc centre is under the pointer. A polygon's or
- * star's next outer point sets its point count, and a star's first inner point its inner ratio.
+ * star's next outer point sets its point count, and a star's first inner point its inner ratio. An
+ * ellipse's arc handles are in `arc-handles.ts`.
  */
 export const SHAPE_HANDLE = {
   /** The shortest on-screen side, in pixels, at which a shape shows its handles. */
@@ -34,8 +36,8 @@ const RECTANGLE_CORNERS = ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'] a
 
 type RectangleCorner = (typeof RECTANGLE_CORNERS)[number]
 
-/** A radius handle, or a polygon's or star's point count or a star's inner ratio. */
-export type ShapeHandleKind = RadiusCorner | 'count' | 'ratio'
+/** A radius handle, a polygon's or star's point count or a star's inner ratio, or an arc handle. */
+export type ShapeHandleKind = RadiusCorner | 'count' | 'ratio' | ArcHandleKind
 
 export interface ShapeHandle {
   handle: ShapeHandleKind
@@ -59,10 +61,16 @@ interface RadiusCornerShape {
 
 /**
  * Figma shows radius handles on rectangles, polygons, and stars; a polygon or star has one, at its
- * top point, since its corners share one radius. Frames, ellipses, and vectors have none.
+ * top point, since its corners share one radius. Ellipses have arc handles; frames and vectors
+ * have none.
  */
 export function hasShapeHandles(node: SceneNode): boolean {
-  return node.type === 'RECTANGLE' || node.type === 'POLYGON' || node.type === 'STAR'
+  return (
+    node.type === 'RECTANGLE' ||
+    node.type === 'POLYGON' ||
+    node.type === 'STAR' ||
+    node.type === 'ELLIPSE'
+  )
 }
 
 export function cornerRadii(node: SceneNode): Record<RectangleCorner, number> {
@@ -165,7 +173,14 @@ export function shapeHandleLayout(
   viewport: ViewportTransform
 ): ShapeHandle[] | null {
   if (!hasShapeHandles(node)) return null
-  if (Math.min(node.width, node.height) * viewport.zoom < SHAPE_HANDLE.minShapeSize) return null
+  const minSize = node.type === 'ELLIPSE' ? ARC_HANDLE.minShapeSize : SHAPE_HANDLE.minShapeSize
+  if (Math.min(node.width, node.height) * viewport.zoom < minSize) return null
+  if (node.type === 'ELLIPSE') {
+    return arcHandles(node, viewport.zoom).map(({ handle, local }) => ({
+      handle,
+      point: geometry.toScreen(node, local, viewport)
+    }))
+  }
   const minDistance = SHAPE_HANDLE.minInset / HALF_DIAGONAL / viewport.zoom
   const radii = radiusCorners(node).map(({ corner, vertex, inward, factor, radius }) => {
     const distance = Math.max(radius / factor, minDistance)
@@ -190,12 +205,17 @@ export function hitTestShapeHandles(
   return hit?.handle ?? null
 }
 
-export function isRadiusHandle(handle: ShapeHandleKind): handle is RadiusCorner {
-  return handle !== 'count' && handle !== 'ratio'
+export function isArcHandle(handle: ShapeHandleKind): handle is ArcHandleKind {
+  return handle === 'arcStart' || handle === 'arcEnd' || handle === 'arcRatio'
 }
 
-/** What a handle's label shows after its name: the radius, the point count, or the ratio. */
+export function isRadiusHandle(handle: ShapeHandleKind): handle is RadiusCorner {
+  return handle !== 'count' && handle !== 'ratio' && !isArcHandle(handle)
+}
+
+/** What a handle's label shows after its name: the radius, the point count, the ratio, or the arc. */
 export function shapeHandleValue(node: SceneNode, handle: ShapeHandleKind): string {
+  if (isArcHandle(handle)) return arcHandleValue(node, handle)
   if (handle === 'count') return String(node.pointCount)
   if (handle === 'ratio') return `${Math.round(node.starInnerRadius * 100)}%`
   return String(Math.round(cornerRadiusOf(node, handle)))

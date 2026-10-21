@@ -14,6 +14,7 @@ export {
   cornerRadiusOf,
   dragsSingleCorner,
   hasShapeHandles,
+  isArcHandle,
   isRadiusHandle,
   pointCountAtPoint,
   shapeHandleValue,
@@ -21,6 +22,8 @@ export {
   hitTestShapeHandles
 } from './shape-handles'
 export type { RadiusCorner, ShapeHandle, ShapeHandleKind } from './shape-handles'
+export { ARC_HANDLE, arcAtPoint, arcOf } from './arc-handles'
+export type { ArcHandleKind } from './arc-handles'
 export {
   GRADIENT_HANDLE,
   gradientHandleLayout,
