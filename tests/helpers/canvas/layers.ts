@@ -22,6 +22,41 @@ export function layerDriver(page: () => Page) {
       }, name)
     },
 
+    /**
+     * Driver: an auto layout frame on the current page with a rectangle per name in its flow,
+     * expanded in the layers panel by selecting its first item.
+     */
+    autoLayoutWithItems(
+      name: string,
+      layoutMode: 'HORIZONTAL' | 'VERTICAL',
+      itemNames: readonly string[]
+    ): Promise<{ frame: string; items: string[] }> {
+      return page().evaluate(
+        ({ frameName, mode, names }) => {
+          const store = window.openPencil?.getStore?.()
+          if (!store) throw new Error('OpenPencil store not initialized')
+          const frame = store.graph.createNode('FRAME', store.state.currentPageId, {
+            name: frameName,
+            layoutMode: mode,
+            width: 400,
+            height: 120
+          })
+          const items = names.map(
+            (itemName) =>
+              store.graph.createNode('RECTANGLE', frame.id, {
+                name: itemName,
+                width: 80,
+                height: 80
+              }).id
+          )
+          store.select([items[0]])
+          store.requestRender()
+          return { frame: frame.id, items }
+        },
+        { frameName: name, mode: layoutMode, names: itemNames }
+      )
+    },
+
     /** Driver: a frame on the current page with `count` rectangles named `Child 1` and on. */
     frameWithChildren(name: string, count: number): Promise<{ frame: string; children: string[] }> {
       return page().evaluate(
