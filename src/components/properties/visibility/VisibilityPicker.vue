@@ -87,7 +87,10 @@ function select(value: string) {
 
 function createProperty() {
   open.value = false
-  property.create()
+  editor.undo.runBatch('Bind visibility', () => {
+    if (binding.state.value !== 'unbound') binding.actions.unbind()
+    property.create()
+  })
 }
 
 function detach() {

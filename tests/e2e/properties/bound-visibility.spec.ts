@@ -50,9 +50,14 @@ test('a component layer picks a property or a variable, one at a time', async ()
   const picker = editor.page.getByRole('dialog', { name: 'Apply variable/property' })
 
   await apply.click()
+  await picker.getByRole('option', { name: /show-icon/ }).click()
+  expect((await visibility.layer(scene.componentLayer)).variable).toBe(scene.flag)
+
+  await apply.click()
   await picker.getByRole('button', { name: 'Create property…' }).click()
-  const property = (await visibility.layer(scene.componentLayer)).property
+  const { property, variable } = await visibility.layer(scene.componentLayer)
   expect(property).toBeDefined()
+  expect(variable).toBeUndefined()
 
   await apply.click()
   await expect(picker.getByRole('group', { name: 'Properties in Button' })).toBeVisible()
