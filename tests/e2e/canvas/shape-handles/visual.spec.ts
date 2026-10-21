@@ -57,3 +57,17 @@ test('a ring arc, its end handle hovered', async () => {
   expect(await editor.canvas.screenshotCanvasRegion(360, 360)).toMatchSnapshot('arc.png')
   editor.canvas.assertNoErrors()
 })
+
+// Figma desktop: a pie's edges run straight to the centre, where its ratio handle sits.
+test('a pie, its start handle hovered', async () => {
+  await corners.show(
+    { arcData: { startingAngle: 0, endingAngle: Math.PI * 1.5, innerRadius: 0 } },
+    'ELLIPSE'
+  )
+  const inside = corners.point(60, 120)
+  await editor.canvas.hover(inside.x, inside.y)
+  const start = corners.point(120, 80)
+  await editor.canvas.hover(start.x, start.y)
+  expect(await editor.canvas.screenshotCanvasRegion(360, 360)).toMatchSnapshot('pie.png')
+  editor.canvas.assertNoErrors()
+})
