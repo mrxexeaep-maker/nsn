@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import { CanvasHelper } from '#tests/helpers/canvas'
+import { layerDriver } from '#tests/helpers/canvas/layers'
 
 /** A frame with enough children to scroll past its own row, expanded in the layers panel. */
 async function scrolledFrame(page: Page) {
@@ -10,24 +11,10 @@ async function scrolledFrame(page: Page) {
   canvas.errors.length = 0
   await canvas.clearCanvas()
 
-  const ids = await page.evaluate(() => {
-    const store = window.openPencil?.getStore?.()
-    if (!store) throw new Error('OpenPencil store not initialized')
-    const frame = store.graph.createNode('FRAME', store.state.currentPageId, {
-      name: 'Pinned frame',
-      width: 400,
-      height: 400
-    })
-    const children = Array.from(
-      { length: 60 },
-      (_, i) =>
-        store.graph.createNode('RECTANGLE', frame.id, { name: `Child ${i + 1}`, x: i, y: i }).id
-    )
-    // Selecting a child expands the frame in the layers panel.
-    store.select([children[0]])
-    store.requestRender()
-    return { frame: frame.id, children }
-  })
+  const layers = layerDriver(() => page)
+  const ids = await layers.frameWithChildren('Pinned frame', 60)
+  // Selecting a child expands the frame in the layers panel.
+  await layers.select([ids.children[0]])
   await canvas.waitForRender()
 
   await page.getByTestId('layers-scroll').evaluate((el) => {
@@ -35,7 +22,7 @@ async function scrolledFrame(page: Page) {
   })
   const pinned = page.getByTestId('layers-sticky-row')
   await expect(pinned).toContainText('Pinned frame')
-  return { canvas, frameId: ids.frame, children: ids.children, pinned }
+  return { canvas, layers, children: ids.children, pinned }
 }
 
 test('right-clicking the pinned frame row opens the layer menu for it', async ({ page }) => {
@@ -74,7 +61,7 @@ test('double-clicking the pinned frame row renames it on its own row', async ({ 
 test("selecting a pinned frame's child scrolls its row into view below the pin", async ({
   page
 }) => {
-  const { canvas, children, pinned } = await scrolledFrame(page)
+  const { canvas, layers, children, pinned } = await scrolledFrame(page)
   const scroller = page.getByTestId('layers-scroll')
   // Scroll to the end of the list, then select a child further up from outside the panel, as on
   // the canvas: the list scrolls back to it with the frame row pinned above.
@@ -82,7 +69,7 @@ test("selecting a pinned frame's child scrolls its row into view below the pin",
     el.scrollTop = el.scrollHeight
   })
   const target = children[30]
-  await page.evaluate((id) => window.openPencil?.getStore?.()?.select([id]), target)
+  await layers.select([target])
 
   const row = page.locator(`[data-node-id="${target}"]`).getByTestId('layers-item')
   await expect(row).toBeVisible()
