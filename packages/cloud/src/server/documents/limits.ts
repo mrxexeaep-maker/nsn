@@ -1,8 +1,8 @@
 import type { CloudDatabase } from '#cloud/server/db'
 import { canEditDocument, resolveDocumentAccess } from '#cloud/server/documents/access'
 import { DocumentForbiddenError, DocumentNotFoundError } from '#cloud/server/documents/errors'
-import { findDocument } from '#cloud/server/documents/repository'
 import type { DocumentServiceOptions } from '#cloud/server/documents/service'
+import { documentSummary, getDocumentSummaryRow } from '#cloud/server/documents/summary'
 import { CLOUD_FEATURE_KEYS } from '#cloud/server/policy/keys'
 import type { Kysely } from 'kysely'
 
@@ -19,8 +19,10 @@ export async function writableDocument(
   const access = await resolveDocumentAccess(database, userId, documentId)
   if (!access) throw new DocumentNotFoundError()
   if (!canEditDocument(access)) throw new DocumentForbiddenError()
-  const document = await findDocument(database, userId, documentId)
-  if (!document) throw new DocumentNotFoundError()
+  // Access was resolved just above, so the document is read without resolving it again.
+  const row = await getDocumentSummaryRow(database, documentId)
+  if (!row) throw new DocumentNotFoundError()
+  const document = documentSummary(row)
   const policyContext = {
     targetingKey: document.workspaceId,
     actorId: userId,
