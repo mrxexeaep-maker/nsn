@@ -77,7 +77,6 @@ function worstDifference(actual: Uint8Array, expected: ArrayLike<number>): numbe
   )
 }
 
-/** Half the opacity must halve every pixel's alpha, so no part of the layer is cut off. */
 function expectHalfAsOpaque(scene: Scene, previewAngle?: number) {
   const opaque = alphaChannel(scene, 1, previewAngle)
   const faded = alphaChannel(scene, 0.5, previewAngle)
