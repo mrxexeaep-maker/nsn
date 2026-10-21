@@ -44,6 +44,8 @@ const OpenRouterModelsResponseJSON = v.pipe(
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models'
 const OPENROUTER_MODELS_CACHE_KEY = 'openrouter/models-v2'
 const OPENROUTER_MODELS_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+// Runtime creation waits for the list, so a stalled request falls back to the curated models.
+const OPENROUTER_MODELS_TIMEOUT_MS = 10_000
 function curatedProviderModels(providerID: AIProviderID) {
   return AI_PROVIDERS.find((provider) => provider.id === providerID)?.models ?? []
 }
@@ -91,7 +93,9 @@ export function normalizeOpenRouterModel(model: OpenRouterModel): ModelOption | 
 }
 
 async function fetchOpenRouterModels(fetcher: typeof fetch): Promise<ModelOption[]> {
-  const response = await fetcher(OPENROUTER_MODELS_URL)
+  const response = await fetcher(OPENROUTER_MODELS_URL, {
+    signal: AbortSignal.timeout(OPENROUTER_MODELS_TIMEOUT_MS)
+  })
   if (!response.ok) throw new Error(`OpenRouter models request failed: ${response.status}`)
   const json = v.parse(OpenRouterModelsResponseJSON, await response.text())
   return (json.data ?? []).flatMap((entry) => {
@@ -115,6 +119,8 @@ async function listOpenRouterModels(fetcher: typeof fetch = fetch): Promise<Mode
       await writeCacheJSON(OPENROUTER_MODELS_CACHE_KEY, models)
       return models
     } catch {
+      // Retried on the next call rather than held for the session.
+      modelsPromise = null
       return curatedOpenRouterModels
     }
   })()

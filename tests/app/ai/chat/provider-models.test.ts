@@ -77,4 +77,23 @@ describe('resolveProviderModel', () => {
       await resolveProviderModel('openrouter', 'minimax/minimax-m3.1-flash:free', fetcher)
     ).toMatchObject({ minReasoningEffort: 'low' })
   })
+
+  test('bounds the OpenRouter request and retries after a failure', async () => {
+    const signals: (AbortSignal | null | undefined)[] = []
+    let fail = true
+    const fetcher = fetchStub(async (_input, init) => {
+      signals.push(init?.signal)
+      if (fail) throw new Error('offline')
+      return Response.json({
+        data: [{ id: 'some/model', supported_parameters: ['tools'] }]
+      })
+    })
+    expect(await resolveProviderModel('openrouter', 'some/model', fetcher)).toBeUndefined()
+    fail = false
+    expect(await resolveProviderModel('openrouter', 'some/model', fetcher)).toMatchObject({
+      id: 'some/model'
+    })
+    expect(signals).toHaveLength(2)
+    expect(signals.every((signal) => signal instanceof AbortSignal)).toBe(true)
+  })
 })
