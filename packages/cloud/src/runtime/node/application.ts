@@ -29,6 +29,7 @@ export async function createNodeCloudApplication(
 }> {
   const environment = options.environment ?? process.env
   const config = await loadNodeCloudServerConfig(environment)
+  const aiSigningKey = await loadAISigningKey(config)
   const database = createNodeCloudDatabase({
     connectionString: options.databaseURL ?? config.databaseURL
   })
@@ -43,7 +44,7 @@ export async function createNodeCloudApplication(
     invitationOutbox,
     transactionalEmail: email,
     enrollment,
-    aiSigningKey: await loadAISigningKey(config)
+    aiSigningKey
   })
   return { app, config, database, objects, email }
 }
