@@ -151,8 +151,8 @@ export function variantPropertiesOf(
 
 /**
  * Takes a renamed variant's values from its name, as Figma does, and lets the set's value lists
- * follow: values no variant uses drop out. A name that does not name exactly the set's axes
- * changes no values, as Figma leaves such a set in error.
+ * follow: values no variant uses drop out. A name that does not name exactly the set's axes,
+ * or names another variant's values, changes no values, as Figma leaves such a set in error.
  */
 export function syncVariantName(scene: SceneGraph, node: SceneNode): void {
   const setId = node.type === 'COMPONENT' ? node.parentId : undefined
@@ -161,6 +161,10 @@ export function syncVariantName(scene: SceneGraph, node: SceneNode): void {
   const parsed = parseVariantName(node.name)
   const names = Object.keys(parsed)
   if (names.length !== axes.length || !axes.every((axis) => parsed[axis]?.trim())) return
-  setVariantValues(scene, setId, node.id, { ...node.componentPropertyValues, ...parsed })
+  const values = { ...node.componentPropertyValues, ...parsed }
+  // Values another variant has already leave the set in error in Figma; these stay too.
+  const twin = findExactVariant(scene, setId, values)
+  if (twin && twin.id !== node.id) return
+  setVariantValues(scene, setId, node.id, values)
   refreshVariantOptions(scene, setId, { dropUnused: true })
 }

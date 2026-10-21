@@ -67,6 +67,17 @@ describe('variant properties through the Plugin API', () => {
     expect(variantProperties(hover)).toEqual({ State: 'Pressed' })
   })
 
+  test('a variant renamed to another’s values keeps its own, where Figma leaves the set in error', () => {
+    const { set, hover, instance } = variants()
+    hover.name = 'State=Default'
+    expect(variantProperties(hover)).toEqual({ State: 'Hover' })
+    expect(set.componentPropertyDefinitions.State).toMatchObject({
+      variantOptions: ['Default', 'Hover']
+    })
+    instance.setProperties({ State: 'Hover' })
+    expect(instance.mainComponent?.id).toBe(hover.id)
+  })
+
   test('variant edits fail as Figma’s do', () => {
     const { set, base } = variants()
     set.addComponentProperty('Size', 'VARIANT', 'sm')
