@@ -85,7 +85,11 @@ describe('a refused tab over time', () => {
           })
         }
         if (url.pathname === '/api/workspaces') return Response.json({ workspaces: [] })
-        if (url.pathname === `/api/documents/${DOCUMENT}/collaboration-ticket`) ticketRequests++
+        if (url.pathname === `/api/documents/${DOCUMENT}/collaboration-ticket`) {
+          ticketRequests++
+          // A refusal ends the start at once; a 404 would wait for the document's first upload.
+          return Response.json({ error: { code: 'forbidden' } }, { status: 403 })
+        }
         return Response.json({ error: { code: 'not_found' } }, { status: 404 })
       })
     )
