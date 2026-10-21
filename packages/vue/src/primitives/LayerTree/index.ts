@@ -7,6 +7,7 @@ export type {
   LayerRow,
   LayerSelectionMode,
   LayerTreeContext,
+  LayerOutline,
   LayerTreeVirtualizer
 } from '#vue/primitives/LayerTree/context'
 export {
