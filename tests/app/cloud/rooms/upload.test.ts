@@ -245,6 +245,11 @@ describe('uploading the document a tab shows', () => {
       },
       closed.signal
     )
+    // The server has answered and the tab is waiting for the upload, which is still on its way.
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0)
+    })
+    expect(calls).toBe(1)
     closed.abort()
     await expect(asking).rejects.toThrow('Not found')
     expect(calls).toBe(1)
