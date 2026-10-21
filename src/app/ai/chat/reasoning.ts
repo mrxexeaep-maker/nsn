@@ -3,7 +3,12 @@ import type { LanguageModelCallOptions } from 'ai'
 import { AI_PROVIDERS } from '@open-pencil/core/constants'
 import type { AIProviderID } from '@open-pencil/core/constants'
 
-import { THINKING_LEVELS, type ThinkingLevel } from '@/app/ai/models/types'
+import { resolveLanguageModelID } from '@/app/ai/chat/model'
+import {
+  THINKING_LEVELS,
+  type ResolvedAIModelRole,
+  type ThinkingLevel
+} from '@/app/ai/models/types'
 
 type JSONValue = null | boolean | number | string | JSONValue[] | { [key: string]: JSONValue }
 export type AIProviderOptions = Record<string, { [key: string]: JSONValue }>
@@ -38,4 +43,16 @@ export function reasoningCallSettings(
     return { providerOptions: { openrouter: { reasoning: { effort: reasoning } } } }
   }
   return { reasoning }
+}
+
+/** Reasoning settings for a role's own model and thinking level. */
+export function roleReasoningSettings(
+  role: Pick<ResolvedAIModelRole, 'connection' | 'profile'>
+): ReasoningCallSettings {
+  const { providerID } = role.connection
+  return reasoningCallSettings(
+    providerID,
+    resolveLanguageModelID({ providerID, ...role.profile }),
+    role.profile.thinkingLevel
+  )
 }

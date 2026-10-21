@@ -4,8 +4,7 @@ import * as v from 'valibot'
 
 import { computeContentBounds } from '@open-pencil/core/io'
 
-import { resolveLanguageModelID } from '@/app/ai/chat/model'
-import { reasoningCallSettings } from '@/app/ai/chat/reasoning'
+import { roleReasoningSettings } from '@/app/ai/chat/reasoning'
 import { createAIModelRuntime } from '@/app/ai/models'
 import { runPageId } from '@/app/ai/tools/run'
 import type { VisionModelDependencies } from '@/app/ai/vision-runtime'
@@ -73,14 +72,7 @@ export async function inspectRenderedDesign(
   const result = await dependencies.inspect({
     model: runtime.model,
     maxOutputTokens: Math.min(runtime.role.profile.maxOutputTokens, MAX_VISION_OUTPUT_TOKENS),
-    ...reasoningCallSettings(
-      runtime.role.connection.providerID,
-      resolveLanguageModelID({
-        providerID: runtime.role.connection.providerID,
-        ...runtime.role.profile
-      }),
-      runtime.role.profile.thinkingLevel
-    ),
+    ...roleReasoningSettings(runtime.role),
     messages: [
       {
         role: 'user',
