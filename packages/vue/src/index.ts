@@ -28,6 +28,7 @@ export {
   type AutoLayoutValueField
 } from '#vue/shared/input/auto-layout-hover'
 export { useCanvasIssueMarkers } from '#vue/canvas/issues/use'
+export { useCanvasStatusLabels } from '#vue/canvas/statuses/use'
 export type { CanvasIssueMarkerOptions } from '#vue/canvas/issues/use'
 export type { CanvasLabelEdit, CanvasLabelKind } from '#vue/canvas/labels/edit'
 export { useCanvasVirtualReference } from '#vue/canvas/overlays/useCanvasVirtualReference'
@@ -125,6 +126,9 @@ export {
   type VariableModeOption
 } from '#vue/controls/variable-modes/helpers'
 export { useMask } from '#vue/controls/mask/use'
+export { useConnector } from '#vue/controls/connector/use'
+export { useShapeWithText } from '#vue/controls/shape-with-text/use'
+export { useStickyNote } from '#vue/controls/sticky/use'
 export { useIcon } from '#vue/controls/icon/use'
 export { useIconSearch } from '#vue/controls/icon/search'
 export { useTypography } from '#vue/controls/typography/use'
@@ -251,6 +255,7 @@ export type {
   StickyLayerRow,
   LayerSelectionMode,
   LayerTreeContext,
+  LayerOutline,
   LayerTreeVirtualizer
 } from '#vue/primitives/LayerTree'
 export { LayoutControlsRoot, useLayoutControlsContext } from '#vue/primitives/LayoutControls'
@@ -404,7 +409,8 @@ export {
   useBindingProvider,
   useOpenPencilBindingProvider,
   useNumberBindingProvider,
-  useColorBindingProvider
+  useColorBindingProvider,
+  useVisibilityBindingProvider
 } from '#vue/controls/binding-provider'
 export type {
   BindingMutationSource,

@@ -1,6 +1,6 @@
 {
   "name": "@open-pencil/scene-graph",
-  "version": "0.16.0-beta.3",
+  "version": "0.16.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -172,6 +172,12 @@
       "bun": "./src/polygon.ts",
       "import": "./dist/polygon.js",
       "default": "./dist/polygon.js"
+    },
+    "./shape-with-text": {
+      "types": "./dist/shape-with-text.d.ts",
+      "bun": "./src/shape-with-text/index.ts",
+      "import": "./dist/shape-with-text.js",
+      "default": "./dist/shape-with-text.js"
     },
     "./resize": {
       "types": "./dist/resize.d.ts",

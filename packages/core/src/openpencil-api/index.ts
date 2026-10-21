@@ -1,11 +1,13 @@
 import {
   BEHAVIOUR_CONTRACTS,
   BEHAVIOUR_KINDS,
+  parseVariableFormula,
   type BehaviourKind,
-  type BehaviourSpec
+  type BehaviourSpec,
+  type VariableLiteral
 } from '@open-pencil/scene-graph'
 
-import type { FigmaAPI } from '#core/figma-api'
+import type { FigmaAPI } from '#core/figma-api/index'
 
 import {
   getBehaviour,
@@ -22,8 +24,10 @@ import {
   type CommentHandle,
   type NewComment
 } from './comments'
+import { getStatus, listStatuses, setStatus, type StatusInfo } from './statuses'
 
 export { BehaviourHandle, type NodeRef } from './behaviours'
+export type { StatusInfo } from './statuses'
 export {
   CommentHandle,
   DEFAULT_COMMENT_AUTHOR,
@@ -38,6 +42,42 @@ export {
  */
 export class OpenPencilAPI {
   constructor(private readonly figma: FigmaAPI) {}
+
+  /**
+   * Set a token formula by collection, variable and optional mode names. References use
+   * `{variable/name}` or `{Collection::variable/name}` and persist by ID; a true/false formula
+   * can compare numbers, as in `{width} > 600 and not {loading}`, and `if()`, `text()` and
+   * `truthy()` pick values, write text, and test text or numbers, as in
+   * `if({compact}, "Hi", "Hello, " + {name})`.
+   */
+  setVariableFormula(
+    collectionName: string,
+    variableName: string,
+    source: string,
+    modeName?: string
+  ): VariableLiteral {
+    const graph = this.figma.graph
+    const collections = [...graph.variableCollections.values()].filter(
+      (item) => item.name === collectionName
+    )
+    const collection = collections.at(0)
+    if (!collection || collections.length !== 1)
+      throw new Error(`Unknown or ambiguous collection: ${collectionName}`)
+    const variables = [...graph.variables.values()].filter(
+      (item) => item.collectionId === collection.id && item.name === variableName
+    )
+    const variable = variables.at(0)
+    if (!variable || variables.length !== 1)
+      throw new Error(`Unknown or ambiguous variable: ${variableName}`)
+    const modes = collection.modes.filter((mode) =>
+      modeName ? mode.name === modeName : mode.modeId === collection.defaultModeId
+    )
+    const mode = modes.at(0)
+    if (!mode || modes.length !== 1) throw new Error(`Unknown or ambiguous mode: ${modeName}`)
+    const { value, resolved } = parseVariableFormula(graph, variable.id, mode.modeId, source)
+    this.figma.setVariableValue(variable.id, mode.modeId, value)
+    return resolved
+  }
 
   /** The behaviour kinds, after Reka UI's primitives, with the values and parts each binds. */
   get behaviourKinds() {
@@ -81,5 +121,26 @@ export class OpenPencilAPI {
    */
   addComment(text: string, options?: NewComment): CommentHandle {
     return addComment(this.figma.graph, this.figma.currentPageId, text, options)
+  }
+
+  /**
+   * The document's statuses, such as Ready for dev or the team's own Approved, with each one's
+   * color and the status Figma shows for it, if any.
+   */
+  get statuses(): StatusInfo[] {
+    return listStatuses(this.figma.graph)
+  }
+
+  /** The name of the status a section, frame, component, set or instance shows, or null. */
+  getStatus(node: NodeRef): string | null {
+    return getStatus(this.figma.graph, node)
+  }
+
+  /**
+   * Give a layer one of the document's statuses by name, or clear it with null. Only sections,
+   * frames, components, sets and instances directly on a page or in a section take one.
+   */
+  setStatus(node: NodeRef, status: string | null): void {
+    setStatus(this.figma.graph, node, status)
   }
 }
