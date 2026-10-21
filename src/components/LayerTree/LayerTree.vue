@@ -10,7 +10,7 @@ import {
 import { tv } from 'tailwind-variants'
 import { computed, nextTick, useAttrs, useTemplateRef, watch } from 'vue'
 
-import { LayerTreeRoot, LayerTreeItem, useInlineRename } from '@open-pencil/vue'
+import { LayerTreeRoot, LayerTreeItem, stickyTopLevelRow, useInlineRename } from '@open-pencil/vue'
 import type {
   LayerDragInstruction,
   LayerNode,
@@ -161,6 +161,8 @@ function revealRow(rows: readonly LayerRow[], index: number) {
   const el = viewport.value
   const row = rows.at(index)
   if (!el || !row) return
+  // A layer showing as the pinned row is in view already, so selecting it keeps the list still.
+  if (stickyTopLevelRow(rows, el.scrollTop, LAYER_TREE_ROW_HEIGHT)?.index === index) return
   const top = index * LAYER_TREE_ROW_HEIGHT
   const pinned = row.level > 1 ? LAYER_TREE_ROW_HEIGHT : 0
   if (top - pinned < el.scrollTop) {

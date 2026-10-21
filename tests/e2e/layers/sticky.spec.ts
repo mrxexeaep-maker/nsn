@@ -39,15 +39,23 @@ async function scrolledFrame(page: Page) {
 }
 
 test('right-clicking the pinned frame row opens the layer menu for it', async ({ page }) => {
-  const { canvas, frameId, pinned } = await scrolledFrame(page)
+  const { canvas, pinned } = await scrolledFrame(page)
 
   await pinned.click({ button: 'right' })
   await expect(page.getByRole('menu')).toBeVisible()
-  await expect
-    .poll(() =>
-      page.evaluate(() => [...(window.openPencil?.getStore?.()?.state.selectedIds ?? [])])
-    )
-    .toEqual([frameId])
+  // The pinned row stays put and shows the frame selected.
+  await expect(pinned.locator('[data-slot="row"]')).toHaveAttribute('data-selected', 'true')
+  canvas.assertNoErrors()
+})
+
+test('clicking the pinned frame row selects it without moving the list', async ({ page }) => {
+  const { canvas, pinned } = await scrolledFrame(page)
+  const scroller = page.getByTestId('layers-scroll')
+  const before = await scroller.evaluate((el) => el.scrollTop)
+
+  await pinned.click()
+  await expect(pinned.locator('[data-slot="row"]')).toHaveAttribute('data-selected', 'true')
+  expect(await scroller.evaluate((el) => el.scrollTop)).toBe(before)
   canvas.assertNoErrors()
 })
 
