@@ -30,15 +30,19 @@ export function appMenuShortcut(id: string): string | undefined {
 }
 
 function normalizeShortcutToken(shortcut: string): string {
-  return shortcut === '⌫' ? 'Backspace' : shortcut.replaceAll('↩', 'Enter')
+  return shortcut === '⌫'
+    ? 'Backspace'
+    : shortcut.replaceAll('↩', 'Enter').replaceAll('⇞', 'PageUp').replaceAll('⇟', 'PageDown')
 }
 
+/** A letter becomes its key code, which the keyboard registry matches by layout (`shortcutCode`). */
 export function shortcutTokenToTinykeys(shortcut: string | undefined): string | undefined {
   return shortcut
     ? normalizeShortcutToken(shortcut)
         .replaceAll('MOD', '$mod')
         .replaceAll('SHIFT', 'Shift')
         .replaceAll('ALT', 'Alt')
+        .replace(/(^|\+)([A-Z])$/, '$1Key$2')
     : undefined
 }
 

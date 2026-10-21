@@ -4,9 +4,11 @@ import { behaviourSchema } from '../behaviours/schema'
 import type { OkHCLPayload } from '../color/okhcl'
 import { isExportFormatId, type ExportFormatId } from '../export-format'
 import { clampExportScale } from '../export-scale'
+import { FIG_COMPRESSIONS } from '../fig-compression'
 import { iconSchema, iconTintSchema } from '../icons/schema'
 import type { Rect } from '../primitives'
 import { shaderPaintSchema } from '../shaders/schema'
+import { nodeStatusSchema, statusWorkflowSchema } from '../statuses/schema'
 import {
   MODE_ATTRIBUTE_PATTERN,
   TOKEN_UNITS,
@@ -103,13 +105,16 @@ const cssText = v.pipe(v.string(), v.trim(), v.nonEmpty(), v.maxLength(1000))
 /** Token fields Figma has no slot for, with mode ids as the file spells them. */
 export interface StoredToken {
   unit?: TokenUnit
-  expressions?: Record<string, { css: string; resolved: number }>
+  expressions?: Record<string, { css: string; resolved?: number }>
 }
 
 const token: v.GenericSchema<unknown, StoredToken> = v.object({
   unit: v.optional(v.picklist(TOKEN_UNITS)),
   expressions: v.optional(
-    v.record(v.string(), v.object({ css: cssText, resolved: v.pipe(v.number(), v.finite()) }))
+    v.record(
+      v.string(),
+      v.object({ css: cssText, resolved: v.optional(v.pipe(v.number(), v.finite())) })
+    )
   )
 })
 
@@ -208,6 +213,12 @@ export const OPEN_PENCIL_PLUGIN_DATA = {
   ),
   /** Canvas comment threads, deleted ones included, on the DOCUMENT node. */
   comments: jsonPluginDataField('comments', 'bookkeeping', comments),
+  /** The statuses layers can be in, on the DOCUMENT node. */
+  statuses: jsonPluginDataField('statuses', 'bookkeeping', statusWorkflowSchema),
+  /** How tightly the document's `.fig` data is compressed, on the DOCUMENT node. */
+  figCompression: textPluginDataField('figCompression', 'bookkeeping', FIG_COMPRESSIONS),
+  /** A layer's status, any state of the workflow; Figma's `sectionStatusInfo` knows only two. */
+  status: jsonPluginDataField('status', 'format', nodeStatusSchema),
   /** Unit and CSS expressions, on each VARIABLE. */
   token: jsonPluginDataField('token', 'format', token),
   /** Mode conditions by mode id, on each VARIABLE_SET. */
@@ -222,6 +233,15 @@ export const OPEN_PENCIL_PLUGIN_DATA = {
   okhcl: jsonPluginDataField('okhcl', 'content', okhcl),
   /** How a main component or component set behaves as a control in preview. */
   behaviour: jsonPluginDataField('behaviour', 'content', behaviourSchema),
+  /**
+   * The width a shape with text was given, which it grows past only for a word too wide.
+   * FigJam keeps the height it was given (`shapeUserHeight`) but not the width.
+   */
+  shapeUserWidth: jsonPluginDataField(
+    'shapeUserWidth',
+    'format',
+    v.pipe(v.number(), v.finite(), v.minValue(0))
+  ),
   /** The icon a frame draws, such as `lucide:home`, on the frame its paths are in. */
   icon: jsonPluginDataField('icon', 'content', iconSchema),
   /** Which of an icon path's paints its icon's color sets, on each path the source drew in it. */

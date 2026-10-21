@@ -22,6 +22,9 @@ const page: ShaderStillPage = {
       // The first frame only prepares the effects' pipelines; the second is the still.
       await renderer.renderFrame({ deltaSeconds: 0, waitForGpu: false })
       await renderer.renderFrame({ deltaSeconds: 0, waitForGpu: false })
+      // Without a usable GPU the renderer draws nothing and says so only here.
+      const failure = renderer.getFailureReason()
+      if (failure !== null) throw new Error(`WebGPU is unavailable (${failure})`)
       // A WebGPU canvas has no pixels to read; a 2D copy does.
       const copy = document.createElement('canvas')
       copy.width = canvas.width

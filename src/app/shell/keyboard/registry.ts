@@ -1,16 +1,22 @@
-import { tinykeys } from 'tinykeys'
+import { useEventListener } from '@vueuse/core'
+import { createKeybindingsHandler } from 'tinykeys'
 import type { KeyBindingMap } from 'tinykeys'
-import { onScopeDispose } from 'vue'
 
 import { editorCommandMetadata } from '@open-pencil/vue'
 import type { EditorCommandId } from '@open-pencil/vue'
 
+import { isCloudBinding, openVersionDialog } from '@/app/cloud/integration'
 import { useComments } from '@/app/comments/use'
+import {
+  copySelectionProperties,
+  pasteClipboardProperties
+} from '@/app/editor/clipboard/properties'
 import { requestRenameSelection } from '@/app/editor/selection/rename-dialog'
 import { TOOL_SHORTCUTS } from '@/app/editor/session'
 import { openSettingsDialog } from '@/app/settings/dialog'
 import { setSnappingPreference } from '@/app/settings/preferences/apply'
 import { isButtonActivation, isEditing } from '@/app/shell/keyboard/focus'
+import { shortcutEvent } from '@/app/shell/keyboard/layout'
 import { bindSpaceHandTool } from '@/app/shell/keyboard/space-tool'
 import type {
   KeyboardShortcutOptions,
@@ -62,6 +68,27 @@ function opacityBindings(): ShortcutDefinition[] {
     shouldPreventDefault: (event) =>
       !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey
   }))
+}
+
+/**
+ * Tab steps through sibling layers only while nothing on the page holds focus, so it still
+ * moves focus through the panels' controls.
+ */
+function isCanvasFocus(event: KeyboardEvent) {
+  return event.target === document.body || event.target instanceof HTMLCanvasElement
+}
+
+function siblingShortcut(
+  command: 'selection.selectNextSibling' | 'selection.selectPreviousSibling'
+): ShortcutDefinition {
+  return {
+    id: command,
+    keys: editorCommandMetadata(command).keybinding ?? [],
+    run: ({ keyEvent, runCommand }) => {
+      if (isCanvasFocus(keyEvent)) runCommand(command)
+    },
+    shouldPreventDefault: isCanvasFocus
+  }
 }
 
 const EDITOR_SHORTCUT_OVERLAY_SELECTOR =
@@ -146,6 +173,16 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
       'selection.flipVertical'
     ),
     {
+      id: 'copy-properties',
+      keys: '$mod+Alt+KeyC',
+      run: ({ store }) => void copySelectionProperties(store)
+    },
+    {
+      id: 'paste-properties',
+      keys: '$mod+Alt+KeyV',
+      run: ({ store }) => void pasteClipboardProperties(store)
+    },
+    {
       id: 'export-selection-png',
       keys: appMenuTinykeysShortcut('export-selection') ?? '$mod+Shift+KeyE',
       run: ({ actions }) => actions.exportSelectionPNG()
@@ -154,6 +191,13 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
       id: 'save-as',
       keys: appMenuTinykeysShortcut('save-as') ?? '$mod+Shift+KeyS',
       run: ({ store }) => void store.saveFigFileAs()
+    },
+    {
+      id: 'save-version',
+      keys: appMenuTinykeysShortcut('save-version') ?? '$mod+Alt+KeyS',
+      run: ({ store }) => {
+        if (isCloudBinding(store.getStorageBinding())) openVersionDialog(store)
+      }
     },
     ...commandShortcuts('selection.ungroup', 'edit.redo'),
     {
@@ -248,6 +292,11 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
       'view.zoom100',
       'view.zoomFit',
       'view.zoomSelection',
+      'view.zoomNextFrame',
+      'view.zoomPreviousFrame',
+      'view.nextPage',
+      'view.previousPage',
+      'selection.selectParent',
       'selection.duplicate',
       'selection.selectAll',
       'selection.selectInverse'
@@ -284,6 +333,8 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
       run: ({ actions }) => actions.escapeOrDeselect(),
       preview: true
     },
+    siblingShortcut('selection.selectNextSibling'),
+    siblingShortcut('selection.selectPreviousSibling'),
     ...opacityBindings()
   ]
 
@@ -307,8 +358,7 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
     })
   }
 
-  const unsubscribeEditor = tinykeys(
-    window,
+  const editorHandler = createKeybindingsHandler(
     Object.fromEntries(
       Object.entries(bindings).map(([keys, handler]) => [
         keys,
@@ -318,14 +368,14 @@ export function registerKeyboardShortcuts(options: KeyboardShortcutOptions) {
           handler(event)
         }
       ])
-    ),
-    { capture: true }
+    )
   )
+  const globalHandler = createKeybindingsHandler(globalBindings)
 
-  const unsubscribeGlobal = tinykeys(window, globalBindings, { capture: true })
-
-  onScopeDispose(() => {
-    unsubscribeEditor()
-    unsubscribeGlobal()
+  useEventListener(window, 'keydown', (event) => editorHandler(shortcutEvent(event)), {
+    capture: true
+  })
+  useEventListener(window, 'keydown', (event) => globalHandler(shortcutEvent(event)), {
+    capture: true
   })
 }

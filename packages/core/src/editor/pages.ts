@@ -19,6 +19,7 @@ import { collectGraphFontRequirements } from '#core/text/requirements'
 import { missingGraphFontScripts } from '#core/text/resolved-requirements'
 
 import { createPageViewportStore } from './page-viewports'
+import { createPageLayouts } from './pages/layouts'
 import type { EditorContext } from './types'
 
 export interface PageSwitchProgress {
@@ -83,6 +84,7 @@ export function componentSetPages(graph: SceneGraph, pageId: string): string[] {
 
 export function createPageActions(ctx: EditorContext, drawing?: PageDrawing) {
   const pageViewportStore = createPageViewportStore(ctx)
+  const pageLayouts = createPageLayouts(ctx)
   function syncPageColor() {
     ctx.state.pageColor = getPageColor(ctx.graph.getNode(ctx.state.currentPageId))
   }
@@ -223,9 +225,11 @@ export function createPageActions(ctx: EditorContext, drawing?: PageDrawing) {
     await resolvePageFonts(pageId, page.name, options)
     throwIfAborted(options.signal)
     if (generation !== pageSwitchGeneration) return null
-    if (ctx.getRenderer() || populated) {
+    // A page visited before keeps the layout it got then, unless something it depends on changed.
+    if ((ctx.getRenderer() || populated) && !pageLayouts.isCurrent(pageId)) {
       options.onProgress?.({ phase: 'layout', detail: page.name })
       ctx.graph.applyDerivedLayoutDuring(() => computeAllLayouts(ctx.graph, pageId))
+      pageLayouts.record(pageId)
     }
     throwIfAborted(options.signal)
     if (generation !== pageSwitchGeneration) return null
@@ -308,6 +312,15 @@ export function createPageActions(ctx: EditorContext, drawing?: PageDrawing) {
     if (prepared) commitPageSwitch(prepared)
   }
 
+  /** Opens the page before or after the current one in the pages panel, stopping at the ends. */
+  async function switchToAdjacentPage(step: 1 | -1): Promise<void> {
+    const pages = ctx.graph.getPages()
+    const index = pages.findIndex((page) => page.id === ctx.state.currentPageId)
+    const next = index + step
+    if (index === -1 || next < 0 || next >= pages.length) return
+    await switchPage(pages[next].id)
+  }
+
   function clearPageViewports() {
     populationWorkerGeneration++
     pageSwitchGeneration++
@@ -375,6 +388,8 @@ export function createPageActions(ctx: EditorContext, drawing?: PageDrawing) {
     preparePage,
     commitPageSwitch,
     switchPage,
+    switchToNextPage: () => switchToAdjacentPage(1),
+    switchToPreviousPage: () => switchToAdjacentPage(-1),
     addPage,
     deletePage,
     movePage,

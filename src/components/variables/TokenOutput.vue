@@ -17,7 +17,8 @@ import { useEditor, useI18n, useSceneComputed } from '@open-pencil/vue'
 import CodeViewer from '@/components/code-editor/CodeViewer.vue'
 import IconButton from '@/components/ui/button/IconButton.vue'
 import { useMenuUI } from '@/components/ui/menu/menu'
-import tokensPanelTheme from '@/theme/tokens-panel'
+import MenuScrollArea from '@/components/ui/menu/MenuScrollArea.vue'
+import outputTheme from '@/theme/variables/output'
 
 const { collectionId, layout = 'side' } = defineProps<{
   collectionId: string
@@ -27,7 +28,7 @@ const { collectionId, layout = 'side' } = defineProps<{
 const emit = defineEmits<{ copy: [format: TokenStylesheetFormat]; export: [] }>()
 
 const { variables } = useI18n()
-const ui = computed(() => tv(tokensPanelTheme)({ layout }))
+const ui = computed(() => tv(outputTheme)({ layout }))
 const menu = useMenuUI({ content: 'w-60', item: 'justify-start gap-2' })
 const editor = useEditor()
 
@@ -52,9 +53,9 @@ const stylesheet = computedAsync(async () => {
 </script>
 
 <template>
-  <section :class="ui.output()" data-test-id="token-output">
+  <section :class="ui.root()" data-test-id="token-output">
     <div class="flex items-center gap-2 px-4 py-1.5">
-      <span v-if="layout === 'side'" :class="ui.sectionTitle()">{{ variables.stylesheet }}</span>
+      <span v-if="layout === 'side'" :class="ui.title()">{{ variables.stylesheet }}</span>
       <span class="flex-1" />
       <DropdownMenuRoot>
         <DropdownMenuTrigger as-child>
@@ -64,31 +65,33 @@ const stylesheet = computedAsync(async () => {
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
           <DropdownMenuContent side="bottom" :side-offset="4" align="end" :class="menu.content">
-            <DropdownMenuItem
-              :class="menu.item"
-              data-test-id="variables-copy-css"
-              @select="emit('copy', 'css')"
-            >
-              <icon-lucide-braces :class="menu.icon" />
-              {{ variables.copyAsCSS }}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              :class="menu.item"
-              data-test-id="variables-copy-tailwind"
-              @select="emit('copy', 'tailwind')"
-            >
-              <icon-lucide-wind :class="menu.icon" />
-              {{ variables.copyAsTailwindTheme }}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator :class="menu.separator" />
-            <DropdownMenuItem
-              :class="menu.item"
-              data-test-id="variables-export-tokens"
-              @select="emit('export')"
-            >
-              <icon-lucide-file-archive :class="menu.icon" />
-              {{ variables.exportDesignTokens }}
-            </DropdownMenuItem>
+            <MenuScrollArea>
+              <DropdownMenuItem
+                :class="menu.item"
+                data-test-id="variables-copy-css"
+                @select="emit('copy', 'css')"
+              >
+                <icon-lucide-braces :class="menu.icon" />
+                {{ variables.copyAsCSS }}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                :class="menu.item"
+                data-test-id="variables-copy-tailwind"
+                @select="emit('copy', 'tailwind')"
+              >
+                <icon-lucide-wind :class="menu.icon" />
+                {{ variables.copyAsTailwindTheme }}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator :class="menu.separator" />
+              <DropdownMenuItem
+                :class="menu.item"
+                data-test-id="variables-export-tokens"
+                @select="emit('export')"
+              >
+                <icon-lucide-file-archive :class="menu.icon" />
+                {{ variables.exportDesignTokens }}
+              </DropdownMenuItem>
+            </MenuScrollArea>
           </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>
