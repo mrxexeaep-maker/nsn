@@ -42,6 +42,8 @@ type YjsObserverOptions = {
   store: EditorStore
   ynodes: YNodes
   yimages: YImages
+  /** Whether the room names an image by reference, which keeps it when its bytes leave. */
+  hasImageRef?: (name: string) => boolean
   getSuppressYjsEvents: () => boolean
   setSuppressGraphSync: (value: boolean) => void
   applyYjsToGraph: (events: Y.YEvent<Y.Map<unknown>>[]) => void
@@ -52,6 +54,8 @@ type YjsGraphSyncOptions = {
   getYdoc: () => Y.Doc | null
   getYnodes: () => YNodes | null
   getYimages: () => YImages | null
+  /** Takes an image a layer uses to share some other way; false writes its bytes into the room. */
+  shareImage?: (name: string, bytes: Uint8Array) => boolean
   setSuppressYjsEvents: (value: boolean) => void
 }
 
@@ -128,6 +132,7 @@ export function registerYjsObservers({
   store,
   ynodes,
   yimages,
+  hasImageRef,
   getSuppressYjsEvents,
   setSuppressGraphSync,
   applyYjsToGraph
@@ -153,7 +158,7 @@ export function registerYjsObservers({
         if (change.action === 'add' || change.action === 'update') {
           const data = yimages.get(key)
           if (data) store.graph.images.set(key, new Uint8Array(data))
-        } else {
+        } else if (!hasImageRef?.(key)) {
           store.graph.images.delete(key)
         }
       }
@@ -176,6 +181,7 @@ export function createYjsGraphSync({
   getYdoc,
   getYnodes,
   getYimages,
+  shareImage,
   setSuppressYjsEvents
 }: YjsGraphSyncOptions) {
   let pendingPageSwitch: { store: EditorStore; pageId: string } | undefined
@@ -201,10 +207,9 @@ export function createYjsGraphSync({
     const localYimages = getYimages()
     if (!localYimages) return
     for (const fill of node.fills) {
-      if (fill.imageHash && !localYimages.has(fill.imageHash)) {
-        const data = graph.images.get(fill.imageHash)
-        if (data) localYimages.set(fill.imageHash, data)
-      }
+      if (!fill.imageHash || localYimages.has(fill.imageHash)) continue
+      const data = graph.images.get(fill.imageHash)
+      if (data && !shareImage?.(fill.imageHash, data)) localYimages.set(fill.imageHash, data)
     }
   }
 

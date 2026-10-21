@@ -16,10 +16,18 @@ import {
   resolveDocumentAccess
 } from '#cloud/server/documents/access'
 import {
+  DocumentConflictError,
+  DocumentForbiddenError,
+  DocumentNotFoundError,
+  UploadInvalidError
+} from '#cloud/server/documents/errors'
+import {
   createDocumentImages,
+  documentImageLinks,
   revisionImageDownloads,
   type ImageUploadOffer
 } from '#cloud/server/documents/images'
+import { writableDocument } from '#cloud/server/documents/limits'
 import {
   findDocument,
   insertDocument,
@@ -31,7 +39,6 @@ import { documentSummary, getDocumentSummaryRow } from '#cloud/server/documents/
 import type { CreateDocumentUploadResult } from '#cloud/server/documents/types'
 import { announceVersions, recordCheckpoint } from '#cloud/server/documents/versions/checkpoint'
 import type { ObjectStore } from '#cloud/server/objects'
-import { CLOUD_FEATURE_KEYS } from '#cloud/server/policy/keys'
 import type { CloudPolicy } from '#cloud/server/policy/policy'
 import { createStorageQuotaService } from '#cloud/server/quota'
 import { uniq } from 'es-toolkit'
@@ -40,19 +47,6 @@ import type { Kysely, Transaction } from 'kysely'
 const DOWNLOAD_LIFETIME_MS = 5 * 60 * 1000
 const UPLOAD_LIFETIME_MS = 15 * 60 * 1000
 const WRITABLE_ROLES = new Set(['admin', 'editor'])
-
-export class DocumentNotFoundError extends Error {
-  override readonly name = 'DocumentNotFoundError'
-}
-export class DocumentForbiddenError extends Error {
-  override readonly name = 'DocumentForbiddenError'
-}
-export class DocumentConflictError extends Error {
-  override readonly name = 'DocumentConflictError'
-}
-export class UploadInvalidError extends Error {
-  override readonly name = 'UploadInvalidError'
-}
 
 export type DocumentServiceOptions = {
   policy?: CloudPolicy
@@ -81,49 +75,6 @@ export function createDocumentService(
   const cleanup = createUploadCleanupService(database, objects)
   const quota = createStorageQuotaService(database)
   const images = createDocumentImages(database, objects, quota)
-
-  /**
-   * The document `userId` may write to, and how large one file and the workspace's storage may
-   * be for this save: technical limits, tightened by policy.
-   */
-  async function writableDocument(userId: string, documentId: string) {
-    const access = await resolveDocumentAccess(database, userId, documentId)
-    if (!access) throw new DocumentNotFoundError()
-    if (!canEditDocument(access)) throw new DocumentForbiddenError()
-    const document = await findDocument(database, userId, documentId)
-    if (!document) throw new DocumentNotFoundError()
-    const policyContext = {
-      targetingKey: document.workspaceId,
-      actorId: userId,
-      workspaceId: document.workspaceId,
-      documentId,
-      deploymentMode: 'self-hosted' as const
-    }
-    const technicalMaximum = options.technicalMaximumUploadBytes ?? Number.MAX_SAFE_INTEGER
-    const maximumFileBytes = Math.min(
-      technicalMaximum,
-      options.policy
-        ? await options.policy.number(
-            CLOUD_FEATURE_KEYS.maximumFileBytes,
-            technicalMaximum,
-            policyContext
-          )
-        : technicalMaximum
-    )
-    const maximumStorageBytes = options.policy
-      ? await options.policy.number(
-          'cloud.storage.maximum-bytes',
-          Number.MAX_SAFE_INTEGER,
-          policyContext
-        )
-      : Number.MAX_SAFE_INTEGER
-    return {
-      document,
-      maximumFileBytes,
-      maximumStorageBytes:
-        maximumStorageBytes === Number.MAX_SAFE_INTEGER ? null : maximumStorageBytes
-    }
-  }
 
   /**
    * Makes a committed upload the document's current revision, unless it already was, and records
@@ -219,6 +170,18 @@ export function createDocumentService(
       .execute()
     await quota.commitInTransaction(transaction, uploadId)
     return checkpointed
+  }
+
+  async function imageLinksOf(documentId: string, checksums: string[]) {
+    const row = await getDocumentSummaryRow(database, documentId)
+    if (!row) throw new DocumentNotFoundError()
+    return {
+      images: await documentImageLinks(database, objects, {
+        workspaceId: row.workspaceId,
+        checksums,
+        expiresAt: new Date(Date.now() + DOWNLOAD_LIFETIME_MS)
+      })
+    }
   }
 
   async function createDownload(documentId: string): Promise<DocumentDownload> {
@@ -431,6 +394,18 @@ export function createDocumentService(
       return createDownload(documentId)
     },
 
+    /** Links for images a live room names, for someone who may view the document. */
+    async imageLinks(userId: string, documentId: string, checksums: string[]) {
+      const access = await resolveDocumentAccess(database, userId, documentId)
+      if (!access) throw new DocumentNotFoundError()
+      return imageLinksOf(documentId, checksums)
+    },
+
+    /** Links for images a live room names, for a guest a share already let in. */
+    imageLinksShared(documentId: string, checksums: string[]) {
+      return imageLinksOf(documentId, checksums)
+    },
+
     async download(userId: string, documentId: string): Promise<DocumentDownload> {
       const access = await resolveDocumentAccess(database, userId, documentId)
       if (!access) throw new DocumentNotFoundError()
@@ -477,6 +452,8 @@ export function createDocumentService(
       input: CreateUploadInput
     ): Promise<CreateDocumentUploadResult> {
       const { document, maximumFileBytes, maximumStorageBytes } = await writableDocument(
+        database,
+        options,
         userId,
         documentId
       )
@@ -546,6 +523,8 @@ export function createDocumentService(
       input: RequestImageUploadsInput
     ): Promise<{ uploads: ImageUploadOffer[] }> {
       const { document, maximumFileBytes, maximumStorageBytes } = await writableDocument(
+        database,
+        options,
         userId,
         documentId
       )

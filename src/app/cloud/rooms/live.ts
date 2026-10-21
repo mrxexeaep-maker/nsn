@@ -2,6 +2,7 @@ import { effectScope, onScopeDispose, shallowRef, watch } from 'vue'
 
 import { RELAY_SERVER_PEER, type CollaborationTicket } from '@open-pencil/cloud/contract'
 
+import type { RoomImageStore } from '@/app/collab/images'
 import { leaveRoom, openDocumentRoom, roomForStore } from '@/app/collab/rooms'
 import type { RoomIdentity, RoomSession } from '@/app/collab/session'
 import type { JoinCollabRoom } from '@/app/collab/transport'
@@ -23,6 +24,7 @@ import { cloudConnection, cloudConnections, type CloudSessionState } from '../se
 import { cloudShareTarget } from '../sharing/document'
 import { versionsChanged } from '../versions/history'
 import { accountRoomIdentity } from './identity'
+import { cloudRoomImages } from './images'
 import { shareRoomUploads, uploadStoredDocument } from './upload'
 
 /** Each Cloud tab's permission in its room, for the status beside the name. */
@@ -149,11 +151,19 @@ export function openCloudDocumentRoom(
     uploadNow?: () => Promise<boolean>
     /** Who the tab is in the room; the device's own identity unless an account names it. */
     identity?: RoomIdentity
+    /** Where the room keeps its images: the document's workspace, so the room names them. */
+    images?: RoomImageStore
   }
 ) {
   const canEdit = options.permission === 'edit'
   const canSave = canEdit && !options.guest
-  const session = openDocumentRoom(store, options.roomId, options.transport, options.identity)
+  const session = openDocumentRoom(
+    store,
+    options.roomId,
+    options.transport,
+    options.identity,
+    options.images
+  )
   // Everything the room follows lives in one scope, so stopping it leaves nothing behind.
   const scope = effectScope(true)
   const uploads = scope.run(() => {
@@ -277,6 +287,7 @@ export async function startCloudRoom(store: EditorStore): Promise<void> {
       roomId: first.roomId,
       transport: cloudRelayTransport(first.serverURL, first, nextTicket, restart),
       permission: first.permission,
+      images: cloudRoomImages(target.client, binding.documentId, first.permission === 'edit'),
       roomIsCurrent: async () => (await nextTicket()).roomId === first.roomId,
       onRestored: restart
     })

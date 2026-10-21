@@ -1,6 +1,7 @@
 import type {
   CommitUploadInput,
   DocumentImageDownload,
+  DocumentImageLink,
   RequestImageUploadsInput
 } from '#cloud/contract'
 import type { CloudDatabase } from '#cloud/server/db'
@@ -311,4 +312,32 @@ export async function releaseUnusedImages(
     }
     return { released: unused.length, bytes }
   })
+}
+
+/**
+ * Where to download the images of `checksums` the document's workspace holds, for someone who may
+ * view the document. A live room names images by checksum before any save does, and an editor
+ * whose image the workspace already holds through another document uploads nothing for this one,
+ * so the workspace, not the document, is what an image belongs to. Asking needs the image's
+ * SHA-256, which only someone with its bytes has.
+ */
+export async function documentImageLinks(
+  executor: Executor,
+  objects: ObjectStore,
+  input: { workspaceId: string; checksums: string[]; expiresAt: Date }
+): Promise<DocumentImageLink[]> {
+  const rows = await executor
+    .selectFrom('workspaceImage')
+    .innerJoin('storageObject', 'storageObject.id', 'workspaceImage.storageObjectId')
+    .select(['workspaceImage.checksum', 'storageObject.objectKey', 'storageObject.byteSize'])
+    .where('workspaceImage.workspaceId', '=', input.workspaceId)
+    .where('workspaceImage.checksum', 'in', uniq(input.checksums))
+    .execute()
+  return Promise.all(
+    rows.map(async (row) => ({
+      checksum: row.checksum,
+      byteSize: Number(row.byteSize),
+      download: await objects.createDownload({ key: row.objectKey, expiresAt: input.expiresAt })
+    }))
+  )
 }

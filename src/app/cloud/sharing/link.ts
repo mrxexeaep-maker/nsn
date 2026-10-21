@@ -10,6 +10,7 @@ import { storageFetch } from '@/app/integrations/storage/s3/fetch'
 import { getTabForStore, openFileInNewTab } from '@/app/tabs'
 import { IS_BROWSER } from '@/constants'
 
+import { sharedCloudRoomImages } from '../rooms/images'
 import { cloudRelayTransport, openCloudDocumentRoom, stopWithTab } from '../rooms/live'
 import { normalizeCloudServerURL } from '../servers/address'
 import { cloudFetch, discoverCloudServer } from '../sessions/connection'
@@ -52,7 +53,8 @@ export async function openCloudShareLink(link: CloudShareLink): Promise<void> {
       client.getSharedCollaborationTicket(link.shareId, input)
     ),
     permission: first.permission,
-    guest: true
+    guest: true,
+    images: sharedCloudRoomImages(client, link.shareId, input)
   })
   stopWithTab(store, room)
 }

@@ -1,7 +1,7 @@
 import { Semaphore, sumBy } from 'es-toolkit'
 import { fromUint8Array } from 'js-base64'
 
-import type { DocumentDownload } from '@open-pencil/cloud/contract'
+import type { DocumentDownload, DocumentImageLink } from '@open-pencil/cloud/contract'
 
 import type { StorageTransferProgress } from '../types'
 import { assembleCloudDocument } from './images'
@@ -35,6 +35,15 @@ async function fetchVerified(
     throw new Error('The downloaded Cloud document does not match what the server stored')
   }
   return bytes
+}
+
+/** An image a live room names, from where the server linked it, checked against its record. */
+export function downloadCloudImage(
+  link: DocumentImageLink,
+  objectFetch: ObjectFetch,
+  signal?: AbortSignal
+): Promise<Uint8Array> {
+  return fetchVerified(link.download, link, objectFetch, signal)
 }
 
 /** A revision as the editor opens it: its stored file with every image put back under its name. */

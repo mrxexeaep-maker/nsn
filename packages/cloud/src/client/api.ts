@@ -25,9 +25,7 @@ import {
   type CollaborationTicket,
   type CreateInvitationContinuationInput,
   type InvitationContinuation,
-  type CommitImageUploadsInput,
   type CommitUploadRequest,
-  type RequestImageUploadsInput,
   type CreateDocumentInput,
   type CreateDocumentInvitationInput,
   type CreateDocumentShareInput,
@@ -57,6 +55,7 @@ import { pickBy } from 'es-toolkit/object'
 import { hc } from 'hono/client'
 import * as v from 'valibot'
 
+import { createImageRequests, objectUploadSchema } from './images'
 import { CloudAPIError, parseResponse, responseBody, type CloudClientDiagnostic } from './response'
 import { createWorkspaceRequests } from './workspaces'
 
@@ -90,41 +89,9 @@ const sharedDocumentResponseSchema = v.object({
   document: documentDownloadSchema
 })
 const userLookupResponseSchema = v.object({ user: v.nullable(cloudUserProfileSchema) })
-const objectUploadSchema = v.variant('kind', [
-  v.object({
-    kind: v.literal('single'),
-    url: v.pipe(v.string(), v.url()),
-    method: v.literal('PUT'),
-    headers: v.record(v.string(), v.string()),
-    expiresAt: v.string()
-  }),
-  v.object({
-    kind: v.literal('multipart'),
-    uploadId: v.string(),
-    partSize: v.pipe(v.number(), v.integer(), v.minValue(1)),
-    parts: v.array(
-      v.object({
-        partNumber: v.pipe(v.number(), v.integer(), v.minValue(1)),
-        url: v.pipe(v.string(), v.url()),
-        method: v.literal('PUT'),
-        headers: v.record(v.string(), v.string())
-      })
-    ),
-    expiresAt: v.string()
-  })
-])
 const uploadResponseSchema = v.object({
   id: v.pipe(v.string(), v.uuid()),
   upload: objectUploadSchema
-})
-const imageUploadsResponseSchema = v.object({
-  uploads: v.array(
-    v.object({
-      checksum: v.string(),
-      uploadId: v.pipe(v.string(), v.uuid()),
-      upload: objectUploadSchema
-    })
-  )
 })
 
 export type CloudRequestOptions = {
@@ -135,8 +102,6 @@ export type CloudRequestOptions = {
 }
 
 export type CloudUpload = v.InferOutput<typeof uploadResponseSchema>
-/** An upload offered for an image the workspace lacks. */
-export type CloudImageUpload = v.InferOutput<typeof imageUploadsResponseSchema>['uploads'][number]
 
 function apiURL(baseURL: string): string {
   const url = new URL(baseURL)
@@ -194,6 +159,7 @@ export function createCloudAPIClient(baseURL: string, options: CloudRequestOptio
       return response.user
     },
     ...createWorkspaceRequests(client, options.onDiagnostic),
+    ...createImageRequests(client, publicClient, options.onDiagnostic),
     /** Documents shared with the person directly, outside their workspaces. */
     async listSharedDocuments(): Promise<SharedDocument[]> {
       const response = await parseResponse(
@@ -457,32 +423,6 @@ export function createCloudAPIClient(baseURL: string, options: CloudRequestOptio
         uploadResponseSchema,
         options.onDiagnostic
       )
-    },
-    /** Commits the image uploads a save asked for, once their bytes are in place. */
-    async commitImageUploads(
-      documentId: string,
-      uploads: CommitImageUploadsInput['uploads']
-    ): Promise<void> {
-      const response = await client.documents[':documentId'].images.commit.$post({
-        param: { documentId },
-        json: { uploads }
-      })
-      await responseBody(response, options.onDiagnostic)
-    },
-    /** Uploads for the images a save will name that the document's workspace lacks. */
-    async requestImageUploads(
-      documentId: string,
-      input: RequestImageUploadsInput
-    ): Promise<CloudImageUpload[]> {
-      const response = await parseResponse(
-        client.documents[':documentId'].images.$post({
-          param: { documentId },
-          json: input
-        }),
-        imageUploadsResponseSchema,
-        options.onDiagnostic
-      )
-      return response.uploads
     },
     async commitUpload(uploadId: string, input: CommitUploadRequest): Promise<DocumentSummary> {
       const response = await parseResponse(

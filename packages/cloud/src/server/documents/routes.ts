@@ -3,17 +3,18 @@ import {
   parseCommitUpload,
   parseCreateDocument,
   parseCreateUpload,
+  parseRequestImageLinks,
   parseRequestImageUploads
 } from '#cloud/contract'
 import type { CloudActor } from '#cloud/server/auth'
 import type { CloudDatabase } from '#cloud/server/db'
-import type { DocumentService } from '#cloud/server/documents/service'
 import {
   DocumentConflictError,
   DocumentForbiddenError,
   DocumentNotFoundError,
   UploadInvalidError
-} from '#cloud/server/documents/service'
+} from '#cloud/server/documents/errors'
+import type { DocumentService } from '#cloud/server/documents/service'
 import { StorageQuotaExceededError } from '#cloud/server/quota'
 import { CLOUD_RATE_LIMITS, createActorRateLimiter } from '#cloud/server/rate-limit'
 import { validatedJSON } from '#cloud/server/validation'
@@ -197,6 +198,17 @@ export function createDocumentRoutes(
           )
           return context.body(null, 204)
         })
+    )
+    .post('/documents/:documentId/images/links', validatedJSON(parseRequestImageLinks), (context) =>
+      documentResponse(context, async () =>
+        context.json(
+          await service.imageLinks(
+            context.get('actor').userId,
+            context.req.param('documentId'),
+            context.req.valid('json').checksums
+          )
+        )
+      )
     )
     .post('/documents/:documentId/images', validatedJSON(parseRequestImageUploads), (context) =>
       documentResponse(context, async () =>

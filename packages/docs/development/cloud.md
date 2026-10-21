@@ -149,6 +149,14 @@ PostgreSQL by document and collaboration epoch, so a newcomer gets the document 
 else is online. Tickets are short-lived signed JWTs; the client presents a fresh one before the
 current one expires, and the relay closes a socket whose ticket lapsed or changed identity.
 
+A Cloud room names its images instead of carrying them: an editor stores an image it adds in the
+document's workspace and puts only its SHA-256 in the room's `imageRefs` map, and every peer loads
+the images it lacks through links the server signs for anyone who may view the document, or for a
+guest through its share link. A guest or a viewer cannot store images, so the ones it adds travel as
+bytes until an editor in the room stores them and swaps them for references; a store that fails
+leaves the bytes in the room. The room's state, which the relay saves, therefore holds no image
+bytes once an editor has seen them.
+
 The relay enforces what the ticket allows: a viewer's document updates and sync replies never leave
 it, and presence updates are rewritten so others see the ticket's name and a `cloud` field with the
 verified identity and permission. A peer cannot claim presence clients another peer owns. Voice is

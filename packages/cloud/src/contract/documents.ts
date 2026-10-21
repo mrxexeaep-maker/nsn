@@ -30,6 +30,20 @@ export const documentImageDownloadSchema = v.object({
 })
 export type DocumentImageDownload = v.InferOutput<typeof documentImageDownloadSchema>
 
+/** Where to download an image a document uses, found by its checksum. */
+export const documentImageLinkSchema = v.object({
+  checksum: checksumSchema,
+  byteSize: v.pipe(v.number(), v.integer(), v.minValue(1)),
+  download: objectDownloadSchema
+})
+export type DocumentImageLink = v.InferOutput<typeof documentImageLinkSchema>
+
+/** The images a live room names, by checksum, that a peer needs links for. */
+export const requestImageLinksSchema = v.object({
+  checksums: v.pipe(v.array(checksumSchema), v.minLength(1), v.maxLength(CLOUD_MAX_DOCUMENT_IMAGES))
+})
+export type RequestImageLinksInput = v.InferOutput<typeof requestImageLinksSchema>
+
 export const documentPermissionSchema = v.picklist(['view', 'edit'])
 export type DocumentPermission = v.InferOutput<typeof documentPermissionSchema>
 
@@ -185,6 +199,10 @@ export function parseRequestImageUploads(input: unknown): RequestImageUploadsInp
 
 export function parseCommitImageUploads(input: unknown): CommitImageUploadsInput {
   return v.parse(commitImageUploadsSchema, input)
+}
+
+export function parseRequestImageLinks(input: unknown): RequestImageLinksInput {
+  return v.parse(requestImageLinksSchema, input)
 }
 
 export function parseCommitUpload(input: unknown): CommitUploadInput {
