@@ -41,7 +41,7 @@ export async function writableDocument(
   )
   const maximumStorageBytes = options.policy
     ? await options.policy.number(
-        'cloud.storage.maximum-bytes',
+        CLOUD_FEATURE_KEYS.maximumStorageBytes,
         Number.MAX_SAFE_INTEGER,
         policyContext
       )

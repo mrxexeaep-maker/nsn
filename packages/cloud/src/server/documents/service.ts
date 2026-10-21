@@ -37,7 +37,7 @@ import { announceVersions, recordCheckpoint } from '#cloud/server/documents/vers
 import type { ObjectStore, StoredObject } from '#cloud/server/objects'
 import type { CloudPolicy } from '#cloud/server/policy/policy'
 import { createStorageQuotaService } from '#cloud/server/quota'
-import { Semaphore, uniq } from 'es-toolkit'
+import { Semaphore, uniq, uniqBy } from 'es-toolkit'
 import type { Kysely, Transaction } from 'kysely'
 
 const DOWNLOAD_LIFETIME_MS = 5 * 60 * 1000
@@ -561,12 +561,16 @@ export function createDocumentService(
       if (rows.size !== ids.length || [...rows.values()].some((row) => row.kind !== 'image')) {
         throw new UploadInvalidError()
       }
-      // Each image is its own object, so a few are checked and landed at once.
+      for (const commit of uploads) {
+        if (rows.get(commit.uploadId)?.checksum !== commit.checksum) throw new UploadInvalidError()
+      }
+      // Each image is its own object, so a few are checked and landed at once, each once however
+      // often the request names it.
       const semaphore = new Semaphore(IMAGE_COMMIT_CONCURRENCY)
       await Promise.all(
-        uploads.map(async (commit) => {
+        uniqBy(uploads, (commit) => commit.uploadId).map(async (commit) => {
           const upload = rows.get(commit.uploadId)
-          if (!upload || commit.checksum !== upload.checksum) throw new UploadInvalidError()
+          if (!upload) throw new UploadInvalidError()
           if (upload.status === 'committed') return
           await semaphore.acquire()
           try {

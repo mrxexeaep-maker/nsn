@@ -111,11 +111,11 @@ async function testApp() {
     )
     if (offers.uploads.length === 0) return offers.uploads
     for (const offer of offers.uploads) await store(offer.uploadId)
+    // Naming an upload twice lands it once.
+    const commits = offers.uploads.map(({ uploadId, checksum }) => ({ uploadId, checksum }))
     const committed = await request(`/documents/${documentId}/images/commit`, {
       method: 'POST',
-      json: {
-        uploads: offers.uploads.map(({ uploadId, checksum }) => ({ uploadId, checksum }))
-      }
+      json: { uploads: [...commits, ...commits] }
     })
     expect(committed.status).toBe(204)
     return offers.uploads
