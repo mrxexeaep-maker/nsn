@@ -198,6 +198,13 @@ layers new IDs. One signed-in editor, the one with the lowest presence client, s
 the others drop their queued uploads and count their edits as saved. Guests who open a link join
 the room with the link's permission and never save.
 
+The room says what is unsaved, not the tab. Each peer counts its own edits to the room's document
+under its Yjs client in the `edits` map, and the saver copies the counts its upload held into
+`saved` once the server has that upload. What a tab takes from the room, including the replay when
+it opens the stored file, is no edit of its own. The saver saves whenever any client has more edits
+than `saved` records, so a tab that becomes the saver also saves edits an earlier saver left, and
+opening a document nobody edited uploads nothing.
+
 ## Configuration
 
 Operators author one schema-versioned TOML file. It owns URLs, trusted origins and proxies,
@@ -221,6 +228,24 @@ reports.
 Storage quota uses reservations: the upload locks the workspace's quota row, counts committed usage
 plus active reservations, reserves the requested bytes, and commits the verified size when the
 upload finishes. Cleanup releases reservations from abandoned uploads.
+
+## AI service and billing
+
+Cloud does not proxy models or keep credit balances. An `[ai]` table advertises a separate AI
+service in discovery, and `POST /api/ai/token` signs a short-lived ES256 token for a workspace
+member when the workspace has the `ai.enabled` entitlement. The token names the user, the
+workspace, and its `ai.monthly_credit_allowance`; the service verifies it against the keys at
+`/.well-known/jwks.json`, so it never reads Cloud's database. The contract editors and services
+share, including the service's catalog, wallet, and error codes, is `src/contract/ai.ts`; it has its
+own version so a service can change without a Cloud release. A `[billing]` table only advertises
+where people manage their plan.
+
+Services that decide entitlements, such as billing, write them through the internal API rather than
+the database: `setWorkspaceEntitlements` in `src/server/internal`, which runtimes expose over HTTP
+with a bearer token (`[internal_api]`) or a private transport of their own. Every write carries an
+increasing `externalVersion`, and a write older than the stored one is refused, because billing
+events arrive out of order. Cloud keeps answering from the last entitlements it received while the
+writer is down.
 
 ## Rate limiting
 
@@ -271,6 +296,12 @@ needs a headless `.fig` writer on the server, which is a later step.
 **2026-10 · A tab takes the room's copy when the room has one.** Reading a `.fig` gives layers new
 IDs, so two tabs that read the same file cannot merge their Yjs states. The first editor seeds an
 empty room only after the relay answers, and later tabs adopt the room root.
+
+**2026-10 · The room records what its revisions hold.** A tab compared with its own copy saw the
+room's values as edits wherever a `.fig` round trip changes them, such as defaults it writes, so
+every open uploaded a revision. Matching the round trip field by field breaks again with each new
+field. Per-client edit counts in the room are what Yjs already merges, so no server change is
+needed.
 
 **2026-10 · Redirect sign-in only on the server's own editor address.** There the session cookie is
 first-party and the server can send the person back to the same tab. The desktop app and editors on
@@ -345,3 +376,10 @@ and named versions, and saves between them are compacted after a day. Checkpoint
 save lands rather than on a timer, so they need no client clock and cover every writer. History stores
 `.fig` revisions rather than Yjs snapshots: snapshots would need garbage collection off in every room
 and a version would still have to become a file to open, restore, or duplicate.
+
+**2026-10 · AI services verify Cloud-signed tokens instead of calling Cloud.** A service checks a
+token against a published key on every model request, with no round-trip to Cloud or its database,
+and the same check serves the official service and self-hosted ones. Entitlements are read when a
+token is signed, so a plan change reaches the service within one token lifetime; asking Cloud on
+every request would have made model calls depend on Cloud's database. Entitlements are pushed to
+Cloud rather than read from billing, so documents keep opening when billing is down.

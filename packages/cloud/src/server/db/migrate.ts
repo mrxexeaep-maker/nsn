@@ -22,7 +22,8 @@ import * as authenticationMFA from './migrations/018_authentication_mfa'
 import * as betterAuthAccountIssuer from './migrations/019_better_auth_account_issuer'
 import * as workspaceInvitations from './migrations/020_workspace_invitations'
 import * as documentVersions from './migrations/021_document_versions'
-import * as documentImages from './migrations/022_document_images'
+import * as entitlementExternalVersion from './migrations/022_entitlement_external_version'
+import * as documentImages from './migrations/023_document_images'
 import type { CloudDatabase } from './schema'
 
 const migrations: Record<string, Migration> = {
@@ -47,7 +48,8 @@ const migrations: Record<string, Migration> = {
   '019_better_auth_account_issuer': betterAuthAccountIssuer,
   '020_workspace_invitations': workspaceInvitations,
   '021_document_versions': documentVersions,
-  '022_document_images': documentImages
+  '022_entitlement_external_version': entitlementExternalVersion,
+  '023_document_images': documentImages
 }
 
 class CloudMigrationProvider implements MigrationProvider {
