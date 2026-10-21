@@ -135,6 +135,23 @@ describe('a layer drawn into an isolation layer', () => {
     })
   })
 
+  test('draws a rotated clipping frame whole with its shadow and clipped children', () => {
+    expectHalfAsOpaque((graph, parentId, opacity) => {
+      const frame = graph.createNode('FRAME', parentId, {
+        x: 100,
+        y: 60,
+        width: 120,
+        height: 90,
+        rotation: 30,
+        fills: [],
+        effects: [SHADOW],
+        clipsContent: true,
+        opacity
+      })
+      rectangle({ x: 60, y: 30, width: 200, height: 200 })(graph, frame.id, 1)
+    })
+  })
+
   test('draws whole while a rotation preview turns it', () => {
     expectHalfAsOpaque(rectangle({}), 90)
   })

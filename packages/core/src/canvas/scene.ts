@@ -10,8 +10,7 @@ import {
   lineArrowEndpoints,
   trimArrowShafts
 } from '@open-pencil/scene-graph/arrow-caps'
-import type { VisualBounds } from '@open-pencil/scene-graph/geometry'
-import Matrix, { type Mat3 } from '@open-pencil/scene-graph/matrix'
+import Matrix from '@open-pencil/scene-graph/matrix'
 import type { Color } from '@open-pencil/scene-graph/primitives'
 
 import { createSceneGeometry, nodeOrientationMatrix, projectedNode } from '#core/geometry'
@@ -37,7 +36,7 @@ import {
   effectRasterScale,
   effectRasterScaleMatches
 } from './renderer/effect-raster-cache'
-import { computeRetainedSubtreeBounds } from './renderer/retained-backing'
+import { mapVisualBounds, subtreeVisualBounds } from './renderer/visual-bounds'
 import { renderLayerShadows } from './shadows'
 import { isLayerContainer } from './shadows/silhouette'
 import { makeSmoothRRectPath, nodeHasRadius, nodeHasSmoothCorners } from './shapes'
@@ -281,32 +280,6 @@ export function renderNodeSelf(
   canvas.restore()
 }
 
-function mappedRect(
-  r: SkiaRenderer,
-  matrix: Mat3,
-  bounds: VisualBounds,
-  padding: number
-): Float32Array {
-  const points = Matrix.mapPoints(matrix, [
-    bounds.minX,
-    bounds.minY,
-    bounds.maxX,
-    bounds.minY,
-    bounds.maxX,
-    bounds.maxY,
-    bounds.minX,
-    bounds.maxY
-  ])
-  const xs = [points[0], points[2], points[4], points[6]]
-  const ys = [points[1], points[3], points[5], points[7]]
-  return r.ck.LTRBRect(
-    Math.min(...xs) - padding,
-    Math.min(...ys) - padding,
-    Math.max(...xs) + padding,
-    Math.max(...ys) + padding
-  )
-}
-
 function viewportLayerBounds(
   r: SkiaRenderer,
   graph: SceneGraph,
@@ -318,19 +291,24 @@ function viewportLayerBounds(
   const inverse = Matrix.invert(createSceneGeometry(graph, preview).worldMatrix(node))
   if (!inverse) return null
   const viewport = r.worldViewport
-  return mappedRect(
-    r,
-    inverse,
-    {
-      minX: viewport.x,
-      minY: viewport.y,
-      maxX: viewport.x + viewport.w,
-      maxY: viewport.y + viewport.h
-    },
-    padding
+  const bounds = mapVisualBounds(inverse, {
+    minX: viewport.x,
+    minY: viewport.y,
+    maxX: viewport.x + viewport.w,
+    maxY: viewport.y + viewport.h
+  })
+  return r.ck.LTRBRect(
+    bounds.minX - padding,
+    bounds.minY - padding,
+    bounds.maxX + padding,
+    bounds.maxY + padding
   )
 }
 
+/**
+ * The layer opens after the node's x/y translation and before its rotation and flips, so the
+ * subtree is measured through its orientation matrix.
+ */
 function nodeIsolationLayerBounds(
   r: SkiaRenderer,
   graph: SceneGraph,
@@ -339,13 +317,8 @@ function nodeIsolationLayerBounds(
 ): Float32Array {
   const viewportBounds = viewportLayerBounds(r, graph, node, 0, preview)
   if (viewportBounds) return viewportBounds
-  const bounds = computeRetainedSubtreeBounds(graph, node.id, preview)
-  const worldToNode = Matrix.invert(createSceneGeometry(graph, preview).worldMatrix(node))
-  const worldToLayer =
-    worldToNode && Matrix.multiply(nodeOrientationMatrix(node, preview), worldToNode)
-  return bounds && worldToLayer
-    ? mappedRect(r, worldToLayer, bounds, 0)
-    : r.ck.LTRBRect(0, 0, node.width, node.height)
+  const bounds = subtreeVisualBounds(graph, node, nodeOrientationMatrix(node, preview), preview)
+  return r.ck.LTRBRect(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY)
 }
 
 /**
