@@ -94,11 +94,11 @@ export function nodeIcon(node: {
   mask?: boolean
 }) {
   if (node.slot) return IconSlot
+  // Figma marks any masking layer, frames and text too, but marks images on shapes only.
+  if (node.mask) return IconMask
   if (node.type === 'SHAPE_WITH_TEXT' && node.shapeWithTextType) {
     return SHAPE_KIND_ICONS[node.shapeWithTextType]
   }
-  // Figma marks any masking layer, frames and text too, but marks images on shapes only.
-  if (node.mask) return IconMask
   if (node.outline) {
     if (node.image) return IconImage
     const icon = outlineIcon(node.outline)
