@@ -5,6 +5,7 @@ import type {
   CreateUploadInput,
   DocumentDownload,
   DocumentSummary,
+  ImageUploadOffer,
   RequestImageUploadsInput,
   SharedDocument
 } from '#cloud/contract'
@@ -15,11 +16,7 @@ import {
   canEditDocument,
   resolveDocumentAccess
 } from '#cloud/server/documents/access'
-import {
-  createDocumentImages,
-  revisionImageDownloads,
-  type ImageUploadOffer
-} from '#cloud/server/documents/images'
+import { createDocumentImages, revisionImageDownloads } from '#cloud/server/documents/images'
 import {
   findDocument,
   insertDocument,

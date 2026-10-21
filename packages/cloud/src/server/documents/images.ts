@@ -1,19 +1,17 @@
 import type {
   CommitUploadInput,
   DocumentImageDownload,
+  ImageUploadOffer,
   RequestImageUploadsInput
 } from '#cloud/contract'
 import type { CloudDatabase } from '#cloud/server/db'
-import type { ObjectStore, ObjectUpload } from '#cloud/server/objects'
+import type { ObjectStore } from '#cloud/server/objects'
 import type { StorageQuotaService } from '#cloud/server/quota'
 import { uniq, uniqBy } from 'es-toolkit'
 import type { Kysely, Transaction } from 'kysely'
 
 /** Images are stored as the bytes their file holds, whatever format those are. */
 export const IMAGE_CONTENT_TYPE = 'application/octet-stream'
-
-/** An upload offered for an image the workspace lacks. */
-export type ImageUploadOffer = { checksum: string; uploadId: string; upload: ObjectUpload }
 
 type Executor = Kysely<CloudDatabase> | Transaction<CloudDatabase>
 

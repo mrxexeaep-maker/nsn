@@ -119,6 +119,40 @@ const imageSizeSchema = v.pipe(
   v.maxValue(CLOUD_PROTOCOL_MAX_UPLOAD_BYTES)
 )
 
+/** Where a client puts an object: one presigned PUT, or the parts of a multipart upload. */
+export const objectUploadSchema = v.variant('kind', [
+  v.object({
+    kind: v.literal('single'),
+    url: v.pipe(v.string(), v.url()),
+    method: v.literal('PUT'),
+    headers: v.record(v.string(), v.string()),
+    expiresAt: v.string()
+  }),
+  v.object({
+    kind: v.literal('multipart'),
+    uploadId: v.string(),
+    partSize: v.pipe(v.number(), v.integer(), v.minValue(1)),
+    parts: v.array(
+      v.object({
+        partNumber: v.pipe(v.number(), v.integer(), v.minValue(1)),
+        url: v.pipe(v.string(), v.url()),
+        method: v.literal('PUT'),
+        headers: v.record(v.string(), v.string())
+      })
+    ),
+    expiresAt: v.string()
+  })
+])
+export type ObjectUploadTarget = v.InferOutput<typeof objectUploadSchema>
+
+/** An upload the server offers for an image the workspace lacks. */
+export const imageUploadOfferSchema = v.object({
+  checksum: checksumSchema,
+  uploadId: v.pipe(v.string(), v.uuid()),
+  upload: objectUploadSchema
+})
+export type ImageUploadOffer = v.InferOutput<typeof imageUploadOfferSchema>
+
 /** The images a save will refer to; the server answers with uploads for those it lacks. */
 export const requestImageUploadsSchema = v.object({
   images: v.pipe(

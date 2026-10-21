@@ -1,6 +1,7 @@
 import { retry, Semaphore } from 'es-toolkit'
 
-import type { CloudAPIClient, CloudUpload } from '@open-pencil/cloud/client'
+import type { CloudAPIClient } from '@open-pencil/cloud/client'
+import type { ObjectUploadTarget } from '@open-pencil/cloud/contract'
 
 import type { StorageTransferProgress } from '../types'
 
@@ -9,9 +10,7 @@ const PART_RETRIES = 2
 const RETRY_DELAY_MS = 200
 
 type ObjectFetch = (input: string, init: RequestInit) => Promise<Response>
-/** Where the server said to put an object: one presigned PUT, or parts of a multipart upload. */
-export type CloudObjectTarget = CloudUpload['upload']
-type MultipartUpload = Extract<CloudObjectTarget, { kind: 'multipart' }>
+type MultipartUpload = Extract<ObjectUploadTarget, { kind: 'multipart' }>
 
 /** Bytes on their way to the object store, and how to report and stop the transfer. */
 export type CloudObjectTransfer = {
@@ -127,7 +126,7 @@ async function putParts(upload: CloudObjectTransfer, multipart: MultipartUpload)
  * of a multipart upload, or nothing for a single one.
  */
 export async function putCloudObject(
-  target: CloudObjectTarget,
+  target: ObjectUploadTarget,
   upload: CloudObjectTransfer
 ): Promise<CloudMultipartCommit | undefined> {
   report(upload, 0)

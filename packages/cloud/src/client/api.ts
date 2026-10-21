@@ -7,6 +7,8 @@ import {
   createInvitationContinuationSchema,
   documentAccessSchema,
   documentDownloadSchema,
+  imageUploadOfferSchema,
+  objectUploadSchema,
   documentGrantSchema,
   documentInvitationSchema,
   documentShareSchema,
@@ -38,6 +40,7 @@ import {
   type DocumentInvitation,
   type DocumentShare,
   type DocumentSummary,
+  type ImageUploadOffer,
   type DocumentVersion,
   type DocumentVersionDownload,
   type DocumentVersions,
@@ -90,42 +93,11 @@ const sharedDocumentResponseSchema = v.object({
   document: documentDownloadSchema
 })
 const userLookupResponseSchema = v.object({ user: v.nullable(cloudUserProfileSchema) })
-const objectUploadSchema = v.variant('kind', [
-  v.object({
-    kind: v.literal('single'),
-    url: v.pipe(v.string(), v.url()),
-    method: v.literal('PUT'),
-    headers: v.record(v.string(), v.string()),
-    expiresAt: v.string()
-  }),
-  v.object({
-    kind: v.literal('multipart'),
-    uploadId: v.string(),
-    partSize: v.pipe(v.number(), v.integer(), v.minValue(1)),
-    parts: v.array(
-      v.object({
-        partNumber: v.pipe(v.number(), v.integer(), v.minValue(1)),
-        url: v.pipe(v.string(), v.url()),
-        method: v.literal('PUT'),
-        headers: v.record(v.string(), v.string())
-      })
-    ),
-    expiresAt: v.string()
-  })
-])
 const uploadResponseSchema = v.object({
   id: v.pipe(v.string(), v.uuid()),
   upload: objectUploadSchema
 })
-const imageUploadsResponseSchema = v.object({
-  uploads: v.array(
-    v.object({
-      checksum: v.string(),
-      uploadId: v.pipe(v.string(), v.uuid()),
-      upload: objectUploadSchema
-    })
-  )
-})
+const imageUploadsResponseSchema = v.object({ uploads: v.array(imageUploadOfferSchema) })
 
 export type CloudRequestOptions = {
   fetch?: CloudFetch
@@ -135,8 +107,6 @@ export type CloudRequestOptions = {
 }
 
 export type CloudUpload = v.InferOutput<typeof uploadResponseSchema>
-/** An upload offered for an image the workspace lacks. */
-export type CloudImageUpload = v.InferOutput<typeof imageUploadsResponseSchema>['uploads'][number]
 
 function apiURL(baseURL: string): string {
   const url = new URL(baseURL)
@@ -473,7 +443,7 @@ export function createCloudAPIClient(baseURL: string, options: CloudRequestOptio
     async requestImageUploads(
       documentId: string,
       input: RequestImageUploadsInput
-    ): Promise<CloudImageUpload[]> {
+    ): Promise<ImageUploadOffer[]> {
       const response = await parseResponse(
         client.documents[':documentId'].images.$post({
           param: { documentId },
