@@ -137,6 +137,19 @@ describe('Figma FIG Kiwi container helpers', () => {
       expect(decompress(deflateSync(dataRaw))).toEqual(dataRaw)
     })
 
+    // A Node Buffer slices into views of the whole message, which structuredClone then copies in
+    // full for every byte array a record holds; a plain Uint8Array slices by copying.
+    test(`${decoder} zstd returns a plain Uint8Array whose slice is a copy`, async () => {
+      const dataRaw = sampleDocument()
+      const decompress = await load()
+      const compress = await loadWasmFigDataCompressor(3)
+
+      const decompressed = decompress(compress(dataRaw))
+
+      expect(Object.getPrototypeOf(decompressed)).toBe(Uint8Array.prototype)
+      expect(decompressed.slice(0, 8).buffer.byteLength).toBe(8)
+    })
+
     // Figma writes the size, but a frame from another tool may not; the decoder streams those.
     test(`${decoder} zstd decompresses a frame that declares no content size`, async () => {
       const dataRaw = new TextEncoder().encode('payload without a declared size')

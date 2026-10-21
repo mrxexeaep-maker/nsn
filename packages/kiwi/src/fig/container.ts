@@ -95,7 +95,13 @@ function inflate(compressed: Uint8Array): Uint8Array {
 
 function decompressZstd(compressed: Uint8Array): Uint8Array {
   const native = bunZstdDecompress()
-  if (native) return native(compressed)
+  if (native) {
+    // Bun returns a Node Buffer, whose `slice` is a view: a reader slicing byte arrays out of
+    // the message would then hand out views of the whole message, which `structuredClone`
+    // copies in full each time. A plain Uint8Array over the same memory slices by copying.
+    const buffer = native(compressed)
+    return new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+  }
   if (!wasmZstd)
     throw new Error('Zstd is not loaded: await loadFigDataDecompressor() before reading')
   return wasmZstd.decompress(compressed)
