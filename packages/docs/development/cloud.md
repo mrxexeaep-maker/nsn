@@ -149,6 +149,15 @@ PostgreSQL by document and collaboration epoch, so a newcomer gets the document 
 else is online. Tickets are short-lived signed JWTs; the client presents a fresh one before the
 current one expires, and the relay closes a socket whose ticket lapsed or changed identity.
 
+A socket message carries at most 256 KiB of a frame, under the deployment's per-message limit,
+which may not be lower. A larger frame, such as a big paste, the first editor's copy of a large
+document, or a newcomer's sync reply, travels as fragments in a row that the receiver joins again.
+The relay joins an editor's fragments up to 256 MiB and holds viewers and peers not yet admitted to
+one message, so only an editor can make it buffer more. A peer the relay turns away for good, for
+a ticket, a full room, or a frame past those limits, leaves the room: the document's status says it
+is not editing live and offers to rejoin, a viewer stays read-only, and an editor saves on its own,
+since a tab that was not the room's saver had its edits counted as saved by the room.
+
 A Cloud room names its images instead of carrying them: an editor stores an image it adds in the
 document's workspace and puts only its SHA-256 in the room's `imageRefs` map, and every peer loads
 the images it lacks through links the server signs for anyone who may view the document, or for a
