@@ -136,7 +136,8 @@ export function openRoomSession({
   const adopt = (apply: () => void) => (holdsDocument ? store.adoptChanges(apply) : apply())
 
   const peers = shallowRef<RemotePeer[]>([])
-  const hasDocument = ref(false)
+  // A tab that holds the document shows it from the start; the room's screen would replace it.
+  const hasDocument = ref(holdsDocument)
   const savedCopyLoaded = ref(false)
   const openedAt = Date.now()
   const now = ref(openedAt)
