@@ -532,9 +532,10 @@ export function makeArcPath(r: SkiaRenderer, node: SceneNode) {
   if (arc.innerRadius > 0) {
     const innerOval = r.ck.LTRBRect(cx - innerRx, cy - innerRy, cx + innerRx, cy + innerRy)
     if (isFullCircle) {
-      // Two loops wound in opposite directions, so the hole stays empty under nonzero fill.
-      path.addArc(oval, startDeg, sweepDeg)
-      path.addArc(innerOval, startDeg + sweepDeg, -sweepDeg)
+      // Two loops wound in opposite directions, so the hole stays empty under nonzero fill. A
+      // full-turn `addArc` from an angle off the axes draws nothing.
+      path.addOval(oval, false)
+      path.addOval(innerOval, true)
     } else {
       // One outline whose ends run straight across the ring; `addArc` would start a new contour
       // for each edge and close them on their chords.
