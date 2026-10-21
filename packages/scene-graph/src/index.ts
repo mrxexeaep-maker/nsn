@@ -606,6 +606,9 @@ export class SceneGraph {
       this.previewMutationDepth--
     }
   }
+  get isApplyingPreview(): boolean {
+    return this.previewMutationDepth > 0
+  }
   preserveSourceMetadataDuring<T>(fn: () => T): T {
     this.sourceMetadataPreservationDepth++
     try {
