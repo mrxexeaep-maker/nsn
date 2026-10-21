@@ -244,6 +244,7 @@ export {
   LayerTreeItem,
   LayerTreeRoot,
   patchLayerNode,
+  stickyTopLevelRow,
   useLayerTree,
   visibleLayerRows
 } from '#vue/primitives/LayerTree'
@@ -251,6 +252,7 @@ export type {
   LayerDragInstruction,
   LayerNode,
   LayerRow,
+  StickyLayerRow,
   LayerSelectionMode,
   LayerTreeContext,
   LayerOutline,
@@ -407,7 +409,9 @@ export {
   useBindingProvider,
   useOpenPencilBindingProvider,
   useNumberBindingProvider,
-  useColorBindingProvider
+  useColorBindingProvider,
+  useTextContentBindingProvider,
+  useVisibilityBindingProvider
 } from '#vue/controls/binding-provider'
 export type {
   BindingMutationSource,
