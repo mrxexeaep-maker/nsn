@@ -22,15 +22,17 @@ export const ARC_HANDLE = {
 export type ArcHandleKind = 'arcStart' | 'arcEnd' | 'arcRatio'
 
 const FULL_TURN = 2 * Math.PI
-const WHOLE_EPSILON = 1e-6
+/** How close to a full turn a sweep draws and edits as a whole ellipse: 0.01°. */
+const WHOLE_TOLERANCE = (0.01 * Math.PI) / 180
 
 /** The arc an ellipse is drawn with, a whole one when it has none. */
 export function arcOf(node: SceneNode): ArcData {
   return node.arcData ?? { startingAngle: 0, endingAngle: FULL_TURN, innerRadius: 0 }
 }
 
-function isWhole(arc: ArcData): boolean {
-  return Math.abs(arc.endingAngle - arc.startingAngle) >= FULL_TURN - WHOLE_EPSILON
+/** Whether an arc sweeps a whole turn, so it is drawn and edited as a whole ellipse or ring. */
+export function isWholeArc(arc: ArcData): boolean {
+  return Math.abs(arc.endingAngle - arc.startingAngle) >= FULL_TURN - WHOLE_TOLERANCE
 }
 
 /** The node-local point at an angle, a share of the way from the centre to the edge. */
@@ -66,7 +68,7 @@ export function arcHandles(
   const { startingAngle: start, endingAngle: end, innerRadius: inner } = arc
   const middle = (1 + inner) / 2
   const ratio = { handle: 'arcRatio' as const, local: onEllipse(node, (start + end) / 2, inner) }
-  if (isWhole(arc)) {
+  if (isWholeArc(arc)) {
     if (inner === 0)
       return [{ handle: 'arcEnd', local: insideEdge(node, start, ARC_HANDLE.edgeInset / zoom) }]
     return [{ handle: 'arcEnd', local: onEllipse(node, start, middle) }, ratio]
@@ -136,4 +138,17 @@ export function arcHandleValue(node: SceneNode, handle: ArcHandleKind): string {
   if (handle === 'arcStart') return `${oneDecimal((start * 180) / Math.PI)}°`
   if (handle === 'arcEnd') return `${oneDecimal(((end - start) / FULL_TURN) * 100)}%`
   return `${oneDecimal(innerRadius * 100)}%`
+}
+
+/**
+ * The fields a handle dragged to a node-local point sets. The outline a `.fig` stored for the old
+ * arc is dropped so that the ellipse is drawn from the new one.
+ */
+export function arcChanges(
+  node: SceneNode,
+  handle: ArcHandleKind,
+  local: Vector,
+  snap: boolean
+): Partial<SceneNode> {
+  return { arcData: arcAtPoint(node, handle, local, snap), fillGeometry: [], strokeGeometry: [] }
 }

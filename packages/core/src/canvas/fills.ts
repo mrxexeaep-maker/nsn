@@ -5,6 +5,8 @@ import { invertGradientTransform } from '@open-pencil/scene-graph/gradient'
 import Matrix from '@open-pencil/scene-graph/matrix'
 import type { Color, Rect, Vector } from '@open-pencil/scene-graph/primitives'
 
+import { isWholeArc } from '#core/geometry'
+
 import { figmaBlendModeToSkia } from './blend'
 import { makeDiamondGradient } from './gradients/diamond'
 import { previewEdge } from './images/previews'
@@ -528,7 +530,7 @@ export function makeArcPath(r: SkiaRenderer, node: SceneNode) {
   const path = new r.ck.PathBuilder()
   const oval = r.ck.LTRBRect(0, 0, node.width, node.height)
 
-  const isFullCircle = Math.abs(sweepDeg) >= 359.99
+  const isFullCircle = isWholeArc(arc)
   if (arc.innerRadius > 0) {
     const innerOval = r.ck.LTRBRect(cx - innerRx, cy - innerRy, cx + innerRx, cy + innerRy)
     if (isFullCircle) {

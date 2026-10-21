@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 
-import { arcAtPoint, createSceneGeometry, shapeHandleLayout, shapeHandleValue } from '#core/geometry'
+import {
+  arcAtPoint,
+  arcChanges,
+  createSceneGeometry,
+  shapeHandleLayout,
+  shapeHandleValue
+} from '#core/geometry'
 import { SceneGraph, type ArcData, type SceneNode } from '@open-pencil/scene-graph'
 
 // Values measured on ellipses in Figma desktop, 2026-10-21.
@@ -101,6 +107,21 @@ describe('arc handles', () => {
     expect(degrees(arcAtPoint(node, 'arcEnd', at(5, 75), false))).toEqual([0, 365 - 720, 0])
     node.arcData = arc(0, -340)
     expect(degrees(arcAtPoint(node, 'arcEnd', at(30, 75), false))).toEqual([0, -330, 0])
+  })
+
+  test('treat a sweep within 0.01° of a full turn as a whole ellipse, as it is drawn', () => {
+    expect(layout({ arcData: arc(0, 359.995) })).toHaveLength(1)
+    expect(layout({ arcData: arc(0, 359.98) })).toHaveLength(3)
+  })
+
+  test('drop the outline a .fig stored for the old arc', () => {
+    const outline = [{ commandsBlob: new Uint8Array([1]), windingRule: 'NONZERO' as const }]
+    const { node } = ellipse({ fillGeometry: outline, strokeGeometry: outline })
+    expect(arcChanges(node, 'arcEnd', at(-90, 140), false)).toEqual({
+      arcData: arc(0, 270),
+      fillGeometry: [],
+      strokeGeometry: []
+    })
   })
 
   test('take the angle in the ellipse’s own space', () => {

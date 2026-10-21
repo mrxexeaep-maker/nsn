@@ -1,6 +1,6 @@
 import type { Editor, ShapeHandleHover } from '@open-pencil/core/editor'
 import {
-  arcAtPoint,
+  arcChanges,
   cornerRadiusAtPoint,
   cornerRadiusChanges,
   createSceneGeometry,
@@ -91,7 +91,7 @@ function handleChanges(
   single: boolean,
   shiftKey: boolean
 ): Partial<SceneNode> {
-  if (isArcHandle(handle)) return { arcData: arcAtPoint(node, handle, local, shiftKey) }
+  if (isArcHandle(handle)) return arcChanges(node, handle, local, shiftKey)
   if (handle === 'count') return { pointCount: pointCountAtPoint(node, local) }
   if (handle === 'ratio') return { starInnerRadius: starRatioAtPoint(node, local) }
   const radius = cornerRadiusAtPoint(node, handle, local, shiftKey)
