@@ -24,6 +24,7 @@ import {
 } from '#cloud/server/documents/errors'
 import {
   createDocumentImages,
+  currentImageUsage,
   documentImageLinks,
   revisionImageDownloads
 } from '#cloud/server/documents/images'
@@ -38,14 +39,16 @@ import {
 import { documentSummary, getDocumentSummaryRow } from '#cloud/server/documents/summary'
 import type { CreateDocumentUploadResult } from '#cloud/server/documents/types'
 import { announceVersions, recordCheckpoint } from '#cloud/server/documents/versions/checkpoint'
-import type { ObjectStore } from '#cloud/server/objects'
+import type { ObjectStore, StoredObject } from '#cloud/server/objects'
 import type { CloudPolicy } from '#cloud/server/policy/policy'
 import { createStorageQuotaService } from '#cloud/server/quota'
-import { uniq } from 'es-toolkit'
+import { Semaphore, uniq } from 'es-toolkit'
 import type { Kysely, Transaction } from 'kysely'
 
 const DOWNLOAD_LIFETIME_MS = 5 * 60 * 1000
 const UPLOAD_LIFETIME_MS = 15 * 60 * 1000
+/** How many of a save's images are checked and landed at once. */
+const IMAGE_COMMIT_CONCURRENCY = 8
 const WRITABLE_ROLES = new Set(['admin', 'editor'])
 
 export type DocumentServiceOptions = {
@@ -172,15 +175,11 @@ export function createDocumentService(
     return checkpointed
   }
 
+  /** Links for images a live room names, by checksum. */
   async function imageLinksOf(documentId: string, checksums: string[]) {
-    const row = await getDocumentSummaryRow(database, documentId)
-    if (!row) throw new DocumentNotFoundError()
+    const expiresAt = new Date(Date.now() + DOWNLOAD_LIFETIME_MS)
     return {
-      images: await documentImageLinks(database, objects, {
-        workspaceId: row.workspaceId,
-        checksums,
-        expiresAt: new Date(Date.now() + DOWNLOAD_LIFETIME_MS)
-      })
+      images: await documentImageLinks(database, objects, { documentId, checksums, expiresAt })
     }
   }
 
@@ -214,15 +213,13 @@ export function createDocumentService(
     }
   }
 
-  async function commitUpload(
-    userId: string,
-    uploadId: string,
-    input: CommitUploadInput
-  ): Promise<DocumentSummary> {
-    const upload = await database
+  /** What committing an upload reads of it and its document. */
+  function selectUploads() {
+    return database
       .selectFrom('upload')
       .innerJoin('document', 'document.id', 'upload.documentId')
       .select([
+        'upload.id',
         'upload.documentId',
         'upload.kind',
         'document.workspaceId',
@@ -235,6 +232,75 @@ export function createDocumentService(
         'upload.status',
         'upload.expiresAt'
       ])
+  }
+  type UploadRow = Awaited<ReturnType<ReturnType<typeof selectUploads>['executeTakeFirstOrThrow']>>
+
+  /**
+   * Claims a pending upload, completes it when it came in parts, checks the store holds the file
+   * it declared, and lands it with `land`. An upload that fails goes back to pending, so its
+   * commit can be tried again.
+   */
+  async function finalizeUpload<T>(
+    upload: UploadRow,
+    multipart: CommitUploadInput['multipart'],
+    land: (stored: StoredObject) => Promise<T>
+  ): Promise<T> {
+    if (upload.status !== 'pending' || new Date(upload.expiresAt).getTime() <= Date.now()) {
+      throw new UploadInvalidError()
+    }
+    const claimed = await database
+      .updateTable('upload')
+      .set({ status: 'finalizing', finalizationStartedAt: new Date() })
+      .where('id', '=', upload.id)
+      .where('status', '=', 'pending')
+      .returning('id')
+      .executeTakeFirst()
+    if (!claimed) throw new UploadInvalidError()
+    try {
+      if (multipart) {
+        if (
+          !objects.capabilities.multipartUpload ||
+          multipart.uploadId !== upload.multipartUploadId
+        ) {
+          throw new UploadInvalidError()
+        }
+        await objects.completeUpload({
+          key: upload.objectKey,
+          uploadId: multipart.uploadId,
+          parts: multipart.parts
+        })
+      }
+      const stored = await objects.head(upload.objectKey)
+      if (!stored || !matchesUpload(stored, upload)) throw new UploadInvalidError()
+      return await land(stored)
+    } catch (error) {
+      await database
+        .updateTable('upload')
+        .set({ status: 'pending', finalizationStartedAt: null })
+        .where('id', '=', upload.id)
+        .where('status', '=', 'finalizing')
+        .execute()
+      throw error
+    }
+  }
+
+  function landImage(upload: UploadRow, stored: StoredObject): Promise<void> {
+    return database.transaction().execute((transaction) =>
+      images.landInTransaction(transaction, {
+        uploadId: upload.id,
+        workspaceId: upload.workspaceId,
+        objectKey: upload.objectKey,
+        stored
+      })
+    )
+  }
+
+  async function commitUpload(
+    userId: string,
+    uploadId: string,
+    input: CommitUploadInput
+  ): Promise<DocumentSummary> {
+    const upload = await selectUploads()
       .where('upload.id', '=', uploadId)
       .where('upload.createdBy', '=', userId)
       .executeTakeFirst()
@@ -243,76 +309,27 @@ export function createDocumentService(
     if (!access) throw new DocumentNotFoundError()
     if (!canEditDocument(access)) throw new DocumentForbiddenError()
     if (input.checksum !== upload.checksum) throw new UploadInvalidError()
-    if (upload.status === 'committed') {
-      const document = await findDocument(database, userId, upload.documentId)
-      if (!document) throw new DocumentNotFoundError()
-      return document
+    if (upload.status !== 'committed') {
+      const checkpointed =
+        upload.kind === 'image'
+          ? await finalizeUpload(upload, input.multipart, (stored) =>
+              landImage(upload, stored).then(() => false)
+            )
+          : await finalizeUpload(upload, input.multipart, (stored) =>
+              database.transaction().execute((transaction) =>
+                landRevision(transaction, {
+                  userId,
+                  uploadId,
+                  upload,
+                  stored,
+                  revisionId: crypto.randomUUID(),
+                  storageObjectId: crypto.randomUUID(),
+                  images: input.images
+                })
+              )
+            )
+      if (checkpointed) announceVersions(options.onVersionsChanged, upload.documentId)
     }
-    if (upload.status !== 'pending' || new Date(upload.expiresAt).getTime() <= Date.now()) {
-      throw new UploadInvalidError()
-    }
-    const claimed = await database
-      .updateTable('upload')
-      .set({ status: 'finalizing', finalizationStartedAt: new Date() })
-      .where('id', '=', uploadId)
-      .where('status', '=', 'pending')
-      .returning('id')
-      .executeTakeFirst()
-    if (!claimed) throw new UploadInvalidError()
-    let checkpointed = false
-    try {
-      if (input.multipart) {
-        if (
-          !objects.capabilities.multipartUpload ||
-          input.multipart.uploadId !== upload.multipartUploadId
-        ) {
-          throw new UploadInvalidError()
-        }
-        await objects.completeUpload({
-          key: upload.objectKey,
-          uploadId: input.multipart.uploadId,
-          parts: input.multipart.parts
-        })
-      }
-      const stored = await objects.head(upload.objectKey)
-      if (!stored || !matchesUpload(stored, upload)) throw new UploadInvalidError()
-
-      if (upload.kind === 'image') {
-        await database.transaction().execute((transaction) =>
-          images.landInTransaction(transaction, {
-            uploadId,
-            workspaceId: upload.workspaceId,
-            objectKey: upload.objectKey,
-            stored
-          })
-        )
-        const document = await findDocument(database, userId, upload.documentId)
-        if (!document) throw new DocumentNotFoundError()
-        return document
-      }
-      const revisionId = crypto.randomUUID()
-      const storageObjectId = crypto.randomUUID()
-      checkpointed = await database.transaction().execute((transaction) =>
-        landRevision(transaction, {
-          userId,
-          uploadId,
-          upload,
-          stored,
-          revisionId,
-          storageObjectId,
-          images: input.images
-        })
-      )
-    } catch (error) {
-      await database
-        .updateTable('upload')
-        .set({ status: 'pending', finalizationStartedAt: null })
-        .where('id', '=', uploadId)
-        .where('status', '=', 'finalizing')
-        .execute()
-      throw error
-    }
-    if (checkpointed) announceVersions(options.onVersionsChanged, upload.documentId)
     const document = await findDocument(database, userId, upload.documentId)
     if (!document) throw new DocumentNotFoundError()
     return document
@@ -354,32 +371,10 @@ export function createDocumentService(
         .where('document.workspaceId', '=', workspaceId)
         .where('document.deletedAt', 'is', null)
         .executeTakeFirstOrThrow()
-      // Images current revisions use, each counted once however many documents share it.
-      const shared = await database
-        .selectFrom('workspaceImage')
-        .innerJoin('storageObject', 'storageObject.id', 'workspaceImage.storageObjectId')
-        .select((expression) => [
-          expression.fn.count('storageObject.id').as('objectCount'),
-          expression.fn
-            .coalesce(expression.fn.sum('storageObject.byteSize'), expression.val(0))
-            .as('bytesUsed')
-        ])
-        .where('workspaceImage.workspaceId', '=', workspaceId)
-        .where((expression) =>
-          expression.exists(
-            expression
-              .selectFrom('revisionImage')
-              .innerJoin('document', 'document.currentRevisionId', 'revisionImage.revisionId')
-              .select('revisionImage.name')
-              .whereRef('revisionImage.workspaceId', '=', 'workspaceImage.workspaceId')
-              .whereRef('revisionImage.checksum', '=', 'workspaceImage.checksum')
-              .where('document.deletedAt', 'is', null)
-          )
-        )
-        .executeTakeFirstOrThrow()
+      const shared = await currentImageUsage(database, workspaceId)
       return {
-        bytesUsed: Number(result.bytesUsed) + Number(shared.bytesUsed),
-        objectCount: Number(result.objectCount) + Number(shared.objectCount),
+        bytesUsed: Number(result.bytesUsed) + shared.bytesUsed,
+        objectCount: Number(result.objectCount) + shared.objectCount,
         documentCount: Number(result.documentCount)
       }
     },
@@ -553,24 +548,37 @@ export function createDocumentService(
       documentId: string,
       uploads: CommitImageUploadsInput['uploads']
     ): Promise<void> {
+      const access = await resolveDocumentAccess(database, userId, documentId)
+      if (!access) throw new DocumentNotFoundError()
+      if (!canEditDocument(access)) throw new DocumentForbiddenError()
       const ids = uniq(uploads.map((upload) => upload.uploadId))
-      const rows = await database
-        .selectFrom('upload')
-        .select(['id', 'kind'])
-        .where('id', 'in', ids)
-        .where('documentId', '=', documentId)
-        .where('createdBy', '=', userId)
-        .execute()
-      if (rows.length !== ids.length || rows.some((row) => row.kind !== 'image')) {
+      const rows = new Map(
+        (
+          await selectUploads()
+            .where('upload.id', 'in', ids)
+            .where('upload.documentId', '=', documentId)
+            .where('upload.createdBy', '=', userId)
+            .execute()
+        ).map((row) => [row.id, row])
+      )
+      if (rows.size !== ids.length || [...rows.values()].some((row) => row.kind !== 'image')) {
         throw new UploadInvalidError()
       }
-      for (const upload of uploads) {
-        await commitUpload(userId, upload.uploadId, {
-          checksum: upload.checksum,
-          multipart: upload.multipart,
-          images: []
+      // Each image is its own object, so a few are checked and landed at once.
+      const semaphore = new Semaphore(IMAGE_COMMIT_CONCURRENCY)
+      await Promise.all(
+        uploads.map(async (commit) => {
+          const upload = rows.get(commit.uploadId)
+          if (!upload || commit.checksum !== upload.checksum) throw new UploadInvalidError()
+          if (upload.status === 'committed') return
+          await semaphore.acquire()
+          try {
+            await finalizeUpload(upload, commit.multipart, (stored) => landImage(upload, stored))
+          } finally {
+            semaphore.release()
+          }
         })
-      }
+      )
     }
   }
 }

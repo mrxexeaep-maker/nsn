@@ -322,13 +322,14 @@ export async function releaseUnusedImages(
 export async function documentImageLinks(
   executor: Executor,
   objects: ObjectStore,
-  input: { workspaceId: string; checksums: string[]; expiresAt: Date }
+  input: { documentId: string; checksums: string[]; expiresAt: Date }
 ): Promise<DocumentImageLink[]> {
   const rows = await executor
     .selectFrom('workspaceImage')
+    .innerJoin('document', 'document.workspaceId', 'workspaceImage.workspaceId')
     .innerJoin('storageObject', 'storageObject.id', 'workspaceImage.storageObjectId')
     .select(['workspaceImage.checksum', 'storageObject.objectKey', 'storageObject.byteSize'])
-    .where('workspaceImage.workspaceId', '=', input.workspaceId)
+    .where('document.id', '=', input.documentId)
     .where('workspaceImage.checksum', 'in', uniq(input.checksums))
     .execute()
   return Promise.all(
@@ -338,4 +339,34 @@ export async function documentImageLinks(
       download: await objects.createDownload({ key: row.objectKey, expiresAt: input.expiresAt })
     }))
   )
+}
+
+/** The images the workspace's current revisions use, each counted once however many use it. */
+export async function currentImageUsage(
+  executor: Executor,
+  workspaceId: string
+): Promise<{ objectCount: number; bytesUsed: number }> {
+  const usage = await executor
+    .selectFrom('workspaceImage')
+    .innerJoin('storageObject', 'storageObject.id', 'workspaceImage.storageObjectId')
+    .select((expression) => [
+      expression.fn.count('storageObject.id').as('objectCount'),
+      expression.fn
+        .coalesce(expression.fn.sum('storageObject.byteSize'), expression.val(0))
+        .as('bytesUsed')
+    ])
+    .where('workspaceImage.workspaceId', '=', workspaceId)
+    .where((expression) =>
+      expression.exists(
+        expression
+          .selectFrom('revisionImage')
+          .innerJoin('document', 'document.currentRevisionId', 'revisionImage.revisionId')
+          .select('revisionImage.name')
+          .whereRef('revisionImage.workspaceId', '=', 'workspaceImage.workspaceId')
+          .whereRef('revisionImage.checksum', '=', 'workspaceImage.checksum')
+          .where('document.deletedAt', 'is', null)
+      )
+    )
+    .executeTakeFirstOrThrow()
+  return { objectCount: Number(usage.objectCount), bytesUsed: Number(usage.bytesUsed) }
 }

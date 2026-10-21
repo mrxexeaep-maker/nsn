@@ -32,8 +32,10 @@ export function splitCloudDocument(bytes: Uint8Array): {
   const rest: Zippable = {}
   for (const [path, data] of Object.entries(entries)) {
     const name = path.startsWith(IMAGE_ENTRY_PREFIX) ? path.slice(IMAGE_ENTRY_PREFIX.length) : null
-    if (name && CLOUD_IMAGE_NAME_PATTERN.test(name)) images.push({ name, bytes: data })
-    else rest[path] = [data, { level: 0 }]
+    // An empty image, or one under a name Cloud does not take, stays inside the file.
+    if (name && CLOUD_IMAGE_NAME_PATTERN.test(name) && data.byteLength > 0) {
+      images.push({ name, bytes: data })
+    } else rest[path] = [data, { level: 0 }]
   }
   return images.length === 0 ? { lean: bytes, images } : { lean: zipSync(rest), images }
 }

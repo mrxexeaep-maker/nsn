@@ -314,7 +314,9 @@ describe('Cloud storage adapter', () => {
         'images/a1b2': photo,
         'images/c3d4': logo,
         // Cloud stores apart only names it accepts; this one stays inside the file.
-        'images/old name.png': logo
+        'images/old name.png': logo,
+        // Nor does an empty image, which the server refuses to store.
+        'images/e5f6': new Uint8Array()
       })
     const first = crypto.randomUUID()
     const saved = await storage.putDocument(first, archive('first'), { name: 'A', updatedAt: '' })
@@ -322,6 +324,7 @@ describe('Cloud storage adapter', () => {
     if (!stored) throw new Error('Expected the stored file')
     expect(Object.keys(unzipSync(stored)).sort()).toEqual([
       'canvas.fig',
+      'images/e5f6',
       'images/old name.png',
       'meta.json'
     ])
