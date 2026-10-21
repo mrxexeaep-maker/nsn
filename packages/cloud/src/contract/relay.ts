@@ -249,12 +249,14 @@ function createAssembler(tag: number, limit: () => number) {
         more = decoding.readVarUint(decoder)
         chunk = decoding.readVarUint8Array(decoder)
       } catch {
+        // A fragment that cannot be read is taken as unfinished: only a sound last one ends it.
         reset()
+        discarding = true
         return { type: 'malformed' }
       }
       if (decoder.pos !== data.byteLength || more > 1) {
         reset()
-        discarding = more === 1
+        discarding = more !== 0
         return { type: 'malformed' }
       }
       if (discarding) {

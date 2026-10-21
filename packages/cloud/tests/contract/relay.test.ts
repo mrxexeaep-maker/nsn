@@ -119,4 +119,24 @@ describe('relay frames', () => {
     const small: RelayClientFrame = { type: 'auth', token: 'ticket' }
     expect(assembler.push(encodeRelayClientFrame(small)).type).toBe('frame')
   })
+
+  test('discard what follows a fragment whose flag cannot be trusted', () => {
+    const assembler = createRelayClientAssembler(() => Infinity)
+    const messages = relayClientMessages({
+      type: 'message',
+      namespace: 'yjs-update',
+      target: null,
+      payload: new Uint8Array(RELAY_FRAGMENT_BYTES * 3)
+    })
+    const [first, ...rest] = messages
+    if (!first) throw new Error('Expected a fragment')
+    // The first fragment with its flag rewritten to 2, which is neither "more" nor "last".
+    const garbled = Uint8Array.from(first)
+    garbled[1] = 2
+    expect(assembler.push(garbled).type).toBe('malformed')
+    expect(rest.map((message) => assembler.push(message).type)).toEqual(rest.map(() => 'partial'))
+    expect(assembler.push(encodeRelayClientFrame({ type: 'auth', token: 'ticket' })).type).toBe(
+      'frame'
+    )
+  })
 })

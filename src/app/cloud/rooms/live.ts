@@ -278,10 +278,17 @@ export function leaveRefusedRoom(
   void store.saveFigFile().catch(() => undefined)
 }
 
-/** Joins a refused tab's room again, showing the document as the server holds it. */
+/**
+ * Joins a refused tab's room again, showing the document as the server holds it. A rejoin that
+ * fails, or ends without a room, leaves the tab refused, so it can try again.
+ */
 export async function rejoinRefusedRoom(store: EditorStore): Promise<void> {
   setRefused(store, false)
-  await restartCloudRoom(store)
+  try {
+    await restartCloudRoom(store)
+  } finally {
+    if (!roomForStore(store) && getTabForStore(store)) setRefused(store, true)
+  }
 }
 
 /** Leaves the room's saving and status behind once its tab closes. */

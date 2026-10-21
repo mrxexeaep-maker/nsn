@@ -123,6 +123,15 @@ describe('a refused tab over time', () => {
     expect(ticketRequests).toBe(1)
   })
 
+  test('stays refused when rejoining ends without a room', async () => {
+    const opened = createTab()
+    leaveRefusedRoom(opened.store, { permission: 'view', canSave: false })
+    // The tab has no Cloud document, so the restart finds no room to join.
+    await rejoinRefusedRoom(opened.store)
+    expect(cloudRoomsRefused.value.has(opened.store)).toBe(true)
+    await closeTab(opened.id, 'discard')
+  })
+
   test('forgets the refusal once its tab closes', async () => {
     const opened = createTab()
     leaveRefusedRoom(opened.store, { permission: 'view', canSave: false })

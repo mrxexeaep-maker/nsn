@@ -98,7 +98,8 @@ const summary = computed(() => {
         <icon-lucide-cloud-upload v-else-if="state === 'pending'" class="size-3.5" />
         <icon-lucide-git-compare-arrows v-else-if="state === 'conflict'" class="size-3.5" />
         <icon-lucide-circle-alert v-else class="size-3.5" />
-        <span v-if="!showsNotLive && (viewOnly || state === 'conflict')" :class="ui.triggerLabel()">
+        <span v-if="showsNotLive" :class="ui.triggerLabel()">{{ t.statusNotLive }}</span>
+        <span v-else-if="viewOnly || state === 'conflict'" :class="ui.triggerLabel()">
           {{ viewOnly ? t.viewOnly : t.statusResolve }}
         </span>
       </PopoverTrigger>
