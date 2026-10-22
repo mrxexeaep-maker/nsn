@@ -4,6 +4,7 @@ import { SkiaRenderer } from '@open-pencil/core'
 import { initCanvasKit } from '@open-pencil/core/io'
 import { SceneGraph, type SceneNode, type Stroke } from '@open-pencil/scene-graph'
 
+import { silhouetteBounds } from '#core/canvas/shadows/silhouette'
 import { makeLineStrokeOutline } from '#core/canvas/strokes/line'
 
 import { expectDefined } from '#core-tests/helpers/assert'
@@ -141,5 +142,39 @@ describe('a line taken as a boolean operand', () => {
     expect(top).toBeCloseTo(-20.3205, 3)
     expect(right).toBeCloseTo(297, 3)
     expect(bottom).toBeCloseTo(14.3205, 3)
+  })
+})
+
+describe('a line casts from its whole stroke', () => {
+  test('its shadow reaches a full weight past the line, whatever the alignment', () => {
+    const graph = new SceneGraph()
+    const line = graph.createNode('LINE', graph.getPages()[0].id, {
+      width: 300,
+      height: 0,
+      strokes: [
+        {
+          type: 'SOLID',
+          color: { r: 0, g: 0, b: 0, a: 1 },
+          opacity: 1,
+          visible: true,
+          weight: 6,
+          align: 'INSIDE'
+        }
+      ],
+      effects: [
+        {
+          type: 'DROP_SHADOW',
+          radius: 0,
+          spread: 0,
+          offset: { x: 0, y: 0 },
+          color: { r: 0, g: 0, b: 0, a: 1 },
+          visible: true,
+          blendMode: 'NORMAL',
+          showShadowBehindNode: false
+        }
+      ]
+    })
+    const bounds = expectDefined(silhouetteBounds(graph, line, false), 'bounds')
+    expect(bounds.y).toBeLessThanOrEqual(-6)
   })
 })
