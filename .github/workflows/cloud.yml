@@ -1,11 +1,17 @@
 name: Deploy Cloud
 
-# Deploys OpenPencil Cloud to the cloud-staging environment, whose reviewers approve each run.
+# Deploys an official OpenPencil Cloud deployment: packages/cloud/deploy/openpencil/<target>, with
+# the secrets and reviewers of the cloud-<target> GitHub environment.
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: Deployment
+        type: choice
+        options: [staging]
 
 concurrency:
-  group: cloud-staging
+  group: cloud-${{ inputs.target }}
   cancel-in-progress: false
 
 jobs:
@@ -13,13 +19,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
-      name: cloud-staging
+      name: cloud-${{ inputs.target }}
       url: ${{ vars.CLOUD_URL }}
     permissions:
       contents: read
       deployments: write
     env:
-      CLOUD_CONFIG: ${{ github.workspace }}/packages/cloud/deploy/cloudflare/staging.toml
+      DEPLOYMENT: packages/cloud/deploy/openpencil/${{ inputs.target }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -35,7 +41,7 @@ jobs:
       # config reads every secret it names, so only this step and the next one see them.
       - name: Migrate the database
         env:
-          OPENPENCIL_CLOUD_CONFIG: ${{ env.CLOUD_CONFIG }}
+          OPENPENCIL_CLOUD_CONFIG: ${{ github.workspace }}/${{ env.DEPLOYMENT }}/openpencil-cloud.toml
           DATABASE_URL: ${{ secrets.NEON_MIGRATOR_DATABASE_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
@@ -61,9 +67,9 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: packages/cloud/deploy/cloudflare
+          workingDirectory: ${{ env.DEPLOYMENT }}
           packageManager: bun
-          command: deploy --env staging --secrets-file ${{ runner.temp }}/cloud-secrets.json
+          command: deploy --secrets-file ${{ runner.temp }}/cloud-secrets.json
 
       - name: Check the deployment
         env:

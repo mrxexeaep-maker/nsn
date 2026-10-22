@@ -1,7 +1,6 @@
 import { createCloudflareCloud } from '#cloud/runtime/cloudflare'
 
-// Written by whoever runs the Worker locally, such as the end-to-end tests.
-import config from '../generated/cloudflare.toml'
+import config from './openpencil-cloud.toml'
 
 const cloud = createCloudflareCloud(config)
 

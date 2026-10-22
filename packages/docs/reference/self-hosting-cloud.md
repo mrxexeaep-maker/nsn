@@ -56,12 +56,13 @@ Either way, the desktop app connects to the server directly, and the web editor 
 
 ## Cloudflare Workers
 
-On Cloudflare a Worker serves the API and the portal, a Durable Object for each document runs its collaboration rooms, Hyperdrive connects to PostgreSQL, and a Cron Trigger every five minutes runs cleanup and retries email. [`packages/cloud/deploy/cloudflare`](https://github.com/open-pencil/open-pencil/tree/master/packages/cloud/deploy/cloudflare) holds the Wrangler configuration, with the project's staging deployment as the example to copy.
+On Cloudflare a Worker serves the API and the portal, a Durable Object for each document runs its collaboration rooms, Hyperdrive connects to PostgreSQL, and a Cron Trigger every five minutes runs cleanup and retries email. [`packages/cloud/deploy/cloudflare`](https://github.com/open-pencil/open-pencil/tree/master/packages/cloud/deploy/cloudflare) is the deployment to copy: a Wrangler configuration and the Worker's entry, which reads `openpencil-cloud.toml` from the same folder.
 
-1. Create a Hyperdrive configuration for the database, and add an environment to `wrangler.jsonc` like `staging`, with the Hyperdrive ID and your domain in `routes`.
-2. Write the TOML for it beside `staging.toml`, and an entry module like `staging.ts` that imports it; Wrangler bundles the TOML as text. Leave `[database]` empty, since `DATABASE_URL` comes from Hyperdrive, and trust `cf-connecting-ip` under `[authentication.trusted_proxies]`.
-3. Migrate from a checkout, with that TOML as `OPENPENCIL_CLOUD_CONFIG` and a direct connection string as `DATABASE_URL`: `bun --filter @open-pencil/cloud migrate`. The Worker never migrates, so do this before every deploy.
-4. Build the portal with `bun run build:packages && bun run build:cloud-portal`, then deploy from `packages/cloud/deploy/cloudflare` with `bunx wrangler deploy --env <name> --secrets-file <file>`, where the JSON file holds the secrets the TOML names.
+1. Copy the folder beside it, for example to `packages/cloud/deploy/mine`, so its relative paths still reach the runtime and the portal build.
+2. Create a Hyperdrive configuration for the database with `wrangler hyperdrive create`, and put its ID, your domain, and a Worker name in the copy's `wrangler.jsonc`.
+3. Add your TOML as `openpencil-cloud.toml` in the copy; Wrangler bundles it as text. Leave `[database]` empty, since `DATABASE_URL` comes from Hyperdrive, and trust `cf-connecting-ip` under `[authentication.trusted_proxies]`.
+4. Migrate from a checkout, with that TOML as `OPENPENCIL_CLOUD_CONFIG` and a direct connection string as `DATABASE_URL`: `bun --filter @open-pencil/cloud migrate`. The Worker never migrates, so do this before every deploy.
+5. Build the portal with `bun run build:packages && bun run build:cloud-portal`, then deploy from the copy with `bunx wrangler deploy --secrets-file <file>`, where the JSON file holds the secrets the TOML names.
 
 The operator commands below work the same way, from a checkout with a direct connection. The `[workers]` intervals don't apply: mail a request queues is sent when the request finishes, and the Cron Trigger handles the rest.
 

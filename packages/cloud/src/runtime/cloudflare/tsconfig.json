@@ -16,5 +16,6 @@
       "#cloud/*": ["../../*"]
     }
   },
-  "include": ["./**/*.ts", "../../../deploy/cloudflare/**/*.ts"]
+  "include": ["./**/*.ts", "../../../deploy/**/*.ts"],
+  "exclude": ["../../../deploy/generated"]
 }

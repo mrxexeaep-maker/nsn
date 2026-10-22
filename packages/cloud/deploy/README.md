@@ -1,7 +1,8 @@
 # Deploying OpenPencil Cloud
 
 OpenPencil Cloud runs as one Node 22+ process in front of PostgreSQL and an S3-compatible object
-store, with optional SMTP for email, or on Cloudflare Workers from [`cloudflare/`](./cloudflare). See
+store, with optional SMTP for email, or on Cloudflare Workers by copying [`cloudflare/`](./cloudflare). The project's own deployments
+live in [`openpencil/`](./openpencil). See
 [security.md](./security.md) for hardening checks.
 
 ## Local development

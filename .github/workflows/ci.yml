@@ -340,13 +340,14 @@ jobs:
       - name: Generate package declarations
         run: bun run build:packages
 
-      # The Worker serves the portal as static assets, and staging deploys this bundle.
-      - name: Build the Cloud portal and bundle the staging Worker
+      # The Worker serves the portal as static assets, and every official deployment bundles it.
+      - name: Build the Cloud portal and bundle the official Workers
         if: matrix.worker
         run: |
           bun run build:cloud-portal
-          cd packages/cloud/deploy/cloudflare
-          bunx wrangler deploy --env staging --dry-run
+          for deployment in packages/cloud/deploy/openpencil/*/; do
+            (cd "$deployment" && bunx wrangler deploy --dry-run)
+          done
 
       - name: Run Cloud end-to-end tests against ${{ matrix.store }}
         env:

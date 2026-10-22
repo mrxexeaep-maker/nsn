@@ -1,10 +1,12 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, writeFile } from 'node:fs/promises'
 
 import { cloudDeployPath, cloudPackagePath } from '#cloud-tests/helpers/paths'
 import { composeCommand, runProcess } from '#cloud-tests/helpers/process'
 
 // Runs the Cloudflare Worker under `wrangler dev`, against PostgreSQL and SeaweedFS from Compose,
-// then checks it from outside as clients reach it: see checks.ts.
+// then checks it from outside as clients reach it: see checks.ts. The Worker is a copy of the
+// deploy/cloudflare template in deploy/generated, with a TOML for these services, as a
+// self-hosted deployment would be.
 const deployDirectory = cloudDeployPath()
 const compose = composeCommand(`openpencil-cloud-workers-e2e-${process.pid}`, 'compose.yml')
 const portOffset = process.pid % 1_000
@@ -25,7 +27,7 @@ const environment = {
   ...secrets,
   DATABASE_URL: databaseURL,
   CLOUD_WORKER_URL: `http://127.0.0.1:${workerPort}`,
-  OPENPENCIL_CLOUD_CONFIG: cloudDeployPath('generated/cloudflare.toml'),
+  OPENPENCIL_CLOUD_CONFIG: cloudDeployPath('generated/openpencil-cloud.toml'),
   CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: databaseURL
 }
 
@@ -91,6 +93,9 @@ async function untilServing(worker: Bun.Subprocess) {
 let worker: Bun.Subprocess | null = null
 try {
   await mkdir(cloudDeployPath('generated'), { recursive: true })
+  for (const file of ['wrangler.jsonc', 'worker.ts']) {
+    await copyFile(cloudDeployPath('cloudflare', file), cloudDeployPath('generated', file))
+  }
   await writeFile(environment.OPENPENCIL_CLOUD_CONFIG, config)
   await run([...compose, 'up', '-d', '--wait', 'postgres', 'seaweedfs'])
   await run([...compose, 'run', '--rm', 'seaweedfs-init'])
@@ -108,7 +113,7 @@ try {
       '--show-interactive-dev-session=false',
       ...Object.entries(secrets).flatMap(([name, value]) => ['--var', `${name}:${value}`])
     ],
-    { cwd: cloudDeployPath('cloudflare'), env: environment, stdout: 'inherit', stderr: 'inherit' }
+    { cwd: cloudDeployPath('generated'), env: environment, stdout: 'inherit', stderr: 'inherit' }
   )
   await untilServing(worker)
   await run(['bun', cloudPackagePath('tests/e2e/cloudflare/checks.ts')], cloudPackagePath())

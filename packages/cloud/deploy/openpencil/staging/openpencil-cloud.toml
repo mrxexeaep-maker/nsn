@@ -1,6 +1,6 @@
-# cloud-staging.openpencil.dev. Secrets come from the Worker's secrets: BETTER_AUTH_SECRET,
-# GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, S3_ACCESS_KEY_ID, and S3_SECRET_ACCESS_KEY; DATABASE_URL
-# is Hyperdrive's.
+# cloud-staging.openpencil.dev, the official staging deployment. Secrets come from the Worker's
+# secrets: BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, S3_ACCESS_KEY_ID, and
+# S3_SECRET_ACCESS_KEY; DATABASE_URL is Hyperdrive's.
 schema_version = 2
 
 [deployment]

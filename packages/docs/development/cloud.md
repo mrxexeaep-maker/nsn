@@ -32,7 +32,11 @@ flowchart LR
 | `@open-pencil/cloud/runtime/node` | PostgreSQL, S3, SMTP, the HTTP listener, workers, and operator commands    |
 
 The Cloudflare runtime, `src/runtime/cloudflare`, isn't a subpath: Wrangler bundles it from
-`deploy/cloudflare`, type-checked against the Workers types by its own `tsconfig.json`.
+a deployment folder, type-checked against the Workers types by its own `tsconfig.json`.
+`deploy/cloudflare` is the folder self-hosters copy; the official deployments are filled-in copies
+under `deploy/openpencil/<target>`, which the Deploy Cloud workflow deploys with the secrets of the
+`cloud-<target>` GitHub environment. A new target needs its folder, that environment, and an option
+in the workflow.
 
 The server never imports `pg`, opens a listener, runs migrations, or starts timers; runtimes do.
 Browser code imports only `contract` and `client`, so it never pulls in server dependencies.
