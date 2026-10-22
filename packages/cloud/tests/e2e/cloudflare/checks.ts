@@ -148,20 +148,31 @@ try {
     payload: textUpdate('hello from Workers')
   })
 
+  // The editor's update and the viewer's request travel on different sockets, so the viewer asks
+  // again until the room has the edit.
   const viewer = await join(url, (await tickets.issueUserTicket(user('viewer'), documentId)).token)
-  viewer.send({
-    type: 'message',
-    namespace: COLLAB_ACTIONS.syncStep1,
-    target: RELAY_SERVER_PEER,
-    payload: Y.encodeStateVector(new Y.Doc())
-  })
-  await until(
-    () => messages(viewer, COLLAB_ACTIONS.syncReply).length > 0,
-    'The relay did not serve the room to a newcomer'
-  )
-  const [reply] = messages(viewer, COLLAB_ACTIONS.syncReply)
-  check(reply?.from === RELAY_SERVER_PEER, 'The sync reply did not come from the relay')
-  check(textOfSyncReply(reply.payload) === 'hello from Workers', 'The room lost the edit')
+  const ask = () =>
+    viewer.send({
+      type: 'message',
+      namespace: COLLAB_ACTIONS.syncStep1,
+      target: RELAY_SERVER_PEER,
+      payload: Y.encodeStateVector(new Y.Doc())
+    })
+  const served = () =>
+    messages(viewer, COLLAB_ACTIONS.syncReply).find(
+      (reply) => textOfSyncReply(reply.payload) === 'hello from Workers'
+    )
+  let asked = 1
+  ask()
+  await until(() => {
+    if (served()) return true
+    if (messages(viewer, COLLAB_ACTIONS.syncReply).length >= asked) {
+      asked++
+      ask()
+    }
+    return false
+  }, 'The relay did not serve the edit to a newcomer')
+  check(served()?.from === RELAY_SERVER_PEER, 'The sync reply did not come from the relay')
 
   // Another document's ticket on this document's relay is refused.
   const other = await seed(database)

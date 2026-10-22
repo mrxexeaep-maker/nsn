@@ -68,11 +68,14 @@ function accept(relay: CollaborationRelay): Response {
     connection?.closed()
     connection = null
   }
+  // A closing socket throws on send and close, which would stop a broadcast to the others.
+  const open = () => server.readyState === WebSocket.OPEN
   connection = relay.connect({
-    send: (data) => server.send(data),
+    send(data) {
+      if (open()) server.send(data)
+    },
     close(code, reason) {
-      // A socket the client already closed throws on a second close.
-      if (server.readyState === WebSocket.OPEN) server.close(code, reason)
+      if (open()) server.close(code, reason)
     }
   })
   server.addEventListener('message', ({ data }: { data: unknown }) =>
