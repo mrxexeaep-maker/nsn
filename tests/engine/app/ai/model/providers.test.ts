@@ -135,6 +135,11 @@ describe('model provider registry', () => {
         'gemini-4-argon',
         { generationConfig: { thinkingConfig: { thinkingLevel: 'low' } } }
       ],
+      [
+        'google',
+        'gemini-3.1-pro-preview',
+        { generationConfig: { thinkingConfig: { thinkingLevel: 'low' } } }
+      ],
       ['openai', 'gpt-6.1-sol', { reasoning: { effort: 'low' } }],
       ['openai', 'gpt-6-astra', { reasoning: { effort: 'low' } }]
     ] as const)('%s %s sends the lowest thinking it accepts', async (providerID, modelID, sent) => {

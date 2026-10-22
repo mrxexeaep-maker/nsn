@@ -251,6 +251,13 @@ export const AI_PROVIDERS: AIProviderDef[] = [
         name: 'Gemini Flash Latest',
         tag: 'Alias',
         capabilities: ['tools', 'vision']
+      },
+      {
+        id: 'gemini-3.1-pro-preview',
+        name: 'Gemini 3.1 Pro',
+        tag: 'Pro',
+        capabilities: ['tools', 'vision'],
+        minReasoningEffort: 'low'
       }
     ]
   },
