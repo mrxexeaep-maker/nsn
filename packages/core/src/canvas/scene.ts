@@ -10,7 +10,6 @@ import {
   lineArrowEndpoints,
   trimArrowShafts
 } from '@open-pencil/scene-graph/arrow-caps'
-import { computeDescendantVisualBounds } from '@open-pencil/scene-graph/geometry'
 import Matrix from '@open-pencil/scene-graph/matrix'
 import type { Color } from '@open-pencil/scene-graph/primitives'
 
@@ -37,6 +36,7 @@ import {
   effectRasterScale,
   effectRasterScaleMatches
 } from './renderer/effect-raster-cache'
+import { mapVisualBounds, subtreeVisualBounds } from './renderer/visual-bounds'
 import { renderLayerShadows } from './shadows'
 import { isLayerContainer } from './shadows/silhouette'
 import { makeSmoothRRectPath, nodeHasRadius, nodeHasSmoothCorners } from './shapes'
@@ -50,6 +50,7 @@ import {
   getStrokeJoinEntity,
   normalizeDashPattern
 } from './strokes'
+import { drawOutlinedDashes } from './strokes/outlined-dashes'
 import { drawDashedRectStroke, strokeDashesByOutline, strokeSideWeights } from './strokes/sides'
 import { textVerticalOffset, withTextParagraph } from './text'
 import { drawTextLayout } from './text/decorations'
@@ -290,45 +291,34 @@ function viewportLayerBounds(
   const inverse = Matrix.invert(createSceneGeometry(graph, preview).worldMatrix(node))
   if (!inverse) return null
   const viewport = r.worldViewport
-  const points = Matrix.mapPoints(inverse, [
-    viewport.x,
-    viewport.y,
-    viewport.x + viewport.w,
-    viewport.y,
-    viewport.x + viewport.w,
-    viewport.y + viewport.h,
-    viewport.x,
-    viewport.y + viewport.h
-  ])
-  const xs = [points[0], points[2], points[4], points[6]]
-  const ys = [points[1], points[3], points[5], points[7]]
+  const bounds = mapVisualBounds(inverse, {
+    minX: viewport.x,
+    minY: viewport.y,
+    maxX: viewport.x + viewport.w,
+    maxY: viewport.y + viewport.h
+  })
   return r.ck.LTRBRect(
-    Math.min(...xs) - padding,
-    Math.min(...ys) - padding,
-    Math.max(...xs) + padding,
-    Math.max(...ys) + padding
+    bounds.minX - padding,
+    bounds.minY - padding,
+    bounds.maxX + padding,
+    bounds.maxY + padding
   )
 }
 
+/**
+ * The layer opens after the node's x/y translation and before its rotation and flips, so the
+ * subtree is measured through its orientation matrix.
+ */
 function nodeIsolationLayerBounds(
   r: SkiaRenderer,
   graph: SceneGraph,
   node: SceneNode,
-  nodeId: string,
-  absX: number,
-  absY: number,
   preview?: RenderOverlays['rotationPreview']
 ): Float32Array {
   const viewportBounds = viewportLayerBounds(r, graph, node, 0, preview)
   if (viewportBounds) return viewportBounds
-  const bounds = computeDescendantVisualBounds(
-    [nodeId],
-    (id) => graph.getNode(id) ?? undefined,
-    (id) => graph.getAbsolutePosition(id)
-  )
-  return bounds
-    ? r.ck.LTRBRect(bounds.minX - absX, bounds.minY - absY, bounds.maxX - absX, bounds.maxY - absY)
-    : r.ck.LTRBRect(0, 0, node.width, node.height)
+  const bounds = subtreeVisualBounds(graph, node, nodeOrientationMatrix(node, preview), preview)
+  return r.ck.LTRBRect(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY)
 }
 
 /**
@@ -370,15 +360,7 @@ export function renderNode(
 
   const needsNodeLayer = node.opacity < 1 || needsIsolatedBlendLayer(node.blendMode)
   if (needsNodeLayer) {
-    const layerBounds = nodeIsolationLayerBounds(
-      r,
-      graph,
-      node,
-      nodeId,
-      absX,
-      absY,
-      overlays.rotationPreview
-    )
+    const layerBounds = nodeIsolationLayerBounds(r, graph, node, overlays.rotationPreview)
     r.opacityPaint.setAlphaf(node.opacity)
     r.opacityPaint.setBlendMode(figmaBlendModeToSkia(r.ck, node.blendMode))
     canvas.saveLayer(r.opacityPaint, layerBounds)
@@ -489,7 +471,9 @@ export function renderSection(
     configureStrokePaint(r, node, stroke, color)
 
     if (node.independentStrokeWeights) r.drawIndividualSideStrokes(canvas, node, stroke)
-    else r.drawRRectStrokeWithAlign(canvas, rrect, node, stroke)
+    else if (!drawFigmaDashes(r, canvas, node, stroke)) {
+      r.drawRRectStrokeWithAlign(canvas, rrect, node, stroke)
+    }
   })
 }
 
@@ -502,6 +486,8 @@ export function renderComponentSet(
   const rrect = fillRoundedBounds(r, canvas, node, graph)
   // A set without a stroke gets its dashed editing border from the overlay pass.
   forVisibleStrokes(r, node, graph, (stroke, color) => {
+    configureStrokePaint(r, node, stroke, color)
+    if (drawFigmaDashes(r, canvas, node, stroke)) return
     const dashPhase = stroke.dashPattern?.[1] ?? 0
     if (stroke.dashPattern && stroke.dashPattern.length > 0) {
       drawDashedRRectWithSolidCorners(
@@ -741,6 +727,29 @@ function drawVectorPathStrokes(
   else for (const outline of outlines) outline.delete()
 }
 
+/**
+ * Draws a dashed stroke on a rectangle, frame, section, or component set with Figma's dash
+ * layout, and returns false when the stroke has no dashes or has round or square dash ends on
+ * sides of their own weights, which that layout does not cover.
+ */
+function drawFigmaDashes(
+  r: SkiaRenderer,
+  canvas: Canvas,
+  node: SceneNode,
+  stroke: SceneNode['strokes'][0]
+): boolean {
+  const dash = normalizeDashPattern(stroke.dashPattern)
+  if (dash.length === 0) return false
+  if (strokeDashesByOutline(node, stroke)) {
+    drawDashedRectStroke(r, canvas, node, stroke, strokeSideWeights(node, stroke), dash)
+  } else if (node.independentStrokeWeights) {
+    return false
+  } else {
+    drawOutlinedDashes(r, canvas, node, stroke, dash)
+  }
+  return true
+}
+
 function drawRegularStroke(
   r: SkiaRenderer,
   canvas: Canvas,
@@ -756,13 +765,7 @@ function drawRegularStroke(
 
   if (node.independentStrokeWeights && r.isRectangularType(node.type)) {
     r.drawIndividualSideStrokes(canvas, node, stroke)
-  } else if (
-    dash.length > 0 &&
-    r.isRectangularType(node.type) &&
-    strokeDashesByOutline(node, stroke)
-  ) {
-    drawDashedRectStroke(r, canvas, node, stroke, strokeSideWeights(node, stroke), dash)
-  } else {
+  } else if (!r.isRectangularType(node.type) || !drawFigmaDashes(r, canvas, node, stroke)) {
     r.drawStrokeWithAlign(canvas, node, rect, hasRadius, stroke.align)
   }
 }
@@ -871,7 +874,7 @@ function paintNodeStrokes(
       node.type === 'VECTOR' &&
       node.vectorNetwork
     ) {
-      const centerline = vectorNetworkToCenterlinePath(r.ck, node.vectorNetwork)
+      const centerline = vectorNetworkToCenterlinePath(r.ck, node.vectorNetwork, node.cornerRadius)
       drawVectorPathStrokes(r, canvas, [centerline], stroke, color, node.strokeMiterLimit)
       centerline.delete()
       drawNodeArrowHeads(r, canvas, node, stroke, color)

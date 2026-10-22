@@ -5,6 +5,8 @@ import { invertGradientTransform } from '@open-pencil/scene-graph/gradient'
 import Matrix from '@open-pencil/scene-graph/matrix'
 import type { Color, Rect, Vector } from '@open-pencil/scene-graph/primitives'
 
+import { isWholeArc } from '#core/geometry'
+
 import { figmaBlendModeToSkia } from './blend'
 import { makeDiamondGradient } from './gradients/diamond'
 import { previewEdge } from './images/previews'
@@ -108,7 +110,8 @@ export function drawNodeFill(
       canvas.drawLine(0, 0, node.width, node.height, r.fillPaint)
       break
     case 'POLYGON':
-    case 'STAR': {
+    case 'STAR':
+    case 'SHAPE_WITH_TEXT': {
       const path = r.makePolygonPath(node)
       canvas.drawPath(path, r.fillPaint)
       path.delete()
@@ -527,24 +530,29 @@ export function makeArcPath(r: SkiaRenderer, node: SceneNode) {
   const path = new r.ck.PathBuilder()
   const oval = r.ck.LTRBRect(0, 0, node.width, node.height)
 
+  const isFullCircle = isWholeArc(arc)
   if (arc.innerRadius > 0) {
-    path.addArc(oval, startDeg, sweepDeg)
     const innerOval = r.ck.LTRBRect(cx - innerRx, cy - innerRy, cx + innerRx, cy + innerRy)
-    const innerPath = new r.ck.PathBuilder()
-    innerPath.addArc(innerOval, startDeg + sweepDeg, -sweepDeg)
-    const immutableInnerPath = innerPath.detachAndDelete()
-    path.addPath(immutableInnerPath)
-    immutableInnerPath.delete()
+    if (isFullCircle) {
+      // Two loops wound in opposite directions, so the hole stays empty under nonzero fill. A
+      // full-turn `addArc` from an angle off the axes draws nothing.
+      path.addOval(oval, false)
+      path.addOval(innerOval, true)
+    } else {
+      // One outline whose ends run straight across the ring; `addArc` would start a new contour
+      // for each edge and close them on their chords.
+      path.arcToOval(oval, startDeg, sweepDeg, true)
+      path.arcToOval(innerOval, startDeg + sweepDeg, -sweepDeg, false)
+    }
     path.close()
     return path.detachAndDelete()
   }
 
-  const isFullCircle = Math.abs(sweepDeg) >= 359.99
   if (isFullCircle) {
     path.addOval(oval)
   } else {
     path.moveTo(cx, cy)
-    path.addArc(oval, startDeg, sweepDeg)
+    path.arcToOval(oval, startDeg, sweepDeg, false)
     path.close()
   }
   return path.detachAndDelete()

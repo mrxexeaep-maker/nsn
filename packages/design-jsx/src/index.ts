@@ -41,6 +41,7 @@ export {
 export {
   type TreeNode,
   type BaseProps,
+  type EllipseProps,
   type ComponentProps,
   type InstanceProps,
   type TextProps,
@@ -89,7 +90,11 @@ export { createElement } from './mini-react'
 export { buildComponent, createDesignJSXRenderer, type DesignJSXRenderer } from './render'
 export type { ArtworkPlacement, DesignJSXServices, SVGSource } from './services'
 export type { RenderOptions } from './types'
-export { DESIGN_JSX_ELEMENTS, type DesignJSXElementDefinition } from './elements'
+export {
+  DESIGN_JSX_ELEMENTS,
+  elementPropsByName,
+  type DesignJSXElementDefinition
+} from './elements'
 export {
   DESIGN_JSX_HELPERS,
   DESIGN_JSX_PROPERTIES,

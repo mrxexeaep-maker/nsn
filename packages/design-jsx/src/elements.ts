@@ -15,6 +15,7 @@ import {
   DESIGN_JSX_SUPPORTED_PROPERTY_NAMES,
   DESIGN_JSX_TEXT_PARAGRAPH_PROPERTY_NAMES
 } from './schema'
+import { renderShapeNode, ShapeLayerProps, ShapeProps } from './shapes-with-text'
 import { renderStickyNode, StickyLayerProps, StickyProps } from './stickies'
 import type { TreeNode } from './tree'
 import type { ElementPropsSchema } from './validation'
@@ -183,6 +184,14 @@ export const DESIGN_JSX_ELEMENTS: DesignJSXElementDefinition[] = [
     writes: ['STICKY']
   },
   {
+    name: 'Shape',
+    runtimeType: 'shape',
+    description: 'A FigJam shape with text; its text is the label.',
+    schema: ShapeProps,
+    ownLayer: { layer: ShapeLayerProps, render: renderShapeNode },
+    writes: ['SHAPE_WITH_TEXT']
+  },
+  {
     name: 'Connector',
     runtimeType: 'connector',
     description:
@@ -263,6 +272,24 @@ export function elementNodeType(runtimeType: string): NodeType | undefined {
 /** The props an element of `runtimeType` takes. */
 export function elementProps(runtimeType: string): ReadonlySet<string> {
   return PROPS_BY_RUNTIME_TYPE.get(runtimeType) ?? LAYER_PROPS
+}
+
+const BY_NAME = new Map(
+  DESIGN_JSX_ELEMENTS.map((element): [string, DesignJSXElementDefinition] => [
+    element.name,
+    element
+  ])
+)
+
+/**
+ * The props an element written `<name>` takes, as the renderer checks them, for an editor that
+ * checks them as they are typed; null for a name that is no element, and for an instance, which
+ * also takes its component's properties by name.
+ */
+export function elementPropsByName(name: string): ReadonlySet<string> | null {
+  const element = BY_NAME.get(name)
+  if (!element) return Object.hasOwn(INTRINSIC_ELEMENTS, name) ? elementProps(name) : null
+  return element.runtimeType === 'instance' ? null : elementProps(element.runtimeType)
 }
 
 /** The schema an element of `runtimeType` reads its props by, if it has one. */

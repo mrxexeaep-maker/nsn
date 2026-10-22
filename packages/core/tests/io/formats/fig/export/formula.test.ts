@@ -1,6 +1,9 @@
 import { expect, test } from 'bun:test'
 
+import { expectDefined } from '#core-tests/helpers/assert'
+
 import { exportFigFile, initCodec, parseFigFile, SceneGraph } from '@open-pencil/core'
+import { parseFigBuffer } from '@open-pencil/fig'
 import { FigmaAPI } from '@open-pencil/core/figma-api'
 import { parseVariableFormula } from '@open-pencil/scene-graph'
 
@@ -48,17 +51,17 @@ test('numeric, Boolean and comparison formulas survive fresh and patched .fig sa
     const api = new FigmaAPI(current)
     for (const variable of current.variables.values()) {
       const active = current.getActiveModeId(variable.collectionId)
-      if (variable.name === base.name) api.setVariableValue(variable.id, active, 10)
-      if (variable.name === enabled.name) api.setVariableValue(variable.id, active, false)
+      if (variable.name === base.name) expectDefined(api.variables.getVariableById(variable.id)).setValueForMode(active, 10)
+      if (variable.name === enabled.name) expectDefined(api.variables.getVariableById(variable.id)).setValueForMode(active, false)
     }
   }
 })
 
 
 test.each([
-  { operator: 'ADDITION', operands: [true, 1] },
-  { operator: 'AND', operands: [1, false] },
-  { operator: 'NEGATE', operands: [1, 2] }
+  { operator: 'add', operands: [true, 1] },
+  { operator: 'and', operands: [1, false] },
+  { operator: 'negate', operands: [1, 2] }
 ] as const)('FIG export rejects invalid formula operands instead of coercing them: %j', async (value) => {
   await initCodec()
   const graph = new SceneGraph()
@@ -67,4 +70,42 @@ test.each([
     expression: 'FORMULA', type: 'FLOAT', value: { ...value, operands: [...value.operands] }
   })
   await expect(exportFigFile(graph)).rejects.toThrow()
+})
+
+test('text, truthiness and if() formulas survive a .fig save, written with the functions Figma uses', async () => {
+  await initCodec()
+  const graph = new SceneGraph()
+  const collection = graph.createCollection('Tokens')
+  const mode = collection.defaultModeId
+  graph.createVariable('count', 'FLOAT', collection.id, 3)
+  graph.createVariable('name', 'STRING', collection.id, 'Ada')
+  graph.createVariable('dark', 'BOOLEAN', collection.id, true)
+  graph.createVariable('ink', 'COLOR', collection.id, { r: 0, g: 0, b: 0, a: 1 })
+  const formulas = {
+    label: ['STRING', 'if({dark}, "Hi, " + {name}, text({count}) + " items")'],
+    named: ['BOOLEAN', 'truthy({name})'],
+    gap: ['FLOAT', 'if({count} > 2, 16, 8)'],
+    surface: ['COLOR', 'if(not {dark}, {ink}, #FFFFFF)']
+  } as const
+  for (const [name, [type, source]] of Object.entries(formulas)) {
+    const variable = graph.createVariable(name, type, collection.id, type === 'FLOAT' ? 0 : '')
+    variable.valuesByMode[mode] = parseVariableFormula(graph, variable.id, mode, source).value
+  }
+  const bytes = await exportFigFile(graph)
+  const reopened = await parseFigFile(Uint8Array.from(bytes).buffer)
+  const resolved = (name: string) =>
+    reopened.resolveVariable(
+      [...reopened.variables.values()].find((variable) => variable.name === name)?.id ?? ''
+    )
+  expect(['label', 'named', 'gap', 'surface'].map(resolved)).toEqual([
+    'Hi, Ada',
+    true,
+    16,
+    { r: 1, g: 1, b: 1, a: 1 }
+  ])
+  const functions = parseFigBuffer(Uint8Array.from(bytes).buffer)
+    .nodeChanges.filter((node) => node.type === 'VARIABLE')
+    .map((node) => node.variableDataValues?.entries?.[0].variableData.value?.expressionValue)
+    .flatMap((expression) => (expression ? [expression.expressionFunction] : []))
+  expect(functions).toEqual(['TERNARY', 'IS_TRUTHY', 'TERNARY', 'TERNARY'])
 })

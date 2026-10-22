@@ -4,6 +4,7 @@ import type { ExportFormatId } from './export-format'
 import type { CanvasGuide } from './guides'
 import type { InstanceOverrideState } from './instance-overrides'
 import type { Color, Matrix, Rect, Vector } from './primitives'
+import type { ShapeWithTextType } from './shape-with-text/kinds'
 
 export interface SceneGraphEvents {
   'node:created': (node: SceneNode) => void
@@ -736,6 +737,15 @@ export interface SceneNode {
 
   pointCount: number
   starInnerRadius: number
+  /** The FigJam kind a SHAPE_WITH_TEXT draws; its label is the node's own text. */
+  shapeWithTextType: ShapeWithTextType
+  /** The height a shape with text was given; it grows past it to fit its label. 0 is unset. */
+  shapeUserHeight: number
+  /**
+   * Whether a shape with text keeps its height and cuts its label off with "…" instead of growing,
+   * as FigJam does once the shape's height was set.
+   */
+  shapeTruncates: boolean
 
   componentId: string | null
   instanceOverrides: InstanceOverrideState
@@ -841,35 +851,35 @@ export interface VariableColorExpression {
 }
 
 export type VariableLiteral = Color | number | string | boolean
-/** Figma's `ExpressionFunction` names for the arithmetic, comparison and logic a formula uses. */
+/** The arithmetic, comparison, logic and conversions a formula combines values with. */
 export const VARIABLE_FORMULA_OPERATORS = [
-  'ADDITION',
-  'SUBTRACTION',
-  'MULTIPLY',
-  'DIVIDE',
-  'NEGATE',
-  'EQUALS',
-  'NOT_EQUAL',
-  'LESS_THAN',
-  'LESS_THAN_OR_EQUAL',
-  'GREATER_THAN',
-  'GREATER_THAN_OR_EQUAL',
-  'AND',
-  'OR',
-  'NOT'
+  'add',
+  'subtract',
+  'multiply',
+  'divide',
+  'negate',
+  'equal',
+  'notEqual',
+  'less',
+  'lessOrEqual',
+  'greater',
+  'greaterOrEqual',
+  'and',
+  'or',
+  'not',
+  'text',
+  'truthy',
+  'if'
 ] as const
 export type VariableFormulaOperator = (typeof VARIABLE_FORMULA_OPERATORS)[number]
-export type VariableFormulaNode =
-  | number
-  | boolean
-  | VariableAlias
-  | {
-      operator: VariableFormulaOperator
-      operands: VariableFormulaNode[]
-    }
+export interface VariableFormulaOperation {
+  operator: VariableFormulaOperator
+  operands: VariableFormulaNode[]
+}
+export type VariableFormulaNode = VariableLiteral | VariableAlias | VariableFormulaOperation
 export interface VariableFormula {
   expression: 'FORMULA'
-  type: 'FLOAT' | 'BOOLEAN'
+  type: VariableType
   value: VariableFormulaNode
 }
 /**
@@ -880,7 +890,7 @@ export interface VariableFormula {
  */
 export interface VariableUnsupportedExpression {
   expression: 'UNSUPPORTED'
-  /** The function name the file gives, such as `TERNARY`. */
+  /** The function name the file gives, such as `VAR_MODE_LOOKUP`. */
   function: string
   value: Record<string, unknown>
   references: (string | null)[]

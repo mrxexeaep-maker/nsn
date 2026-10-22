@@ -17,7 +17,12 @@ import {
   variableBindingOwner,
   assignVariableBindingUnits
 } from './variables/bindings'
-import { BOOLEAN_BINDING_FIELDS, STRING_BINDING_FIELDS } from './variables/fields'
+import {
+  BOOLEAN_BINDING_FIELDS,
+  STRING_BINDING_FIELDS,
+  TEXT_CONTENT_VARIABLE_TYPES,
+  VISIBILITY_VARIABLE_TYPES
+} from './variables/fields'
 
 export * from './variables/resolution'
 
@@ -261,11 +266,16 @@ export function bindVariable(
     throw new Error(`Cannot bind ${variable.type} variable to scalar field "${field}"`)
   }
 
-  if (STRING_BINDING_FIELDS.has(field) && variable.type !== 'STRING') {
+  const textTypes: readonly VariableType[] =
+    field === 'text' ? TEXT_CONTENT_VARIABLE_TYPES : ['STRING']
+  if (STRING_BINDING_FIELDS.has(field) && !textTypes.includes(variable.type)) {
     throw new Error(`Cannot bind ${variable.type} variable to string field "${field}"`)
   }
 
-  if (BOOLEAN_BINDING_FIELDS.has(field) && variable.type !== 'BOOLEAN') {
+  if (
+    BOOLEAN_BINDING_FIELDS.has(field) &&
+    !VISIBILITY_VARIABLE_TYPES.some((type) => type === variable.type)
+  ) {
     throw new Error(`Cannot bind ${variable.type} variable to boolean field "${field}"`)
   }
 

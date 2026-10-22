@@ -2,13 +2,13 @@
 import { computed } from 'vue'
 
 import { getNodeEditCapability } from '@open-pencil/core/editor'
-import { layerResizes, readIcon } from '@open-pencil/scene-graph'
+import { layerResizes, layerStrokesAndEffects, readIcon } from '@open-pencil/scene-graph'
 import { useI18n, useSceneComputed, useSelectionState, useEditorCommands } from '@open-pencil/vue'
 
 import { useEditorStore } from '@/app/editor/active-store'
-import { COMPONENT_TYPES, sceneNodeIcon } from '@/app/editor/icons'
 import { openVariablesDialog } from '@/app/editor/tokens/dialog'
 import { openLibraryReview, useLibraryService } from '@/app/libraries'
+import { COMPONENT_TYPES, sceneNodeIcon } from '@/components/icons'
 import IconButton from '@/components/ui/button/IconButton.vue'
 import Tip from '@/components/ui/overlay/Tip.vue'
 import PanelHeader from '@/components/ui/panel/PanelHeader.vue'
@@ -25,6 +25,7 @@ import { usePropertyBinding } from './properties/component-properties/usePropert
 import VariantAuthoringSection from './properties/component-properties/variant/VariantAuthoringSection.vue'
 import ConnectorSection from './properties/connector/ConnectorSection.vue'
 import ConstraintsSection from './properties/constraints/ConstraintsSection.vue'
+import DocumentSection from './properties/DocumentSection.vue'
 import EffectsSection from './properties/EffectsSection.vue'
 import ExportSection from './properties/ExportSection.vue'
 import FillSection from './properties/FillSection.vue'
@@ -41,10 +42,13 @@ import PositionSection from './properties/PositionSection.vue'
 import SelectionColorsSection from './properties/selection/SelectionColorsSection.vue'
 import SelectionLayoutSection from './properties/selection/SelectionLayoutSection.vue'
 import SelectionActionsControl from './properties/SelectionActionsControl.vue'
+import ShapeWithTextSection from './properties/shape-with-text/ShapeWithTextSection.vue'
 import StatusesSection from './properties/status/StatusesSection.vue'
 import StatusSection from './properties/status/StatusSection.vue'
 import StickySection from './properties/sticky/StickySection.vue'
 import StrokeSection from './properties/stroke/StrokeSection.vue'
+import TextContentControl from './properties/text-content/TextContentControl.vue'
+import TextContentSection from './properties/text-content/TextContentSection.vue'
 import TypographySection from './properties/TypographySection.vue'
 import VariablesSection from './properties/VariablesSection.vue'
 
@@ -86,6 +90,10 @@ const supportsLayoutGuides = useSceneComputed(() => {
   const nodes = store.getSelectedNodes()
   return nodes.length > 0 && nodes.every((selected) => LAYOUT_GUIDE_TYPES.has(selected.type))
 })
+// A sticky note has no strokes or effects, so a selection holding one offers neither.
+const strokesAndEffects = useSceneComputed(() =>
+  store.getSelectedNodes().every((selected) => layerStrokesAndEffects(selected))
+)
 const { panels } = useI18n()
 </script>
 
@@ -123,8 +131,10 @@ const { panels } = useI18n()
     <AppearanceSection />
     <TypographySection />
     <FillSection />
-    <StrokeSection />
-    <EffectsSection />
+    <template v-if="strokesAndEffects">
+      <StrokeSection />
+      <EffectsSection />
+    </template>
     <SelectionColorsSection />
     <LayoutGridSection v-if="supportsLayoutGuides" />
     <ExportSection />
@@ -166,6 +176,7 @@ const { panels } = useI18n()
             <icon-lucide-diamond-plus class="size-3.5" />
           </IconButton>
           <PropertyBindButton v-if="node.type === 'INSTANCE'" field="INSTANCE_SWAP" />
+          <TextContentControl v-if="node.type === 'TEXT'" :node-id="node.id" :text="node.text" />
           <InstanceUpdateAction
             v-if="node.type === 'INSTANCE'"
             :node="node"
@@ -193,6 +204,7 @@ const { panels } = useI18n()
         </template>
       </PanelHeader>
 
+      <TextContentSection v-if="node.type === 'TEXT'" :node-id="node.id" />
       <StatusSection />
       <ComponentPropertiesSection v-if="node.type === 'INSTANCE'" />
       <VariantAuthoringSection
@@ -213,6 +225,7 @@ const { panels } = useI18n()
 
       <IconSection />
       <StickySection />
+      <ShapeWithTextSection />
       <ConnectorSection />
       <!-- A connector is placed and shaped by its ends, and styled by its line. -->
       <template v-if="node.type !== 'CONNECTOR'">
@@ -224,10 +237,13 @@ const { panels } = useI18n()
       <AppearanceSection />
       <template v-if="node.type !== 'CONNECTOR'">
         <MaskSection />
-        <TypographySection v-if="node.type === 'TEXT'" />
+        <!-- A shape with text's typography is its label's, as in Figma. -->
+        <TypographySection v-if="node.type === 'TEXT' || node.type === 'SHAPE_WITH_TEXT'" />
         <FillSection />
-        <StrokeSection />
-        <EffectsSection />
+        <template v-if="strokesAndEffects">
+          <StrokeSection />
+          <EffectsSection />
+        </template>
       </template>
       <SelectionColorsSection />
       <LayoutGridSection v-if="supportsLayoutGuides" />
@@ -244,6 +260,7 @@ const { panels } = useI18n()
     <PageSection />
     <VariablesSection @open-dialog="openVariablesDialog(store)" />
     <StatusesSection />
+    <DocumentSection />
     <ExportSection />
   </div>
 </template>

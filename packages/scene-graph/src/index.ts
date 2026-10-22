@@ -1,6 +1,7 @@
 /* eslint-disable max-lines -- SceneGraph exposes a stable facade over domain modules */
 export * from './mutation-impact'
 export * from './variables/bindings'
+export * from './variables/text'
 export type { VariableModeFallback } from './variables'
 export { modesDefaultFirst } from './variables'
 export * from './variables/token'
@@ -42,6 +43,7 @@ export * from './slots/content'
 export * from './slots/authoring'
 export * from './slots/limits'
 export * from './connectors'
+export * from './figjam'
 export * from './generated'
 export * from './behaviours/kinds'
 export * from './icons/schema'
@@ -66,7 +68,8 @@ export {
   createDefaultNode,
   defaultStrokeAlign,
   FITTED_CONTAINER_TYPES,
-  newStrokeGeometry
+  newStrokeGeometry,
+  SIDE_STROKE_TYPES
 } from './node-defaults'
 export {
   copyInstanceComponentProps,
@@ -90,6 +93,7 @@ export {
 export * from './snap'
 export * from './export-format'
 export * from './export-scale'
+export * from './fig-compression'
 export * from './coordinate'
 export * from './layout'
 export * from './text'
@@ -108,6 +112,7 @@ export { CommittedGraphEventError } from './buffered-events'
 import { BufferedSceneEmitter } from './buffered-events'
 import { cloneNodeProps } from './copy'
 import { bindNodeEvents } from './events'
+import { withGeneratedFrameSize } from './generated'
 import * as HitTest from './hit-test'
 export type { DropTargetOptions } from './hit-test'
 import * as Instances from './instances'
@@ -521,7 +526,8 @@ export class SceneGraph {
     for (const collection of this.variableCollections.values()) count += collection.modes.length
     return count
   }
-  private isEntityIdTaken(id: string): boolean {
+  /** Whether a node, variable, collection, or mode has this id. */
+  isEntityIdTaken(id: string): boolean {
     if (this.nodes.has(id) || this.variables.has(id) || this.variableCollections.has(id))
       return true
     // Callers replace collection maps and edit `modes` in place (history snapshots, transfer,
@@ -680,6 +686,8 @@ export class SceneGraph {
     this.updateNodePreview(id, { x, y })
   }
   updateNodePreview(id: string, changes: Partial<SceneNode>): void {
+    const node = this.nodes.get(id)
+    if (node) changes = this.sizedChanges(node, changes)
     const appliedChanges = updateNodePreview(this, id, changes, (node, applied) => {
       for (const observe of this.previewObservers) observe(node, applied)
     })
@@ -695,7 +703,12 @@ export class SceneGraph {
     const node = this.nodes.get(id)
     if (!node) return
     changes = stripUndefinedProps(styleDetachmentChanges(node, stripUndefinedProps(changes)))
-    this.applyNodeChanges(node, changes)
+    this.applyNodeChanges(node, this.sizedChanges(node, changes))
+  }
+
+  /** A size set from outside layout, with what it also sets on a generated frame. */
+  private sizedChanges(node: SceneNode, changes: Partial<SceneNode>): Partial<SceneNode> {
+    return this.isApplyingLayout ? changes : withGeneratedFrameSize(node, changes)
   }
 
   /** Replay captured properties without dropping explicit undefined values or absent keys. */

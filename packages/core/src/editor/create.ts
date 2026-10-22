@@ -39,6 +39,7 @@ import { createConnectorDrawActions, createConnectorEndpointActions } from './co
 import { createConnectorRouting } from './connectors/routing'
 import { createConnectorStyleActions } from './connectors/style'
 import { createDesignTokenActions } from './design-tokens'
+import { createFigCompressionActions } from './fig-compression'
 import { createGraphEventSubscription } from './graph-events'
 import { createGraphReadActions } from './graph-reads'
 import { createGuideActions } from './guides'
@@ -53,6 +54,7 @@ import { createSelectionActions } from './selection'
 import { createShaderActions } from './shaders/actions'
 import { createShaderFrames } from './shaders/frames'
 import { createShapeActions } from './shapes'
+import { createShapeWithTextActions } from './shapes/with-text'
 import { createDefaultEditorState } from './state'
 import { createStatusActions } from './statuses'
 import { createStickyActions } from './stickies'
@@ -60,6 +62,7 @@ import { createStructureActions } from './structure'
 import { createTextActions } from './text'
 import { createPendingTextLayout } from './text/pending-layout'
 import { createTextSelectionStyle } from './text/selection-style'
+import { createGeneratedTextActions } from './text/typeface'
 import type {
   EditorContext,
   EditorEventName,
@@ -298,7 +301,10 @@ export function createEditor(options?: EditorOptions) {
   const vectorize = createVectorizeActions(ctx)
   const icons = createIconActions(ctx)
   const stickies = createStickyActions(ctx)
+  const shapesWithText = createShapeWithTextActions(ctx)
+  const generatedText = createGeneratedTextActions(ctx)
   const statuses = createStatusActions(ctx)
+  const figCompression = createFigCompressionActions(ctx)
   createConnectorRouting(ctx)
   const connectorDrawing = createConnectorDrawActions(ctx)
   const connectorEndpoints = createConnectorEndpointActions(
@@ -475,6 +481,8 @@ export function createEditor(options?: EditorOptions) {
     ...vectorize,
     ...icons,
     ...stickies,
+    ...shapesWithText,
+    ...generatedText,
     statusWorkflow: statuses.statusWorkflow,
     getShownStatus: statuses.getShownStatus,
     setStatus: statuses.setStatus,
@@ -511,6 +519,8 @@ export function createEditor(options?: EditorOptions) {
     redoAction: () => text.runTextEditStep(undoBridge.redoAction),
 
     setDocumentColorSpace: colorSpace.setDocumentColorSpace,
+    figCompression: figCompression.figCompression,
+    setFigCompression: figCompression.setFigCompression,
 
     // Clipboard — bridge functions that need selectedNodes
     ...clipboardBridge,

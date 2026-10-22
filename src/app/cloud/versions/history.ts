@@ -1,9 +1,9 @@
-import { shallowRef } from 'vue'
+import { shallowReactive, shallowRef } from 'vue'
 
 import type { DocumentVersion } from '@open-pencil/cloud/contract'
 
 import { createEditorStore, type EditorStore } from '@/app/editor/session'
-import { downloadCloudRevision } from '@/app/integrations/storage/cloud/download'
+import { downloadCloudDocument } from '@/app/integrations/storage/cloud/download'
 import { storageFetch } from '@/app/integrations/storage/s3/fetch'
 import { readFigBytes } from '@/app/tabs'
 
@@ -33,8 +33,19 @@ const histories = shallowRef<ReadonlyMap<EditorStore, VersionHistory>>(new Map()
 export type VersionDialog = { store: EditorStore; version: DocumentVersion | null }
 export const versionDialog = shallowRef<VersionDialog | null>(null)
 
-/** Bumped when the history changes, here or anywhere the server says, so open lists load it again. */
-export const versionListRevision = shallowRef(0)
+/** Each document's history changes so far, here or anywhere the server says. */
+const listRevisions = shallowReactive(new WeakMap<EditorStore, number>())
+
+/** How often the history of the document `store` shows has changed, so its open list reloads. */
+export function versionListRevision(store: EditorStore): number {
+  return listRevisions.get(versionHistoryOf(store)?.store ?? store) ?? 0
+}
+
+/** The history of the document `store` shows changed, so its open list loads it again. */
+export function versionsChanged(store: EditorStore): void {
+  const document = versionHistoryOf(store)?.store ?? store
+  listRevisions.set(document, (listRevisions.get(document) ?? 0) + 1)
+}
 /** Each tab's preview download in flight, keyed by its document. */
 const previewLoads = new Map<EditorStore, AbortController>()
 
@@ -138,7 +149,7 @@ export async function previewVersion(store: EditorStore, version: DocumentVersio
       target.documentId,
       version.id
     )
-    const bytes = await downloadCloudRevision(download, storageFetch, { signal: load.signal })
+    const bytes = await downloadCloudDocument(download, storageFetch, { signal: load.signal })
     const name = document.state.documentName
     preview = createEditorStore(await readFigBytes(bytes, name, load.signal))
     preview.state.documentName = name
