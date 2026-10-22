@@ -4,7 +4,6 @@ import type { SceneGraph, SceneNode as CoreSceneNode, NodeType } from '@open-pen
 import { createConnector, freeEndpoint } from '@open-pencil/scene-graph/connectors'
 import { computeBounds } from '@open-pencil/scene-graph/geometry'
 import type { GroupFitOptions } from '@open-pencil/scene-graph/group-bounds'
-import { computeImageHash } from '@open-pencil/scene-graph/images'
 import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
 
 import type { SkiaRenderer } from '#core/canvas'
@@ -23,6 +22,7 @@ import { fontManager } from '#core/text/fonts'
 
 import { componentFromNode } from './components'
 import { flattenSceneNodes } from './flatten'
+import { fetchImage, storeImage } from './images'
 import type {
   FigmaBooleanOperationNode,
   FigmaComponentNode,
@@ -494,10 +494,13 @@ export class FigmaAPI implements NodeProxyHost {
     this._viewport = { x: v.center.x, y: v.center.y, zoom: v.zoom }
   }
 
-  createImage(data: Uint8Array): { hash: string } {
-    const hash = computeImageHash(data)
-    this.graph.images.set(hash, data)
-    return { hash }
+  createImage(data: Uint8Array): Image {
+    return storeImage(this.graph, data)
+  }
+
+  /** Fetches the image at `src` and stores it as `createImage` does. */
+  createImageAsync(src: string): Promise<Image> {
+    return fetchImage(this.graph, src)
   }
 
   // --- Stubs ---

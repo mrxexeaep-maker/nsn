@@ -34,6 +34,8 @@ export type SupportedPluginAPI = Pick<
   | 'createConnector'
   | 'createEllipse'
   | 'createFrame'
+  | 'createImage'
+  | 'createImageAsync'
   | 'createLine'
   | 'createNodeFromSvg'
   | 'createPolygon'

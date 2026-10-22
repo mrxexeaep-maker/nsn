@@ -244,7 +244,7 @@ Common node properties are readable/writable through the proxy, including:
 
 - `figma.mixed`
 - `figma.util.rgb(color)`, `figma.util.rgba(color, alphaOverride?)`, and `figma.util.solidPaint(color, overrides?)` read a hex or CSS color string (`rgb()`, `hsl()`, `lab()`, `oklch()`, or a name) or an `{ r, g, b, a? }` object with channels from 0 to 1; `solidPaint` takes its color and opacity from `color` and its other properties from `overrides`, such as an existing paint
-- `figma.createImage(data)`
+- `figma.createImage(data)` and `figma.createImageAsync(url)`, which fetches the image first, give Figma's `Image`: its `hash`, `getBytesAsync()`, and `getSizeAsync()`, read from the PNG, JPEG, GIF, or WebP header
 - `figma.loadFontAsync(fontName)` no-ops because OpenPencil does not gate text edits on plugin font loading
 - `figma.listAvailableFontsAsync()` returns host-provided fonts when available
 - `figma.getNodeByIdAsync(id)` and `instance.getMainComponentAsync()` resolve to the same nodes as `figma.getNodeById(id)` and `instance.mainComponent`, for scripts written for Figma's dynamic-page mode
