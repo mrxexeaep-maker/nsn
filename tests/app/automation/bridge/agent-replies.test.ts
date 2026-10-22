@@ -60,6 +60,22 @@ describe("an ACP chat's edits during its reply", () => {
     expect(readToolChange('exec-1')?.jsx.after).toContain('Rectangle')
   })
 
+  test('include property edits, which push their own undo entry', async () => {
+    const { store, target } = document()
+    const created = (await createRectangle(target, { kind: 'mcp' })) as {
+      result: { id: string }
+    }
+    const run = startAgentRun(store, CHAT)
+    await handleTargetCommand(target, 'tool', {
+      name: 'set_fill',
+      args: { id: created.result.id, color: '#3b82f6' },
+      agent: { session: 'session-1', kind: 'acp', chat: CHAT, call: 'toolu_fill' }
+    })
+
+    expect(store.undo.peekUndo()?.label).toBe('AI: set_fill')
+    expect(run.undoCalls.map(({ toolCallId }) => toolCallId)).toEqual(['toolu_fill'])
+  })
+
   test('stay ordinary agent edits after the reply ended, from another chat, or elsewhere', async () => {
     const { store, target } = document()
     const other = document()

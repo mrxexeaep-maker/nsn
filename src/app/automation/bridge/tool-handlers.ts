@@ -1,16 +1,9 @@
-import { isEmptyDocumentChange } from '@open-pencil/core/editor'
 import type { FigmaAPI } from '@open-pencil/core/figma-api'
-import {
-  ALL_TOOLS,
-  registerComponentCatalog,
-  isAtomicTool,
-  isToolExposed,
-  toolChangesDocument
-} from '@open-pencil/core/tools'
+import { ALL_TOOLS, registerComponentCatalog, isToolExposed } from '@open-pencil/core/tools'
 import type { JSONObject } from '@open-pencil/scene-graph/primitives'
 
-import { recordToolChange } from '@/app/ai/tools/changes/capture'
-import { agentReplyRun, aiUndoLabel, recordRunUndoEntry, type Run } from '@/app/ai/tools/run'
+import { agentReplyRun } from '@/app/ai/tools/run'
+import { runEditorTool, type ReplyCall } from '@/app/ai/tools/runner'
 import {
   agentFinished,
   agentStarted,
@@ -20,13 +13,6 @@ import {
 } from '@/app/automation/agents'
 import { limitToSelection } from '@/app/automation/bridge/selection-scope'
 import type { AutomationTarget } from '@/app/automation/bridge/target'
-import {
-  AUTOMATION_UNDO_LABEL,
-  automationUndoLabel,
-  executeAtomicEditorTool,
-  executeWithDocumentUndo
-} from '@/app/automation/execution/editor'
-import { ensureGraphFonts } from '@/app/editor/fonts'
 import { useLibraryService } from '@/app/libraries'
 
 type FigmaFactory = (store: AutomationTarget['store'], pageId?: string) => FigmaAPI
@@ -45,9 +31,7 @@ export function createAutomationToolHandler(makeFigma: FigmaFactory) {
     // A call from an MCP session shows as that session's agent, working where the call works.
     const session = readAgentSession((args as { agent?: unknown }).agent)
     const reply = session ? agentStarted(target.store, session, target.pageId) : 0
-    const response = await runInReply(target, toolName, session, () =>
-      runTool(target, toolName, toolArgs, replyRunOf(target, session) ? aiUndoLabel : null)
-    )
+    const response = await runTool(target, toolName, toolArgs, session)
     if (session) {
       agentFinished(target.store, session, {
         reply,
@@ -60,53 +44,20 @@ export function createAutomationToolHandler(makeFigma: FigmaFactory) {
   }
 
   /**
-   * An ACP chat's call during its reply joins the reply's run, as the built-in chat's calls do,
+   * An ACP chat's call during its reply belongs to the reply, as the built-in chat's calls do,
    * so the reply can revert it and the transcript marks it under the agent's own call id.
    */
-  async function runInReply<T>(
-    target: AutomationTarget,
-    toolName: string,
-    session: AgentSession | null,
-    run: () => Promise<T>
-  ): Promise<T> {
-    const reply = replyRunOf(target, session)
-    const call = session?.call
-    if (!reply || !call) return run()
-    const store = target.store
-    const undoBefore = store.undo.peekUndo()
-    const finishChange = store.captureDocumentChange(target.pageId)
-    reply.beginTool()
-    try {
-      return await run()
-    } finally {
-      const change = finishChange()
-      recordRunUndoEntry(store, reply, { tool: toolName, toolCallId: call }, undoBefore)
-      if (!isEmptyDocumentChange(change)) {
-        reply.changedCalls.add(call)
-        try {
-          // The card's before and after, as the built-in chat's calls show theirs.
-          recordToolChange(store, call, change)
-        } catch (error) {
-          // The change record is a review aid; the edit and its undo entry already stand.
-          console.warn('Could not record agent tool change', error)
-        }
-      }
-      reply.endTool()
-    }
-  }
-
-  function replyRunOf(target: AutomationTarget, session: AgentSession | null): Run | null {
-    return session?.kind === 'acp' && session.call
-      ? agentReplyRun(target.store, session.chat)
-      : null
+  function replyOf(target: AutomationTarget, session: AgentSession | null): ReplyCall | null {
+    if (session?.kind !== 'acp' || !session.call) return null
+    const run = agentReplyRun(target.store, session.chat)
+    return run ? { run, toolCallId: session.call } : null
   }
 
   async function runTool(
     target: AutomationTarget,
     toolName: string,
     toolArgs: Record<string, unknown>,
-    /** The chat's labels, for a call that belongs to a chat reply. */
-    chatLabel: ((tool: string) => string) | null
+    session: AgentSession | null
   ): Promise<{ result: unknown; edited: boolean }> {
     const def = ALL_TOOLS.find((t) => t.name === toolName && isToolExposed(t, 'mcp'))
     if (!def) throw new Error(`Unknown tool: ${toolName}`)
@@ -115,61 +66,19 @@ export function createAutomationToolHandler(makeFigma: FigmaFactory) {
     libraryService.bindEditor(store)
     registerComponentCatalog(store.graph, libraryService)
     const figma = makeFigma(store, target.pageId)
-    let result: unknown
-    if (isAtomicTool(def)) {
-      result = await executeAtomicEditorTool(store, figma, def, toolArgs, {
-        label: chatLabel?.(def.name) ?? AUTOMATION_UNDO_LABEL
-      })
-    } else if (def.mutates) {
-      const pageId = writtenPageId(store.graph, toolArgs) ?? figma.currentPageId
-      const mutate = () =>
-        store.runMutationWithLayout(
-          () => def.execute(figma, toolArgs),
-          pageId,
-          async () => {
-            const pageNode = store.graph.getNode(pageId)
-            if (pageNode) await ensureGraphFonts(store.graph, pageNode.childIds, store.renderer)
-          }
-        )
-      // View tools (selection, viewport, pages) leave the document and its history alone.
-      result = toolChangesDocument(def)
-        ? await executeWithDocumentUndo(
-            store,
-            pageId,
-            chatLabel?.(def.name) ?? automationUndoLabel(def.name),
-            mutate
-          )
-        : await mutate()
-    } else {
-      result = await def.execute(figma, toolArgs)
-    }
-
+    const result = await runEditorTool({
+      store,
+      figma,
+      def,
+      args: toolArgs,
+      reply: replyOf(target, session)
+    })
     if (def.mutates) {
       store.requestRender()
       store.flashNodes(extractNodeIds(result))
     }
     return { result, edited: def.mutates }
   }
-}
-
-/**
- * A parent or a replaced layer on another page puts the new layers there, so that page lays out,
- * loads their fonts, and records the change in its history.
- */
-function writtenPageId(
-  graph: AutomationTarget['store']['graph'],
-  args: Record<string, unknown>
-): string | null {
-  // As render places it: a replaced layer's parent wins over parent_id.
-  const nodeId = args.replace_id ?? args.parent_id
-  return typeof nodeId === 'string' ? pageIdOf(graph, nodeId) : null
-}
-
-function pageIdOf(graph: AutomationTarget['store']['graph'], nodeId: string): string | null {
-  let node = graph.getNode(nodeId)
-  while (node && node.type !== 'CANVAS')
-    node = node.parentId ? graph.getNode(node.parentId) : undefined
-  return node?.id ?? null
 }
 
 function extractNodeIds(result: unknown): string[] {

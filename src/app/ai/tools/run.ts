@@ -19,9 +19,12 @@ export interface RunUndoCall extends CallRef {
   entry: UndoEntry
 }
 
+/** What a chat reply's undo entries start with, before the tool's name. */
+export const AI_UNDO_PREFIX = 'AI'
+
 /** The label of an AI tool call's undo entry, which Edit → Undo shows. */
 export function aiUndoLabel(tool: string): string {
-  return `AI: ${tool}`
+  return `${AI_UNDO_PREFIX}: ${tool}`
 }
 
 export class Run {
@@ -44,9 +47,16 @@ export class Run {
   private whenSettled: Promise<void> = Promise.resolve()
   private settle: () => void = () => undefined
 
-  constructor(maxSteps: number, pageId: string) {
+  /**
+   * Whether the built-in chat's agent shows the run's work on the canvas and follows its page
+   * changes; an ACP agent's run shows through its own MCP session instead.
+   */
+  readonly presence: boolean
+
+  constructor(maxSteps: number, pageId: string, presence = true) {
     this.maxSteps = resolveAgentStepLimit(maxSteps)
     this.pageId = pageId
+    this.presence = presence
   }
 
   hitLimit(): boolean {
@@ -108,7 +118,7 @@ const agentChats = new Map<string, EditorStore>()
  */
 export function startAgentRun(store: EditorStore, chat: string): Run {
   const state = getRunState(store)
-  state.run = new Run(DEFAULT_AGENT_STEPS, store.state.currentPageId)
+  state.run = new Run(DEFAULT_AGENT_STEPS, store.state.currentPageId, false)
   agentChats.set(chat, store)
   return state.run
 }
@@ -136,7 +146,7 @@ export function endRun(store: EditorStore, run = currentRun(store)): void {
   const state = getRunState(store)
   if (!run.active) return
   run.active = false
-  if (state.run !== run) return
+  if (state.run !== run || !run.presence) return
   state.agent?.update({
     status: 'idle',
     cursor: undefined,
@@ -153,7 +163,7 @@ export function currentRun(store: EditorStore): Run {
 /** Whether the agent may still show where it works: its run is the latest and still going. */
 function agentAtWork(store: EditorStore): AgentHandle | null {
   const { agent, run } = getRunState(store)
-  return run.active ? agent : null
+  return run.active && run.presence ? agent : null
 }
 
 /**
@@ -219,8 +229,9 @@ export function runPageId(store: EditorStore): string {
 
 /** Move the run to `pageId`, and the user's view with it, as the agent's `switch_page` does. */
 export async function moveRunToPage(store: EditorStore, run: Run, pageId: string): Promise<void> {
-  // A stopped reply's late `switch_page` no longer takes the view anywhere.
-  if (!run.active) return
+  // A stopped reply's late `switch_page` no longer takes the view anywhere, and an ACP agent's
+  // page change is its own MCP session's to show.
+  if (!run.active || !run.presence) return
   run.pageId = pageId
   getRunState(store).agent?.update({ pageId })
   if (store.state.currentPageId !== pageId) await store.switchPage(pageId)
