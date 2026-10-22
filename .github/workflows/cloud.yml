@@ -22,6 +22,8 @@ jobs:
       CLOUD_CONFIG: ${{ github.workspace }}/packages/cloud/deploy/cloudflare/staging.toml
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-bun
 
@@ -66,8 +68,13 @@ jobs:
       - name: Check the deployment
         env:
           CLOUD_URL: ${{ vars.CLOUD_URL }}
+        # Only a 200 counts: a redirect to a sign-in or access page would mean the Worker isn't there.
         run: |
           for path in /health /ready /.well-known/openpencil /auth/sign-in; do
-            curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 3 \
-              --output /dev/null "$CLOUD_URL$path"
+            status=$(curl --silent --show-error --retry 10 --retry-all-errors --retry-delay 3 \
+              --output /dev/null --write-out '%{http_code}' "$CLOUD_URL$path")
+            if [ "$status" != 200 ]; then
+              echo "::error::$path answered HTTP $status"
+              exit 1
+            fi
           done
