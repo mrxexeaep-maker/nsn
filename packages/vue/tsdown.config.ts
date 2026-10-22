@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 
 import { defineConfig } from 'tsdown'
@@ -5,6 +6,28 @@ import raw from 'unplugin-raw/rolldown'
 import vue from 'unplugin-vue/rolldown'
 
 const require = createRequire(import.meta.url)
+
+const packageJSON = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+  dependencies?: Record<string, string>
+  peerDependencies?: Record<string, string>
+}
+/** Bundled because their ES modules are `.js` files Node reads as CommonJS. */
+const BUNDLED = ['@atlaskit/pragmatic-drag-and-drop', '@atlaskit/pragmatic-drag-and-drop-hitbox']
+const external = Object.keys({ ...packageJSON.dependencies, ...packageJSON.peerDependencies })
+  .filter((name) => !BUNDLED.includes(name))
+  .flatMap((name) => [name, new RegExp(`^${name.replaceAll('/', '\\/')}/`)])
+
+/**
+ * Where an unbundled module is written: bundled packages keep their install path, and npm never
+ * packs a folder named `node_modules`, so they go under `vendor/` instead.
+ */
+function outputPath(chunk: { name: string }): string {
+  // A `?raw` import is a module of its own; its query would read as a URL query to Node.
+  const source = chunk.name.replace(/\?.*$/, '')
+  const vendored = source.lastIndexOf('node_modules/')
+  const name = vendored < 0 ? source : `vendor/${source.slice(vendored + 'node_modules/'.length)}`
+  return `${name}.js`
+}
 
 function atlaskitSubpathResolver() {
   const aliases = new Map([
@@ -129,27 +152,8 @@ export default defineConfig({
     moduleSideEffects: false
   },
   deps: {
-    alwaysBundle: [
-      '@atlaskit/pragmatic-drag-and-drop',
-      /^@atlaskit\/pragmatic-drag-and-drop\//,
-      '@atlaskit/pragmatic-drag-and-drop-hitbox',
-      /^@atlaskit\/pragmatic-drag-and-drop-hitbox\//
-    ],
-    neverBundle: [
-      'vue',
-      /^vue\//,
-      '@open-pencil/core',
-      /^@open-pencil\/core\//,
-      '@open-pencil/scene-graph',
-      /^@open-pencil\/scene-graph\//,
-      'canvaskit-wasm',
-      'opentype.js',
-      '@vueuse/core',
-      '@nanostores/vue',
-      '@nanostores/i18n',
-      'nanostores',
-      'reka-ui'
-    ],
+    alwaysBundle: BUNDLED.flatMap((name) => [name, new RegExp(`^${name.replaceAll('/', '\\/')}/`)]),
+    neverBundle: [...external, /^node:/    ],
     onlyBundle: false
   },
   plugins: [atlaskitSubpathResolver(), raw(), vue()],
@@ -160,7 +164,9 @@ export default defineConfig({
     }
   },
   outputOptions: {
-    minifyInternalExports: false
+    minifyInternalExports: false,
+    entryFileNames: outputPath,
+    chunkFileNames: outputPath
   },
   // Each module keeps its source path, so an entry's declarations never share a name with a chunk.
   unbundle: true
