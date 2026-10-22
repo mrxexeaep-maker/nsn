@@ -100,6 +100,8 @@ export class ACPChatTransport implements ChatTransport<UIMessage> {
   private cwd: string
   private sentContext = false
   private destroying = false
+  /** The agent while it starts, before it becomes the session, so destroying can stop it. */
+  private starting: TauriChild | null = null
 
   constructor(options: { agentDef: ACPAgentDef; cwd?: string }) {
     this.agentDef = options.agentDef
@@ -196,6 +198,9 @@ export class ACPChatTransport implements ChatTransport<UIMessage> {
 
   async destroy(): Promise<void> {
     this.destroying = true
+    const starting = this.starting
+    this.starting = null
+    await starting?.kill().catch(() => undefined)
     if (this.session) {
       await this.session.child.kill()
       this.session = null
@@ -245,6 +250,13 @@ export class ACPChatTransport implements ChatTransport<UIMessage> {
     }
 
     const connection = new ClientSideConnection((_agent: Agent) => clientImpl, stream)
+    this.starting = child
+    // The SDK leaves requests pending when the agent exits, so each startup request races it.
+    const stopped = connection.closed.then((): never => {
+      throw new Error('The agent stopped while it was starting.')
+    })
+    stopped.catch(() => undefined)
+    const untilStopped = <T>(request: Promise<T>): Promise<T> => Promise.race([request, stopped])
     const { getAutomationAuthToken } = await import('@/app/automation/mcp/spawn')
     let automationAuthToken: string | null
     try {
@@ -255,10 +267,12 @@ export class ACPChatTransport implements ChatTransport<UIMessage> {
     }
 
     try {
-      await connection.initialize({
-        protocolVersion: PROTOCOL_VERSION,
-        clientCapabilities: {}
-      })
+      await untilStopped(
+        connection.initialize({
+          protocolVersion: PROTOCOL_VERSION,
+          clientCapabilities: {}
+        })
+      )
     } catch (e) {
       await child.kill().catch(() => undefined)
       throw startupError(e, this.agentDef)
@@ -277,18 +291,32 @@ export class ACPChatTransport implements ChatTransport<UIMessage> {
 
     let sessionResult
     try {
-      sessionResult = await connection.newSession({
-        cwd: this.cwd,
-        mcpServers: tools.mcpServers,
-        _meta: tools.meta
-      })
+      sessionResult = await untilStopped(
+        connection.newSession({
+          cwd: this.cwd,
+          mcpServers: tools.mcpServers,
+          _meta: tools.meta
+        })
+      )
     } catch (e) {
       tools.stop()
       await child.kill().catch(() => undefined)
       throw startupError(e, this.agentDef)
     }
 
-    const outcome = await tools.outcome()
+    let outcome: Awaited<ReturnType<typeof tools.outcome>>
+    try {
+      outcome = await untilStopped(tools.outcome())
+    } catch (e) {
+      tools.stop()
+      throw startupError(e, this.agentDef)
+    }
+    // Destroyed while starting, as when the chat closes: the agent must not get a prompt.
+    if (this.destroying) {
+      await child.kill().catch(() => undefined)
+      throw new Error('The chat closed while its agent was starting.')
+    }
+    this.starting = null
     if (outcome.connected === false) {
       await child.kill().catch(() => undefined)
       const error = toolsUnreachableError(this.agentDef, outcome.reason)
