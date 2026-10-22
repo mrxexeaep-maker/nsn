@@ -46,6 +46,17 @@ revision has its own object key.
   replace it.
 - Deleting a document is immediate for users; the cleanup worker removes revisions and objects once
   the retention period passes.
+- Images are stored once per workspace, keyed by the SHA-256 the object store verifies, and a stored
+  revision leaves them out of its file: it lists the images it uses under the names the file gives
+  them, and a download returns a link for each. Before a save the client asks which of its images
+  the workspace lacks and uploads only those, each as an upload of its own kind with its own
+  reservation, committed together in one request; asking renews the images the workspace holds.
+  An image under a name Cloud does not accept stays inside the file. A save that names an image
+  the workspace does not hold is refused. Keying by the verified checksum, with names kept per
+  revision, means bytes uploaded under the wrong name can only reach the revision that named them.
+- Restoring or duplicating a version gives the new revision the same images. Compaction releases an
+  image no kept revision uses once a day has passed since a save last asked for it: its bytes return
+  to the workspace's usage and the object sweep deletes its file.
 
 ### Version history
 
@@ -137,6 +148,15 @@ The relay joins every room as a peer named `server`. It holds the room's Yjs doc
 PostgreSQL by document and collaboration epoch, so a newcomer gets the document even when nobody
 else is online. Tickets are short-lived signed JWTs; the client presents a fresh one before the
 current one expires, and the relay closes a socket whose ticket lapsed or changed identity.
+
+A socket message carries at most 256 KiB of a frame, under the deployment's per-message limit,
+which may not be lower. A larger frame, such as a big paste, the first editor's copy of a large
+document, or a newcomer's sync reply, travels as fragments in a row that the receiver joins again.
+The relay joins an editor's fragments up to 256 MiB and holds viewers and peers not yet admitted to
+one message, so only an editor can make it buffer more. A peer the relay turns away for good, for
+a ticket, a full room, or a frame past those limits, leaves the room: the document's status says it
+is not editing live and offers to rejoin, a viewer stays read-only, and an editor saves on its own,
+since a tab that was not the room's saver had its edits counted as saved by the room.
 
 The relay enforces what the ticket allows: a viewer's document updates and sync replies never leave
 it, and presence updates are rewritten so others see the ticket's name and a `cloud` field with the
