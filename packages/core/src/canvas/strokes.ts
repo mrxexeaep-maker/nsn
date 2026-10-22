@@ -192,7 +192,9 @@ function fillHead(
  * A gradient or image stroke paints through a shader, the way the same paint does as a fill.
  * Both paints get it: a vector stroke's outline and an arrowhead are filled shapes drawn with
  * `fillPaint`, so the shader has to be on whichever paint the draw helper reaches for.
- * Returns false for a solid stroke, which paints through the paint's color instead.
+ * Returns whether the stroke draws: a solid one paints through the paint's color, and a gradient
+ * CanvasKit cannot build, as for a transform that holds no numbers, is skipped rather than drawn in
+ * that color.
  */
 export function applyStrokeShader(
   r: SkiaRenderer,
@@ -204,33 +206,32 @@ export function applyStrokeShader(
   r.strokePaint.setShader(null)
   r.fillPaint.setShader(null)
   if (stroke.type.startsWith('GRADIENT') && stroke.gradientStops && stroke.gradientTransform) {
+    let built = true
     for (const paint of [r.strokePaint, r.fillPaint]) {
-      applyGradientFill(
-        r,
-        stroke,
-        node,
-        graph,
-        paint,
-        // Every stop resolves against this stroke's own binding, not the stop's position.
-        (color) =>
-          r.resolveStrokeColorInfo(
-            { ...stroke, type: 'SOLID', color, opacity: color.a, visible: true },
-            strokeIndex,
-            node,
-            graph
-          ).color
-      )
+      built =
+        applyGradientFill(
+          r,
+          stroke,
+          node,
+          graph,
+          paint,
+          // Every stop resolves against this stroke's own binding, not the stop's position.
+          (color) =>
+            r.resolveStrokeColorInfo(
+              { ...stroke, type: 'SOLID', color, opacity: color.a, visible: true },
+              strokeIndex,
+              node,
+              graph
+            ).color
+        ) && built
     }
-    return true
+    return built
   }
   if (stroke.type === 'IMAGE' && stroke.imageHash) {
-    let applied = false
-    for (const paint of [r.strokePaint, r.fillPaint]) {
-      applied = applyImageFill(r, stroke, node, graph, paint) || applied
-    }
-    return applied
+    // An image not yet decoded leaves the paints' color, which the stroke draws in meanwhile.
+    for (const paint of [r.strokePaint, r.fillPaint]) applyImageFill(r, stroke, node, graph, paint)
   }
-  return false
+  return true
 }
 
 /** Leaves any shader in place: a shaded stroke's color is unused, but its alpha still applies. */
