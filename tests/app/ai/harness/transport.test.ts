@@ -1,6 +1,10 @@
 import { expect, test } from 'bun:test'
 
-import type { HarnessSidecarMessage, HarnessTurnUsage } from '@open-pencil/harness'
+import type {
+  HarnessSidecarMessage,
+  HarnessTurnEvent,
+  HarnessTurnUsage
+} from '@open-pencil/harness'
 
 import { HarnessChatTransport } from '@/app/ai/harness/transport'
 
@@ -117,6 +121,8 @@ function fakeCompanion({ turnsFail = false } = {}) {
     /** The turn's next event or its final answer, as the companion would send it. */
     text: (turn: string, text: string) =>
       output?.enqueue({ type: 'turn.event', id: turn, event: { type: 'text-delta', text } }),
+    event: (turn: string, event: HarnessTurnEvent) =>
+      output?.enqueue({ type: 'turn.event', id: turn, event }),
     complete: (turn: string) =>
       output?.enqueue({ type: 'response', id: turn, result: { completed: true } }),
     finish: (turn: string, usage?: HarnessTurnUsage) =>
@@ -232,5 +238,38 @@ test("reports each turn's tokens, which older companions do not send", async () 
     }
   }
   expect(reported).toEqual([usage])
+  await transport.destroy()
+})
+
+test('text after a tool call starts a new part, and a stopped turn closes its text', async () => {
+  const companion = fakeCompanion()
+  const transport = new HarnessChatTransport('parts-session', configuration, {}, companion.spawn)
+  const stop = new AbortController()
+  const reader = (await send(transport, stop.signal)).getReader()
+  await Promise.resolve()
+  const turn = companion.turns.at(-1) ?? ''
+  companion.text(turn, 'Looking.')
+  companion.event(turn, {
+    type: 'tool-call',
+    toolCallId: 'call-1',
+    toolName: 'mcp_open-pencil_get_page_tree',
+    input: {}
+  })
+  companion.event(turn, {
+    type: 'tool-result',
+    toolCallId: 'call-1',
+    toolName: 'mcp_open-pencil_get_page_tree',
+    output: {}
+  })
+  companion.text(turn, 'Done')
+  const types: string[] = []
+  for (let read = await reader.read(); !read.done; read = await reader.read()) {
+    types.push(read.value.type)
+    // Stop once the second text arrived, as the person would while it streams.
+    if (types.filter((type) => type === 'text-delta').length === 2) stop.abort()
+  }
+  expect(types.filter((type) => type === 'text-start')).toHaveLength(2)
+  expect(types.filter((type) => type === 'text-end')).toHaveLength(2)
+  expect(types.at(-1)).toBe('finish')
   await transport.destroy()
 })

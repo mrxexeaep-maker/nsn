@@ -7,15 +7,15 @@ import type {
   HarnessTurnUsage
 } from '@open-pencil/harness'
 
+import { createReplyStream, type ReplyStream } from '@/app/ai/reply/stream'
+
 import { spawnHarnessProcess, type HarnessProcess } from './process'
 
 interface PendingRequest {
   controller?: ReadableStreamDefaultController<UIMessageChunk>
   resolve: (message: HarnessSidecarMessage) => void
   reject: (error: Error) => void
-  textId: string
-  textStarted: boolean
-  reasoningStarted: boolean
+  stream: ReplyStream
 }
 
 function requestID(): string {
@@ -31,6 +31,16 @@ function emit(pending: PendingRequest, ...chunks: UIMessageChunk[]): void {
   for (const chunk of chunks) pending.controller?.enqueue(chunk)
 }
 
+/** Closes the reply's open text or thought, then finishes it. */
+function finishReply(pending: PendingRequest): void {
+  emit(
+    pending,
+    ...pending.stream.end(),
+    { type: 'finish-step' },
+    { type: 'finish', finishReason: 'stop' }
+  )
+}
+
 /** Ends a reply's stream, once; later events for its turn go nowhere. */
 function close(pending: PendingRequest): void {
   const { controller } = pending
@@ -38,40 +48,21 @@ function close(pending: PendingRequest): void {
   controller?.close()
 }
 
-function mapEvent(event: HarnessTurnEvent, pending: PendingRequest): UIMessageChunk[] {
-  const chunks: UIMessageChunk[] = []
-  if (event.type === 'text-delta') {
-    if (!pending.textStarted) {
-      chunks.push({ type: 'text-start', id: pending.textId })
-      pending.textStarted = true
-    }
-    chunks.push({ type: 'text-delta', id: pending.textId, delta: event.text })
-  } else if (event.type === 'reasoning-delta') {
-    const id = `reasoning-${pending.textId}`
-    if (!pending.reasoningStarted) {
-      chunks.push({ type: 'reasoning-start', id })
-      pending.reasoningStarted = true
-    }
-    chunks.push({ type: 'reasoning-delta', id, delta: event.text })
-  } else if (event.type === 'tool-call') {
-    chunks.push({
-      type: 'tool-input-available',
-      toolCallId: event.toolCallId,
-      toolName: event.toolName,
-      input: event.input,
-      providerExecuted: true
-    })
-  } else if (event.type === 'tool-result') {
-    chunks.push({
-      type: 'tool-output-available',
-      toolCallId: event.toolCallId,
-      output: event.output,
-      providerExecuted: true
-    })
-  } else if (event.type === 'error') {
-    chunks.push({ type: 'error', errorText: event.message })
+function mapEvent(event: HarnessTurnEvent, { stream }: PendingRequest): UIMessageChunk[] {
+  switch (event.type) {
+    case 'text-delta':
+      return stream.text(event.text)
+    case 'reasoning-delta':
+      return stream.thought(event.text)
+    case 'tool-call':
+      return stream.toolInput({ id: event.toolCallId, name: event.toolName }, event.input)
+    case 'tool-result':
+      return stream.toolResult(event.toolCallId, event.output)
+    case 'error':
+      return [{ type: 'error', errorText: event.message }]
+    default:
+      return []
   }
-  return chunks
 }
 
 export class HarnessChatTransport implements ChatTransport<UIMessage> {
@@ -127,7 +118,7 @@ export class HarnessChatTransport implements ChatTransport<UIMessage> {
         pending.controller = controller
         emit(pending, { type: 'start' }, { type: 'start-step' })
         if (abortSignal?.aborted) {
-          emit(pending, { type: 'finish-step' }, { type: 'finish', finishReason: 'stop' })
+          finishReply(pending)
           close(pending)
           return
         }
@@ -138,7 +129,7 @@ export class HarnessChatTransport implements ChatTransport<UIMessage> {
             // A turn already answered has nothing to stop, and a cancel now would hit the next one.
             if (!this.pending.has(requestId)) return
             cancel()
-            emit(pending, { type: 'finish-step' }, { type: 'finish', finishReason: 'stop' })
+            finishReply(pending)
             close(pending)
           },
           { once: true }
@@ -203,9 +194,7 @@ export class HarnessChatTransport implements ChatTransport<UIMessage> {
     return {
       resolve: () => undefined,
       reject: () => undefined,
-      textId: `text-${id}`,
-      textStarted: false,
-      reasoningStarted: false
+      stream: createReplyStream(`turn-${id}`)
     }
   }
 
@@ -219,9 +208,7 @@ export class HarnessChatTransport implements ChatTransport<UIMessage> {
       this.pending.set(id, {
         resolve,
         reject,
-        textId: `text-${id}`,
-        textStarted: false,
-        reasoningStarted: false
+        stream: createReplyStream(`turn-${id}`)
       })
       void process.send({ id, ...request }).catch(reject)
     })
@@ -261,11 +248,7 @@ export class HarnessChatTransport implements ChatTransport<UIMessage> {
               emit(pending, { type: 'error', errorText: error.message })
               pending.reject(error)
             } else {
-              if (pending.reasoningStarted) {
-                emit(pending, { type: 'reasoning-end', id: `reasoning-${pending.textId}` })
-              }
-              if (pending.textStarted) emit(pending, { type: 'text-end', id: pending.textId })
-              emit(pending, { type: 'finish-step' }, { type: 'finish', finishReason: 'stop' })
+              finishReply(pending)
               pending.resolve(message)
             }
             close(pending)

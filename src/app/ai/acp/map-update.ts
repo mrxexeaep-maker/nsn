@@ -5,6 +5,8 @@ import * as v from 'valibot'
 import { OPEN_PENCIL_MCP_SERVER } from '@open-pencil/core/constants'
 import type { JSONObject } from '@open-pencil/scene-graph/primitives'
 
+import { createReplyStream, type ReplyToolCall } from '@/app/ai/reply/stream'
+
 type ToolCallReport = Extract<SessionUpdate, { sessionUpdate: 'tool_call' | 'tool_call_update' }>
 
 /**
@@ -179,135 +181,61 @@ function toolResult(update: ToolCallReport, identity: ToolIdentity): ToolResult 
  * call starts a new part and a run of thoughts shows as one.
  */
 export function createUpdateMapper(idPrefix: string) {
-  let parts = 0
-  let text: string | null = null
-  let reasoning: string | null = null
+  const stream = createReplyStream(idPrefix)
   const tools = new Map<string, ToolIdentity>()
 
-  function nextId(kind: string): string {
-    parts += 1
-    return `${idPrefix}-${kind}-${parts}`
+  function callOf(id: string, identity: ToolIdentity, title: string | undefined): ReplyToolCall {
+    // The agent's own tools keep its title; OpenPencil's are named by the tool.
+    return { id, name: identity.name, title: identity.kind === 'agent' ? title : undefined }
   }
 
-  function closeText(chunks: UIMessageChunk[]): void {
-    if (text) chunks.push({ type: 'text-end', id: text })
-    text = null
-  }
-
-  function closeReasoning(chunks: UIMessageChunk[]): void {
-    if (reasoning) chunks.push({ type: 'reasoning-end', id: reasoning })
-    reasoning = null
-  }
-
-  function toolInput(update: ToolCallReport, identity: ToolIdentity): unknown {
-    return identity.input ?? update.rawInput
-  }
-
-  function toolResultChunks(update: ToolCallReport, identity: ToolIdentity): UIMessageChunk[] {
+  function resultChunks(update: ToolCallReport, identity: ToolIdentity): UIMessageChunk[] {
     if (update.status !== 'completed' && update.status !== 'failed') return []
     const result = toolResult(update, identity)
-    return [
-      result.ok
-        ? {
-            type: 'tool-output-available',
-            toolCallId: update.toolCallId,
-            output: result.output,
-            providerExecuted: true
-          }
-        : {
-            type: 'tool-output-error',
-            toolCallId: update.toolCallId,
-            errorText: result.errorText,
-            providerExecuted: true
-          }
-    ]
+    return result.ok
+      ? stream.toolResult(update.toolCallId, result.output)
+      : stream.toolError(update.toolCallId, result.errorText)
   }
 
   function map(update: SessionUpdate): UIMessageChunk[] {
-    const chunks: UIMessageChunk[] = []
     switch (update.sessionUpdate) {
-      case 'agent_message_chunk': {
-        if (update.content.type !== 'text') {
-          console.warn('[ACP] Unhandled content type:', update.content.type)
-          break
-        }
-        if (!update.content.text) break
-        closeReasoning(chunks)
-        if (!text) {
-          text = nextId('text')
-          chunks.push({ type: 'text-start', id: text })
-        }
-        chunks.push({ type: 'text-delta', id: text, delta: update.content.text })
-        break
-      }
-      case 'agent_thought_chunk': {
-        if (update.content.type !== 'text' || !update.content.text) break
-        closeText(chunks)
-        if (!reasoning) {
-          reasoning = nextId('reasoning')
-          chunks.push({ type: 'reasoning-start', id: reasoning })
-        }
-        chunks.push({ type: 'reasoning-delta', id: reasoning, delta: update.content.text })
-        break
-      }
+      case 'agent_message_chunk':
+        if (update.content.type === 'text') return stream.text(update.content.text)
+        console.warn('[ACP] Unhandled content type:', update.content.type)
+        return []
+      case 'agent_thought_chunk':
+        return update.content.type === 'text' ? stream.thought(update.content.text) : []
       case 'tool_call': {
-        closeText(chunks)
-        closeReasoning(chunks)
         if (!update.title) console.warn('[ACP] Tool call without title:', update.toolCallId)
         const identity = identify(update)
         tools.set(update.toolCallId, identity)
-        const title = identity.kind === 'agent' ? update.title : undefined
-        chunks.push({
-          type: 'tool-input-start',
-          toolCallId: update.toolCallId,
-          toolName: identity.name,
-          providerExecuted: true,
-          title
-        })
-        const input = toolInput(update, identity)
+        const call = callOf(update.toolCallId, identity, update.title)
+        const chunks = stream.toolStart(call)
+        const input = identity.input ?? update.rawInput
         // A call can arrive already finished, as Codex reports an MCP server that failed to start.
         const finished = update.status === 'completed' || update.status === 'failed'
-        if (input || finished) {
-          chunks.push({
-            type: 'tool-input-available',
-            toolCallId: update.toolCallId,
-            toolName: identity.name,
-            input: input ?? {},
-            providerExecuted: true,
-            title
-          })
-        }
-        chunks.push(...toolResultChunks(update, identity))
-        break
+        if (input || finished) chunks.push(...stream.toolInput(call, input ?? {}))
+        chunks.push(...resultChunks(update, identity))
+        return chunks
       }
       case 'tool_call_update': {
         const identity = tools.get(update.toolCallId) ?? identify(update)
+        const chunks: UIMessageChunk[] = []
         // Claude's adapter sends a call's complete input once it has streamed in.
         if (update.rawInput && identity.input === undefined) {
-          chunks.push({
-            type: 'tool-input-available',
-            toolCallId: update.toolCallId,
-            toolName: identity.name,
-            input: update.rawInput,
-            providerExecuted: true
-          })
+          chunks.push(
+            ...stream.toolInput(callOf(update.toolCallId, identity, undefined), update.rawInput)
+          )
         }
-        chunks.push(...toolResultChunks(update, identity))
-        break
+        chunks.push(...resultChunks(update, identity))
+        return chunks
       }
+      default:
+        return []
     }
-    return chunks
   }
 
-  /** Closes the text or thought still open when the turn ends. */
-  function end(): UIMessageChunk[] {
-    const chunks: UIMessageChunk[] = []
-    closeText(chunks)
-    closeReasoning(chunks)
-    return chunks
-  }
-
-  return { map, end }
+  return { map, end: () => stream.end() }
 }
 
 export function textFromContent(content: JSONObject[] | undefined): string | undefined {
