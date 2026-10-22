@@ -1,4 +1,4 @@
-import { colorToHex8 } from '#scene-graph/color'
+import { colorToHex8 } from '#scene-graph/color/index'
 import type {
   VariableFormulaNode,
   VariableFormulaOperation,

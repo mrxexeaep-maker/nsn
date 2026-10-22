@@ -1,4 +1,4 @@
-import { tryParseColor } from '#scene-graph/color'
+import { tryParseColor } from '#scene-graph/color/index'
 import type { Color } from '#scene-graph/primitives'
 import type { VariableFormulaNode, VariableFormulaOperator } from '#scene-graph/types'
 import * as v from 'valibot'
