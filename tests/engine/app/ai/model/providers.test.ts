@@ -132,7 +132,7 @@ describe('model provider registry', () => {
       ['zai', 'glm-5.3-flash', { thinking: { type: 'enabled' } }],
       [
         'google',
-        'gemini-3.1-pro-preview',
+        'gemini-4-argon',
         { generationConfig: { thinkingConfig: { thinkingLevel: 'low' } } }
       ],
       ['openai', 'gpt-6.1-sol', { reasoning: { effort: 'low' } }],

@@ -295,6 +295,12 @@ export const AI_PROVIDERS: AIProviderDef[] = [
         capabilities: ['tools', 'vision']
       },
       {
+        id: 'anthropic/claude-haiku-5.5',
+        name: 'Claude Haiku 5.5',
+        tag: 'Fast',
+        capabilities: ['tools', 'vision']
+      },
+      {
         id: 'openai/gpt-6.1-sol',
         name: 'GPT-6.1 Sol',
         tag: 'Latest OpenAI',
@@ -320,8 +326,8 @@ export const AI_PROVIDERS: AIProviderDef[] = [
         capabilities: ['tools', 'vision']
       },
       {
-        id: 'qwen/qwen3.8-27b:free',
-        name: 'Qwen3.8 27B',
+        id: 'minimax/minimax-m3.1-flash:free',
+        name: 'MiniMax-M3.1-Flash',
         tag: 'Free',
         capabilities: ['tools', 'vision']
       },
@@ -356,6 +362,12 @@ export const AI_PROVIDERS: AIProviderDef[] = [
         id: 'claude-fable-5-1',
         name: 'Claude Fable 5.1',
         tag: 'Most capable',
+        capabilities: ['tools', 'vision']
+      },
+      {
+        id: 'claude-haiku-5-5',
+        name: 'Claude Haiku 5.5',
+        tag: 'Fast',
         capabilities: ['tools', 'vision']
       }
     ]
@@ -394,22 +406,21 @@ export const AI_PROVIDERS: AIProviderDef[] = [
       {
         id: 'gemini-3.8-flash',
         name: 'Gemini 3.8 Flash',
-        tag: 'Latest',
+        tag: 'Best',
         capabilities: ['tools', 'vision']
       },
-      { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash', capabilities: ['tools', 'vision'] },
+      {
+        id: 'gemini-4-argon',
+        name: 'Gemini 4 Argon',
+        tag: 'Most capable',
+        capabilities: ['tools', 'vision'],
+        minReasoningEffort: 'low'
+      },
       {
         id: 'gemini-flash-latest',
         name: 'Gemini Flash Latest',
         tag: 'Alias',
         capabilities: ['tools', 'vision']
-      },
-      {
-        id: 'gemini-3.1-pro-preview',
-        name: 'Gemini 3.1 Pro',
-        tag: 'Pro',
-        capabilities: ['tools', 'vision'],
-        minReasoningEffort: 'low'
       }
     ]
   },
@@ -418,9 +429,9 @@ export const AI_PROVIDERS: AIProviderDef[] = [
     name: 'DeepSeek',
     keyPlaceholder: 'sk-…',
     keyURL: 'https://platform.deepseek.com/api_keys',
-    defaultModel: 'deepseek-v4-flash',
+    defaultModel: 'deepseek-flash',
     models: [
-      { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash', tag: 'Fast' },
+      { id: 'deepseek-flash', name: 'DeepSeek Flash', tag: 'Fast' },
       { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro', tag: 'Reasoning' }
     ]
   },
@@ -432,27 +443,27 @@ export const AI_PROVIDERS: AIProviderDef[] = [
     defaultModel: 'glm-5.3',
     models: [
       { id: 'glm-5.3', name: 'GLM-5.3', tag: 'Best', minReasoningEffort: 'low' },
-      { id: 'glm-5.3-flash', name: 'GLM-5.3-Flash', tag: 'Fast', minReasoningEffort: 'low' },
-      { id: 'glm-5.2', name: 'GLM-5.2' },
+      {
+        id: 'glm-5.3-flash',
+        name: 'GLM-5.3-Flash',
+        tag: 'Fast',
+        capabilities: ['tools', 'vision'],
+        minReasoningEffort: 'low'
+      },
+      {
+        id: 'glm-5.3-flashx',
+        name: 'GLM-5.3-FlashX',
+        capabilities: ['tools', 'vision'],
+        minReasoningEffort: 'low'
+      },
       {
         id: 'glm-5v-turbo',
         name: 'GLM-5V-Turbo',
         tag: 'Vision',
         capabilities: ['tools', 'vision']
       },
-      { id: 'glm-5.1', name: 'GLM-5.1' },
-      { id: 'glm-5', name: 'GLM-5' },
-      { id: 'glm-5-code', name: 'GLM-5-Code' },
-      { id: 'glm-4.7', name: 'GLM-4.7' },
-      { id: 'glm-4.7-flashx', name: 'GLM-4.7-FlashX' },
-      { id: 'glm-4.6', name: 'GLM-4.6' },
-      { id: 'glm-4.5', name: 'GLM-4.5' },
-      { id: 'glm-4.5-x', name: 'GLM-4.5-X' },
-      { id: 'glm-4.5-air', name: 'GLM-4.5-Air' },
-      { id: 'glm-4.5-airx', name: 'GLM-4.5-AirX' },
-      { id: 'glm-4-32b-0414-128k', name: 'GLM-4-32B-0414-128K' },
-      { id: 'glm-4.7-flash', name: 'GLM-4.7-Flash', tag: 'Free' },
-      { id: 'glm-4.5-flash', name: 'GLM-4.5-Flash', tag: 'Free' }
+      { id: 'glm-5.2', name: 'GLM-5.2' },
+      { id: 'glm-4.7-flash', name: 'GLM-4.7-Flash', tag: 'Free' }
     ]
   },
   {
