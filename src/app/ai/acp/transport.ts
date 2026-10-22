@@ -128,7 +128,8 @@ export class ACPChatTransport implements ChatTransport<UIMessage> {
       this.sentContext = false
     }
 
-    const promptText = this.sentContext ? text : `${SYSTEM_PROMPT}\n\n${text}`
+    const carriesContext = !this.sentContext
+    const promptText = carriesContext ? `${SYSTEM_PROMPT}\n\n${text}` : text
     this.sentContext = true
 
     const { connection, sessionId } = this.session
@@ -165,6 +166,8 @@ export class ACPChatTransport implements ChatTransport<UIMessage> {
 
         // Stopped while the agent started and reached its tools: the abort event already fired.
         if (abortSignal?.aborted) {
+          // The instructions went out with nothing, so the next message carries them.
+          if (carriesContext) this.sentContext = false
           finish('stop')
           return
         }
