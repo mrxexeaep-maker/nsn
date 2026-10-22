@@ -367,12 +367,19 @@ export const AI_PROVIDERS: AIProviderDef[] = [
     keyURL: 'https://platform.openai.com/api-keys',
     defaultModel: 'gpt-6.1-sol',
     models: [
-      { id: 'gpt-6.1-sol', name: 'GPT-6.1 Sol', tag: 'Best', capabilities: ['tools', 'vision'] },
+      {
+        id: 'gpt-6.1-sol',
+        name: 'GPT-6.1 Sol',
+        tag: 'Best',
+        capabilities: ['tools', 'vision'],
+        minReasoningEffort: 'low'
+      },
       {
         id: 'gpt-6-astra',
         name: 'GPT-6 Astra',
         tag: 'Smartest',
-        capabilities: ['tools', 'vision']
+        capabilities: ['tools', 'vision'],
+        minReasoningEffort: 'low'
       },
       { id: 'gpt-6-luna', name: 'GPT-6 Luna', tag: 'Fast', capabilities: ['tools', 'vision'] }
     ]
@@ -401,7 +408,8 @@ export const AI_PROVIDERS: AIProviderDef[] = [
         id: 'gemini-3.1-pro-preview',
         name: 'Gemini 3.1 Pro',
         tag: 'Pro',
-        capabilities: ['tools', 'vision']
+        capabilities: ['tools', 'vision'],
+        minReasoningEffort: 'low'
       }
     ]
   },
@@ -423,8 +431,8 @@ export const AI_PROVIDERS: AIProviderDef[] = [
     keyURL: 'https://docs.z.ai/devpack/quick-start',
     defaultModel: 'glm-5.3',
     models: [
-      { id: 'glm-5.3', name: 'GLM-5.3', tag: 'Best' },
-      { id: 'glm-5.3-flash', name: 'GLM-5.3-Flash', tag: 'Fast' },
+      { id: 'glm-5.3', name: 'GLM-5.3', tag: 'Best', minReasoningEffort: 'low' },
+      { id: 'glm-5.3-flash', name: 'GLM-5.3-Flash', tag: 'Fast', minReasoningEffort: 'low' },
       { id: 'glm-5.2', name: 'GLM-5.2' },
       {
         id: 'glm-5v-turbo',
