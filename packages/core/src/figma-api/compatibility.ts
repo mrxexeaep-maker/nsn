@@ -27,6 +27,7 @@ export type SupportedPluginAPI = Pick<
   | 'base64Encode'
   | 'loadFontAsync'
   | 'notify'
+  | 'util'
   | 'createComponent'
   | 'createConnector'
   | 'createEllipse'
