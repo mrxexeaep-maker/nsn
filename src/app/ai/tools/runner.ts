@@ -119,22 +119,9 @@ async function recordReplyCall(
   if (figma.currentPageId !== viewPageId) await moveRunToPage(store, run, figma.currentPageId)
 }
 
-/**
- * Runs one call of an OpenPencil tool. An edit runs alone in its document, is recorded as one
- * undo entry, and, for a call that belongs to a chat reply, joins the reply's run so the reply
- * can revert it and the transcript shows what it changed.
- */
-export async function runEditorTool(call: EditorToolCall): Promise<unknown> {
+/** Runs an edit while its document's lock is held, and records it. */
+async function editAndRecord(call: EditorToolCall, reply: ReplyCall | null): Promise<unknown> {
   const { store, figma, def, args } = call
-  if (!def.mutates) return def.execute(figma, args)
-  const reply = call.reply ?? null
-  const release = await editLock(store)()
-  // Stopped while waiting for its turn: the reply is over, so nothing more is edited.
-  if (reply && !reply.run.active) {
-    release()
-    return { error: STOPPED_BEFORE_CALL }
-  }
-  reply?.run.beginTool()
   const viewPageId = figma.currentPageId
   const pageId = writtenPageId(figma, args)
   // A reply's first edit to a page keeps the whole page, which `changeBaseline` diffs.
@@ -156,11 +143,32 @@ export async function runEditorTool(call: EditorToolCall): Promise<unknown> {
         inverse: () => store.restoreDocumentChange(change, 'before')
       })
     }
-    try {
-      if (reply) await recordReplyCall(call, reply, change, undoBefore, viewPageId)
-    } finally {
-      release()
-      reply?.run.endTool()
+    if (reply) await recordReplyCall(call, reply, change, undoBefore, viewPageId)
+  }
+}
+
+/**
+ * Runs one call of an OpenPencil tool. An edit runs alone in its document, is recorded as one
+ * undo entry, and, for a call that belongs to a chat reply, joins the reply's run so the reply
+ * can revert it and the transcript shows what it changed.
+ */
+export async function runEditorTool(call: EditorToolCall): Promise<unknown> {
+  const { store, figma, def, args } = call
+  if (!def.mutates) return def.execute(figma, args)
+  const reply = call.reply ?? null
+  const release = await editLock(store)()
+  // Whatever fails from here, the lock and the reply's count of running tools are released.
+  let began = false
+  try {
+    // Stopped while waiting for its turn: the reply is over, so nothing more is edited.
+    if (reply && !reply.run.active) return { error: STOPPED_BEFORE_CALL }
+    if (reply) {
+      reply.run.beginTool()
+      began = true
     }
+    return await editAndRecord(call, reply)
+  } finally {
+    release()
+    if (began) reply?.run.endTool()
   }
 }

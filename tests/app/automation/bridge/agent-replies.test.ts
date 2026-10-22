@@ -76,6 +76,19 @@ describe("an ACP chat's edits during its reply", () => {
     expect(run.undoCalls.map(({ toolCallId }) => toolCallId)).toEqual(['toolu_fill'])
   })
 
+  test('a failed edit leaves the document free for the next one', async () => {
+    const { store, target } = document()
+    const run = startAgentRun(store, CHAT)
+    const failed = handleTargetCommand(target, 'tool', {
+      name: 'set_fill',
+      args: { id: '0:404', color: '#3b82f6' },
+      agent: { session: 'session-1', kind: 'acp', chat: CHAT, call: 'toolu_missing' }
+    })
+    await expect(failed).rejects.toThrow()
+    await createRectangle(target, { kind: 'acp', chat: CHAT, call: 'toolu_next' })
+    expect(run.undoCalls.map(({ toolCallId }) => toolCallId)).toEqual(['toolu_next'])
+  })
+
   test('stay ordinary agent edits after the reply ended, from another chat, or elsewhere', async () => {
     const { store, target } = document()
     const other = document()
