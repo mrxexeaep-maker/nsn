@@ -99,6 +99,15 @@ describe('a gradient on a layer with no height or with a broken transform', () =
       gradientTransform: { m00: nan, m01: nan, m02: nan, m10: nan, m11: nan, m12: nan }
     }
     expect(paintsAnything({ width: WIDTH, height: HEIGHT, fills: [broken] })).toBe(false)
+    expect(
+      paintsAnything({
+        width: WIDTH,
+        height: HEIGHT,
+        fills: [],
+        strokes: [{ ...broken, weight: 4, align: 'CENTER' }],
+        strokeWeight: 4
+      })
+    ).toBe(false)
   })
 
   test('a solid stroke on a layer with no height still draws', () => {
