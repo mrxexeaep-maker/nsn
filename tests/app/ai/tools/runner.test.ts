@@ -7,6 +7,7 @@ import { SceneGraph } from '@open-pencil/scene-graph'
 import { runEditorTool } from '@/app/ai/tools/runner'
 import { makeFigmaFromStore } from '@/app/automation/bridge/figma-factory'
 import { createEditorStore, type EditorStore } from '@/app/editor/session/create'
+import { createDeferred } from '@/app/runtime/deferred'
 
 import { expectDefined } from '#tests/helpers/assert'
 
@@ -23,22 +24,36 @@ afterEach(() => {
   Reflect.deleteProperty(globalThis, 'window')
 })
 
-test('a call cancelled before its turn edits nothing', async () => {
-  const def = expectDefined(
+test('a call cancelled while it waits for its turn edits nothing', async () => {
+  const createShape = expectDefined(
     ALL_TOOLS.find((tool) => tool.name === 'create_shape'),
     'create_shape'
   )
   const pageId = store.state.currentPageId
-  const signal = AbortSignal.abort()
-  const call = runEditorTool({
+  const figma = makeFigmaFromStore(store, pageId)
+  // A first edit holds the document's lock until the test lets it finish.
+  const held = createDeferred<undefined>()
+  const first = runEditorTool({
     store,
-    figma: makeFigmaFromStore(store, pageId),
-    def,
+    figma,
+    def: { ...createShape, execute: () => held.promise },
+    args: {},
+    source: 'WebMCP'
+  })
+  const cancel = new AbortController()
+  const queued = runEditorTool({
+    store,
+    figma,
+    def: createShape,
     args: { type: 'RECTANGLE', x: 0, y: 0, width: 40, height: 20 },
     source: 'WebMCP',
-    signal
+    signal: cancel.signal
   })
-  await expect(call).rejects.toThrow()
+  cancel.abort()
+  held.resolve(undefined)
+
+  await first
+  await expect(queued).rejects.toThrow()
   expect(store.graph.getChildren(pageId)).toEqual([])
   expect(store.undo.peekUndo()).toBeUndefined()
 })
