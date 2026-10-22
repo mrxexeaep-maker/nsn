@@ -4,6 +4,8 @@ import { SkiaRenderer } from '@open-pencil/core'
 import { initCanvasKit } from '@open-pencil/core/io'
 import { SceneGraph, type SceneNode, type Stroke } from '@open-pencil/scene-graph'
 
+import { makeLineStrokeOutline } from '#core/canvas/strokes/line'
+
 import { expectDefined } from '#core-tests/helpers/assert'
 
 const SIZE = 400
@@ -109,5 +111,35 @@ describe('a line stroke', () => {
     expect(row.slice(60, 70).every(Boolean)).toBe(true)
     expect(row.slice(345, 350).every(Boolean)).toBe(true)
     expect(row[350]).toBe(false)
+  })
+})
+
+// Booleans and flattening take a line as its stroke outline: Figma's stroke geometry for a 300 px
+// line with a 6 px stroke and triangle heads spans x 3 to 297 and y -20.32 to 14.32.
+describe('a line taken as a boolean operand', () => {
+  test('keeps its heads and the shaft between them', () => {
+    const graph = new SceneGraph()
+    const line = graph.createNode('LINE', graph.getPages()[0].id, {
+      width: 300,
+      height: 0,
+      strokeCap: 'TRIANGLE_FILLED',
+      strokes: [
+        {
+          type: 'SOLID',
+          color: { r: 0, g: 0, b: 0, a: 1 },
+          opacity: 1,
+          visible: true,
+          weight: 6,
+          align: 'CENTER'
+        }
+      ]
+    })
+    const outline = expectDefined(makeLineStrokeOutline(renderer, line), 'outline')
+    const [left, top, right, bottom] = outline.getBounds()
+    outline.delete()
+    expect(left).toBeCloseTo(3, 3)
+    expect(top).toBeCloseTo(-20.3205, 3)
+    expect(right).toBeCloseTo(297, 3)
+    expect(bottom).toBeCloseTo(14.3205, 3)
   })
 })

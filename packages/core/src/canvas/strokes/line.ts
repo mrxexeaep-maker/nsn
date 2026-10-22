@@ -1,6 +1,6 @@
-import type { Canvas } from 'canvaskit-wasm'
+import type { Canvas, Path } from 'canvaskit-wasm'
 
-import type { SceneNode, Stroke, VectorNetwork } from '@open-pencil/scene-graph'
+import type { SceneNode, Stroke, StrokeCap, VectorNetwork } from '@open-pencil/scene-graph'
 import {
   collectArrowEndpoints,
   hasTrimmedShaft,
@@ -10,20 +10,32 @@ import {
 import type { Color } from '@open-pencil/scene-graph/primitives'
 
 import type { SkiaRenderer } from '#core/canvas/renderer'
-import { configureStrokePaint, drawArrowHeads, normalizeDashPattern } from '#core/canvas/strokes'
+import {
+  arrowHeadPath,
+  configureStrokePaint,
+  drawArrowHeads,
+  getStrokeCapEntity,
+  normalizeDashPattern
+} from '#core/canvas/strokes'
 
 import { sideDashSpans } from './sides'
 
-/** The path Figma strokes for a LINE, as a one-segment network its arrow heads can follow. */
-function lineStrokeNetwork(node: SceneNode, stroke: Stroke): VectorNetwork {
-  const cap = stroke.cap ?? node.strokeCap
-  const { start, end } = lineStrokeEnds(node.width, node.height, stroke.weight, cap)
+/**
+ * The path Figma strokes for a LINE, as a one-segment network its arrow heads follow, and the ends
+ * of its shaft, which stops short of a triangle or equilateral head.
+ */
+function lineStrokePath(node: SceneNode, weight: number, cap: StrokeCap) {
+  const { start, end } = lineStrokeEnds(node.width, node.height, weight, cap)
   const still = { x: 0, y: 0 }
-  return {
+  const network: VectorNetwork = {
     vertices: [start, end],
     segments: [{ start: 0, end: 1, tangentStart: still, tangentEnd: still }],
     regions: []
   }
+  const [from, to] = (
+    hasTrimmedShaft(network, cap) ? trimArrowShafts(network, cap, weight) : network
+  ).vertices
+  return { network, from, to }
 }
 
 /**
@@ -38,11 +50,7 @@ export function drawLineStroke(
   color: Color
 ): void {
   const cap = stroke.cap ?? node.strokeCap
-  const network = lineStrokeNetwork(node, stroke)
-  const shaft = hasTrimmedShaft(network, cap)
-    ? trimArrowShafts(network, cap, stroke.weight)
-    : network
-  const [from, to] = shaft.vertices
+  const { network, from, to } = lineStrokePath(node, stroke.weight, cap)
   const length = Math.hypot(to.x - from.x, to.y - from.y)
   const pattern = normalizeDashPattern(stroke.dashPattern)
   const spans = pattern.length > 0 ? sideDashSpans(length, pattern) : [[0, length]]
@@ -61,4 +69,32 @@ export function drawLineStroke(
   }
   const heads = collectArrowEndpoints(network, cap)
   drawArrowHeads(r, canvas, heads, stroke.weight, color, stroke.opacity)
+}
+
+/**
+ * The outline of a LINE's first visible stroke, as booleans and flattening take it: its shaft, its
+ * caps, and its heads, without dashes.
+ */
+export function makeLineStrokeOutline(r: SkiaRenderer, node: SceneNode): Path | null {
+  const stroke = node.strokes.find((item) => item.visible)
+  const weight = stroke?.weight ?? 1
+  const cap = stroke?.cap ?? node.strokeCap
+  const { network, from, to } = lineStrokePath(node, weight, cap)
+  const shaft = new r.ck.PathBuilder()
+  shaft.moveTo(from.x, from.y)
+  shaft.lineTo(to.x, to.y)
+  const source = shaft.detachAndDelete()
+  const outline = source.makeStroked({ width: weight, cap: getStrokeCapEntity(r, cap) })
+  source.delete()
+  if (!outline) return null
+  const builder = new r.ck.PathBuilder()
+  builder.addPath(outline)
+  outline.delete()
+  for (const endpoint of collectArrowEndpoints(network, cap)) {
+    const head = arrowHeadPath(r, endpoint, weight)
+    if (!head) continue
+    builder.addPath(head)
+    head.delete()
+  }
+  return builder.detachAndDelete()
 }

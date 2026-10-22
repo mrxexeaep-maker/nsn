@@ -4,7 +4,7 @@ import { SkiaRenderer } from '@open-pencil/core'
 import { initCanvasKit } from '@open-pencil/core/io'
 import { SceneGraph, type Effect, type SceneNode } from '@open-pencil/scene-graph'
 
-import { separateShadowChildren } from '#core/canvas/shadows/silhouette'
+import { separateShadowChildren, silhouetteBounds } from '#core/canvas/shadows/silhouette'
 
 import { expectDefined } from '../helpers/assert'
 import { expectFigmaRow, renderRow, type FigmaRowScene } from '../helpers/figma-rows'
@@ -534,5 +534,19 @@ describe('a container casts from each of its separate children on its own, as in
   test('puts the inner shadow on each child (red channel)', () => {
     const inner = shadow('INNER_SHADOW', { radius: 6, offset: { x: 6, y: 6 } })
     expectFigmaRow(row(separateChildren(inner, [RED]), 90, 20, 290, 0), FIGMA['separate-children-inner'])
+  })
+})
+
+describe('a line casts from its whole stroke', () => {
+  test('its shadow reaches a full weight past the line, whatever the alignment', () => {
+    const graph = new SceneGraph()
+    const line = graph.createNode('LINE', graph.getPages()[0].id, {
+      width: 300,
+      height: 0,
+      strokes: [{ ...solid(0, 0, 0), weight: 6, align: 'INSIDE' }],
+      effects: [shadow('DROP_SHADOW', { radius: 0, offset: { x: 0, y: 0 } })]
+    })
+    const bounds = expectDefined(silhouetteBounds(graph, line, false), 'bounds')
+    expect(bounds.y).toBeLessThanOrEqual(-6)
   })
 })
