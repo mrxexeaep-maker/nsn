@@ -123,3 +123,32 @@ describe('a gradient on a layer with no height or with a broken transform', () =
     ).toBe(true)
   })
 })
+
+// An image paint has no shader until its bytes are decoded. A fill waits for it, and a stroke used
+// to draw in its paint's colour meanwhile, black for most imported strokes.
+describe('an image paint whose image is not decoded yet', () => {
+  const image: Fill = {
+    type: 'IMAGE',
+    color: { r: 0, g: 0, b: 0, a: 1 },
+    opacity: 1,
+    visible: true,
+    imageHash: 'not-decoded',
+    imageScaleMode: 'FILL'
+  }
+
+  test('a fill draws nothing', () => {
+    expect(paintsAnything({ width: WIDTH, height: HEIGHT, fills: [image] })).toBe(false)
+  })
+
+  test('a stroke draws nothing rather than its colour', () => {
+    expect(
+      paintsAnything({
+        width: WIDTH,
+        height: HEIGHT,
+        fills: [],
+        strokes: [{ ...image, weight: 4, align: 'CENTER' }],
+        strokeWeight: 4
+      })
+    ).toBe(false)
+  })
+})

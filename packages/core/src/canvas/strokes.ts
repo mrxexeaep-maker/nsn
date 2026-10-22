@@ -192,9 +192,9 @@ function fillHead(
  * A gradient or image stroke paints through a shader, the way the same paint does as a fill.
  * Both paints get it: a vector stroke's outline and an arrowhead are filled shapes drawn with
  * `fillPaint`, so the shader has to be on whichever paint the draw helper reaches for.
- * Returns whether the stroke draws: a solid one paints through the paint's color, and a gradient
- * CanvasKit cannot build, as for a transform that holds no numbers, is skipped rather than drawn in
- * that color.
+ * Returns whether the stroke draws: a solid one paints through the paint's color, while a gradient
+ * CanvasKit cannot build, as for a transform that holds no numbers, or an image not yet decoded is
+ * skipped rather than drawn in that color, the way a fill is.
  */
 export function applyStrokeShader(
   r: SkiaRenderer,
@@ -228,8 +228,11 @@ export function applyStrokeShader(
     return built
   }
   if (stroke.type === 'IMAGE' && stroke.imageHash) {
-    // An image not yet decoded leaves the paints' color, which the stroke draws in meanwhile.
-    for (const paint of [r.strokePaint, r.fillPaint]) applyImageFill(r, stroke, node, graph, paint)
+    let applied = true
+    for (const paint of [r.strokePaint, r.fillPaint]) {
+      applied = applyImageFill(r, stroke, node, graph, paint) && applied
+    }
+    return applied
   }
   return true
 }
