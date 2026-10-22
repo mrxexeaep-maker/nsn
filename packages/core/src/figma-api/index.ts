@@ -530,6 +530,19 @@ export class FigmaAPI implements NodeProxyHost {
     return { cancel: noop }
   }
 
+  /**
+   * A script is one call rather than a plugin with a lifetime, so nothing closes; the message is
+   * shown as Figma shows it, through `notify`.
+   */
+  closePlugin(message?: string): void {
+    if (message) this.notify(message)
+  }
+
+  /** Every page is already in memory. */
+  async loadAllPagesAsync(): Promise<void> {
+    return undefined
+  }
+
   commitUndo(): void {
     return undefined
   }

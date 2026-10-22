@@ -25,6 +25,8 @@ export type SupportedPluginAPI = Pick<
   PluginAPI,
   | 'base64Decode'
   | 'base64Encode'
+  | 'closePlugin'
+  | 'loadAllPagesAsync'
   | 'loadFontAsync'
   | 'notify'
   | 'util'
