@@ -92,7 +92,6 @@ export function renderFromEditorState(
       gradientEdit: state.gradientEdit,
       transforming: state.transforming,
       measurementMode: state.measurementMode,
-      enteredContainerId: state.enteredContainerId,
       editingTextId: state.editingTextId,
       textEditor: textEditor as RenderOverlays['textEditor'],
       marquee: state.marquee,
