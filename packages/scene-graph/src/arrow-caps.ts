@@ -338,8 +338,9 @@ function trimSegmentEnd(
 
 /**
  * Where Figma strokes a LINE running from its origin to (`width`, `height`): a full weight to one
- * side, toward its local negative y, whatever the stroke's alignment. Under any cap both ends come
- * in by half a weight, so the cap or arrow ends where the line does.
+ * side, toward its local negative y, whatever the stroke's alignment. Under a cap both ends come in
+ * by half a weight, so the cap or head ends where the line does; an equilateral arrow already
+ * comes to its point at the end, so it stays there.
  */
 export function lineStrokeEnds(
   width: number,
@@ -351,7 +352,10 @@ export function lineStrokeEnds(
   if (length === 0) return { start: { x: 0, y: 0 }, end: { x: 0, y: 0 } }
   const ux = width / length
   const uy = height / length
-  const inset = cap === undefined || cap === 'NONE' ? 0 : Math.min(weight, length) / 2
+  const inset =
+    cap === undefined || cap === 'NONE' || cap === 'ARROW_EQUILATERAL'
+      ? 0
+      : Math.min(weight, length) / 2
   const offset = { x: (uy * weight) / 2, y: (-ux * weight) / 2 }
   return {
     start: { x: ux * inset + offset.x, y: uy * inset + offset.y },

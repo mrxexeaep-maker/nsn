@@ -5,7 +5,8 @@ import { lineStrokeEnds } from '@open-pencil/scene-graph/arrow-caps'
 import { strokeOverflow } from '@open-pencil/scene-graph/geometry'
 
 // From Figma 126 stroke geometry: a 300 px line with a 6 px stroke runs its stroke along y = -3,
-// over the whole line without a cap and from 3 to 297 under any cap.
+// over the whole line without a cap or with an equilateral arrow, and from 3 to 297 under the
+// other caps.
 describe('lineStrokeEnds', () => {
   test('runs half a weight above the line, end to end without a cap', () => {
     expect(lineStrokeEnds(300, 0, 6, 'NONE')).toEqual({
@@ -21,6 +22,13 @@ describe('lineStrokeEnds', () => {
         end: { x: 297, y: -3 }
       })
     }
+  })
+
+  test('keeps the point of an equilateral arrow at the end', () => {
+    expect(lineStrokeEnds(240, 0, 8, 'ARROW_EQUILATERAL')).toEqual({
+      start: { x: 0, y: -4 },
+      end: { x: 240, y: -4 }
+    })
   })
 
   test('moves to the side of a line that runs at an angle', () => {
