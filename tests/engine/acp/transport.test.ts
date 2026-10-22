@@ -5,8 +5,8 @@ import { readUIMessageStream, type UIMessage, type UIMessageChunk } from 'ai'
 
 import type { ACPAgentDef } from '@open-pencil/core/constants'
 
-import { createUpdateMapper } from '@/app/ai/acp/map-update'
-import { agentTurnUsage, buildCrashChunks, formatConnectionError } from '@/app/ai/acp/transport'
+import { createUpdateMapper } from '@/app/ai/agents/acp/events'
+import { agentTurnUsage, buildCrashChunks, formatConnectionError } from '@/app/ai/transports/acp'
 import { classifyToolState } from '@/components/chat/tool/state'
 
 import { expectDefined } from '#tests/helpers/assert'

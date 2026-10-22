@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
 import { SceneGraph } from '@open-pencil/scene-graph'
 
+import { endRun, forgetAgentChat, startAgentRun } from '@/app/ai/reply/run'
 import { readToolChange } from '@/app/ai/tools/changes/store'
-import { endRun, forgetAgentChat, startAgentRun } from '@/app/ai/tools/run'
 import { makeFigmaFromStore } from '@/app/automation/bridge/figma-factory'
 import { createAutomationCommandHandlers } from '@/app/automation/bridge/handlers'
 import type { AutomationTarget } from '@/app/automation/bridge/target'

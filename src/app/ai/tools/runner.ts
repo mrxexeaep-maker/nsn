@@ -7,8 +7,6 @@ import { AUTOMATION_UNDO_LABEL, executeAtomicEditorTool } from '@/app/automation
 import type { EditorStore } from '@/app/editor/active-store'
 import { ensureGraphFonts } from '@/app/editor/fonts'
 
-import { recordToolChange } from './changes/capture'
-import { createMutex } from './mutex'
 import {
   AI_UNDO_PREFIX,
   markRunChange,
@@ -16,7 +14,9 @@ import {
   recordRunBaseline,
   recordRunUndoEntry,
   type Run
-} from './run'
+} from '../reply/run'
+import { recordToolChange } from './changes/capture'
+import { createMutex } from './mutex'
 
 /** The reply a call belongs to: its run, and the call's id in the reply's transcript. */
 export interface ReplyCall {

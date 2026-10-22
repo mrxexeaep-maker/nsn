@@ -2,7 +2,7 @@ import type { FigmaAPI } from '@open-pencil/core/figma-api'
 import { ALL_TOOLS, registerComponentCatalog, isToolExposed } from '@open-pencil/core/tools'
 import type { JSONObject } from '@open-pencil/scene-graph/primitives'
 
-import { agentReplyRun } from '@/app/ai/tools/run'
+import { agentReplyRun } from '@/app/ai/reply/run'
 import { runEditorTool, type ReplyCall } from '@/app/ai/tools/runner'
 import {
   agentFinished,

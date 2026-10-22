@@ -9,8 +9,15 @@ import { recordToolCompleted, type AIDiagnosticContext } from '@/app/diagnostics
 import type { EditorStore } from '@/app/editor/active-store'
 import { useLibraryService } from '@/app/libraries'
 
+import {
+  currentRun,
+  markRunWork,
+  runBaseline,
+  runPageId,
+  stepBudget,
+  takeRunUndoNote
+} from '../reply/run'
 import { aiToolDefinitions } from './catalog'
-import { currentRun, markRunWork, runBaseline, runPageId, stepBudget, takeRunUndoNote } from './run'
 import { runEditorTool } from './runner'
 
 export {
@@ -23,7 +30,7 @@ export {
   runPageId,
   runUndoEntries,
   startRun
-} from './run'
+} from '../reply/run'
 
 /**
  * A result with the run's note about edits the user undid meanwhile, so the model does not

@@ -6,7 +6,7 @@ import {
   type ReasoningDisplay
 } from '@/app/settings/preferences/store'
 
-import { resolveAgentStepLimit } from './step-limit'
+import { resolveAgentStepLimit } from '../reply/step-limit'
 
 export const maxAgentSteps = computed({
   get: () => resolveAgentStepLimit(appPreferences.value.chat.maxAgentSteps),
