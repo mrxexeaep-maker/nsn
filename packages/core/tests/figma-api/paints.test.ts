@@ -89,6 +89,21 @@ describe('a gradient transform', () => {
         'Too small: expected array to have exactly 2 items'
       )
     )
+    expect(() => {
+      rectangle.fills = [
+        {
+          type: 'GRADIENT_LINEAR',
+          gradientTransform: [
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1]
+          ],
+          gradientStops: STOPS
+        }
+      ] as never
+    }).toThrow(
+      failure('fills', '[0].gradientTransform', 'Too big: expected array to have exactly 2 items')
+    )
   })
 })
 

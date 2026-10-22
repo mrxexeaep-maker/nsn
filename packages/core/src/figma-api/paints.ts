@@ -35,7 +35,8 @@ function transformProblem(value: unknown): string | null {
   if (value === undefined) return 'Required value missing'
   if (!Array.isArray(value))
     return `Expected array, received ${value === null ? 'null' : typeof value}`
-  if (value.length !== 2) return 'Too small: expected array to have exactly 2 items'
+  if (value.length < 2) return 'Too small: expected array to have exactly 2 items'
+  if (value.length > 2) return 'Too big: expected array to have exactly 2 items'
   return value.every(isRow) ? null : 'Expected array of 3 numbers'
 }
 

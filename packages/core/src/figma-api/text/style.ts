@@ -11,7 +11,7 @@ import {
 import { copyFills } from '@open-pencil/scene-graph/copy'
 
 import { weightToStyleName } from '#core/figma-api/fonts'
-import { toFigmaPaint } from '#core/figma-api/paints'
+import { toFigmaPaint, type WithFigmaTransforms } from '#core/figma-api/paints'
 import { variableAlias } from '#core/figma-api/variables/values'
 import { characterStyles, nodeStyle, type CharacterStyle } from '#core/text/character-style'
 
@@ -250,4 +250,4 @@ export function rangeHasUnderline(node: SceneNode, start: number, end: number): 
   return characterStyles(node, start, end).some(underlined)
 }
 
-export type FigmaDecorationColor = { value: 'AUTO' } | { value: Fill }
+export type FigmaDecorationColor = { value: 'AUTO' } | { value: WithFigmaTransforms<Fill> }

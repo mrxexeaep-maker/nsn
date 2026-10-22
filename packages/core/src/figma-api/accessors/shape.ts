@@ -50,8 +50,10 @@ function parseArcData(value: unknown): ArcData {
     throw invalid('set_arcData', `Expected object, received ${received(value)}`, 'arcData')
   }
   const fields = value as Partial<Record<(typeof ARC_FIELDS)[number], unknown>>
-  const problems = ARC_FIELDS.map((field) => numberProblem(fields[field], ` at .${field}`))
-  const [startingAngle, endingAngle, innerRadius] = ARC_FIELDS.map((field) => fields[field])
+  // Each field read once, so a getter cannot pass the checks and then store something else.
+  const values = ARC_FIELDS.map((field) => fields[field])
+  const problems = values.map((value, index) => numberProblem(value, ` at .${ARC_FIELDS[index]}`))
+  const [startingAngle, endingAngle, innerRadius] = values
   if (!problems[2]) problems[2] = ratioProblem(innerRadius as number, ' at .innerRadius')
   const listed = problems.filter((problem) => problem !== null)
   if (listed.length > 0) throw invalid('set_arcData', listed.join('\n'), 'arcData')
