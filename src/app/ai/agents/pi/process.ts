@@ -2,6 +2,7 @@ import * as v from 'valibot'
 
 import type { HarnessSidecarMessage, JSONValue } from '@open-pencil/harness'
 
+import { tokenUsageSchema } from '@/app/diagnostics/events/ai'
 import { resolvePlatformCommand } from '@/app/tauri/command'
 
 /** Any value `JSON.parse` produced is a JSONValue; only presence needs checking. */
@@ -26,14 +27,7 @@ const HarnessTurnEventSchema = v.variant('type', [
     type: v.literal('finish'),
     finishReason: v.string(),
     // Companions before usage reporting send none.
-    usage: v.optional(
-      v.object({
-        inputTokens: v.nullable(v.number()),
-        outputTokens: v.nullable(v.number()),
-        cacheReadTokens: v.nullable(v.number()),
-        cacheWriteTokens: v.nullable(v.number())
-      })
-    )
+    usage: v.optional(tokenUsageSchema)
   }),
   v.object({ type: v.literal('error'), message: v.string() })
 ])

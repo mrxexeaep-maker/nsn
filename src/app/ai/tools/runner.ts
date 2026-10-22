@@ -1,7 +1,6 @@
 import { isEmptyDocumentChange } from '@open-pencil/core/editor'
 import type { FigmaAPI } from '@open-pencil/core/figma-api'
 import { isAtomicTool, toolChangesDocument, type ToolDef } from '@open-pencil/core/tools'
-import type { SceneGraph } from '@open-pencil/scene-graph'
 
 import { AUTOMATION_UNDO_LABEL, executeAtomicEditorTool } from '@/app/automation/execution/editor'
 import type { EditorStore } from '@/app/editor/active-store'
@@ -53,14 +52,6 @@ function editLock(store: EditorStore): () => Promise<() => void> {
   return lock
 }
 
-function pageIdOf(graph: SceneGraph, nodeId: string): string | null {
-  let node = graph.getNode(nodeId)
-  while (node && node.type !== 'CANVAS') {
-    node = node.parentId ? graph.getNode(node.parentId) : undefined
-  }
-  return node?.id ?? null
-}
-
 /**
  * The page a call writes to: a parent or a replaced layer on another page puts the new layers
  * there, so that page lays out, loads their fonts, and records the change.
@@ -68,8 +59,11 @@ function pageIdOf(graph: SceneGraph, nodeId: string): string | null {
 function writtenPageId(figma: FigmaAPI, args: Record<string, unknown>): string {
   // As render places it: a replaced layer's parent wins over parent_id.
   const nodeId = args.replace_id ?? args.parent_id
-  const pageId = typeof nodeId === 'string' ? pageIdOf(figma.graph, nodeId) : null
-  return pageId ?? figma.currentPageId
+  const page =
+    typeof nodeId === 'string'
+      ? figma.graph.closest(nodeId, (node) => node.type === 'CANVAS')
+      : undefined
+  return page?.id ?? figma.currentPageId
 }
 
 async function execute(call: EditorToolCall, pageId: string, prefix: string): Promise<unknown> {
