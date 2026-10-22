@@ -355,7 +355,7 @@ function buildSVGStrokeAttrs(
     'stroke-width': round(stroke.weight)
   }
   if (stroke.opacity < 1) attrs['stroke-opacity'] = round(stroke.opacity)
-  if (cap && cap !== 'NONE') attrs['stroke-linecap'] = SVG_STROKE_CAP[cap] ?? 'butt'
+  if (cap !== 'NONE') attrs['stroke-linecap'] = SVG_STROKE_CAP[cap] ?? 'butt'
   if (stroke.join && stroke.join !== 'MITER') {
     attrs['stroke-linejoin'] = SVG_STROKE_JOIN[stroke.join] ?? 'miter'
   }

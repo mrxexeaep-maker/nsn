@@ -122,6 +122,13 @@ function polygonPath(r: SkiaRenderer, points: readonly Vector[]): Path {
   return builder.detachAndDelete()
 }
 
+/** The corners of each head drawn as a polygon, from its tip, direction, and weight. */
+const POLYGON_HEADS = {
+  ARROW_EQUILATERAL: equilateralArrowPoints,
+  TRIANGLE_FILLED: triangleCapPoints,
+  DIAMOND_FILLED: diamondCapPoints
+} satisfies Record<string, (x: number, y: number, angle: number, weight: number) => Vector[]>
+
 /**
  * The filled outline of the head at `endpoint`. A line arrow's wings are one stroked path, so they
  * meet in a round join rather than overlapping at the tip.
@@ -131,35 +138,28 @@ export function arrowHeadPath(
   endpoint: ArrowEndpoint,
   weight: number
 ): Path | null {
-  const { x, y, angle } = endpoint
-  switch (endpoint.cap) {
-    case 'ARROW_LINES': {
-      const [first, second] = arrowLinesSegments(x, y, angle, weight)
-      const builder = new r.ck.PathBuilder()
-      builder.moveTo(first.to.x, first.to.y)
-      builder.lineTo(first.from.x, first.from.y)
-      builder.lineTo(second.to.x, second.to.y)
-      const wings = builder.detachAndDelete()
-      const outline = wings.makeStroked({
-        width: weight,
-        cap: r.ck.StrokeCap.Round,
-        join: r.ck.StrokeJoin.Round
-      })
-      wings.delete()
-      return outline
-    }
-    case 'CIRCLE_FILLED': {
-      const builder = new r.ck.PathBuilder()
-      builder.addCircle(x, y, circleCapRadius(weight))
-      return builder.detachAndDelete()
-    }
-    case 'ARROW_EQUILATERAL':
-      return polygonPath(r, equilateralArrowPoints(x, y, angle, weight))
-    case 'TRIANGLE_FILLED':
-      return polygonPath(r, triangleCapPoints(x, y, angle, weight))
-    case 'DIAMOND_FILLED':
-      return polygonPath(r, diamondCapPoints(x, y, angle, weight))
+  const { x, y, angle, cap } = endpoint
+  if (cap === 'ARROW_LINES') {
+    const [first, second] = arrowLinesSegments(x, y, angle, weight)
+    const builder = new r.ck.PathBuilder()
+    builder.moveTo(first.to.x, first.to.y)
+    builder.lineTo(first.from.x, first.from.y)
+    builder.lineTo(second.to.x, second.to.y)
+    const wings = builder.detachAndDelete()
+    const outline = wings.makeStroked({
+      width: weight,
+      cap: r.ck.StrokeCap.Round,
+      join: r.ck.StrokeJoin.Round
+    })
+    wings.delete()
+    return outline
   }
+  if (cap === 'CIRCLE_FILLED') {
+    const builder = new r.ck.PathBuilder()
+    builder.addCircle(x, y, circleCapRadius(weight))
+    return builder.detachAndDelete()
+  }
+  return polygonPath(r, POLYGON_HEADS[cap](x, y, angle, weight))
 }
 
 /**
