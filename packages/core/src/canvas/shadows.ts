@@ -382,7 +382,9 @@ export function isolatesInnerShadows(node: SceneNode): boolean {
   return (
     shadows.length > 0 &&
     shadows.every((effect) => !needsIsolatedBlendLayer(effect.blendMode)) &&
-    node.fills.every((fill) => !fill.visible || !needsIsolatedBlendLayer(fill.blendMode))
+    [...node.fills, ...node.fillGeometry.flatMap((geometry) => geometry.fills ?? [])].every(
+      (fill) => !fill.visible || !needsIsolatedBlendLayer(fill.blendMode)
+    )
   )
 }
 

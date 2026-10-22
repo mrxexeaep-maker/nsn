@@ -1,7 +1,10 @@
-import { afterAll, describe, test } from 'bun:test'
+import { afterAll, describe, expect, test } from 'bun:test'
 
 import { SkiaRenderer } from '@open-pencil/core'
 import { initCanvasKit } from '@open-pencil/core/io'
+import { SceneGraph } from '@open-pencil/scene-graph'
+
+import { isolatesInnerShadows } from '#core/canvas/shadows'
 
 import { expectDefined } from '#core-tests/helpers/assert'
 import { expectFigmaRow, renderRow, type FigmaRowScene } from '#core-tests/helpers/figma-rows'
@@ -9,6 +12,19 @@ import { expectFigmaRow, renderRow, type FigmaRowScene } from '#core-tests/helpe
 const ck = await initCanvasKit()
 const renderer = new SkiaRenderer(ck, expectDefined(ck.MakeSurface(1, 1)))
 afterAll(() => renderer.destroy())
+
+const RED = { type: 'SOLID' as const, color: { r: 1, g: 0, b: 0, a: 1 }, visible: true }
+
+const SHARP_INNER_SHADOW = {
+  type: 'INNER_SHADOW' as const,
+  radius: 0,
+  spread: 6,
+  offset: { x: 8, y: 8 },
+  color: { r: 0, g: 0, b: 0, a: 1 },
+  visible: true,
+  blendMode: 'NORMAL' as const,
+  showShadowBehindNode: false
+}
 
 function roundedSquare(opacity: number): FigmaRowScene {
   return (graph, hostId) =>
@@ -18,19 +34,8 @@ function roundedSquare(opacity: number): FigmaRowScene {
       width: 160,
       height: 160,
       cornerRadius: 40,
-      fills: [{ type: 'SOLID', color: { r: 1, g: 0, b: 0, a: 1 }, opacity, visible: true }],
-      effects: [
-        {
-          type: 'INNER_SHADOW',
-          radius: 0,
-          spread: 6,
-          offset: { x: 8, y: 8 },
-          color: { r: 0, g: 0, b: 0, a: 1 },
-          visible: true,
-          blendMode: 'NORMAL',
-          showShadowBehindNode: false
-        }
-      ]
+      fills: [{ ...RED, opacity }],
+      effects: [SHARP_INNER_SHADOW]
     })
 }
 
@@ -47,4 +52,29 @@ describe('an inner shadow over a rounded edge', () => {
       expectFigmaRow(renderRow(ck, renderer, scene, 90, 119, 139), FIGMA_ALPHA)
     })
   }
+})
+
+// A layer of their own would blend a fill with nothing under it, so blended fills stay in place.
+describe('fills and inner shadows take a layer of their own', () => {
+  function vector(blendMode: 'NORMAL' | 'MULTIPLY') {
+    const graph = new SceneGraph()
+    return graph.createNode('VECTOR', graph.getPages()[0].id, {
+      width: 100,
+      height: 100,
+      fills: [{ ...RED, opacity: 1 }],
+      fillGeometry: [
+        {
+          windingRule: 'NONZERO',
+          commandsBlob: new Uint8Array(),
+          fills: [{ ...RED, opacity: 1, blendMode }]
+        }
+      ],
+      effects: [SHARP_INNER_SHADOW]
+    })
+  }
+
+  test('unless a path of a vector fills with a blend', () => {
+    expect(isolatesInnerShadows(vector('NORMAL'))).toBe(true)
+    expect(isolatesInnerShadows(vector('MULTIPLY'))).toBe(false)
+  })
 })
