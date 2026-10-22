@@ -1,4 +1,4 @@
-import { groupBy, Semaphore } from 'es-toolkit'
+import { groupBy, limitAsync } from 'es-toolkit'
 
 import type { CloudAPIClient } from '@open-pencil/cloud/client'
 import {
@@ -30,16 +30,14 @@ async function loadLinked(
   const checksums = Object.keys(byChecksum)
   const loaded = new Map<string, Uint8Array>()
   if (checksums.length === 0) return loaded
-  const semaphore = new Semaphore(IMAGE_LOAD_CONCURRENCY)
+  const download = limitAsync(
+    (link: DocumentImageLink) => downloadCloudImage(link, storageFetch),
+    IMAGE_LOAD_CONCURRENCY
+  )
   await Promise.allSettled(
     (await links(checksums)).map(async (link) => {
-      await semaphore.acquire()
-      try {
-        const bytes = await downloadCloudImage(link, storageFetch)
-        for (const ref of byChecksum[link.checksum] ?? []) loaded.set(ref.name, bytes)
-      } finally {
-        semaphore.release()
-      }
+      const bytes = await download(link)
+      for (const ref of byChecksum[link.checksum] ?? []) loaded.set(ref.name, bytes)
     })
   )
   return loaded

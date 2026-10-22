@@ -42,7 +42,7 @@ import { announceVersions, recordCheckpoint } from '#cloud/server/documents/vers
 import type { ObjectStore, StoredObject } from '#cloud/server/objects'
 import type { CloudPolicy } from '#cloud/server/policy/policy'
 import { createStorageQuotaService } from '#cloud/server/quota'
-import { Semaphore, uniq, uniqBy } from 'es-toolkit'
+import { limitAsync, uniq, uniqBy } from 'es-toolkit'
 import type { Kysely, Transaction } from 'kysely'
 
 const DOWNLOAD_LIFETIME_MS = 5 * 60 * 1000
@@ -569,18 +569,16 @@ export function createDocumentService(
       }
       // Each image is its own object, so a few are checked and landed at once, each once however
       // often the request names it.
-      const semaphore = new Semaphore(IMAGE_COMMIT_CONCURRENCY)
+      const land = limitAsync(
+        (upload: UploadRow, multipart: CommitUploadInput['multipart']) =>
+          finalizeUpload(upload, multipart, (stored) => landImage(upload, stored)),
+        IMAGE_COMMIT_CONCURRENCY
+      )
       await Promise.all(
         uniqBy(uploads, (commit) => commit.uploadId).map(async (commit) => {
           const upload = rows.get(commit.uploadId)
           if (!upload) throw new UploadInvalidError()
-          if (upload.status === 'committed') return
-          await semaphore.acquire()
-          try {
-            await finalizeUpload(upload, commit.multipart, (stored) => landImage(upload, stored))
-          } finally {
-            semaphore.release()
-          }
+          if (upload.status !== 'committed') await land(upload, commit.multipart)
         })
       )
     }

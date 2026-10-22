@@ -1,3 +1,4 @@
+import { compact, partition } from 'es-toolkit'
 import type * as Y from 'yjs'
 
 import type { EditorStore } from '@/app/editor/active-store'
@@ -103,10 +104,12 @@ export function bindRoomImages({
   }
 
   async function loadQueued() {
-    const batch = [...toLoad].flatMap((name) => {
-      const ref = yrefs.get(name)
-      return ref ? [{ name, ref }] : []
-    })
+    const batch = compact(
+      [...toLoad].map((name) => {
+        const ref = yrefs.get(name)
+        return ref ? { name, ref } : undefined
+      })
+    )
     toLoad.clear()
     if (batch.length === 0) return
     for (const image of batch) busy.add(image.name)
@@ -121,10 +124,9 @@ export function bindRoomImages({
     } finally {
       for (const image of batch) busy.delete(image.name)
     }
-    for (const image of batch) {
-      if (loaded.has(image.name)) attempts.delete(image.name)
-      else retryLoad(image.name, image.ref)
-    }
+    const [arrived, missed] = partition(batch, (image) => loaded.has(image.name))
+    for (const image of arrived) attempts.delete(image.name)
+    for (const image of missed) retryLoad(image.name, image.ref)
   }
 
   /** Asks again later for an image a load left out, as long as the room still names it so. */

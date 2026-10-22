@@ -1,4 +1,4 @@
-import { Semaphore, sumBy } from 'es-toolkit'
+import { limitAsync, sumBy } from 'es-toolkit'
 import { fromUint8Array } from 'js-base64'
 
 import type { DocumentDownload, DocumentImageLink } from '@open-pencil/cloud/contract'
@@ -59,18 +59,16 @@ export async function downloadCloudDocument(
     options.onProgress?.({ transferredBytes, totalBytes })
     return bytes
   }
-  const semaphore = new Semaphore(IMAGE_DOWNLOAD_CONCURRENCY)
+  const fetchImage = limitAsync(
+    async (image: DocumentDownload['images'][number]) => ({
+      name: image.name,
+      bytes: received(await fetchVerified(image.download, image, objectFetch, options.signal))
+    }),
+    IMAGE_DOWNLOAD_CONCURRENCY
+  )
   const [lean, ...images] = await Promise.all([
     fetchVerified(download.download, download, objectFetch, options.signal).then(received),
-    ...download.images.map(async (image) => {
-      await semaphore.acquire()
-      try {
-        const bytes = await fetchVerified(image.download, image, objectFetch, options.signal)
-        return { name: image.name, bytes: received(bytes) }
-      } finally {
-        semaphore.release()
-      }
-    })
+    ...download.images.map(fetchImage)
   ])
   return assembleCloudDocument(lean, images)
 }
