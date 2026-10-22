@@ -1,4 +1,4 @@
-import { RELAY_DOCUMENT_PARAM, RELAY_PATH } from '#cloud/contract'
+import { RELAY_DOCUMENT_PARAM } from '#cloud/contract'
 import { createPostgresCloudDatabase } from '#cloud/runtime/postgres/database'
 import {
   createCollaborationRelay,
@@ -8,21 +8,24 @@ import {
   type CollaborationRelay,
   type RelayConnection
 } from '#cloud/server'
+import { DurableObject } from 'cloudflare:workers'
+import type { Context } from 'hono'
 import * as v from 'valibot'
 
 import type { CloudflareCloudEnvironment, PreparedCloudflareCloud } from './environment'
 
-/** What the Worker asks a document's relay object besides sockets; never routed from outside. */
-const RELAY_ACTIONS = { startOver: '/start-over', announceVersions: '/versions' } as const
+/** What the Worker calls on a document's relay object. */
+export interface CollaborationRelayRPC extends DurableObject<CloudflareCloudEnvironment> {
+  /** Ends the document's live rooms after a restore, without saving them. */
+  startOver(documentId: string): void
+  /** Tells the document's live rooms its version history changed. */
+  announceVersions(documentId: string): void
+}
 
 const documentIdSchema = v.pipe(v.string(), v.uuid())
 
-function documentOf(request: Request): string | null {
-  const documentId = new URL(request.url).searchParams.get(RELAY_DOCUMENT_PARAM)
-  return v.is(documentIdSchema, documentId) ? documentId : null
-}
-
-function relayObject(env: CloudflareCloudEnvironment, documentId: string) {
+/** The document's relay object. */
+export function relayFor(env: CloudflareCloudEnvironment, documentId: string) {
   return env.RELAY.get(env.RELAY.idFromName(documentId))
 }
 
@@ -30,25 +33,13 @@ function relayObject(env: CloudflareCloudEnvironment, documentId: string) {
  * Sends a relay socket to its document's relay object. The ticket's URL names the document; the
  * object refuses tickets for any other.
  */
-export function routeToRelay(request: Request, env: CloudflareCloudEnvironment) {
-  if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
-    return new Response('Expected a WebSocket upgrade', { status: 426 })
+export function routeToRelay(c: Context<{ Bindings: CloudflareCloudEnvironment }>) {
+  if (c.req.header('Upgrade')?.toLowerCase() !== 'websocket') {
+    return c.text('Expected a WebSocket upgrade', 426)
   }
-  const documentId = documentOf(request)
-  if (!documentId) return new Response('Missing document', { status: 400 })
-  return relayObject(env, documentId).fetch(request)
-}
-
-/** Asks a document's relay object to act on its live rooms. */
-export async function tellRelay(
-  env: CloudflareCloudEnvironment,
-  documentId: string,
-  action: keyof typeof RELAY_ACTIONS
-): Promise<void> {
-  const url = new URL(RELAY_ACTIONS[action], 'https://relay.internal')
-  url.searchParams.set(RELAY_DOCUMENT_PARAM, documentId)
-  const response = await relayObject(env, documentId).fetch(url, { method: 'POST' })
-  if (!response.ok) throw new Error(`The relay could not ${action}: ${response.status}`)
+  const documentId = c.req.query(RELAY_DOCUMENT_PARAM)
+  if (!v.is(documentIdSchema, documentId)) return c.text('Missing document', 400)
+  return relayFor(c.env, documentId).fetch(c.req.raw)
 }
 
 /** A socket message's bytes; text is passed on as bytes for the relay to refuse. */
@@ -57,7 +48,7 @@ function bytes(data: unknown): Uint8Array {
   return new TextEncoder().encode(typeof data === 'string' ? data : '')
 }
 
-/** Hands a WebSocket the Worker accepted to the relay, as the Node runtime does with `ws`. */
+/** Hands a WebSocket the object accepted to the relay, as the Node runtime does with `ws`. */
 function accept(relay: CollaborationRelay): Response {
   const { 0: client, 1: server } = new WebSocketPair()
   // Standard sockets deliver binary messages as Blobs unless asked otherwise.
@@ -94,18 +85,18 @@ function accept(relay: CollaborationRelay): Response {
 export function createCloudflareRelayObject(
   prepare: (env: CloudflareCloudEnvironment) => Promise<PreparedCloudflareCloud>
 ) {
-  return class CollaborationRelayObject {
+  return class CollaborationRelayObject
+    extends DurableObject<CloudflareCloudEnvironment>
+    implements CollaborationRelayRPC
+  {
     #relay: Promise<CollaborationRelay> | null = null
-
-    constructor(
-      _state: DurableObjectState,
-      private readonly env: CloudflareCloudEnvironment
-    ) {}
+    /** Set by the first socket; restores and version changes before it have no rooms to reach. */
+    #opened: CollaborationRelay | null = null
 
     #open(documentId: string) {
       this.#relay ??= prepare(this.env).then(({ config }) => {
         const database = createPostgresCloudDatabase({ connectionString: config.databaseURL })
-        return createCollaborationRelay({
+        this.#opened = createCollaborationRelay({
           authSecret: config.authSecret,
           documentId,
           store: createCollaborationStateStore(database),
@@ -117,6 +108,7 @@ export function createCloudflareRelayObject(
             config.deployment
           )
         })
+        return this.#opened
       })
       this.#relay.catch(() => {
         this.#relay = null
@@ -124,17 +116,19 @@ export function createCloudflareRelayObject(
       return this.#relay
     }
 
-    async fetch(request: Request): Promise<Response> {
-      const documentId = documentOf(request)
-      if (!documentId) return new Response('Missing document', { status: 400 })
-      const path = new URL(request.url).pathname
-      if (path === RELAY_PATH) return accept(await this.#open(documentId))
-      // Nobody is in a room the object never opened, so there is nothing to tell.
-      const relay = await this.#relay
-      if (path === RELAY_ACTIONS.startOver) relay?.startOver(documentId)
-      else if (path === RELAY_ACTIONS.announceVersions) relay?.announceVersions(documentId)
-      else return new Response(null, { status: 404 })
-      return new Response(null, { status: 204 })
+    /** Accepts a socket that `routeToRelay` sent here. */
+    override async fetch(request: Request): Promise<Response> {
+      const documentId = new URL(request.url).searchParams.get(RELAY_DOCUMENT_PARAM)
+      if (!v.is(documentIdSchema, documentId)) return new Response(null, { status: 400 })
+      return accept(await this.#open(documentId))
+    }
+
+    startOver(documentId: string) {
+      this.#opened?.startOver(documentId)
+    }
+
+    announceVersions(documentId: string) {
+      this.#opened?.announceVersions(documentId)
     }
   }
 }

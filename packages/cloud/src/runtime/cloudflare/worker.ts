@@ -1,4 +1,5 @@
 import { defaultRelayURL, RELAY_PATH } from '#cloud/contract'
+import { createCloudServer } from '#cloud/runtime/portal/server'
 import { createPostgresCloudDatabase } from '#cloud/runtime/postgres/database'
 import { createS3ObjectStore } from '#cloud/runtime/s3/objects'
 import {
@@ -10,9 +11,9 @@ import {
   createInvitationOutbox,
   createTransactionalEmailService,
   runCleanup,
-  withIndexingPolicy,
   type TransactionalEmailService
 } from '#cloud/server'
+import { Hono } from 'hono'
 
 import { createCloudflareEmailTransport } from './email'
 import {
@@ -20,8 +21,8 @@ import {
   type CloudflareCloudEnvironment,
   type PreparedCloudflareCloud
 } from './environment'
-import { createCloudflareCloudPortal } from './portal'
-import { createCloudflareRelayObject, routeToRelay, tellRelay } from './relay'
+import { assetPortalFiles } from './portal'
+import { createCloudflareRelayObject, relayFor, routeToRelay } from './relay'
 
 function emailTransport({ config }: PreparedCloudflareCloud, env: CloudflareCloudEnvironment) {
   if (config.emailTransport !== 'cloudflare') return undefined
@@ -36,7 +37,7 @@ function emailTransport({ config }: PreparedCloudflareCloud, env: CloudflareClou
 function cloudServices(
   prepared: PreparedCloudflareCloud,
   env: CloudflareCloudEnvironment,
-  context: ExecutionContext
+  context: Pick<ExecutionContext, 'waitUntil'>
 ) {
   const { config } = prepared
   const database = createPostgresCloudDatabase({ connectionString: config.databaseURL })
@@ -97,12 +98,11 @@ function cloudServices(
 export function createCloudflareCloud(configSource: string) {
   const prepare = cloudflareCloudSetup(configSource)
 
-  const worker: ExportedHandler<CloudflareCloudEnvironment> = {
-    async fetch(request, env, context) {
-      const path = new URL(request.url).pathname
-      if (path === RELAY_PATH) return routeToRelay(request, env)
-      const prepared = await prepare(env)
-      const services = cloudServices(prepared, env, context)
+  const router = new Hono<{ Bindings: CloudflareCloudEnvironment }>()
+    .get(RELAY_PATH, routeToRelay)
+    .all('*', async (c) => {
+      const prepared = await prepare(c.env)
+      const services = cloudServices(prepared, c.env, c.executionCtx)
       const { config, database, email, transport, runInBackground } = services
       try {
         const { auth, enrollment } = createCloudAuthenticationRuntime(config, database, email, {
@@ -120,20 +120,21 @@ export function createCloudflareCloud(configSource: string) {
           aiSigningKey: prepared.aiSigningKey,
           relayURL: config.relayURL ?? defaultRelayURL(config.publicURL),
           onDocumentRestored: (documentId) =>
-            runInBackground(tellRelay(env, documentId, 'startOver')),
+            runInBackground(relayFor(c.env, documentId).startOver(documentId)),
           onDocumentVersionsChanged: (documentId) =>
-            runInBackground(tellRelay(env, documentId, 'announceVersions'))
+            runInBackground(relayFor(c.env, documentId).announceVersions(documentId))
         })
-        const portal = createCloudflareCloudPortal(env.ASSETS)
-        const page = await portal.page(request)
-        if (page) return withIndexingPolicy(page, path, config.indexingPolicy)
-        const response = await app.fetch(request)
-        const file = response.status === 404 ? await portal.file(request) : null
-        return withIndexingPolicy(file ?? response, path, config.indexingPolicy)
+        return await createCloudServer(app, {
+          portal: assetPortalFiles(c.env.ASSETS),
+          indexingPolicy: config.indexingPolicy
+        }).fetch(c.req.raw)
       } finally {
         services.finish()
       }
-    },
+    })
+
+  const worker: ExportedHandler<CloudflareCloudEnvironment> = {
+    fetch: (request, env, context) => router.fetch(request, env, context),
 
     async scheduled(_controller, env, context) {
       const prepared = await prepare(env)

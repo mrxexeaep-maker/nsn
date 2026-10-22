@@ -1,6 +1,7 @@
 import { createServer } from 'node:http'
 
 import { defaultRelayURL } from '#cloud/contract'
+import { createCloudServer } from '#cloud/runtime/portal/server'
 import { createS3ObjectStore } from '#cloud/runtime/s3/objects'
 import {
   createCloudApp,
@@ -13,14 +14,13 @@ import {
   createConfiguredCloudPolicy,
   relayDocumentLookups,
   startCleanupWorker,
-  startTransactionalEmailWorker,
-  withIndexingPolicy
+  startTransactionalEmailWorker
 } from '#cloud/server'
 import { getRequestListener } from '@hono/node-server'
 
 import { createMigratedNodeCloudDatabase } from './bootstrap'
 import { createNodeTransactionalEmailRuntime } from './email/runtime'
-import { createNodeCloudPortal } from './portal'
+import { nodePortalFiles } from './portal'
 import { attachCollaborationRelay } from './relay'
 
 export type NodeCloudServerOptions = {
@@ -81,19 +81,14 @@ export async function startNodeCloudServer(options: NodeCloudServerOptions = {})
       })
     : undefined
   const portalDirectory = environment.OPENPENCIL_CLOUD_PORTAL_DIR
-  const portal = portalDirectory ? createNodeCloudPortal(portalDirectory) : undefined
-  // Without the portal build, sign-in, account, and administration pages answer 404.
-  if (!portal)
+  if (!portalDirectory)
     console.warn('[Cloud] OPENPENCIL_CLOUD_PORTAL_DIR is not set; sign-in pages are off.')
+  const cloudServer = createCloudServer(app, {
+    portal: portalDirectory ? nodePortalFiles(portalDirectory) : undefined,
+    indexingPolicy: config.indexingPolicy
+  })
   const server = await listen(
-    async (request) => {
-      const path = new URL(request.url).pathname
-      const page = await portal?.page(request)
-      if (page) return withIndexingPolicy(page, path, config.indexingPolicy)
-      const response = await app.fetch(request)
-      const file = response.status === 404 ? await portal?.file(request) : null
-      return withIndexingPolicy(file ?? response, path, config.indexingPolicy)
-    },
+    async (request) => cloudServer.fetch(request),
     options.port ?? Number(environment.PORT ?? 8787),
     environment.HOST ?? '0.0.0.0'
   )

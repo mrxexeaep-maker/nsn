@@ -6,12 +6,14 @@ import {
   type CloudServerConfig
 } from '#cloud/server'
 
+import type { CollaborationRelayRPC } from './relay'
+
 /** The bindings `deploy/cloudflare/wrangler.jsonc` gives the Worker and its relay objects. */
 export type CloudflareCloudBindings = {
   /** PostgreSQL, through Hyperdrive. */
   HYPERDRIVE: Hyperdrive
   /** The collaboration relay, one object per document. */
-  RELAY: DurableObjectNamespace
+  RELAY: DurableObjectNamespace<CollaborationRelayRPC>
   /** The built portal, `dist-cloud-portal`. */
   ASSETS: Fetcher
   /** Required by `[email] transport = "cloudflare"`. */
