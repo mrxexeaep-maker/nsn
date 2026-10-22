@@ -2,10 +2,6 @@ import { isEmptyDocumentChange } from '@open-pencil/core/editor'
 import type { FigmaAPI } from '@open-pencil/core/figma-api'
 import { isAtomicTool, toolChangesDocument, type ToolDef } from '@open-pencil/core/tools'
 
-import { AUTOMATION_UNDO_LABEL, executeAtomicEditorTool } from '@/app/automation/execution/editor'
-import type { EditorStore } from '@/app/editor/active-store'
-import { ensureGraphFonts } from '@/app/editor/fonts'
-
 import {
   AI_UNDO_PREFIX,
   markRunChange,
@@ -13,7 +9,11 @@ import {
   recordRunBaseline,
   recordRunUndoEntry,
   type Run
-} from '../reply/run'
+} from '@/app/ai/reply/run'
+import { AUTOMATION_UNDO_LABEL, executeAtomicEditorTool } from '@/app/automation/execution/editor'
+import type { EditorStore } from '@/app/editor/active-store'
+import { ensureGraphFonts } from '@/app/editor/fonts'
+
 import { recordToolChange } from './changes/capture'
 import { createMutex } from './mutex'
 
@@ -154,6 +154,8 @@ export async function runEditorTool(call: EditorToolCall): Promise<unknown> {
   // Whatever fails from here, the lock and the reply's count of running tools are released.
   let began = false
   try {
+    // Cancelled while waiting for its turn, as a WebMCP call can be: nothing is edited.
+    call.signal?.throwIfAborted()
     // Stopped while waiting for its turn: the reply is over, so nothing more is edited.
     if (reply && !reply.run.active) return { error: STOPPED_BEFORE_CALL }
     if (reply) {

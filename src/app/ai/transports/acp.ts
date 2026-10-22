@@ -12,15 +12,14 @@ import * as v from 'valibot'
 
 import type { ACPAgentDef } from '@open-pencil/core/constants'
 
+import { parseAuthStatusUpdate } from '@/app/ai/agents/acp/auth/status'
+import { createUpdateMapper } from '@/app/ai/agents/acp/events'
+import { spawnACPProcess } from '@/app/ai/agents/acp/process'
+import { linkOwnTools } from '@/app/ai/agents/acp/tools'
 import SYSTEM_PROMPT from '@/app/ai/chat/system-prompt'
 import { endRun, forgetAgentChat, startAgentRun } from '@/app/ai/reply/run'
 import { describeDiagnosticError, recordACPTransportFailure } from '@/app/diagnostics'
 import type { EditorStore } from '@/app/editor/active-store'
-
-import { parseAuthStatusUpdate } from '../agents/acp/auth/status'
-import { createUpdateMapper } from '../agents/acp/events'
-import { spawnACPProcess } from '../agents/acp/process'
-import { linkOwnTools } from '../agents/acp/tools'
 
 type TauriChild = Awaited<ReturnType<typeof spawnACPProcess>>['child']
 

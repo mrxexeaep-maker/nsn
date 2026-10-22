@@ -7,9 +7,8 @@ import type {
   HarnessTurnUsage
 } from '@open-pencil/harness'
 
+import { spawnHarnessProcess, type HarnessProcess } from '@/app/ai/agents/pi/process'
 import { createReplyStream, type ReplyStream } from '@/app/ai/reply/stream'
-
-import { spawnHarnessProcess, type HarnessProcess } from '../agents/pi/process'
 
 interface PendingRequest {
   controller?: ReadableStreamDefaultController<UIMessageChunk>

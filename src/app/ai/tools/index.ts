@@ -4,11 +4,6 @@ import { isPlainObject } from 'es-toolkit'
 import { graphFromPageSnapshot } from '@open-pencil/core/editor'
 import { registerComponentCatalog, isAtomicTool, toolsToAI } from '@open-pencil/core/tools'
 
-import { makeFigmaFromStore } from '@/app/automation/bridge/figma-factory'
-import { recordToolCompleted, type AIDiagnosticContext } from '@/app/diagnostics/events/ai'
-import type { EditorStore } from '@/app/editor/active-store'
-import { useLibraryService } from '@/app/libraries'
-
 import {
   currentRun,
   markRunWork,
@@ -16,7 +11,12 @@ import {
   runPageId,
   stepBudget,
   takeRunUndoNote
-} from '../reply/run'
+} from '@/app/ai/reply/run'
+import { makeFigmaFromStore } from '@/app/automation/bridge/figma-factory'
+import { recordToolCompleted, type AIDiagnosticContext } from '@/app/diagnostics/events/ai'
+import type { EditorStore } from '@/app/editor/active-store'
+import { useLibraryService } from '@/app/libraries'
+
 import { aiToolDefinitions } from './catalog'
 import { runEditorTool } from './runner'
 
@@ -30,7 +30,7 @@ export {
   runPageId,
   runUndoEntries,
   startRun
-} from '../reply/run'
+} from '@/app/ai/reply/run'
 
 /**
  * A result with the run's note about edits the user undid meanwhile, so the model does not
