@@ -1,3 +1,4 @@
+import { lineStrokeEnds } from '@open-pencil/scene-graph/arrow-caps'
 import type { RenderColorSpace } from '@open-pencil/scene-graph/color'
 import { resolveNodeTextDirection } from '@open-pencil/scene-graph/text-direction'
 
@@ -136,17 +137,26 @@ function nodeShapeElements(
       ]
     }
 
-    case 'LINE':
+    case 'LINE': {
+      // Where the canvas strokes it: to one side of the line, with its caps inside its length.
+      const stroke = node.strokes.find((item) => item.visible)
+      const { start, end } = lineStrokeEnds(
+        node.width,
+        node.height,
+        stroke?.weight ?? 0,
+        stroke?.cap ?? node.strokeCap
+      )
       return [
         svg('line', {
-          x1: 0,
-          y1: 0,
-          x2: round(node.width),
-          y2: round(node.height),
+          x1: round(start.x),
+          y1: round(start.y),
+          x2: round(end.x),
+          y2: round(end.y),
           fill: 'none',
           ...strokeAttrs
         })
       ]
+    }
 
     case 'STAR':
     case 'POLYGON':

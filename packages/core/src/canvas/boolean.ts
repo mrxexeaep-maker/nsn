@@ -1,12 +1,14 @@
 import type { Canvas, Path, PathBuilder, PathOp } from 'canvaskit-wasm'
 
 import type { GroupFitOptions, SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import { lineStrokeEnds } from '@open-pencil/scene-graph/arrow-caps'
 
 import { getTextOutlineSupport } from '#core/text/outlines'
 
 import { makeArcPath } from './fills'
 import type { SkiaRenderer } from './renderer'
 import { nodeHasRadius } from './shapes'
+import { getStrokeCapEntity } from './strokes'
 import { textNodeToOutlinePath } from './text/outlines'
 
 const BOOLEAN_PATH_OP: Record<
@@ -62,13 +64,17 @@ export function canMakeBooleanSourceNode(node: SceneNode, graph: SceneGraph): bo
   })
 }
 
+/** A line's stroke outline, where its stroke draws: to one side, with its caps inside its length. */
 function lineStrokePath(r: SkiaRenderer, node: SceneNode): Path | null {
-  const path = new r.ck.PathBuilder()
-  path.moveTo(0, 0)
-  path.lineTo(node.width, node.height)
   const stroke = node.strokes.find((item) => item.visible)
+  const weight = stroke?.weight ?? 1
+  const cap = stroke?.cap ?? node.strokeCap
+  const { start, end } = lineStrokeEnds(node.width, node.height, weight, cap)
+  const path = new r.ck.PathBuilder()
+  path.moveTo(start.x, start.y)
+  path.lineTo(end.x, end.y)
   const source = path.detachAndDelete()
-  const outline = source.makeStroked({ width: stroke?.weight ?? 1 })
+  const outline = source.makeStroked({ width: weight, cap: getStrokeCapEntity(r, cap) })
   source.delete()
   return outline
 }
