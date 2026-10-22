@@ -92,7 +92,7 @@ Each runs from a repository checkout with the same `OPENPENCIL_CLOUD_CONFIG` and
 
 ## Email
 
-Set `email.transport = "smtp"` with an `[email.smtp]` table, `"cloudflare"` on Cloudflare Workers to send through Cloudflare Email Service from an address on a domain onboarded to it (the Worker needs the `send_email` binding named `EMAIL`), or `"none"` to send nothing; invitations still work through their links. Messages go through an encrypted outbox in PostgreSQL, tuned under `[workers.email]`. Delivery records that the SMTP server accepted a message, not that it reached the inbox.
+Set `email.transport = "smtp"` with an `[email.smtp]` table, `"cloudflare"` on Cloudflare Workers to send through Cloudflare Email Service from an address on a domain onboarded to it (the Worker needs the `send_email` binding named `EMAIL`, and sending to addresses you haven't verified needs Workers Paid), or `"none"` to send nothing; invitations still work through their links. Messages go through an encrypted outbox in PostgreSQL, tuned under `[workers.email]`. Delivery records that the SMTP server accepted a message, not that it reached the inbox.
 
 ## Storage
 
