@@ -126,7 +126,14 @@ export class ACPChatTransport implements ChatTransport<UIMessage> {
     }
 
     if (!this.session) {
-      this.session = await this.spawnAgent()
+      const started = await this.spawnAgent()
+      // Destroyed between startup and here: the agent is still `starting`, so stop it.
+      if (this.destroying) {
+        await started.child.kill().catch(() => undefined)
+        throw new Error('The chat closed while its agent was starting.')
+      }
+      this.session = started
+      this.starting = null
       this.sentContext = false
     }
 
@@ -316,7 +323,6 @@ export class ACPChatTransport implements ChatTransport<UIMessage> {
       await child.kill().catch(() => undefined)
       throw new Error('The chat closed while its agent was starting.')
     }
-    this.starting = null
     if (outcome.connected === false) {
       await child.kill().catch(() => undefined)
       const error = toolsUnreachableError(this.agentDef, outcome.reason)
