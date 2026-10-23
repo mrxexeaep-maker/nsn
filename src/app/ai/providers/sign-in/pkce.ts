@@ -17,7 +17,7 @@ export async function pkceChallenge(verifier: string): Promise<string> {
   return fromUint8Array(new Uint8Array(digest), true)
 }
 
-export async function createPKCE(): Promise<PKCE> {
-  const verifier = randomToken(48)
-  return { verifier, challenge: await pkceChallenge(verifier), state: randomToken(16) }
+/** The secrets of a PKCE pair, drawn at once; only the challenge needs to wait for hashing. */
+export function pkceSecrets(): Pick<PKCE, 'verifier' | 'state'> {
+  return { verifier: randomToken(48), state: randomToken(16) }
 }

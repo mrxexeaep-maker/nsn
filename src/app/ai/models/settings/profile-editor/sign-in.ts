@@ -45,7 +45,7 @@ export function useProfileSignIn(keyInput: Ref<string>) {
       status.value = result.reason
       return
     }
-    keyInput.value = serializeChatGPTCredential(result.credential)
+    keyInput.value = serializeChatGPTCredential(result.value)
     status.value = 'idle'
   }
 

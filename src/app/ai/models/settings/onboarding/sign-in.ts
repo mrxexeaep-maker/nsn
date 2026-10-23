@@ -12,6 +12,7 @@ import {
   type OpenRouterSignInFailure,
   type OpenRouterSignInOptions
 } from '@/app/ai/providers/openrouter/sign-in'
+import type { SignIn } from '@/app/ai/providers/sign-in/attempt'
 
 import type { OnboardingAccount, OnboardingConnectionState } from './connections'
 import type { OnboardingAccess } from './plan'
@@ -21,10 +22,7 @@ export type OnboardingSignInStatus = 'idle' | 'waiting' | 'verifying' | SignInFa
 export type OnboardingSignInLabels = Pick<OpenRouterSignInOptions, 'keyLabel'>
 
 /** An attempt that ends with the credential to save as the connection's key. */
-interface CredentialSignIn {
-  reopen: () => void
-  result: Promise<{ ok: true; key: string } | { ok: false; reason: SignInFailure }>
-}
+type CredentialSignIn = SignIn<string, 'blocked' | 'port-in-use'>
 
 interface SignInProvider {
   start: (signal: AbortSignal, labels: OnboardingSignInLabels) => CredentialSignIn
@@ -50,7 +48,7 @@ const SIGN_IN_PROVIDERS: Record<OnboardingSignInProvider, SignInProvider> = {
       return {
         reopen: sign.reopen,
         result: sign.result.then((result) =>
-          result.ok ? { ok: true, key: serializeChatGPTCredential(result.credential) } : result
+          result.ok ? { ok: true, value: serializeChatGPTCredential(result.value) } : result
         )
       }
     },
@@ -104,7 +102,7 @@ export function useOnboardingSignIn({ connection, resetTest }: OnboardingSignInO
       return
     }
     statuses[providerID] = 'verifying'
-    const account = await provider.verify(result.key)
+    const account = await provider.verify(result.value)
     if (!current()) return
     attempts.delete(providerID)
     if (!account) {
@@ -112,7 +110,7 @@ export function useOnboardingSignIn({ connection, resetTest }: OnboardingSignInO
       return
     }
     resetTest(providerID)
-    Object.assign(connection(providerID), { apiKey: result.key, account })
+    Object.assign(connection(providerID), { apiKey: result.value, account })
     statuses[providerID] = 'idle'
   }
 

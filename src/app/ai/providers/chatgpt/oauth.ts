@@ -3,7 +3,7 @@ import * as v from 'valibot'
 
 import type { FetchFunction } from '@/app/http/types'
 
-import type { PKCE } from '../pkce'
+import type { PKCE } from '../sign-in/pkce'
 import type { ChatGPTCredential } from './credential'
 
 /**
