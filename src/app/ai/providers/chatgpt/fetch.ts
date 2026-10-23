@@ -44,13 +44,19 @@ const REFUSED_STATUSES = new Set([400, 401, 403])
 /** Codes that say the refresh token itself is spent, expired, or revoked. */
 const REFUSED_CODES = new Set([
   'invalid_grant',
+  'invalid_refresh_token',
   'refresh_token_expired',
   'refresh_token_reused',
   'refresh_token_invalidated'
 ])
 
+/**
+ * The token endpoint answers a bad refresh token with 401 and `invalid_refresh_token`; like the
+ * Codex CLI, any 401 ends the sign-in. Other statuses end it only for a refusing code.
+ */
 function refusesSignIn(error: unknown): boolean {
   if (!(error instanceof ChatGPTTokenError)) return false
+  if (error.status === 401) return true
   return error.code === undefined
     ? REFUSED_STATUSES.has(error.status)
     : REFUSED_CODES.has(error.code)

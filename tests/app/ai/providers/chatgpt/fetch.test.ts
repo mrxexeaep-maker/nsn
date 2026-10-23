@@ -204,18 +204,28 @@ describe('Codex fetch', () => {
   })
 
   test('reports an expired sign-in only when the refresh token is refused', async () => {
-    const refused = createCodexFetch({
+    // The body auth.openai.com sends for an unknown refresh token.
+    const revoked = createCodexFetch({
       credential: credential({ expires: 0, refresh: 'refresh-revoked' }),
       fetch: async () =>
-        Response.json({ error: { code: 'refresh_token_invalidated' } }, { status: 401 })
+        Response.json(
+          { error: { type: 'invalid_request_error', code: 'invalid_refresh_token' } },
+          { status: 401 }
+        )
     })
-    await expect(streamingRequest(refused)).rejects.toBeInstanceOf(ChatGPTSignInExpiredError)
+    await expect(streamingRequest(revoked)).rejects.toBeInstanceOf(ChatGPTSignInExpiredError)
 
-    const misconfigured = createCodexFetch({
-      credential: credential({ expires: 0, refresh: 'refresh-client' }),
-      fetch: async () => Response.json({ error: 'invalid_client' }, { status: 401 })
+    const reused = createCodexFetch({
+      credential: credential({ expires: 0, refresh: 'refresh-reused' }),
+      fetch: async () => Response.json({ error: { code: 'refresh_token_reused' } }, { status: 400 })
     })
-    await expect(streamingRequest(misconfigured)).rejects.toBeInstanceOf(ChatGPTTokenError)
+    await expect(streamingRequest(reused)).rejects.toBeInstanceOf(ChatGPTSignInExpiredError)
+
+    const malformed = createCodexFetch({
+      credential: credential({ expires: 0, refresh: 'refresh-malformed' }),
+      fetch: async () => Response.json({ error: 'invalid_request' }, { status: 400 })
+    })
+    await expect(streamingRequest(malformed)).rejects.toBeInstanceOf(ChatGPTTokenError)
   })
 
   test('keeps the sign-in when the auth server fails to refresh it', async () => {
