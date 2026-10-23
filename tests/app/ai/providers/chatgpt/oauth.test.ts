@@ -9,7 +9,7 @@ import {
   refreshChatGPTCredential
 } from '@/app/ai/providers/chatgpt/oauth'
 
-import { accessToken, idToken, jwt, tokenResponse } from './tokens'
+import { accessToken, idToken, jwt, tokenResponse } from '#tests/helpers/ai/chatgpt'
 
 describe('ChatGPT OAuth', () => {
   test('builds the Codex authorization URL with the challenge and state', () => {
