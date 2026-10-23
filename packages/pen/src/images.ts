@@ -1,5 +1,3 @@
-import { isValid, toUint8Array } from 'js-base64'
-
 import type { Fill, ImageScaleMode, SceneGraph } from '@open-pencil/scene-graph'
 import { BLACK } from '@open-pencil/scene-graph/constants'
 import { coverImageTransform, computeImageHash, imageSize } from '@open-pencil/scene-graph/images'
@@ -18,12 +16,7 @@ export interface PenImages {
   get(url: string): PenImage | undefined
 }
 
-const DATA_URL = /^data:image\/[a-z0-9.+-]+;base64,(.*)$/is
-
-/**
- * Stores the image files a host loaded in the graph, and the data URLs paints carry as they are
- * met. URLs with neither stay unpainted.
- */
+/** Stores the images a host loaded, by the URLs paints name them with; others stay unpainted. */
 export function createImageStore(
   graph: SceneGraph,
   files: ReadonlyMap<string, Uint8Array> = new Map()
@@ -40,10 +33,7 @@ export function createImageStore(
     get(url) {
       if (byURL.has(url)) return byURL.get(url)
       const file = files.get(url)
-      const encoded = DATA_URL.exec(url)?.[1]
-      let image: PenImage | undefined
-      if (file) image = store(file)
-      else if (encoded !== undefined && isValid(encoded)) image = store(toUint8Array(encoded))
+      const image = file ? store(file) : undefined
       byURL.set(url, image)
       return image
     }

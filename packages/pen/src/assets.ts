@@ -15,18 +15,23 @@ export function iconNames(library: string, icon: string): string[] {
 
 /**
  * Whether an image URL names a file in the document's folder: no scheme, no absolute path, and no
- * `..` step out of it. Data URLs are read from the document itself.
+ * `..` step out of it.
  */
 export function isDocumentAssetPath(url: string): boolean {
   if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith('/') || url.startsWith('\\')) return false
   return !url.split(/[/\\]/).includes('..')
 }
 
+/** Whether an image URL carries the image itself, for the host to decode as a URL. */
+export function isDataURL(url: string): boolean {
+  return /^data:/i.test(url)
+}
+
 /** The icons and image files a document draws, so a host can load them before reading it. */
 export interface PenAssets {
   /** Iconify names of every icon, with each icon's fallbacks. */
   icons: string[]
-  /** Image files, relative to the document. */
+  /** Images to load: files relative to the document, and data URLs. */
   images: string[]
 }
 
@@ -38,7 +43,7 @@ function paintList(paints: PenPaints | undefined): PenPaint[] {
 function paintImages(paints: PenPaints | undefined, images: Set<string>) {
   for (const paint of paintList(paints)) {
     if (typeof paint === 'object' && paint.type === 'image' && typeof paint.url === 'string') {
-      if (isDocumentAssetPath(paint.url)) images.add(paint.url)
+      if (isDocumentAssetPath(paint.url) || isDataURL(paint.url)) images.add(paint.url)
     }
   }
 }

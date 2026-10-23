@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { toUint8Array } from 'js-base64'
+
+import { fromUint8Array, toUint8Array } from 'js-base64'
 
 import type { IconData, IconProvider } from '@open-pencil/core/icons'
 import { IORegistry, penFormat } from '@open-pencil/core/io'
@@ -33,7 +34,9 @@ function iconProvider(available: string[], requested: string[][]): IconProvider 
   return {
     async icons(names, size) {
       requested.push([...names])
-      return new Map(names.filter((name) => available.includes(name)).map((name) => [name, glyph(name, size)]))
+      return new Map(
+        names.filter((name) => available.includes(name)).map((name) => [name, glyph(name, size)])
+      )
     },
     search: () => Promise.resolve({ icons: [], total: 0, collections: {} }),
     previews: () => Promise.resolve(new Map()),
@@ -56,7 +59,15 @@ describe('penFormat.readDocument — assets', () => {
       {
         name: 'icons.pen',
         data: penBytes([
-          { id: 'home', type: 'icon', library: 'Material Symbols Outlined', icon: 'home', width: 48, height: 48, fill: '#222222' }
+          {
+            id: 'home',
+            type: 'icon',
+            library: 'Material Symbols Outlined',
+            icon: 'home',
+            width: 48,
+            height: 48,
+            fill: '#222222'
+          }
         ])
       },
       { icons }
@@ -73,8 +84,20 @@ describe('penFormat.readDocument — assets', () => {
       {
         name: 'images.pen',
         data: penBytes([
-          { id: 'photo', type: 'rectangle', width: 20, height: 10, fill: { type: 'image', url: './photo.png' } },
-          { id: 'gone', type: 'rectangle', width: 20, height: 10, fill: { type: 'image', url: './gone.png' } }
+          {
+            id: 'photo',
+            type: 'rectangle',
+            width: 20,
+            height: 10,
+            fill: { type: 'image', url: './photo.png' }
+          },
+          {
+            id: 'gone',
+            type: 'rectangle',
+            width: 20,
+            height: 10,
+            fill: { type: 'image', url: './gone.png' }
+          }
         ]),
         readAsset: async (path) => {
           asked.push(path)
@@ -86,5 +109,35 @@ describe('penFormat.readDocument — assets', () => {
     expect([...asked].sort()).toEqual(['./gone.png', './photo.png'])
     expect(graph.getNode('photo')?.fills[0]?.type).toBe('IMAGE')
     expect(graph.getNode('gone')?.fills).toEqual([])
+  })
+
+  test('decodes data URLs as URLs, without the host', async () => {
+    const encoded = fromUint8Array(PNG)
+    const { graph } = await io.readDocument(
+      {
+        name: 'inline.pen',
+        data: penBytes([
+          {
+            id: 'plain',
+            type: 'rectangle',
+            fill: { type: 'image', url: `data:image/png;base64,${encoded}` }
+          },
+          {
+            id: 'named',
+            type: 'rectangle',
+            fill: { type: 'image', url: `DATA:image/png;name=a.png;base64,${encoded}` }
+          },
+          {
+            id: 'broken',
+            type: 'rectangle',
+            fill: { type: 'image', url: 'data:image/png;base64,!!!' }
+          }
+        ])
+      },
+      { icons: iconProvider([], []) }
+    )
+    expect(graph.getNode('plain')?.fills[0]?.type).toBe('IMAGE')
+    expect(graph.getNode('named')?.fills[0]?.type).toBe('IMAGE')
+    expect(graph.getNode('broken')?.fills).toEqual([])
   })
 })

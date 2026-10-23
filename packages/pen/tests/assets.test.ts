@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { fromUint8Array, toUint8Array } from 'js-base64'
+import { toUint8Array } from 'js-base64'
 
 import { iconNames, penAssets, parsePenDocument, type PenNode } from '@open-pencil/pen'
 import type { SceneGraph } from '@open-pencil/scene-graph'
@@ -14,7 +14,7 @@ const PNG =
   'iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAIAAAB7QOjdAAAADElEQVR4nGP8zwACAAYIAQFazwZIAAAAAElFTkSuQmCC'
 
 describe('penAssets', () => {
-  test('lists icons with their fallbacks and images in the document folder', () => {
+  test('lists icons with their fallbacks, images in the document folder, and data URLs', () => {
     const doc = parsePenDocument(
       JSON.stringify({
         version: '2.21',
@@ -25,7 +25,12 @@ describe('penAssets', () => {
           { id: 'd', type: 'rectangle', fill: [{ type: 'image', url: '../secret.png' }] },
           { id: 'e', type: 'rectangle', fill: { type: 'image', url: 'https://example.com/a.png' } },
           { id: 'f', type: 'rectangle', fill: { type: 'image', url: '/etc/a.png' } },
-          { id: 'g', type: 'ref', ref: 'x', descendants: { inner: { icon: 'star' } } }
+          { id: 'g', type: 'ref', ref: 'x', descendants: { inner: { icon: 'star' } } },
+          {
+            id: 'h',
+            type: 'rectangle',
+            fill: { type: 'image', url: `data:image/png;base64,${PNG}` }
+          }
         ]
       })
     )
@@ -38,7 +43,7 @@ describe('penAssets', () => {
         'material-symbols:star-outline-rounded',
         'material-symbols:star-rounded'
       ],
-      images: ['./photo.png']
+      images: ['./photo.png', `data:image/png;base64,${PNG}`]
     })
   })
 
@@ -54,8 +59,12 @@ describe('penAssets', () => {
 })
 
 describe('parsePenFile — images', () => {
-  function fillWith(fill: PenNode['fill']) {
-    const graph = parseDocument([{ id: 'shape', type: 'rectangle', width: 200, height: 100, fill }])
+  function fillWith(fill: PenNode['fill'], bytes = toUint8Array(PNG)) {
+    const graph = parseDocument(
+      [{ id: 'shape', type: 'rectangle', width: 200, height: 100, fill }],
+      {},
+      { images: new Map([['./image.png', bytes]]) }
+    )
     return { graph, fill: getNodeOrThrow(graph, 'shape').fills[0] }
   }
 
@@ -65,7 +74,7 @@ describe('parsePenFile — images', () => {
     ['contain', 'FIT'],
     ['stretch', 'CROP']
   ] as const)('draws mode %s as %s', (mode, expected) => {
-    const { graph, fill } = fillWith({ type: 'image', url: `data:image/png;base64,${PNG}`, mode })
+    const { graph, fill } = fillWith({ type: 'image', url: './image.png', mode })
     expect(fill).toMatchObject({ type: 'IMAGE', imageScaleMode: expected })
     expect(graph.images.has(expectDefined(fill.imageHash))).toBe(true)
   })
@@ -74,7 +83,7 @@ describe('parsePenFile — images', () => {
     // The right half of a 2 × 1 image is square, so on a 200 × 100 layer it is cut to its middle.
     const { fill } = fillWith({
       type: 'image',
-      url: `data:image/png;base64,${PNG}`,
+      url: './image.png',
       transform: [2, 0, 0, 1, -1, 0]
     })
     const window = expectDefined(fill.imageTransform)
@@ -88,11 +97,10 @@ describe('parsePenFile — images', () => {
     const empty = toUint8Array(PNG)
     // The IHDR width, which follows the signature, the chunk length, and the chunk type.
     empty.set([0, 0, 0, 0], 16)
-    const { fill } = fillWith({
-      type: 'image',
-      url: `data:image/png;base64,${fromUint8Array(empty)}`,
-      transform: [2, 0, 0, 1, -1, 0]
-    })
+    const { fill } = fillWith(
+      { type: 'image', url: './image.png', transform: [2, 0, 0, 1, -1, 0] },
+      empty
+    )
     const window = expectDefined(fill.imageTransform)
     expect(Object.values(window).every(Number.isFinite)).toBe(true)
   })

@@ -1,5 +1,11 @@
 import { sceneNodeToJSX, selectionToJSX } from '@open-pencil/design-jsx'
-import { buildPenGraph, parsePenDocument, penAssets, type PenIconSource } from '@open-pencil/pen'
+import {
+  buildPenGraph,
+  isDataURL,
+  parsePenDocument,
+  penAssets,
+  type PenIconSource
+} from '@open-pencil/pen'
 import type { SceneGraph } from '@open-pencil/scene-graph'
 
 import { drawIcon, iconify, type IconData, type IconProvider } from '#core/icons'
@@ -218,16 +224,29 @@ async function writeFig(
 /** The size icons are fetched at; each is scaled to the box it is drawn in. */
 const PEN_ICON_SIZE = 24
 
+/**
+ * An image's bytes: a data URL decoded by the platform's own URL handling, a file through the
+ * host; null when either fails.
+ */
+async function loadPenImage(url: string, input: ReadDocumentInput): Promise<Uint8Array | null> {
+  try {
+    if (!isDataURL(url)) return (await input.readAsset?.(url)) ?? null
+    // Through `URL`, which lowercases the scheme for runtimes that only fetch `data:`.
+    return new Uint8Array(await (await fetch(new URL(url))).arrayBuffer())
+  } catch {
+    return null
+  }
+}
+
 async function loadPenImages(
-  paths: readonly string[],
+  urls: readonly string[],
   input: ReadDocumentInput
 ): Promise<Map<string, Uint8Array>> {
   const images = new Map<string, Uint8Array>()
-  if (!input.readAsset) return images
   await Promise.all(
-    paths.map(async (path) => {
-      const bytes = await input.readAsset?.(path).catch(() => null)
-      if (bytes) images.set(path, bytes)
+    urls.map(async (url) => {
+      const bytes = await loadPenImage(url, input)
+      if (bytes) images.set(url, bytes)
     })
   )
   return images

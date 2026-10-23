@@ -34,7 +34,7 @@ import {
 } from '@open-pencil/core/io/formats/raster'
 import { computeAllLayouts } from '@open-pencil/core/layout'
 import { fontManager, prepareGraphFonts } from '@open-pencil/core/text'
-import { parsePenDocument, penAssets } from '@open-pencil/pen'
+import { isDocumentAssetPath, parsePenDocument, penAssets } from '@open-pencil/pen'
 
 const PEN_MCP_SERVER =
   '/Applications/Pen.app/Contents/Resources/app.asar.unpacked/out/mcp-server-darwin-arm64'
@@ -81,7 +81,7 @@ const assets = penAssets(doc)
 
 clearFixtures()
 writeFileSync(join(fixtures, 'probes.pen'), text)
-for (const image of assets.images) {
+for (const image of assets.images.filter(isDocumentAssetPath)) {
   mkdirSync(dirname(join(fixtures, image)), { recursive: true })
   copyFileSync(join(dirname(source), image), join(fixtures, image))
 }
