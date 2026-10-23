@@ -25,11 +25,14 @@ export function ellipseArc(pen: PenNode, ctx: VarContext): ArcData | null {
 type ViewBox = [x: number, y: number, width: number, height: number]
 
 function networkBounds(network: VectorNetwork): ViewBox {
-  const xs = network.vertices.map((vertex) => vertex.x)
-  const ys = network.vertices.map((vertex) => vertex.y)
-  const x = Math.min(...xs)
-  const y = Math.min(...ys)
-  return [x, y, Math.max(...xs) - x, Math.max(...ys) - y]
+  let [minX, minY, maxX, maxY] = [Infinity, Infinity, -Infinity, -Infinity]
+  for (const { x, y } of network.vertices) {
+    minX = Math.min(minX, x)
+    minY = Math.min(minY, y)
+    maxX = Math.max(maxX, x)
+    maxY = Math.max(maxY, y)
+  }
+  return [minX, minY, maxX - minX, maxY - minY]
 }
 
 /**
