@@ -10,14 +10,9 @@ use std::path::PathBuf;
 /// cover managers that only modify an interactive rc file.
 pub fn candidate_dirs() -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = Vec::new();
-    // Bun, Volta, and npm keep their Windows folders under USERPROFILE, which a HOME set by
-    // Unix-style tools does not always match; HOME remains the fallback there.
-    let home = if cfg!(windows) {
-        std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME"))
-    } else {
-        std::env::var_os("HOME")
-    };
-    if let Some(home) = home.map(PathBuf::from) {
+    // Bun, Volta, and npm keep their Windows folders under USERPROFILE, which `home_dir` reads
+    // there instead of a HOME set by Unix-style tools.
+    if let Some(home) = std::env::home_dir() {
         dirs.push(home.join(".bun/bin"));
         dirs.push(home.join(".local/bin"));
         dirs.push(home.join(".npm-global/bin"));
