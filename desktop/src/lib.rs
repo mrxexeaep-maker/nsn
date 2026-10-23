@@ -382,8 +382,62 @@ fn startup_open_paths() -> Vec<PathBuf> {
     open_paths_from_args(std::env::args().skip(1).collect(), &cwd)
 }
 
+/// The arguments to relaunch with when `--detach` is among them, without the flag.
+#[cfg(unix)]
+fn detach_args(
+    args: impl IntoIterator<Item = std::ffi::OsString>,
+) -> Option<Vec<std::ffi::OsString>> {
+    let mut args: Vec<_> = args.into_iter().collect();
+    let index = args.iter().position(|arg| arg == "--detach")?;
+    args.remove(index);
+    Some(args)
+}
+
+/// `--detach` relaunches the editor in a new session with its output discarded and
+/// returns, so the launching terminal can close without taking the editor with it.
+/// A running editor still receives the files through the single-instance handler.
+#[cfg(unix)]
+fn detach_if_requested() {
+    use std::os::unix::process::CommandExt;
+    use std::process::{Command, Stdio};
+
+    let Some(args) = detach_args(std::env::args_os().skip(1)) else {
+        return;
+    };
+    let mut command = Command::new(match std::env::current_exe() {
+        Ok(exe) => exe,
+        Err(error) => {
+            eprintln!("--detach: cannot locate the executable: {error}");
+            std::process::exit(1);
+        }
+    });
+    command
+        .args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    // SAFETY: setsid is async-signal-safe and touches no state of the parent.
+    unsafe {
+        command.pre_exec(|| {
+            if libc::setsid() == -1 {
+                return Err(std::io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
+    match command.spawn() {
+        Ok(_) => std::process::exit(0),
+        Err(error) => {
+            eprintln!("--detach: cannot start the editor: {error}");
+            std::process::exit(1);
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(unix)]
+    detach_if_requested();
     let _ = fix_path_env::fix();
     augment_mcp_path();
 
@@ -580,5 +634,18 @@ mod tests {
         let current = std::env::var("PATH").unwrap_or_default();
         let augmented = augment_path(&current, &[]);
         assert_eq!(augmented, current);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn detach_args_drop_only_the_flag() {
+        let args = |list: &[&str]| list.iter().map(std::ffi::OsString::from).collect::<Vec<_>>();
+        assert_eq!(detach_args(args(&["a.fig"])), None);
+        assert_eq!(detach_args(args(&[])), None);
+        assert_eq!(detach_args(args(&["--detach"])), Some(args(&[])));
+        assert_eq!(
+            detach_args(args(&["a.fig", "--detach", "b.fig"])),
+            Some(args(&["a.fig", "b.fig"]))
+        );
     }
 }

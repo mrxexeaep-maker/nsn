@@ -3259,6 +3259,7 @@ dependencies = [
  "fix-path-env",
  "fontique",
  "keyring",
+ "libc",
  "objc2-core-foundation",
  "objc2-core-text",
  "reqwest 0.12.28",

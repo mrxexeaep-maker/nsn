@@ -1,0 +1,1 @@
+- On Linux and macOS, `--detach` starts the desktop app detached from the launching terminal, which can then close without closing the editor.
