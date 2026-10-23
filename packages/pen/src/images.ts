@@ -32,7 +32,9 @@ export function createImageStore(
   const store = (bytes: Uint8Array): PenImage => {
     const hash = computeImageHash(bytes)
     graph.images.set(hash, bytes)
-    return { hash, size: imageSize(bytes) }
+    // A header declaring no pixels gives no size to fit a crop to.
+    const size = imageSize(bytes)
+    return { hash, size: size && size.width > 0 && size.height > 0 ? size : null }
   }
   return {
     get(url) {

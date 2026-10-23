@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { toUint8Array } from 'js-base64'
+import { fromUint8Array, toUint8Array } from 'js-base64'
 
 import { iconNames, penAssets, parsePenDocument, type PenNode } from '@open-pencil/pen'
 import type { SceneGraph } from '@open-pencil/scene-graph'
@@ -82,6 +82,19 @@ describe('parsePenFile — images', () => {
     expect(window.m02).toBeCloseTo(0.5)
     expect(window.m11).toBeCloseTo(0.5)
     expect(window.m12).toBeCloseTo(0.25)
+  })
+
+  test('crops an image whose header declares no pixels without fitting it', () => {
+    const empty = toUint8Array(PNG)
+    // The IHDR width, which follows the signature, the chunk length, and the chunk type.
+    empty.set([0, 0, 0, 0], 16)
+    const { fill } = fillWith({
+      type: 'image',
+      url: `data:image/png;base64,${fromUint8Array(empty)}`,
+      transform: [2, 0, 0, 1, -1, 0]
+    })
+    const window = expectDefined(fill.imageTransform)
+    expect(Object.values(window).every(Number.isFinite)).toBe(true)
   })
 
   test('reads image files the host loaded, and skips the ones it did not', () => {
