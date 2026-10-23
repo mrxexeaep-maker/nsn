@@ -1,10 +1,10 @@
 import { isEqual } from 'es-toolkit'
 import { toUint8Array } from 'js-base64'
 
-import { slotPropertyId } from '@open-pencil/scene-graph'
 import type { SceneNode, SceneGraph, Fill, Stroke } from '@open-pencil/scene-graph'
 import type { RenderColorSpace, ResolvedRenderColor } from '@open-pencil/scene-graph/color'
 import type { Color, Rect, Vector } from '@open-pencil/scene-graph/primitives'
+import { slotPropertyId } from '@open-pencil/scene-graph/slots'
 import type { SnapGuide } from '@open-pencil/scene-graph/snap'
 
 /* eslint-disable max-lines -- SkiaRenderer facade owns CanvasKit state and delegates domain drawing */
@@ -372,33 +372,17 @@ export class SkiaRenderer {
     canvas: Canvas,
     node: SceneNode,
     graph: SceneGraph,
-    rect: Float32Array,
-    hasRadius: boolean,
     pass: EffectPass
   ) => void
   declare renderText: (canvas: Canvas, node: SceneNode, fill?: Fill) => void
-  declare drawNodeFill: (
-    canvas: Canvas,
-    node: SceneNode,
-    rect: Float32Array,
-    hasRadius: boolean,
-    fill?: Fill
-  ) => void
+  declare drawNodeFill: (canvas: Canvas, node: SceneNode, fill?: Fill) => void
   declare applyFill: (fill: Fill, node: SceneNode, graph: SceneGraph, fillIndex?: number) => boolean
-  declare applyGradientFill: (fill: Fill, node: SceneNode, graph: SceneGraph) => void
+  declare applyGradientFill: (fill: Fill, node: SceneNode, graph: SceneGraph) => boolean
   declare applyImageFill: (fill: Fill, node: SceneNode, graph: SceneGraph) => boolean
-  declare drawArc: (canvas: Canvas, node: SceneNode, paint: Paint) => void
-  declare drawNodeStroke: (
-    canvas: Canvas,
-    node: SceneNode,
-    rect: Float32Array,
-    hasRadius: boolean
-  ) => void
+  declare drawNodeStroke: (canvas: Canvas, node: SceneNode) => void
   declare drawStrokeWithAlign: (
     canvas: Canvas,
     node: SceneNode,
-    rect: Float32Array,
-    hasRadius: boolean,
     align: 'INSIDE' | 'CENTER' | 'OUTSIDE'
   ) => void
   declare drawRRectStrokeWithAlign: (
@@ -409,22 +393,11 @@ export class SkiaRenderer {
   ) => void
   declare drawIndividualSideStrokes: (canvas: Canvas, node: SceneNode, stroke: Stroke) => void
   declare strokeNodeShape: (canvas: Canvas, node: SceneNode, paint: Paint) => void
-  declare makeNodeShapePath: (node: SceneNode, rect: Float32Array, hasRadius: boolean) => Path
+  declare makeNodeShapePath: (node: SceneNode) => Path
   declare makePolygonPath: (node: SceneNode) => Path
   declare makeRRect: (node: SceneNode) => Float32Array
   declare makeRRectWithSpread: (node: SceneNode, spread: number) => Float32Array
-  declare makeRRectWithOffset: (
-    node: SceneNode,
-    ox: number,
-    oy: number,
-    spread: number
-  ) => Float32Array
-  declare clipNodeShape: (
-    canvas: Canvas,
-    node: SceneNode,
-    rect: Float32Array,
-    hasRadius: boolean
-  ) => void
+  declare clipNodeShape: (canvas: Canvas, node: SceneNode) => void
   declare getVectorPaths: (node: SceneNode) => Path[] | null
   declare getFillGeometry: (node: SceneNode) => Path[] | null
   declare getStrokeGeometry: (node: SceneNode) => Path[] | null
@@ -440,9 +413,8 @@ export class SkiaRenderer {
   declare applyClippedBlur: (
     canvas: Canvas,
     node: SceneNode,
-    rect: Float32Array,
-    hasRadius: boolean,
-    sigma: number
+    sigma: number,
+    shape?: Path | null
   ) => void
   color4f(r: number, g: number, b: number, a: number): Float32Array {
     const c = this._tmpColor

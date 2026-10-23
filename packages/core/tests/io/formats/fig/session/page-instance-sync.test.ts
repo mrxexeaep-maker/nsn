@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test'
 
-import { createEditor } from '@open-pencil/core/editor'
+import { createEditor } from '@open-pencil/core'
 import { exportFigFile, parseFigFile, populateFigPage } from '@open-pencil/core/io/formats/fig'
-import { initCodec } from '@open-pencil/core/kiwi'
 import { createFigDocumentSession } from '@open-pencil/fig'
+import { initCodec } from '@open-pencil/kiwi/fig/codec'
 import { SceneGraph } from '@open-pencil/scene-graph'
 
 test('loading a later page keeps the derived sizes of instances earlier pages placed', async () => {
