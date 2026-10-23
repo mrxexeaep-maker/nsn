@@ -93,12 +93,16 @@ fn callback_request(target: &str, state: &str) -> CallbackRequest {
     }
 }
 
-/// The target of an HTTP request line such as `GET /auth/callback?code=… HTTP/1.1`.
+/// Headers a browser sends with the redirect; more than this reads as noise.
+const MAX_REQUEST_HEADERS: usize = 64;
+
+/// The target of a GET request such as `GET /auth/callback?code=… HTTP/1.1`.
 fn request_target(head: &str) -> Option<&str> {
-    let mut parts = head.lines().next()?.split(' ');
-    let method = parts.next()?;
-    let target = parts.next()?;
-    (method == "GET").then_some(target)
+    let mut headers = [httparse::EMPTY_HEADER; MAX_REQUEST_HEADERS];
+    let mut request = httparse::Request::new(&mut headers);
+    request.parse(head.as_bytes()).ok()?;
+    request.method.filter(|method| *method == "GET")?;
+    request.path
 }
 
 fn read_head(stream: &mut TcpStream) -> Option<String> {
@@ -366,5 +370,6 @@ mod tests {
         );
         assert_eq!(request_target("POST /auth/callback HTTP/1.1\r\n\r\n"), None);
         assert_eq!(request_target(""), None);
+        assert_eq!(request_target("GET /auth/callback?code=a\r\n\r\n"), None);
     }
 }

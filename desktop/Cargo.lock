@@ -3258,6 +3258,7 @@ version = "0.16.0"
 dependencies = [
  "fix-path-env",
  "fontique",
+ "httparse",
  "keyring",
  "objc2-core-foundation",
  "objc2-core-text",
