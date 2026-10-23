@@ -41,7 +41,8 @@ struct Pending {
 #[derive(Default)]
 pub struct ChatGPTOAuthLoopback {
     pending: Mutex<Option<Pending>>,
-    cancel: Mutex<Option<Arc<AtomicBool>>>,
+    /// The attempt listening or waiting, by its state, and the flag that cancels it.
+    current: Mutex<Option<(String, Arc<AtomicBool>)>>,
 }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize)]
@@ -207,11 +208,11 @@ pub async fn chatgpt_oauth_listen(
     pages: CallbackPages,
 ) -> Result<(), LoopbackError> {
     let cancelled = Arc::new(AtomicBool::new(false));
-    if let Some(previous) = loopback
-        .cancel
+    if let Some((_, previous)) = loopback
+        .current
         .lock()
         .map_err(|_| LoopbackError::Failed)?
-        .replace(cancelled.clone())
+        .replace((state.clone(), cancelled.clone()))
     {
         previous.store(true, Ordering::SeqCst);
     }
@@ -224,6 +225,10 @@ pub async fn chatgpt_oauth_listen(
     let listener = tauri::async_runtime::spawn_blocking(bind)
         .await
         .map_err(|_| LoopbackError::Failed)??;
+    // Cancelled while binding: drop the port rather than hold it for an attempt that is over.
+    if cancelled.load(Ordering::SeqCst) {
+        return Err(LoopbackError::Failed);
+    }
     *loopback.pending.lock().map_err(|_| LoopbackError::Failed)? = Some(Pending {
         listener,
         state,
@@ -249,16 +254,31 @@ pub async fn chatgpt_oauth_wait(
         .map_err(|_| LoopbackError::Failed)?
 }
 
-#[tauri::command]
-pub fn chatgpt_oauth_cancel(loopback: tauri::State<'_, ChatGPTOAuthLoopback>) {
-    if let Ok(mut cancel) = loopback.cancel.lock() {
-        if let Some(flag) = cancel.take() {
-            flag.store(true, Ordering::SeqCst);
+impl ChatGPTOAuthLoopback {
+    /// Cancels the attempt with this state. A late cancel from an earlier attempt leaves a newer
+    /// one alone.
+    fn cancel(&self, state: &str) {
+        if let Ok(mut current) = self.current.lock() {
+            if current.as_ref().is_some_and(|(owner, _)| owner == state) {
+                if let Some((_, flag)) = current.take() {
+                    flag.store(true, Ordering::SeqCst);
+                }
+            }
+        }
+        if let Ok(mut pending) = self.pending.lock() {
+            if pending
+                .as_ref()
+                .is_some_and(|listening| listening.state == state)
+            {
+                pending.take();
+            }
         }
     }
-    if let Ok(mut pending) = loopback.pending.lock() {
-        pending.take();
-    }
+}
+
+#[tauri::command]
+pub fn chatgpt_oauth_cancel(loopback: tauri::State<'_, ChatGPTOAuthLoopback>, state: String) {
+    loopback.cancel(&state);
 }
 
 #[cfg(test)]
@@ -303,6 +323,31 @@ mod tests {
             callback_request("/auth/callback/extra?code=a&state=s1", "s1"),
             CallbackRequest::Other
         );
+    }
+
+    #[test]
+    fn a_late_cancel_leaves_a_newer_attempt_alone() {
+        let loopback = ChatGPTOAuthLoopback::default();
+        let newer = Arc::new(AtomicBool::new(false));
+        *loopback.current.lock().unwrap() = Some(("s2".into(), newer.clone()));
+        *loopback.pending.lock().unwrap() = Some(Pending {
+            listener: TcpListener::bind("127.0.0.1:0").unwrap(),
+            state: "s2".into(),
+            pages: CallbackPages {
+                signed_in: String::new(),
+                cancelled: String::new(),
+                stale: String::new(),
+            },
+            cancelled: newer.clone(),
+        });
+
+        loopback.cancel("s1");
+        assert!(!newer.load(Ordering::SeqCst));
+        assert!(loopback.pending.lock().unwrap().is_some());
+
+        loopback.cancel("s2");
+        assert!(newer.load(Ordering::SeqCst));
+        assert!(loopback.pending.lock().unwrap().is_none());
     }
 
     #[test]

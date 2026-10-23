@@ -47,8 +47,8 @@ async function loopbackCallback(
   return {
     open: openExternalLink,
     wait: async () => v.parse(loopbackOutcomeSchema, await invoke('chatgpt_oauth_wait')),
-    // Frees the port; after the redirect the shell has already let it go.
-    close: () => void invoke('chatgpt_oauth_cancel')
+    // Frees the port; the state keeps a late cancel from ending a newer attempt.
+    close: () => void invoke('chatgpt_oauth_cancel', { state }).catch(() => undefined)
   }
 }
 
