@@ -1,20 +1,20 @@
 import { expect, test } from 'bun:test'
 
 import { expectDefined } from '#core-tests/helpers/assert'
-import { CapturedFigRecords, readFixture } from '#core-tests/helpers/fig/fixtures'
+import { capturedFigRecordsSchema, readFixture } from '#core-tests/helpers/fig/fixtures'
 import { inheritedNestedBindingRecords } from '#core-tests/helpers/fig/nested-binding'
 import * as v from 'valibot'
 
-import { OpenPencilAPI } from '@open-pencil/core'
-import { createEditor } from '@open-pencil/core/editor'
+import { OpenPencilAPI } from '@open-pencil/core/openpencil-api'
+import { createEditor } from '@open-pencil/core'
 import { FigmaAPI } from '@open-pencil/core/figma-api'
-import { exportFigFile } from '@open-pencil/core/io'
-import { initCodec } from '@open-pencil/core/kiwi'
+import { exportFigFile } from '@open-pencil/core/io/formats/fig'
 import { materializeDocument, parseFigBuffer } from '@open-pencil/fig'
-import { cloneInstanceOverrideState } from '@open-pencil/scene-graph'
+import { initCodec } from '@open-pencil/kiwi/fig/codec'
+import { cloneInstanceOverrideState } from '@open-pencil/scene-graph/instances/overrides'
 
 /** Only the component-edit measurements this file asserts against are read from the oracle. */
-const AuthoringOracle = v.looseObject({
+const authoringOracleSchema = v.looseObject({
   componentEdit: v.looseObject({
     sourcePaddingTop: v.number(),
     paddingTop: v.number(),
@@ -22,9 +22,9 @@ const AuthoringOracle = v.looseObject({
   })
 })
 
-const oracle = readFixture('nested-binding-authoring.json', AuthoringOracle)
+const oracle = readFixture('nested-binding-authoring.json', authoringOracleSchema)
 
-const fixture = readFixture('nested-binding-ownership-records.json', CapturedFigRecords)
+const fixture = readFixture('nested-binding-ownership-records.json', capturedFigRecordsSchema)
 
 function document(inherited = false) {
   const changes = inherited ? inheritedNestedBindingRecords() : structuredClone(fixture.nodeChanges)

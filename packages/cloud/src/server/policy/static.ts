@@ -3,77 +3,14 @@ import { isNotNil } from 'es-toolkit/predicate'
 import * as v from 'valibot'
 
 import { CLOUD_FEATURE_KEYS } from './keys'
+import {
+  staticEntitlementsSchema,
+  staticEntitlementsTOMLSchema,
+  type StaticEntitlements
+} from './schema'
 
-const positiveInteger = v.pipe(v.number(), v.integer(), v.minValue(1))
-const nonNegativeInteger = v.pipe(v.number(), v.integer(), v.minValue(0))
-
-export const staticEntitlementsSchema = v.object({
-  documents: v.optional(
-    v.object({
-      maximumFileBytes: v.optional(positiveInteger),
-      revisionHistory: v.optional(v.boolean())
-    }),
-    {}
-  ),
-  storage: v.optional(v.object({ maximumBytes: v.optional(positiveInteger) }), {}),
-  sharing: v.optional(
-    v.object({
-      links: v.optional(v.boolean()),
-      guestView: v.optional(v.boolean()),
-      guestEdit: v.optional(v.boolean()),
-      guestPresence: v.optional(v.boolean())
-    }),
-    {}
-  ),
-  collaboration: v.optional(
-    v.object({
-      enabled: v.optional(v.boolean()),
-      maximumParticipants: v.optional(positiveInteger)
-    }),
-    {}
-  ),
-  ai: v.optional(
-    v.object({
-      enabled: v.optional(v.boolean()),
-      monthlyCreditAllowance: v.optional(nonNegativeInteger)
-    }),
-    {}
-  )
-})
-
-export type StaticEntitlements = v.InferOutput<typeof staticEntitlementsSchema>
 /** Entitlements as a writer sends them, with any group left out. */
 export type StaticEntitlementsInput = v.InferInput<typeof staticEntitlementsSchema>
-
-export const staticEntitlementsTOMLSchema = v.strictObject({
-  documents: v.optional(
-    v.strictObject({
-      maximum_file_bytes: v.optional(positiveInteger),
-      revision_history: v.optional(v.boolean())
-    })
-  ),
-  storage: v.optional(v.strictObject({ maximum_bytes: v.optional(positiveInteger) })),
-  sharing: v.optional(
-    v.strictObject({
-      links: v.optional(v.boolean()),
-      guest_view: v.optional(v.boolean()),
-      guest_edit: v.optional(v.boolean()),
-      guest_presence: v.optional(v.boolean())
-    })
-  ),
-  collaboration: v.optional(
-    v.strictObject({
-      enabled: v.optional(v.boolean()),
-      maximum_participants: v.optional(positiveInteger)
-    })
-  ),
-  ai: v.optional(
-    v.strictObject({
-      enabled: v.optional(v.boolean()),
-      monthly_credit_allowance: v.optional(nonNegativeInteger)
-    })
-  )
-})
 
 /** Entitlements as the deployment TOML spells them, renamed to their structured form. */
 export function staticEntitlementsFromTOML(

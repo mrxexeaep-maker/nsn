@@ -2,9 +2,9 @@
 import { tv } from 'tailwind-variants'
 import { ref } from 'vue'
 
-import { useI18n } from '@open-pencil/vue'
+import { useI18n } from '@open-pencil/vue/i18n'
 
-import type { AgentDetection } from '@/app/ai/agents/detection'
+import type { AgentDetection } from '@/app/ai/agents/setup/detection'
 import { modelProviderName } from '@/app/ai/models/provider-name'
 import {
   ONBOARDING_AGENTS,

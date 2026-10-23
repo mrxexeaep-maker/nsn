@@ -5,9 +5,9 @@ import * as v from 'valibot'
 
 import { ACP_AGENTS } from '@open-pencil/core/constants'
 
-import { signInScope } from '@/app/ai/acp/auth/terminal'
-import { bunInstallArgs, npmInstallArgs } from '@/app/ai/agents/native'
-import { HARNESS_PACKAGE } from '@/app/ai/harness/companion'
+import { signInScope } from '@/app/ai/agents/acp/auth/terminal'
+import { HARNESS_PACKAGE } from '@/app/ai/agents/pi/companion'
+import { bunInstallArgs, npmInstallArgs } from '@/app/ai/agents/setup/native'
 import { MCP_PACKAGE_NAME } from '@/app/automation/mcp/failure'
 import { resolvePlatformCommand, resolveScopedCommand } from '@/app/tauri/command'
 
@@ -66,7 +66,7 @@ describe('resolvePlatformCommand', () => {
   })
 })
 
-const ShellScope = v.object({
+const shellScopeSchema = v.object({
   permissions: v.array(
     v.union([
       v.string(),
@@ -88,7 +88,7 @@ const ShellScope = v.object({
 
 function spawnScope() {
   const text = readFileSync(repoPath('desktop/capabilities/default.json'), 'utf8')
-  const capability = v.parse(v.pipe(v.string(), v.parseJson(), ShellScope), text)
+  const capability = v.parse(v.pipe(v.string(), v.parseJson(), shellScopeSchema), text)
   const spawn = capability.permissions.find(
     (permission) => typeof permission !== 'string' && permission.identifier === 'shell:allow-spawn'
   )
