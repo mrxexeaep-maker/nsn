@@ -48,7 +48,8 @@ describe('gradient helpers', () => {
       ],
       'Array'
     ],
-    ['a missing field', { m00: 1, m01: 0, m02: 0, m10: 0, m11: 1 }, 'Object']
+    ['a missing field', { m00: 1, m01: 0, m02: 0, m10: 0, m11: 1 }, 'Object'],
+    ['a surplus field', { m00: 1, m01: 0, m02: 0, m10: 0, m11: 1, m12: 0, m20: 0 }, 'Object']
   ])('refuse a transform with %s and name both forms', (_, transform, received) => {
     expect(() => linearGradient(stops, { transform: transform as never })).toThrow(
       `${transformExpected}:\n× Expected [[a, b, c], [d, e, f]] or { m00, m01, m02, m10, m11, m12 } but received ${received}`

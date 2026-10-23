@@ -14,8 +14,8 @@ const transformRowSchema = v.strictTuple([
 
 /**
  * A paint's `gradientTransform` or `imageTransform` as an author writes it, read into the matrix
- * fields: Figma's two rows of three, as its plugin API gives them, or the fields themselves. Rows
- * with an extra row or value are refused rather than trimmed.
+ * fields: Figma's two rows of three, as its plugin API gives them, or the fields themselves. An
+ * extra row, value, or field is refused rather than dropped.
  */
 export const paintTransformSchema = v.union(
   [
@@ -30,7 +30,7 @@ export const paintTransformSchema = v.union(
         m12
       }))
     ),
-    matrixSchema
+    v.strictObject(matrixSchema.entries)
   ],
   (issue) =>
     `Expected [[a, b, c], [d, e, f]] or { m00, m01, m02, m10, m11, m12 } but received ${issue.received}`
