@@ -19,8 +19,8 @@ use fig_container::build_fig_file;
 use fonts::{list_system_fonts, load_system_font};
 use http::{cancel_http_request, proxy_http_request, ProxyHttpRequests};
 use menu::{
-    install_app_menu, native_menu_checked, set_native_menu_checked, set_native_menu_features,
-    update_app_menu, NativeMenuInputs, NativeMenuState,
+    install_app_menu, native_menu_checked, set_native_menu_checked, set_native_menu_enabled,
+    set_native_menu_features, update_app_menu, NativeMenuInputs, NativeMenuState,
 };
 use menu_events::handle_menu_event;
 use std::{
@@ -37,6 +37,10 @@ struct PendingOpenFile {
     path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     node: Option<String>,
+    #[serde(rename = "nodeId", skip_serializing_if = "Option::is_none")]
+    node_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    revision: Option<String>,
     /// Which producer queued this entry: a `openpencil://` link (true) or a file
     /// association / argv path (false). The frontend cannot tell them apart from
     /// the path alone — a canonicalized Windows path is verbatim (`\\?\C:\…`).
@@ -107,7 +111,12 @@ fn sharing_disabled_by_env() -> bool {
             .unwrap_or(false)
     };
     let do_not_track = std::env::var("DO_NOT_TRACK")
-        .map(|value| !matches!(value.trim().to_ascii_lowercase().as_str(), "" | "0" | "false"))
+        .map(|value| {
+            !matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "" | "0" | "false"
+            )
+        })
         .unwrap_or(false);
     is_off("OPENPENCIL_TELEMETRY", &["0", "false", "no"]) || do_not_track
 }
@@ -287,6 +296,8 @@ fn queue_open_paths<R: tauri::Runtime>(app: &tauri::AppHandle<R>, paths: Vec<Pat
             PendingOpenFile {
                 path: path.to_string_lossy().into_owned(),
                 node: None,
+                node_id: None,
+                revision: None,
                 deep_link: false,
             }
         })
@@ -311,6 +322,8 @@ fn queue_deep_links<R: tauri::Runtime>(app: &tauri::AppHandle<R>, urls: Vec<url:
             Ok(deep_link::DeepLink::Open(open)) => files.push(PendingOpenFile {
                 path: open.file,
                 node: open.node,
+                node_id: open.node_id,
+                revision: open.revision,
                 deep_link: true,
             }),
             Ok(deep_link::DeepLink::Join(join)) => rooms.push(join.room),
@@ -433,6 +446,7 @@ pub fn run() {
             #[cfg(feature = "native-test")]
             opener::take_native_test_opened_urls,
             path_matches_suffix,
+            deep_link::mapping_document_matches,
             list_system_fonts,
             load_system_font,
             proxy_http_request,
@@ -441,6 +455,7 @@ pub fn run() {
             set_native_menu_features,
             native_menu_checked,
             set_native_menu_checked,
+            set_native_menu_enabled,
             take_pending_open,
             take_pending_rooms,
             sharing_disabled_by_env,

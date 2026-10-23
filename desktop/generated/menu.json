@@ -154,6 +154,11 @@
         "accelerator": "CmdOrCtrl+R"
       },
       {
+        "id": "selection.openImplementation",
+        "label": "Open implementation story…",
+        "enabled": false
+      },
+      {
         "type": "separator"
       },
       {

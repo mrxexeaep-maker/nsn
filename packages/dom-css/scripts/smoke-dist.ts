@@ -1,20 +1,42 @@
+import type * as Browser from '../src/browser'
+import type * as Export from '../src/export'
+import type * as Mapping from '../src/export/storybook/mapping'
+import type * as JSX from '../src/import/jsx/runtime'
 import type * as DomCSS from '../src/index'
+import { mappingConfigFixture } from '../tests/export/storybook/mapping/fixtures'
 
 const distPath = '../dist/index.js'
 const browserDistPath = '../dist/browser.js'
 const dist = await import(distPath)
 const browserDist = await import(browserDistPath)
+const exportDistPath = '../dist/export.js'
+const jsxDistPath = '../dist/jsx-runtime.js'
+const mappingDistPath = '../dist/export/storybook/mapping/index.js'
+const exportDist = await import(exportDistPath)
+const jsxDist = await import(jsxDistPath)
+const mappingDist = await import(mappingDistPath)
 
-const browserHTMLToSceneGraph: typeof DomCSS.browserHTMLToSceneGraph = dist.browserHTMLToSceneGraph
-const browserTailwindJSXToDesignDocument: typeof DomCSS.browserTailwindJSXToDesignDocument =
-  dist.browserTailwindJSXToDesignDocument
+const browserHTMLToSceneGraph: typeof Browser.browserHTMLToSceneGraph =
+  browserDist.browserHTMLToSceneGraph
+const browserTailwindJSXToDesignDocument: typeof Browser.browserTailwindJSXToDesignDocument =
+  browserDist.browserTailwindJSXToDesignDocument
 const compileTailwindCSS: typeof DomCSS.compileTailwindCSS = dist.compileTailwindCSS
 const createHeadlessCSSRuntime: typeof DomCSS.createHeadlessCSSRuntime =
   dist.createHeadlessCSSRuntime
 const htmlToSceneGraph: typeof DomCSS.htmlToSceneGraph = dist.htmlToSceneGraph
-const jsx: typeof DomCSS.jsx = dist.jsx
+const jsx: typeof JSX.jsx = jsxDist.jsx
 const jsxToDesignDocument: typeof DomCSS.jsxToDesignDocument = dist.jsxToDesignDocument
-const serializeHTML: typeof DomCSS.serializeHTML = dist.serializeHTML
+const parseComponentMappings: typeof Mapping.parseComponentMappings =
+  mappingDist.parseComponentMappings
+const serializeHTML: typeof Export.serializeHTML = exportDist.serializeHTML
+
+const mappings = parseComponentMappings(JSON.stringify(mappingConfigFixture()))
+if (
+  mappings.components[0]?.implementation.import !== 'components/Button.ts' ||
+  mappings.components[0]?.states.length !== 0
+) {
+  throw new Error('Expected built parseComponentMappings() to parse component references')
+}
 
 type DesignDocument = DomCSS.DesignDocument
 
