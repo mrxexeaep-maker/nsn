@@ -185,7 +185,7 @@ fn lookup_with(
 pub async fn agent_lookup() -> Result<AgentLookup, String> {
     tauri::async_runtime::spawn_blocking(|| {
         let current = std::env::var("PATH").unwrap_or_default();
-        let search_path = crate::augment_path(&current, &crate::mcp_candidate_dirs());
+        let search_path = super::path::augment_path(&current, &super::path::candidate_dirs());
         let cwd = std::env::current_dir().unwrap_or_else(|_| Path::new("/").to_path_buf());
         lookup_with(
             search_path.clone(),
