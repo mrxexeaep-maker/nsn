@@ -123,7 +123,10 @@ await exportFromPen(
 
 const iconSets = await fetchIconSets(assets.icons)
 for (const set of iconSets.values()) {
-  writeFileSync(join(fixtures, 'iconify', `${set.prefix}.json`), `${JSON.stringify(set)}\n`)
+  writeFileSync(
+    join(fixtures, 'iconify', `${set.prefix}.json`),
+    `${JSON.stringify(set, null, 2)}\n`
+  )
 }
 const fonts = new Map<string, { family: string; style: string; data: ArrayBuffer }>()
 fontManager.setDownloadedFontCache({
