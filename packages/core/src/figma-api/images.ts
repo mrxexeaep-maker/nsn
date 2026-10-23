@@ -21,10 +21,14 @@ function figmaImage(graph: SceneGraph, hash: string): Image {
   }
 }
 
-/** Stores encoded image bytes under their hash, as `figma.createImage` does. */
+/**
+ * Stores a copy of encoded image bytes under their hash, as `figma.createImage` does, so a script
+ * that reuses its array afterwards cannot change the stored image.
+ */
 export function storeImage(graph: SceneGraph, data: Uint8Array): Image {
-  const hash = computeImageHash(data)
-  graph.images.set(hash, data)
+  const stored = data.slice()
+  const hash = computeImageHash(stored)
+  graph.images.set(hash, stored)
   return figmaImage(graph, hash)
 }
 

@@ -38,6 +38,17 @@ describe('figma.createImage', () => {
     ).toEqual({ sameHash: true, bytes: PNG_3X2, size: { width: 3, height: 2 } })
   })
 
+  test('keeps the bytes it was given when the script changes its array afterwards', async () => {
+    expect(
+      await scriptResult(`
+        const data = new Uint8Array(${JSON.stringify(PNG_3X2)})
+        const image = figma.createImage(data)
+        data[0] = 0
+        return Array.from(await image.getBytesAsync())
+      `)
+    ).toEqual(PNG_3X2)
+  })
+
   test('getSizeAsync rejects bytes with no image header it can read', async () => {
     expect(
       await scriptResult('return await figma.createImage(new Uint8Array([1, 2, 3])).getSizeAsync()')
