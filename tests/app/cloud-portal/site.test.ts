@@ -5,6 +5,7 @@ import type { CloudAccountStatus } from '@open-pencil/cloud/contract'
 import {
   isCloudLink,
   leaveAfterSignOut,
+  openLocalEditor,
   siteDestination,
   type SiteAccount
 } from '@/app/cloud-portal/site'
@@ -73,8 +74,15 @@ describe('signing out of the server that serves the editor', () => {
     return assigned
   }
 
+  // In order: the second test saves this browser's choice of the local editor.
   test('leaves for the welcome page as a visit without an account would', () => {
     expect(leave(false)).toEqual(['/welcome'])
     expect(leave(true)).toEqual(['/welcome'])
+  })
+
+  test('stays in the local editor once this browser chose it, where the server allows it', () => {
+    openLocalEditor({ assign: () => undefined })
+    expect(leave(true)).toEqual([])
+    expect(leave(false)).toEqual(['/welcome'])
   })
 })
