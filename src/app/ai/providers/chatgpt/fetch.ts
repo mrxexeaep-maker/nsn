@@ -40,6 +40,8 @@ export interface CodexFetchOptions {
  */
 const pendingRefreshes = new Map<string, Promise<ChatGPTCredential>>()
 
+const REFUSED_STATUSES = new Set([400, 401, 403])
+
 function isFresh(credential: ChatGPTCredential): boolean {
   return credential.expires - Date.now() >= REFRESH_MARGIN_MS
 }
@@ -53,7 +55,9 @@ async function refreshAndSave(
   try {
     refreshed = await refreshChatGPTCredential(credential, fetchImpl)
   } catch (error) {
-    throw error instanceof ChatGPTTokenError ? new ChatGPTSignInExpiredError() : error
+    // Only a refused refresh ends the sign-in; a busy or failing auth server leaves it valid.
+    const refused = error instanceof ChatGPTTokenError && REFUSED_STATUSES.has(error.status)
+    throw refused ? new ChatGPTSignInExpiredError() : error
   }
   // The old refresh token is spent either way, so a failed save still uses the new pair.
   await save?.(refreshed).catch((error: unknown) => {

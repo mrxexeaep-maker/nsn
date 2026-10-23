@@ -75,6 +75,8 @@ useSettingsFormGuard({ dirty, busy, cancel: () => emit('done') })
 const CUSTOM_MODEL_VALUE = '__custom__'
 const advancedOpen = ref(Boolean(draft.customModelID.trim()))
 function updateProvider(id: AIProviderID) {
+  // A sign-in still waiting must not land in another provider's key.
+  signIn.cancel()
   profile.updateProvider(id)
   advancedOpen.value = id === 'harness:pi'
 }

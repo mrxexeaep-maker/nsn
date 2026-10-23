@@ -73,7 +73,12 @@ export async function resolveModelConnectionAPIKey(connectionId: string): Promis
 export function modelConnectionCredentialStore(connectionId: string): ModelCredentialStore {
   return {
     load: () => resolveModelConnectionAPIKey(connectionId),
-    save: (value) => setModelConnectionAPIKey(connectionId, value)
+    // A refreshed sign-in is not a key change, so the open chat keeps its transport.
+    save: async (value) => {
+      const connection = modelConnection(connectionId)
+      if (!connection) return
+      await appCredentialServices.manager.set(modelConnectionCredentialRef(connection), value)
+    }
   }
 }
 

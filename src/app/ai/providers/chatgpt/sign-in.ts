@@ -62,6 +62,8 @@ export function signInWithChatGPT(signal: AbortSignal): ChatGPTSignIn {
       const credential = await exchangeChatGPTCode(outcome.code, pkce.verifier, tauriFetch)
       return aborted() ? failure('cancelled') : { ok: true, credential }
     } catch {
+      // Free the port: a failure before the wait leaves the listener holding it.
+      cancel()
       return failure(aborted() ? 'cancelled' : 'failed')
     } finally {
       signal.removeEventListener('abort', cancel)

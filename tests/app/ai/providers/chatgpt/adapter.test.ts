@@ -6,7 +6,7 @@ import * as v from 'valibot'
 import { chatGPTAdapter } from '@/app/ai/providers/chatgpt/adapter'
 import { serializeChatGPTCredential } from '@/app/ai/providers/chatgpt/credential'
 
-import { credential } from './tokens'
+import { credential } from '#tests/helpers/ai/chatgpt'
 
 const completed = (text: string) =>
   `data: ${JSON.stringify({
@@ -16,6 +16,7 @@ const completed = (text: string) =>
       created_at: 0,
       model: 'gpt-6-luna',
       output: [
+        { type: 'reasoning', id: 'rs_1', encrypted_content: 'sealed-1', summary: [] },
         {
           type: 'message',
           id: 'msg_1',
@@ -30,7 +31,7 @@ const completed = (text: string) =>
 const bodySchema = v.looseObject({ input: v.array(v.looseObject({})) })
 
 describe('ChatGPT adapter', () => {
-  test('sends an earlier reply whole, since the backend keeps no items to refer to', async () => {
+  test('sends an earlier reply and its sealed reasoning whole, since the backend keeps no items', async () => {
     const inputs: unknown[][] = []
     const key = serializeChatGPTCredential(credential())
     const model = chatGPTAdapter.create(
@@ -67,6 +68,9 @@ describe('ChatGPT adapter', () => {
     })
 
     expect(inputs[1]).toContainEqual(expect.objectContaining({ role: 'assistant' }))
+    expect(inputs[1]).toContainEqual(
+      expect.objectContaining({ type: 'reasoning', encrypted_content: 'sealed-1' })
+    )
     expect(inputs[1]).not.toContainEqual(expect.objectContaining({ type: 'item_reference' }))
   })
 })

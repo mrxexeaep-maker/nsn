@@ -7,9 +7,9 @@ import {
   completedResponse,
   createCodexFetch
 } from '@/app/ai/providers/chatgpt/fetch'
-import { CHATGPT_TOKEN_URL } from '@/app/ai/providers/chatgpt/oauth'
+import { CHATGPT_TOKEN_URL, ChatGPTTokenError } from '@/app/ai/providers/chatgpt/oauth'
 
-import { accessToken, credential, tokenResponse } from './tokens'
+import { accessToken, credential, tokenResponse } from '#tests/helpers/ai/chatgpt'
 
 const RESPONSES_URL = 'https://chatgpt.com/backend-api/codex/responses'
 
@@ -201,5 +201,13 @@ describe('Codex fetch', () => {
       fetch: async () => new Response('', { status: 400 })
     })
     await expect(streamingRequest(fetch)).rejects.toBeInstanceOf(ChatGPTSignInExpiredError)
+  })
+
+  test('keeps the sign-in when the auth server fails to refresh it', async () => {
+    const fetch = createCodexFetch({
+      credential: credential({ expires: 0, refresh: 'refresh-busy' }),
+      fetch: async () => new Response('', { status: 503 })
+    })
+    await expect(streamingRequest(fetch)).rejects.toBeInstanceOf(ChatGPTTokenError)
   })
 })
