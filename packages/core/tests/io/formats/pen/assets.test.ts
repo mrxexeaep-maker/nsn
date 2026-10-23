@@ -52,9 +52,9 @@ function penBytes(children: unknown[]) {
 }
 
 describe('penFormat.readDocument — assets', () => {
-  test('draws icons from the provider, falling back to the filled Material Symbol', async () => {
+  test('draws Iconify icons from the provider', async () => {
     const requested: string[][] = []
-    const icons = iconProvider(['material-symbols:home'], requested)
+    const icons = iconProvider(['lucide:house'], requested)
     const { graph } = await io.readDocument(
       {
         name: 'icons.pen',
@@ -62,20 +62,29 @@ describe('penFormat.readDocument — assets', () => {
           {
             id: 'home',
             type: 'icon',
-            library: 'Material Symbols Outlined',
-            icon: 'home',
+            library: 'lucide',
+            icon: 'house',
             width: 48,
             height: 48,
             fill: '#222222'
+          },
+          {
+            id: 'symbol',
+            type: 'icon',
+            library: 'Material Symbols Outlined',
+            icon: 'home',
+            width: 48,
+            height: 48
           }
         ])
       },
       { icons }
     )
-    expect(requested).toEqual([['material-symbols:home-outline', 'material-symbols:home']])
+    expect(requested).toEqual([['lucide:house']])
     const glyphs = graph.getChildren('home')
     expect(glyphs).toHaveLength(1)
     expect(glyphs[0]?.width).toBe(48)
+    expect(graph.getChildren('symbol').map((glyph) => glyph.type)).toEqual(['TEXT'])
   })
 
   test('reads image files through the host and leaves unreadable ones unpainted', async () => {

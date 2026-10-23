@@ -2,7 +2,14 @@ import { describe, expect, test } from 'bun:test'
 
 import { toUint8Array } from 'js-base64'
 
-import { iconNames, penAssets, parsePenDocument, type PenNode } from '@open-pencil/pen'
+import {
+  iconFontFamily,
+  iconName,
+  penAssets,
+  parsePenDocument,
+  type PenDocument,
+  type PenNode
+} from '@open-pencil/pen'
 import type { SceneGraph } from '@open-pencil/scene-graph'
 import type { Color } from '@open-pencil/scene-graph/primitives'
 
@@ -14,7 +21,7 @@ const PNG =
   'iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAIAAAB7QOjdAAAADElEQVR4nGP8zwACAAYIAQFazwZIAAAAAElFTkSuQmCC'
 
 describe('penAssets', () => {
-  test('lists icons with their fallbacks, images in the document folder, and data URLs', () => {
+  test('lists Iconify icons, images in the document folder, and data URLs', () => {
     const doc = parsePenDocument(
       JSON.stringify({
         version: '2.21',
@@ -26,6 +33,7 @@ describe('penAssets', () => {
           { id: 'e', type: 'rectangle', fill: { type: 'image', url: 'https://example.com/a.png' } },
           { id: 'f', type: 'rectangle', fill: { type: 'image', url: '/etc/a.png' } },
           { id: 'g', type: 'ref', ref: 'x', descendants: { inner: { icon: 'star' } } },
+          { id: 'i', type: 'icon', library: 'phosphor', icon: 'house' },
           {
             id: 'h',
             type: 'rectangle',
@@ -35,26 +43,37 @@ describe('penAssets', () => {
       })
     )
     expect(penAssets(doc)).toEqual({
-      icons: [
-        'lucide:heart',
-        'material-symbols:settings-outline-rounded',
-        'material-symbols:settings-rounded',
-        'lucide:star',
-        'material-symbols:star-outline-rounded',
-        'material-symbols:star-rounded'
-      ],
+      icons: ['lucide:heart', 'ph:house', 'lucide:star', 'ph:star'],
       images: ['./photo.png', `data:image/png;base64,${PNG}`]
     })
   })
 
-  test('maps every pen.dev icon library to Iconify', () => {
-    expect(iconNames('feather', 'star')).toEqual(['feather:star'])
-    expect(iconNames('phosphor', 'airplane')).toEqual(['ph:airplane'])
-    expect(iconNames('Material Symbols Outlined', 'home')).toEqual([
-      'material-symbols:home-outline',
-      'material-symbols:home'
-    ])
-    expect(iconNames('unknown', 'home')).toEqual([])
+  test('lists every icon a variable names in any theme', () => {
+    const doc = parsePenDocument(
+      JSON.stringify({
+        version: '2.21',
+        themes: { mode: ['light', 'dark'] },
+        variables: {
+          glyph: {
+            type: 'string',
+            value: [{ value: 'sun' }, { value: '$night', theme: { mode: 'dark' } }]
+          },
+          night: { type: 'string', value: 'moon' },
+          set: { type: 'string', value: 'lucide' }
+        },
+        children: [{ id: 'a', type: 'icon', library: '$set', icon: '$glyph' }]
+      })
+    )
+    expect(penAssets(doc).icons).toEqual(['lucide:sun', 'lucide:moon'])
+  })
+
+  test('draws Lucide, Feather, and Phosphor from Iconify, and Material Symbols from their fonts', () => {
+    expect(iconName('feather', 'star')).toBe('feather:star')
+    expect(iconName('phosphor', 'airplane')).toBe('ph:airplane')
+    expect(iconName('Material Symbols Outlined', 'home')).toBeNull()
+    expect(iconFontFamily('Material Symbols Sharp')).toBe('Material Symbols Sharp')
+    expect(iconFontFamily('lucide')).toBeNull()
+    expect(iconName('unknown', 'home')).toBeNull()
   })
 })
 
@@ -124,17 +143,11 @@ describe('parsePenFile — images', () => {
 })
 
 describe('parsePenFile — icons', () => {
-  function drawn(fields: Partial<PenNode>) {
-    const calls: { names: readonly string[]; size: number; color: Color }[] = []
+  function drawn(fields: Partial<PenNode>, doc: Partial<PenDocument> = {}) {
+    const calls: { name: string; size: number; color: Color }[] = []
     const icons = {
-      draw(
-        graph: SceneGraph,
-        frameId: string,
-        names: readonly string[],
-        size: number,
-        color: Color
-      ) {
-        calls.push({ names, size, color })
+      draw(graph: SceneGraph, frameId: string, name: string, size: number, color: Color) {
+        calls.push({ name, size, color })
         graph.createNode('VECTOR', frameId, { width: size, height: size })
         return true
       }
@@ -152,7 +165,7 @@ describe('parsePenFile — icons', () => {
           ...fields
         }
       ],
-      {},
+      doc,
       { icons }
     )
     return { graph, calls, icon: getNodeOrThrow(graph, 'icon') }
@@ -160,10 +173,46 @@ describe('parsePenFile — icons', () => {
 
   test('draws the glyph in the fill colour, fitted and centred in the box', () => {
     const { graph, calls, icon } = drawn({})
-    expect(calls).toEqual([
-      { names: ['lucide:heart'], size: 30, color: { r: 0.8, g: 0, b: 0, a: 1 } }
-    ])
+    expect(calls).toEqual([{ name: 'lucide:heart', size: 30, color: { r: 0.8, g: 0, b: 0, a: 1 } }])
     expect(icon.fills).toEqual([])
     expect(graph.getChildren('icon').map((glyph) => [glyph.x, glyph.y])).toEqual([[33, 0]])
+  })
+
+  test('sets a Material Symbol in its font at the icon weight, 200 by default', () => {
+    for (const [weight, expected] of [
+      [undefined, 200],
+      [650, 650]
+    ] as const) {
+      const { graph, calls } = drawn({ library: 'Material Symbols Rounded', icon: 'home', weight })
+      expect(calls).toEqual([])
+      expect(graph.getChildren('icon')).toMatchObject([
+        {
+          type: 'TEXT',
+          text: 'home',
+          fontFamily: 'Material Symbols Rounded',
+          fontVariations: [{ axis: 'wght', value: expected }],
+          fontSize: 30,
+          x: 33,
+          y: 0
+        }
+      ])
+    }
+  })
+
+  test('reads the library and icon from variables in the layer theme', () => {
+    const { calls } = drawn(
+      { library: '$set', icon: '$glyph', theme: { mode: 'dark' } },
+      {
+        themes: { mode: ['light', 'dark'] },
+        variables: {
+          set: { type: 'string', value: 'feather' },
+          glyph: {
+            type: 'string',
+            value: [{ value: 'sun' }, { value: 'moon', theme: { mode: 'dark' } }]
+          }
+        }
+      }
+    )
+    expect(calls.map((call) => call.name)).toEqual(['feather:moon'])
   })
 })

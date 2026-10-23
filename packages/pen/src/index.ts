@@ -1,4 +1,11 @@
-export { iconNames, isDataURL, isDocumentAssetPath, penAssets, type PenAssets } from './assets'
+export {
+  iconFontFamily,
+  iconName,
+  isDataURL,
+  isDocumentAssetPath,
+  penAssets,
+  type PenAssets
+} from './assets'
 export type { PenIconSource } from './nodes'
 export {
   buildPenGraph,

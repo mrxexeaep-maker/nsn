@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from 'bun:test'
-import { readdirSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { FIXTURES } from '#core-tests/helpers/paths'
@@ -106,15 +106,12 @@ afterAll(() => {
 })
 
 describe('.pen frames against pen.dev', () => {
-  test('the manifest covers every frame pen.dev exported', () => {
-    const frames = parsePenDocument(source)
-      .children.filter((node) => node.type === 'frame' && !node.reusable)
-      .map((node) => node.id)
-    const exported = readdirSync(ORACLES)
-      .filter((file) => file.endsWith('.png') && frames.includes(file.slice(0, -4)))
-      .map((file) => file.slice(0, -4))
-    expect(manifest.targets.map((target) => target.penNodeId).sort()).toEqual([...frames].sort())
-    expect(exported.sort()).toEqual([...frames].sort())
+  test('every target is a frame of the probe document, exported by pen.dev', () => {
+    const frames = new Set(parsePenDocument(source).children.map((node) => node.id))
+    for (const { penNodeId } of manifest.targets) {
+      expect(frames.has(penNodeId)).toBe(true)
+      expect(existsSync(join(ORACLES, `${penNodeId}.png`))).toBe(true)
+    }
   })
 
   for (const target of manifest.targets) {

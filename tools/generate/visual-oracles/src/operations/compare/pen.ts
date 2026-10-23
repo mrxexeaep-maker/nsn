@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 /**
- * pen.dev oracle: exports every top-level frame of the document open in pen.dev, renders the same
- * frames with OpenPencil, and records what the comparison in CI needs to run offline.
+ * pen.dev oracle: exports the frames listed in the fixtures' manifest.json from the document open
+ * in pen.dev, renders the same frames with OpenPencil, and records what the comparison in CI needs
+ * to run offline.
  *
  * Open the probe document in pen.dev, then run:
  *   bun tools/generate/visual-oracles/src/cli.ts compare pen ~/.pencil/documents/<id>/untitled.pen
@@ -10,7 +11,8 @@
  *   probes.pen and its images    — the document
  *   <frame id>.png               — pen.dev's export of each frame, at scale 1
  *   iconify/<prefix>.json        — the icons the document draws, as Iconify sets
- *   fonts/<family>--<style>.font — the font faces its text is drawn with
+ *   fonts/<family>--<style>.font — the font faces its text is drawn with, icon fonts subset to
+ *                                  the icons it draws
  * keeping manifest.json, and writes pen.png, openpencil.png, diff.png, and metrics.json per frame
  * to --output.
  */
@@ -21,7 +23,7 @@ import { parseArgs } from 'node:util'
 
 import { Client } from '@modelcontextprotocol/client'
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
-import { groupBy, omit, pick } from 'es-toolkit'
+import { groupBy, omit, pick, uniq } from 'es-toolkit'
 import * as v from 'valibot'
 
 import { createIconifyProvider, parseIconName } from '@open-pencil/core/icons'
@@ -34,11 +36,20 @@ import {
 } from '@open-pencil/core/io/formats/raster'
 import { computeAllLayouts } from '@open-pencil/core/layout'
 import { fontManager, prepareGraphFonts } from '@open-pencil/core/text'
-import { isDocumentAssetPath, parsePenDocument, penAssets } from '@open-pencil/pen'
+import {
+  iconFontFamily,
+  isDocumentAssetPath,
+  parsePenDocument,
+  penAssets,
+  type PenNode,
+  type PenOverride
+} from '@open-pencil/pen'
+import { styleToWeight } from '@open-pencil/scene-graph/font-style'
 
 const PEN_MCP_SERVER =
   '/Applications/Pen.app/Contents/Resources/app.asar.unpacked/out/mcp-server-darwin-arm64'
 const ICONIFY_API = 'https://api.iconify.design'
+const GOOGLE_FONTS_CSS = 'https://fonts.googleapis.com/css2'
 
 const iconSetSchema = v.pipe(
   v.string(),
@@ -52,7 +63,16 @@ const iconSetSchema = v.pipe(
 )
 type IconSet = v.InferOutput<typeof iconSetSchema>
 
-const savedDocumentSchema = v.pipe(v.string(), v.parseJson(), v.looseObject({}))
+const savedDocumentSchema = v.pipe(
+  v.string(),
+  v.parseJson(),
+  v.looseObject({ children: v.array(v.looseObject({ id: v.string() })) })
+)
+const manifestSchema = v.pipe(
+  v.string(),
+  v.parseJson(),
+  v.looseObject({ targets: v.array(v.looseObject({ penNodeId: v.string() })) })
+)
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -72,11 +92,21 @@ if (!source) {
 
 const fixtures = resolve(values.fixtures)
 const output = resolve(values.output)
-// pen.dev stamps each saved file with an opaque `fileToken`; the fixture keeps the document only.
+const { targets } = v.parse(manifestSchema, await Bun.file(join(fixtures, 'manifest.json')).text())
+const wanted = new Set(targets.map((target) => target.penNodeId))
+// The fixture keeps the manifest's frames and the components they use, and drops the `fileToken`
+// pen.dev stamps each saved file with.
 const saved = v.parse(savedDocumentSchema, await Bun.file(source).text())
-const text = `${JSON.stringify(omit(saved, ['fileToken']), null, 2)}\n`
+const kept = withComponents(parsePenDocument(JSON.stringify(saved)).children, wanted)
+const text = `${JSON.stringify(
+  { ...omit(saved, ['fileToken']), children: saved.children.filter((node) => kept.has(node.id)) },
+  null,
+  2
+)}\n`
 const doc = parsePenDocument(text)
-const frames = doc.children.filter((node) => node.type === 'frame' && !node.reusable)
+const frames = doc.children.filter((node) => wanted.has(node.id))
+const missing = [...wanted].filter((id) => !frames.some((frame) => frame.id === id))
+if (missing.length > 0) throw new Error(`The document has no top-level ${missing.join(', ')}`)
 const assets = penAssets(doc)
 
 clearFixtures()
@@ -95,11 +125,11 @@ const iconSets = await fetchIconSets(assets.icons)
 for (const set of iconSets.values()) {
   writeFileSync(join(fixtures, 'iconify', `${set.prefix}.json`), `${JSON.stringify(set)}\n`)
 }
-const fonts = new Map<string, ArrayBuffer>()
+const fonts = new Map<string, { family: string; style: string; data: ArrayBuffer }>()
 fontManager.setDownloadedFontCache({
   read: () => Promise.resolve(null),
   write(family, style, data) {
-    fonts.set(`${family}--${style}`, data)
+    fonts.set(`${family}--${style}`, { family, style, data })
     return Promise.resolve()
   }
 })
@@ -154,8 +184,22 @@ for (const frame of frames) {
   console.log(`${name} (${frame.id}): ${differentPercent.toFixed(2)}% pixels differ`)
 }
 
-for (const [face, data] of fonts) {
-  writeFileSync(join(fixtures, 'fonts', `${face}.font`), new Uint8Array(data))
+// Icon fonts are recorded as just the icons the document draws; whole, each weight is a megabyte.
+const iconsByFamily = groupBy(
+  [...graph.getAllNodes()].filter(
+    (node) => node.type === 'TEXT' && iconFontFamily(node.fontFamily) !== null
+  ),
+  (node) => node.fontFamily
+)
+for (const [face, { family, style, data }] of fonts) {
+  const bytes = Object.hasOwn(iconsByFamily, family)
+    ? await iconFontSubset(
+        family,
+        style,
+        iconsByFamily[family].map((node) => node.text)
+      )
+    : new Uint8Array(data)
+  writeFileSync(join(fixtures, 'fonts', `${face}.font`), bytes)
 }
 console.log(`Recorded ${iconSets.size} icon sets and ${fonts.size} font faces in ${fixtures}`)
 
@@ -168,6 +212,30 @@ function clearFixtures() {
   mkdirSync(join(fixtures, 'iconify'))
   mkdirSync(join(fixtures, 'fonts'))
   mkdirSync(output, { recursive: true })
+}
+
+/** The IDs of `ids` and of every top-level node holding a component they use, at any depth. */
+function withComponents(nodes: readonly PenNode[], ids: ReadonlySet<string>): Set<string> {
+  const owners = new Map<string, string>()
+  const refs = new Map<string, string[]>()
+  const visit = (node: PenOverride, top: string) => {
+    if (node.id) owners.set(node.id, top)
+    if (node.ref) refs.get(top)?.push(node.ref)
+    for (const child of node.children ?? []) visit(child, top)
+    for (const override of Object.values(node.descendants ?? {})) visit(override, top)
+  }
+  for (const node of nodes) {
+    refs.set(node.id, [])
+    visit(node, node.id)
+  }
+  const kept = new Set(ids)
+  for (const id of kept) {
+    for (const ref of refs.get(id) ?? []) {
+      const owner = owners.get(ref)
+      if (owner) kept.add(owner)
+    }
+  }
+  return kept
 }
 
 /** Exports frames from the document open in pen.dev, through pen.dev's MCP server. */
@@ -188,6 +256,21 @@ async function exportFromPen(document: string, frameIds: string[], directory: st
   } finally {
     await client.close()
   }
+}
+
+/**
+ * Google's own subset of an icon font face holding only `names`, in the TrueType it serves to
+ * clients that do not ask for WOFF2.
+ */
+async function iconFontSubset(family: string, style: string, names: string[]): Promise<Uint8Array> {
+  const query = new URLSearchParams({
+    family: `${family}:wght@${styleToWeight(style)}`,
+    icon_names: uniq(names).sort().join(',')
+  })
+  const css = await (await fetch(`${GOOGLE_FONTS_CSS}?${query}`)).text()
+  const url = /src: url\((https:[^)]+)\) format\('truetype'\)/.exec(css)?.[1]
+  if (!url) throw new Error(`Google Fonts has no subset of ${family} ${style}`)
+  return (await fetch(url)).bytes()
 }
 
 /** The Iconify sets holding `names`, each with just the icons named from it. */

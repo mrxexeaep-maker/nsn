@@ -1,16 +1,30 @@
 import type { PenDocument, PenNode, PenOverride, PenPaint, PenPaints } from './schema'
+import { possibleValues } from './variables'
 
 /**
- * Iconify names for a pen.dev icon, the best first. Material Symbols draws unfilled by default,
- * which Iconify names `-outline`; an icon with no unfilled form has only the filled one.
+ * Where pen.dev's icon libraries come from. Lucide, Feather, and Phosphor are drawn from their
+ * Iconify sets, which pen.dev draws at one weight; Material Symbols are glyphs of Google's variable
+ * fonts, drawn at the icon's weight, as pen.dev draws them.
  */
-export function iconNames(library: string, icon: string): string[] {
-  if (library === 'lucide' || library === 'feather') return [`${library}:${icon}`]
-  if (library === 'phosphor') return [`ph:${icon}`]
-  const style = /^Material Symbols (Outlined|Rounded|Sharp)$/.exec(library)?.[1]
-  if (!style) return []
-  const suffix = style === 'Outlined' ? '' : `-${style.toLowerCase()}`
-  return [`material-symbols:${icon}-outline${suffix}`, `material-symbols:${icon}${suffix}`]
+const ICON_LIBRARIES: Partial<Record<string, { iconify: string } | { font: string }>> = {
+  lucide: { iconify: 'lucide' },
+  feather: { iconify: 'feather' },
+  phosphor: { iconify: 'ph' },
+  'Material Symbols Outlined': { font: 'Material Symbols Outlined' },
+  'Material Symbols Rounded': { font: 'Material Symbols Rounded' },
+  'Material Symbols Sharp': { font: 'Material Symbols Sharp' }
+}
+
+/** The Iconify name of an icon from a library drawn from Iconify. */
+export function iconName(library: string, icon: string): string | null {
+  const source = ICON_LIBRARIES[library]
+  return source && 'iconify' in source ? `${source.iconify}:${icon}` : null
+}
+
+/** The font family of a library whose icons are font glyphs. */
+export function iconFontFamily(library: string): string | null {
+  const source = ICON_LIBRARIES[library]
+  return source && 'font' in source ? source.font : null
 }
 
 /**
@@ -27,9 +41,9 @@ export function isDataURL(url: string): boolean {
   return /^data:/i.test(url)
 }
 
-/** The icons and image files a document draws, so a host can load them before reading it. */
+/** What a document draws from outside itself. */
 export interface PenAssets {
-  /** Iconify names of every icon, with each icon's fallbacks. */
+  /** Iconify names of every icon drawn from Iconify. */
   icons: string[]
   /** Images to load: files relative to the document, and data URLs. */
   images: string[]
@@ -49,6 +63,7 @@ function paintImages(paints: PenPaints | undefined, images: Set<string>) {
 }
 
 interface Found {
+  doc: PenDocument
   icons: Set<string>
   images: Set<string>
   libraries: Set<string>
@@ -56,13 +71,24 @@ interface Found {
   bareIcons: Set<string>
 }
 
+function addIcons(libraries: readonly string[], icons: readonly string[], found: Set<string>) {
+  for (const library of libraries) {
+    for (const icon of icons) {
+      const name = iconName(library, icon)
+      if (name) found.add(name)
+    }
+  }
+}
+
 function collect(node: PenOverride, assets: Found) {
   if (node.icon && (node.type === 'icon' || node.type === undefined)) {
+    const icons = possibleValues(node.icon, assets.doc)
     if (node.library) {
-      assets.libraries.add(node.library)
-      for (const name of iconNames(node.library, node.icon)) assets.icons.add(name)
+      const libraries = possibleValues(node.library, assets.doc)
+      for (const library of libraries) assets.libraries.add(library)
+      addIcons(libraries, icons, assets.icons)
     } else {
-      assets.bareIcons.add(node.icon)
+      for (const icon of icons) assets.bareIcons.add(icon)
     }
   }
   paintImages(node.fill, assets.images)
@@ -73,18 +99,19 @@ function collect(node: PenOverride, assets: Found) {
   for (const override of Object.values(node.descendants ?? {})) collect(override, assets)
 }
 
+/**
+ * The Iconify icons and the image files a document draws, so a host can load them before reading
+ * it. An icon or library bound to a variable counts every value the variable has.
+ */
 export function penAssets(doc: PenDocument): PenAssets {
   const assets: Found = {
+    doc,
     icons: new Set(),
     images: new Set(),
     libraries: new Set(),
     bareIcons: new Set()
   }
   for (const node of doc.children) collect(node satisfies PenNode, assets)
-  for (const icon of assets.bareIcons) {
-    for (const library of assets.libraries) {
-      for (const name of iconNames(library, icon)) assets.icons.add(name)
-    }
-  }
+  addIcons([...assets.libraries], [...assets.bareIcons], assets.icons)
   return { icons: [...assets.icons], images: [...assets.images] }
 }

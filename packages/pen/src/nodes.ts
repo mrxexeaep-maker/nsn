@@ -10,7 +10,7 @@ import { BLACK } from '@open-pencil/scene-graph/constants'
 import { fillSizingFields } from '@open-pencil/scene-graph/layout'
 import type { Color } from '@open-pencil/scene-graph/primitives'
 
-import { iconNames } from './assets'
+import { iconFontFamily, iconName } from './assets'
 import { convertEffects } from './effects'
 import { ellipseArc, pathNetwork } from './geometry'
 import type { PenImages } from './images'
@@ -26,21 +26,21 @@ import { applyStroke, convertPaints, strokeFields } from './paints'
 import { isPlain, type PenPlacement } from './placement'
 import type { PenNode, PenOverride } from './schema'
 import { applyTextProps } from './text'
-import { bindIfVar, resolveBoolean, resolveNumber, type VarContext } from './variables'
+import {
+  bindIfVar,
+  resolveBoolean,
+  resolveNumber,
+  resolveString,
+  type VarContext
+} from './variables'
 
 /** Where icon glyphs come from, as the host loaded them. */
 export interface PenIconSource {
   /**
-   * Draws the first icon of `names` the source has into the frame, `size` square at its origin,
-   * painted `color` where the icon takes its colour. False when it has none of them.
+   * Draws the Iconify icon `name` into the frame, `size` square at its origin, painted `color`
+   * where the icon takes its colour. False when the source does not have it.
    */
-  draw(
-    graph: SceneGraph,
-    frameId: string,
-    names: readonly string[],
-    size: number,
-    color: Color
-  ): boolean
+  draw(graph: SceneGraph, frameId: string, name: string, size: number, color: Color): boolean
 }
 
 /** What reading one document builds up. */
@@ -202,19 +202,53 @@ export function applyPenProperties(node: SceneNode, pen: PenNode, build: Build):
   build.effective.set(node.id, pen)
 }
 
+/** The weight pen.dev draws Material Symbols at when an icon sets none. */
+const MATERIAL_SYMBOLS_WEIGHT = 200
+
+/** A font icon's glyph: its name set in the icon font, which turns it into the glyph. */
+function drawFontGlyph(
+  build: Build,
+  frameId: string,
+  family: string,
+  icon: string,
+  weight: number,
+  size: number,
+  color: Color
+): void {
+  build.graph.createNode('TEXT', frameId, {
+    name: icon,
+    text: icon,
+    fontFamily: family,
+    fontWeight: weight,
+    fontVariations: [{ axis: 'wght', value: weight }],
+    fontSize: size,
+    lineHeight: size,
+    width: size,
+    height: size,
+    textAutoResize: 'NONE',
+    fills: [{ type: 'SOLID', color, opacity: 1, visible: true }]
+  })
+}
+
 /**
  * An icon draws its glyph in its fill colour, scaled to fit its box and centred, as pen.dev does;
- * an icon the host could not load is an empty frame.
+ * an icon the host could not load is an empty frame. Its library and name may be variables.
  */
 function drawIcon(node: SceneNode, pen: PenNode, build: Build): void {
-  const { graph } = build
+  const { graph, ctx } = build
   const color = node.fills.find((fill) => fill.type === 'SOLID')?.color ?? { ...BLACK }
   node.fills = []
   for (const childId of node.childIds) graph.deleteNode(childId)
-  if (!pen.library || !pen.icon || !build.icons) return
+  const library = resolveString(pen.library, ctx)
+  const icon = resolveString(pen.icon, ctx)
   const size = Math.min(node.width, node.height)
-  if (size <= 0) return
-  if (!build.icons.draw(graph, node.id, iconNames(pen.library, pen.icon), size, color)) return
+  if (!library || !icon || size <= 0) return
+  const family = iconFontFamily(library)
+  const name = iconName(library, icon)
+  if (family) {
+    const weight = resolveNumber(pen.weight, ctx, MATERIAL_SYMBOLS_WEIGHT)
+    drawFontGlyph(build, node.id, family, icon, weight, size, color)
+  } else if (!name || !build.icons?.draw(graph, node.id, name, size, color)) return
   const dx = (node.width - size) / 2
   const dy = (node.height - size) / 2
   for (const glyph of graph.getChildren(node.id)) {

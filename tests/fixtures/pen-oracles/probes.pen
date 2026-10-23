@@ -1,9 +1,8 @@
 {
-  "version": "2.21",
   "children": [
     {
-      "type": "frame",
       "id": "bi8Au",
+      "type": "frame",
       "x": 0,
       "y": 0,
       "name": "Frame",
@@ -14,8 +13,8 @@
       "layout": "none"
     },
     {
-      "type": "frame",
       "id": "XwyoV",
+      "type": "frame",
       "x": 840,
       "y": 0,
       "name": "Stroke Probe",
@@ -75,8 +74,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "ZqgQn",
+      "type": "frame",
       "x": 840,
       "y": 180,
       "name": "Align Probe",
@@ -147,8 +146,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "VuLq8",
+      "type": "frame",
       "x": 0,
       "y": 640,
       "name": "P Fills",
@@ -383,8 +382,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "AMkAG",
+      "type": "frame",
       "x": 0,
       "y": 920,
       "name": "P Effects",
@@ -501,8 +500,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "G1aH4g",
+      "type": "frame",
       "x": 0,
       "y": 1100,
       "name": "P Shapes",
@@ -639,8 +638,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "ptfGa",
+      "type": "frame",
       "x": 0,
       "y": 1400,
       "name": "P Transforms",
@@ -745,8 +744,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "or6x9",
+      "type": "frame",
       "x": 0,
       "y": 1660,
       "name": "P Text",
@@ -980,8 +979,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "MBeS5",
+      "type": "frame",
       "x": 0,
       "y": 2120,
       "name": "P Layout",
@@ -1362,8 +1361,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "o2znWP",
+      "type": "frame",
       "x": 0,
       "y": 2620,
       "name": "P Vars",
@@ -1588,8 +1587,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "w0MCR",
+      "type": "frame",
       "x": 0,
       "y": 2960,
       "name": "P Components",
@@ -1772,8 +1771,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "ayqm5",
+      "type": "frame",
       "x": 0,
       "y": 3360,
       "name": "P Images",
@@ -1870,8 +1869,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "rMpIj",
+      "type": "frame",
       "x": 0,
       "y": 3540,
       "name": "P Icons",
@@ -1957,8 +1956,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "sqoEc",
+      "type": "frame",
       "x": 0,
       "y": 3680,
       "name": "P Strokes",
@@ -2073,8 +2072,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "c6sX3L",
+      "type": "frame",
       "x": 0,
       "y": 3880,
       "name": "P Other types",
@@ -2127,8 +2126,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "cDh6W",
+      "type": "frame",
       "x": 0,
       "y": 4100,
       "name": "M Gradients",
@@ -2379,8 +2378,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "apjeC",
+      "type": "frame",
       "x": 0,
       "y": 4400,
       "name": "M Transforms",
@@ -2640,8 +2639,8 @@
       ]
     },
     {
-      "type": "frame",
       "id": "HD4Cf",
+      "type": "frame",
       "x": 0,
       "y": 4740,
       "name": "M Themes",
@@ -2869,8 +2868,699 @@
           ]
         }
       ]
+    },
+    {
+      "id": "MOmt0",
+      "type": "frame",
+      "x": 0,
+      "y": 4980,
+      "name": "P Icon weights",
+      "width": 420,
+      "height": 320,
+      "fill": "#FFFFFF",
+      "layout": "none",
+      "children": [
+        {
+          "type": "icon",
+          "id": "eLiWC",
+          "x": 10,
+          "y": 10,
+          "name": "Material Symbols Outlined default",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Outlined",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "i1Wdz",
+          "x": 60,
+          "y": 10,
+          "name": "Material Symbols Outlined 100",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Outlined",
+          "weight": 100,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "o7Gyo",
+          "x": 110,
+          "y": 10,
+          "name": "Material Symbols Outlined 200",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Outlined",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "n18R5",
+          "x": 160,
+          "y": 10,
+          "name": "Material Symbols Outlined 300",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Outlined",
+          "weight": 300,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "IhlMf",
+          "x": 210,
+          "y": 10,
+          "name": "Material Symbols Outlined 400",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Outlined",
+          "weight": 400,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "M4eq2N",
+          "x": 260,
+          "y": 10,
+          "name": "Material Symbols Outlined 500",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Outlined",
+          "weight": 500,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "s2POCd",
+          "x": 310,
+          "y": 10,
+          "name": "Material Symbols Outlined 600",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Outlined",
+          "weight": 600,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "jjE2B",
+          "x": 360,
+          "y": 10,
+          "name": "Material Symbols Outlined 700",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Outlined",
+          "weight": 700,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "kCEYc",
+          "x": 10,
+          "y": 60,
+          "name": "Material Symbols Rounded default",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Rounded",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "S3MFim",
+          "x": 60,
+          "y": 60,
+          "name": "Material Symbols Rounded 100",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Rounded",
+          "weight": 100,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "ZH7xq",
+          "x": 110,
+          "y": 60,
+          "name": "Material Symbols Rounded 200",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Rounded",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "ApuSb",
+          "x": 160,
+          "y": 60,
+          "name": "Material Symbols Rounded 300",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Rounded",
+          "weight": 300,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "y0emRx",
+          "x": 210,
+          "y": 60,
+          "name": "Material Symbols Rounded 400",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Rounded",
+          "weight": 400,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "ke5wF",
+          "x": 260,
+          "y": 60,
+          "name": "Material Symbols Rounded 500",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Rounded",
+          "weight": 500,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "TdbyI",
+          "x": 310,
+          "y": 60,
+          "name": "Material Symbols Rounded 600",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Rounded",
+          "weight": 600,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "wH4Fi",
+          "x": 360,
+          "y": 60,
+          "name": "Material Symbols Rounded 700",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Rounded",
+          "weight": 700,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "yKzJX",
+          "x": 10,
+          "y": 110,
+          "name": "Material Symbols Sharp default",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Sharp",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "Z5x1be",
+          "x": 60,
+          "y": 110,
+          "name": "Material Symbols Sharp 100",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Sharp",
+          "weight": 100,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "GJOxI",
+          "x": 110,
+          "y": 110,
+          "name": "Material Symbols Sharp 200",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Sharp",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "uRDvt",
+          "x": 160,
+          "y": 110,
+          "name": "Material Symbols Sharp 300",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Sharp",
+          "weight": 300,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "W5d8qB",
+          "x": 210,
+          "y": 110,
+          "name": "Material Symbols Sharp 400",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Sharp",
+          "weight": 400,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "aGat3",
+          "x": 260,
+          "y": 110,
+          "name": "Material Symbols Sharp 500",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Sharp",
+          "weight": 500,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "KJgnK",
+          "x": 310,
+          "y": 110,
+          "name": "Material Symbols Sharp 600",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Sharp",
+          "weight": 600,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "KsBHG",
+          "x": 360,
+          "y": 110,
+          "name": "Material Symbols Sharp 700",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "Material Symbols Sharp",
+          "weight": 700,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "AP7Ym",
+          "x": 10,
+          "y": 160,
+          "name": "phosphor default",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "phosphor",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "PHaIm",
+          "x": 60,
+          "y": 160,
+          "name": "phosphor 100",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "phosphor",
+          "weight": 100,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "x6bcVL",
+          "x": 110,
+          "y": 160,
+          "name": "phosphor 200",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "phosphor",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "Lv91H",
+          "x": 160,
+          "y": 160,
+          "name": "phosphor 300",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "phosphor",
+          "weight": 300,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "Z9xf5s",
+          "x": 210,
+          "y": 160,
+          "name": "phosphor 400",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "phosphor",
+          "weight": 400,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "nacuB",
+          "x": 260,
+          "y": 160,
+          "name": "phosphor 500",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "phosphor",
+          "weight": 500,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "vCv3R",
+          "x": 310,
+          "y": 160,
+          "name": "phosphor 600",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "phosphor",
+          "weight": 600,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "lWzUt",
+          "x": 360,
+          "y": 160,
+          "name": "phosphor 700",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "phosphor",
+          "weight": 700,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "ZcgqG",
+          "x": 10,
+          "y": 210,
+          "name": "lucide default",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "lucide",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "c7zts",
+          "x": 60,
+          "y": 210,
+          "name": "lucide 100",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "lucide",
+          "weight": 100,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "wUYZ3",
+          "x": 110,
+          "y": 210,
+          "name": "lucide 200",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "lucide",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "t7Kx5",
+          "x": 160,
+          "y": 210,
+          "name": "lucide 300",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "lucide",
+          "weight": 300,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "H0f60",
+          "x": 210,
+          "y": 210,
+          "name": "lucide 400",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "lucide",
+          "weight": 400,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "I73JQD",
+          "x": 260,
+          "y": 210,
+          "name": "lucide 500",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "lucide",
+          "weight": 500,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "l9cY1h",
+          "x": 310,
+          "y": 210,
+          "name": "lucide 600",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "lucide",
+          "weight": 600,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "wcu9Y",
+          "x": 360,
+          "y": 210,
+          "name": "lucide 700",
+          "width": 40,
+          "height": 40,
+          "icon": "house",
+          "library": "lucide",
+          "weight": 700,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "m98ocB",
+          "x": 10,
+          "y": 260,
+          "name": "feather default",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "feather",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "xHq5f",
+          "x": 60,
+          "y": 260,
+          "name": "feather 100",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "feather",
+          "weight": 100,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "o87j1",
+          "x": 110,
+          "y": 260,
+          "name": "feather 200",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "feather",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "gJtYL",
+          "x": 160,
+          "y": 260,
+          "name": "feather 300",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "feather",
+          "weight": 300,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "kuyZK",
+          "x": 210,
+          "y": 260,
+          "name": "feather 400",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "feather",
+          "weight": 400,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "AbECo",
+          "x": 260,
+          "y": 260,
+          "name": "feather 500",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "feather",
+          "weight": 500,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "aaNuR",
+          "x": 310,
+          "y": 260,
+          "name": "feather 600",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "feather",
+          "weight": 600,
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "I0jPTl",
+          "x": 360,
+          "y": 260,
+          "name": "feather 700",
+          "width": 40,
+          "height": 40,
+          "icon": "home",
+          "library": "feather",
+          "weight": 700,
+          "fill": "#111111"
+        }
+      ]
+    },
+    {
+      "id": "alRyT",
+      "type": "frame",
+      "x": 0,
+      "y": 5340,
+      "name": "P Icon variables",
+      "width": 240,
+      "height": 70,
+      "fill": "#FFFFFF",
+      "layout": "none",
+      "children": [
+        {
+          "type": "icon",
+          "id": "X8LilL",
+          "x": 10,
+          "y": 10,
+          "name": "default theme",
+          "width": 48,
+          "height": 48,
+          "icon": "$pq-icon",
+          "library": "$pq-icon-set",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "LOiwH",
+          "x": 70,
+          "y": 10,
+          "name": "dark theme",
+          "theme": {
+            "mode": "dark"
+          },
+          "width": 48,
+          "height": 48,
+          "icon": "$pq-icon",
+          "library": "$pq-icon-set",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "rMruQ",
+          "x": 130,
+          "y": 10,
+          "name": "fixed lib var icon",
+          "width": 48,
+          "height": 48,
+          "icon": "$pq-icon",
+          "library": "feather",
+          "fill": "#111111"
+        },
+        {
+          "type": "icon",
+          "id": "R7vj4S",
+          "x": 180,
+          "y": 20,
+          "name": "wide material",
+          "width": 50,
+          "height": 30,
+          "icon": "home",
+          "library": "Material Symbols Outlined",
+          "weight": 450,
+          "fill": "#AA0000"
+        }
+      ]
     }
   ],
+  "version": "2.21",
   "themes": {
     "mode": [
       "light",
@@ -3045,6 +3735,48 @@
           }
         }
       ]
+    },
+    "pq-icon-set": {
+      "type": "string",
+      "value": [
+        {
+          "value": "lucide",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "Material Symbols Rounded",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "pq-icon": {
+      "type": "string",
+      "value": [
+        {
+          "value": "sun",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "$pq-icon-night",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "pq-icon-night": {
+      "type": "string",
+      "value": "dark_mode"
+    },
+    "pq-icon-heart": {
+      "type": "string",
+      "value": "heart"
     }
   }
 }

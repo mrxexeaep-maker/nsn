@@ -262,8 +262,8 @@ async function loadPenIcons(
       ? await provider.icons(names, PEN_ICON_SIZE).catch(() => new Map<string, IconData>())
       : new Map()
   return {
-    draw(graph, frameId, candidates, size, color) {
-      const icon = candidates.map((name) => glyphs.get(name)).find((found) => found !== undefined)
+    draw(graph, frameId, name, size, color) {
+      const icon = glyphs.get(name)
       if (!icon) return false
       drawIcon(graph, frameId, icon, size, color)
       return true
