@@ -54,6 +54,7 @@ export const aiMessageDefaults = {
     'Base URL is invalid. Use a full URL like https://api.example.com/v1.',
   connectionTestAuthFailed: 'Authentication failed. Check your API key.',
   connectionTestSignInExpired: 'The sign-in has expired. Sign in again.',
+  connectionTestPlanForbidden: 'Your plan can’t use this model. Choose another model.',
   connectionTestInsufficientCredit:
     'The provider account has insufficient credit or quota. Top it up and try again.',
   connectionTestModelNotFound: 'Model not found. Check the model ID.',

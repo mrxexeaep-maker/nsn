@@ -10,6 +10,7 @@
   "connectionTestInvalidBaseURL": "基础 URL 无效。请使用完整 URL，例如 https://api.example.com/v1。",
   "connectionTestAuthFailed": "身份验证失败。请检查 API 密钥。",
   "connectionTestSignInExpired": "登录已过期，请重新登录。",
+  "connectionTestPlanForbidden": "你的套餐无法使用此模型。请选择其他模型。",
   "connectionTestInsufficientCredit": "提供商账户的余额或配额不足。请充值后重试。",
   "connectionTestModelNotFound": "找不到模型。请检查模型 ID。",
   "connectionTestAPITypeMismatch": "此端点似乎不支持所选的 API 类型。请尝试 Completions 或 Responses。",

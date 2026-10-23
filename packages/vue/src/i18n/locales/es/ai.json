@@ -10,6 +10,7 @@
   "connectionTestInvalidBaseURL": "La URL base no es válida. Usa una URL completa como https://api.example.com/v1.",
   "connectionTestAuthFailed": "Error de autenticación. Comprueba tu clave API.",
   "connectionTestSignInExpired": "La sesión ha caducado. Vuelve a iniciar sesión.",
+  "connectionTestPlanForbidden": "Tu plan no puede usar este modelo. Elige otro modelo.",
   "connectionTestInsufficientCredit": "La cuenta del proveedor no tiene suficiente saldo o cuota. Recárgala e inténtalo de nuevo.",
   "connectionTestModelNotFound": "No se ha encontrado el modelo. Comprueba el ID del modelo.",
   "connectionTestAPITypeMismatch": "Este endpoint no parece admitir el tipo de API seleccionado. Prueba Completions o Responses.",

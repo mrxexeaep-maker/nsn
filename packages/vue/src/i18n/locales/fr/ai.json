@@ -10,6 +10,7 @@
   "connectionTestInvalidBaseURL": "L’URL de base est invalide. Utilisez une URL complète comme https://api.example.com/v1.",
   "connectionTestAuthFailed": "Échec de l’authentification. Vérifiez votre clé API.",
   "connectionTestSignInExpired": "La connexion a expiré. Reconnectez-vous.",
+  "connectionTestPlanForbidden": "Votre forfait ne permet pas d’utiliser ce modèle. Choisissez-en un autre.",
   "connectionTestInsufficientCredit": "Le compte du fournisseur n’a pas assez de crédit ou de quota. Rechargez-le et réessayez.",
   "connectionTestModelNotFound": "Modèle introuvable. Vérifiez son ID.",
   "connectionTestAPITypeMismatch": "Ce point de terminaison ne semble pas prendre en charge le type d’API sélectionné. Essayez Completions ou Responses.",

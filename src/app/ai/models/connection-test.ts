@@ -23,6 +23,7 @@ export type ProviderConnectionTestFailureReason =
   | 'invalid-base-url'
   | 'auth'
   | 'sign-in-expired'
+  | 'plan-forbidden'
   | 'insufficient-credit'
   | 'model-not-found'
   | 'api-type'
@@ -125,8 +126,9 @@ export async function testProviderConnection(
     return { ok: true }
   } catch (error) {
     const reason = classifyError(error)
-    // A provider signed in to has no key to check; its refused credential is the sign-in.
-    const signInExpired = reason === 'auth' && isSignInOnly(config.providerID)
-    return { ok: false, reason: signInExpired ? 'sign-in-expired' : reason }
+    if (reason !== 'auth' || !isSignInOnly(config.providerID)) return { ok: false, reason }
+    // A provider signed in to has no key: a 403 is the plan, anything else the sign-in.
+    const planForbidden = providerErrorStatus(error) === 403
+    return { ok: false, reason: planForbidden ? 'plan-forbidden' : 'sign-in-expired' }
   }
 }

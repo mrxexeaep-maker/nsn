@@ -23,7 +23,11 @@ const SCOPE = 'openid profile email offline_access'
 const AUTH_CLAIM = 'https://api.openai.com/auth'
 
 export class ChatGPTTokenError extends Error {
-  constructor(readonly status: number) {
+  constructor(
+    readonly status: number,
+    /** The error code of an OAuth error body, such as `invalid_grant`. */
+    readonly code?: string
+  ) {
     super(`ChatGPT token request failed with status ${status}`)
     this.name = 'ChatGPTTokenError'
   }
@@ -81,6 +85,21 @@ export function chatGPTAccount(accessToken: string, idToken?: string): ChatGPTAc
   }
 }
 
+// RFC 6749 sends `error` as a string; OpenAI's refresh errors nest it as `error.code`.
+const oauthErrorBodySchema = v.object({
+  error: v.union([v.string(), v.looseObject({ code: v.string() })])
+})
+
+async function oauthErrorCode(response: Response): Promise<string | undefined> {
+  const parsed = v.safeParse(
+    v.pipe(v.string(), v.parseJson(), oauthErrorBodySchema),
+    await response.text().catch(() => '')
+  )
+  if (!parsed.success) return undefined
+  const { error } = parsed.output
+  return typeof error === 'string' ? error : error.code
+}
+
 async function requestTokens(
   body: Record<string, string>,
   fetchImpl: FetchFunction,
@@ -91,7 +110,7 @@ async function requestTokens(
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ client_id: CHATGPT_CLIENT_ID, ...body }).toString()
   })
-  if (!response.ok) throw new ChatGPTTokenError(response.status)
+  if (!response.ok) throw new ChatGPTTokenError(response.status, await oauthErrorCode(response))
   const tokens = v.safeParse(tokenResponseSchema, await response.json())
   if (!tokens.success) throw new ChatGPTTokenError(response.status)
   const { access_token, refresh_token, expires_in, id_token } = tokens.output

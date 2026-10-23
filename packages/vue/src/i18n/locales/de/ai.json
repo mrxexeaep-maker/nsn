@@ -10,6 +10,7 @@
   "connectionTestInvalidBaseURL": "Die Basis-URL ist ungültig. Verwende eine vollständige URL wie https://api.example.com/v1.",
   "connectionTestAuthFailed": "Authentifizierung fehlgeschlagen. Prüfe deinen API-Schlüssel.",
   "connectionTestSignInExpired": "Die Anmeldung ist abgelaufen. Melde dich erneut an.",
+  "connectionTestPlanForbidden": "Dein Tarif kann dieses Modell nicht nutzen. Wähle ein anderes Modell.",
   "connectionTestInsufficientCredit": "Das Anbieterkonto hat nicht genügend Guthaben oder Kontingent. Lade es auf und versuche es erneut.",
   "connectionTestModelNotFound": "Modell nicht gefunden. Prüfe die Modell-ID.",
   "connectionTestAPITypeMismatch": "Dieser Endpunkt scheint den ausgewählten API-Typ nicht zu unterstützen. Versuche Completions oder Responses.",

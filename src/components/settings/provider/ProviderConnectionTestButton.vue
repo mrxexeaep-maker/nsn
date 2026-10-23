@@ -37,6 +37,8 @@ const resultMessage = computed(() => {
       return ai.value.connectionTestAuthFailed
     case 'sign-in-expired':
       return ai.value.connectionTestSignInExpired
+    case 'plan-forbidden':
+      return ai.value.connectionTestPlanForbidden
     case 'insufficient-credit':
       return ai.value.connectionTestInsufficientCredit
     case 'model-not-found':

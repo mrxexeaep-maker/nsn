@@ -10,6 +10,7 @@
   "connectionTestInvalidBaseURL": "ベースURLが無効です。https://api.example.com/v1 のような完全なURLを使用してください。",
   "connectionTestAuthFailed": "認証に失敗しました。APIキーを確認してください。",
   "connectionTestSignInExpired": "サインインの有効期限が切れました。もう一度サインインしてください。",
+  "connectionTestPlanForbidden": "ご利用のプランではこのモデルを使用できません。別のモデルを選んでください。",
   "connectionTestInsufficientCredit": "プロバイダーのアカウントに十分なクレジットまたは割り当てがありません。チャージして再試行してください。",
   "connectionTestModelNotFound": "モデルが見つかりません。モデルIDを確認してください。",
   "connectionTestAPITypeMismatch": "このエンドポイントは選択したAPIタイプに対応していないようです。CompletionsまたはResponsesをお試しください。",
