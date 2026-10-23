@@ -43,12 +43,7 @@ const VERSION_TIMEOUT: Duration = Duration::from_secs(5);
 /// The version line a companion prints for `--version`, or `None` for anything else.
 fn parse_version(output: &str) -> Option<String> {
     let line = output.lines().next()?.trim();
-    let mut core = line.split(['-', '+']).next()?.split('.');
-    let numeric = (0..3).all(|_| {
-        core.next()
-            .is_some_and(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit()))
-    });
-    (numeric && core.next().is_none()).then(|| line.to_owned())
+    semver::Version::parse(line).ok().map(|_| line.to_owned())
 }
 
 /// Asks one of OpenPencil's own companions for its version. Asking the program reports what
