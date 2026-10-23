@@ -1,9 +1,10 @@
 import { computed } from 'vue'
 
 import { useHomeCloud } from '@/app/cloud/integration'
+import { recentFilesAvailable } from '@/app/recent-files/preferences'
 import { openSettingsDialog } from '@/app/settings/dialog'
 
-import { homeLocation, type HomeLocation } from './location'
+import { homeLocation, homeLocationChosen, type HomeLocation } from './location'
 
 /** A Home location as the sidebar and the phone menu name it. */
 export type HomeLocationView =
@@ -28,14 +29,19 @@ function fromView(location: HomeLocationView): HomeLocation {
 
 /**
  * Where Home can list documents from: Recent, the workspaces and shared documents of the server
- * Home shows when signed in to it, and storage. A Cloud location the account can no longer
- * reach falls back to Recent.
+ * Home shows when signed in to it, and storage. Until the person picks a place, Home shows
+ * Recent, or the first workspace where this app keeps no recent files. A Cloud location the
+ * account can no longer reach falls back to Recent.
  */
 export function useHomeLocations() {
   const cloud = useHomeCloud()
   const workspaces = cloud.workspaces
 
   const location = computed<HomeLocation>(() => {
+    const first = workspaces.value.at(0)
+    if (!homeLocationChosen.value && first && !recentFilesAvailable()) {
+      return { kind: 'workspace', id: first.id }
+    }
     const chosen = homeLocation.value
     if (chosen.kind === 'shared' && !cloud.signedIn.value) return { kind: 'recent' }
     if (chosen.kind === 'workspace' && !workspaces.value.some((entry) => entry.id === chosen.id)) {
