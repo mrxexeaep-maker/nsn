@@ -516,6 +516,7 @@
       "name": "@open-pencil/pen",
       "version": "0.16.0",
       "dependencies": {
+        "js-base64": "^3.9.3",
         "valibot": "^1.5.0",
       },
       "devDependencies": {

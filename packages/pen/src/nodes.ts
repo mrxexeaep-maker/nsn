@@ -6,10 +6,14 @@ import type {
   SceneGraph,
   SceneNode
 } from '@open-pencil/scene-graph'
+import { BLACK } from '@open-pencil/scene-graph/constants'
 import { fillSizingFields } from '@open-pencil/scene-graph/layout'
+import type { Color } from '@open-pencil/scene-graph/primitives'
 
+import { iconNames } from './assets'
 import { convertEffects } from './effects'
 import { ellipseArc, pathNetwork } from './geometry'
+import type { PenImages } from './images'
 import {
   applyCornerRadius,
   applyPadding,
@@ -24,10 +28,27 @@ import type { PenNode, PenOverride } from './schema'
 import { applyTextProps } from './text'
 import { bindIfVar, resolveBoolean, resolveNumber, type VarContext } from './variables'
 
+/** Where icon glyphs come from, as the host loaded them. */
+export interface PenIconSource {
+  /**
+   * Draws the first icon of `names` the source has into the frame, `size` square at its origin,
+   * painted `color` where the icon takes its colour. False when it has none of them.
+   */
+  draw(
+    graph: SceneGraph,
+    frameId: string,
+    names: readonly string[],
+    size: number,
+    color: Color
+  ): boolean
+}
+
 /** What reading one document builds up. */
 export interface Build {
   graph: SceneGraph
   ctx: VarContext
+  images: PenImages
+  icons: PenIconSource | undefined
   /** Reusable nodes by their pen.dev ID. */
   components: Map<string, PenNode>
   /** The pen.dev fields each layer was built from, its instance's and overrides' merged in. */
@@ -157,8 +178,8 @@ export function applyPenProperties(node: SceneNode, pen: PenNode, build: Build):
   if (pen.type === 'group' || !isPlain(placement)) build.placements.set(node.id, placement)
   else build.placements.delete(node.id)
 
-  node.fills = convertPaints(pen.fill, 'fills', ctx, node)
-  applyStroke(node, strokeFields(pen), ctx)
+  node.fills = convertPaints(pen.fill, 'fills', ctx, node, build.images)
+  applyStroke(node, strokeFields(pen), ctx, build.images)
   node.effects = convertEffects(pen.effect, ctx)
   applyCornerRadius(node, pen.cornerRadius, ctx)
   applyPadding(node, pen.padding, ctx)
@@ -166,6 +187,7 @@ export function applyPenProperties(node: SceneNode, pen: PenNode, build: Build):
   // Text without a width resizes to its content, which laying out the document measures.
   if (isTextLike) applyTextProps(node, pen, ctx)
 
+  if (pen.type === 'icon') drawIcon(node, pen, build)
   if (pen.type === 'ellipse') node.arcData = ellipseArc(pen, ctx)
   if (pen.type === 'polygon') node.pointCount = Math.max(3, resolveNumber(pen.polygonCount, ctx, 3))
   if (pen.type === 'path') {
@@ -178,6 +200,26 @@ export function applyPenProperties(node: SceneNode, pen: PenNode, build: Build):
     if (h.sizing === 'FILL') Object.assign(node, fillSizingFields(flowLayout, 'VERTICAL'))
   }
   build.effective.set(node.id, pen)
+}
+
+/**
+ * An icon draws its glyph in its fill colour, scaled to fit its box and centred, as pen.dev does;
+ * an icon the host could not load is an empty frame.
+ */
+function drawIcon(node: SceneNode, pen: PenNode, build: Build): void {
+  const { graph } = build
+  const color = node.fills.find((fill) => fill.type === 'SOLID')?.color ?? { ...BLACK }
+  node.fills = []
+  for (const childId of node.childIds) graph.deleteNode(childId)
+  if (!pen.library || !pen.icon || !build.icons) return
+  const size = Math.min(node.width, node.height)
+  if (size <= 0) return
+  if (!build.icons.draw(graph, node.id, iconNames(pen.library, pen.icon), size, color)) return
+  const dx = (node.width - size) / 2
+  const dy = (node.height - size) / 2
+  for (const glyph of graph.getChildren(node.id)) {
+    graph.updateNode(glyph.id, { x: glyph.x + dx, y: glyph.y + dy })
+  }
 }
 
 /**

@@ -1,0 +1,1 @@
+- `.pen` icons draw from their icon sets, and `.pen` image fills draw in the CLI and desktop app, read from the document's folder.
