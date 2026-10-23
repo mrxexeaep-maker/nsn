@@ -1,6 +1,8 @@
 import { invoke } from '@tauri-apps/api/core'
 import * as v from 'valibot'
 
+import { aiMessages } from '@open-pencil/vue/i18n'
+
 import { openExternalLink } from '@/app/shell/ui'
 import { tauriFetch } from '@/app/tauri/http'
 
@@ -44,7 +46,14 @@ export function signInWithChatGPT(signal: AbortSignal): ChatGPTSignIn {
     const aborted = () => signal.aborted
     const pkce = await createPKCE()
     try {
-      await invoke('chatgpt_oauth_listen', { state: pkce.state })
+      const ai = aiMessages.get()
+      // The browser shows these after the redirect, so they come in the app's language.
+      const pages = {
+        signedIn: ai.aiSetupChatGPTCallbackSignedIn,
+        cancelled: ai.aiSetupChatGPTCallbackCancelled,
+        stale: ai.aiSetupChatGPTCallbackStale
+      }
+      await invoke('chatgpt_oauth_listen', { state: pkce.state, pages })
     } catch (error) {
       return failure(error === 'port-in-use' ? 'port-in-use' : 'failed')
     }

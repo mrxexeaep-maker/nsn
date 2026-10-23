@@ -47,11 +47,13 @@ export const aiMessageDefaults = {
   connectProvider: 'Connect an AI provider to start chatting.',
   connectionTestSuccess: 'Connected successfully. Model is reachable.',
   connectionTestMissingAPIKey: 'Enter an API key before testing.',
+  connectionTestMissingSignIn: 'Sign in before testing.',
   connectionTestMissingBaseURL: 'Enter a base URL before testing.',
   connectionTestMissingModel: 'Enter a model ID before testing.',
   connectionTestInvalidBaseURL:
     'Base URL is invalid. Use a full URL like https://api.example.com/v1.',
   connectionTestAuthFailed: 'Authentication failed. Check your API key.',
+  connectionTestSignInExpired: 'The sign-in has expired. Sign in again.',
   connectionTestInsufficientCredit:
     'The provider account has insufficient credit or quota. Top it up and try again.',
   connectionTestModelNotFound: 'Model not found. Check the model ID.',
@@ -193,6 +195,8 @@ export const aiMessageDefaults = {
   outputLimitAutomatic: 'Automatic recommendation',
   maxOutputTokens: 'Max output tokens',
   chatAuthenticationFailed: 'Your provider API key is invalid or expired. Replace it in Settings.',
+  chatSignInExpired: 'Your sign-in has expired. Sign in again in Settings.',
+  chatPlanForbidden: 'Your plan can’t use the selected model. Choose another model in Settings.',
   chatForbidden: 'This API key cannot use the selected model. Check its model access.',
   chatInsufficientCredit:
     'The provider account has insufficient credit or quota. Top it up and try again.',
@@ -366,6 +370,11 @@ export const aiMessageDefaults = {
   aiSetupChatGPTFailed: 'Couldn’t sign in to ChatGPT. Try again.',
   aiSetupChatGPTPortInUse:
     'Another sign-in, such as `codex login`, is using port 1455. Finish or close it, then try again.',
+  aiSetupChatGPTCallbackSignedIn:
+    'Signed in to ChatGPT. You can close this tab and return to OpenPencil.',
+  aiSetupChatGPTCallbackCancelled: 'ChatGPT sign-in was cancelled. You can close this tab.',
+  aiSetupChatGPTCallbackStale:
+    'This sign-in link belongs to an earlier attempt. Start again from OpenPencil.',
   aiSetupChatGPTUsage: 'Replies count toward your ChatGPT plan’s usage limits.',
   aiSetupSavedSignInHint: 'Your saved sign-in will be used.',
   aiSetupUseRecommended: 'Use recommended setup',

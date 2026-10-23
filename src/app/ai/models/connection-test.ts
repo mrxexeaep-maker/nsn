@@ -1,5 +1,7 @@
 import { generateText } from 'ai'
 
+import { AI_PROVIDERS } from '@open-pencil/core/constants'
+
 import { isInsufficientCreditError, providerErrorStatus } from '@/app/ai/chat/failure'
 import {
   createLanguageModel,
@@ -15,10 +17,12 @@ export type ProviderConnectionTestResult =
 
 export type ProviderConnectionTestFailureReason =
   | 'missing-api-key'
+  | 'missing-sign-in'
   | 'missing-base-url'
   | 'missing-model'
   | 'invalid-base-url'
   | 'auth'
+  | 'sign-in-expired'
   | 'insufficient-credit'
   | 'model-not-found'
   | 'api-type'
@@ -30,8 +34,14 @@ function isCompatibleProvider(providerID: ModelConfig['providerID']): boolean {
   return providerID === 'openai-compatible' || providerID === 'anthropic-compatible'
 }
 
+function isSignInOnly(providerID: ModelConfig['providerID']): boolean {
+  return AI_PROVIDERS.some((provider) => provider.id === providerID && provider.signInOnly)
+}
+
 function validateConfig(config: ModelConfig): ProviderConnectionTestFailureReason | null {
-  if (!config.apiKey.trim()) return 'missing-api-key'
+  if (!config.apiKey.trim()) {
+    return isSignInOnly(config.providerID) ? 'missing-sign-in' : 'missing-api-key'
+  }
   if (isCompatibleProvider(config.providerID)) {
     if (!config.customBaseURL.trim()) return 'missing-base-url'
     try {
@@ -114,6 +124,9 @@ export async function testProviderConnection(
     })
     return { ok: true }
   } catch (error) {
-    return { ok: false, reason: classifyError(error) }
+    const reason = classifyError(error)
+    // A provider signed in to has no key to check; its refused credential is the sign-in.
+    const signInExpired = reason === 'auth' && isSignInOnly(config.providerID)
+    return { ok: false, reason: signInExpired ? 'sign-in-expired' : reason }
   }
 }

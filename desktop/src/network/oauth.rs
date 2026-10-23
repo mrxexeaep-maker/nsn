@@ -20,15 +20,19 @@ const REBIND_LIMIT: Duration = Duration::from_millis(500);
 const READ_TIMEOUT: Duration = Duration::from_secs(5);
 const MAX_REQUEST_BYTES: usize = 16 * 1024;
 
-const SIGNED_IN_PAGE: &str =
-    "Signed in to ChatGPT. You can close this tab and return to OpenPencil.";
-const DENIED_PAGE: &str = "ChatGPT sign-in was cancelled. You can close this tab.";
-const MISMATCH_PAGE: &str =
-    "This sign-in link belongs to an earlier attempt. Start again from OpenPencil.";
+/// What the browser tab shows after the redirect, in the app's language.
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CallbackPages {
+    signed_in: String,
+    cancelled: String,
+    stale: String,
+}
 
 struct Pending {
     listener: TcpListener,
     state: String,
+    pages: CallbackPages,
     cancelled: Arc<AtomicBool>,
 }
 
@@ -111,7 +115,15 @@ fn read_head(stream: &mut TcpStream) -> Option<String> {
     String::from_utf8(head).ok()
 }
 
+fn escape_html(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
 fn respond(stream: &mut TcpStream, status: &str, message: &str) {
+    let message = escape_html(message);
     let body = format!(
         "<!doctype html><meta charset=\"utf-8\"><title>OpenPencil</title>\
          <p style=\"font:16px system-ui;margin:48px auto;max-width:480px\">{message}</p>"
@@ -144,6 +156,7 @@ fn wait(pending: Pending) -> Result<LoopbackOutcome, LoopbackError> {
     let Pending {
         listener,
         state,
+        pages,
         cancelled,
     } = pending;
     listener
@@ -172,14 +185,14 @@ fn wait(pending: Pending) -> Result<LoopbackOutcome, LoopbackError> {
             .unwrap_or(CallbackRequest::Other);
         match request {
             CallbackRequest::Code(code) => {
-                respond(&mut stream, "200 OK", SIGNED_IN_PAGE);
+                respond(&mut stream, "200 OK", &pages.signed_in);
                 return Ok(LoopbackOutcome::Code { code });
             }
             CallbackRequest::Denied => {
-                respond(&mut stream, "200 OK", DENIED_PAGE);
+                respond(&mut stream, "200 OK", &pages.cancelled);
                 return Ok(LoopbackOutcome::Denied);
             }
-            CallbackRequest::Mismatch => respond(&mut stream, "400 Bad Request", MISMATCH_PAGE),
+            CallbackRequest::Mismatch => respond(&mut stream, "400 Bad Request", &pages.stale),
             CallbackRequest::Other => respond(&mut stream, "404 Not Found", ""),
         }
     }
@@ -191,6 +204,7 @@ fn wait(pending: Pending) -> Result<LoopbackOutcome, LoopbackError> {
 pub async fn chatgpt_oauth_listen(
     loopback: tauri::State<'_, ChatGPTOAuthLoopback>,
     state: String,
+    pages: CallbackPages,
 ) -> Result<(), LoopbackError> {
     let cancelled = Arc::new(AtomicBool::new(false));
     if let Some(previous) = loopback
@@ -213,6 +227,7 @@ pub async fn chatgpt_oauth_listen(
     *loopback.pending.lock().map_err(|_| LoopbackError::Failed)? = Some(Pending {
         listener,
         state,
+        pages,
         cancelled,
     });
     Ok(())
@@ -287,6 +302,14 @@ mod tests {
         assert_eq!(
             callback_request("/auth/callback/extra?code=a&state=s1", "s1"),
             CallbackRequest::Other
+        );
+    }
+
+    #[test]
+    fn escapes_page_text() {
+        assert_eq!(
+            escape_html("<b>\"Tom & Jerry\"</b>"),
+            "&lt;b&gt;&quot;Tom &amp; Jerry&quot;&lt;/b&gt;"
         );
     }
 
