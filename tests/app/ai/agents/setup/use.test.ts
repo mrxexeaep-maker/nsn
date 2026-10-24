@@ -114,14 +114,16 @@ describe('useAgentSetup', () => {
   })
 
   test('checks a coding agent whenever its model settings name it', async () => {
-    const { agents, check } = signedInAgents()
+    const { agents, check, lookups } = signedInAgents()
     const providerID = ref('openrouter')
     const codingAgent = useCodingAgentSetup(providerID, agents)
     expect(codingAgent.agent.value).toBeUndefined()
-    expect(check).not.toHaveBeenCalled()
+    expect(lookups()).toBe(0)
 
     providerID.value = 'acp:claude-code'
     await nextTick()
+    // Naming the agent starts the lookup on its own; the explicit check below only settles it.
+    expect(lookups()).toBe(1)
     await agents.checkAgent('acp:claude-code')
     expect(codingAgent.agent.value?.id).toBe('claude-code')
     expect(codingAgent.state.value?.detected?.status).toBe('available')
