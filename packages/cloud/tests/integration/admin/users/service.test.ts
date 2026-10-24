@@ -327,8 +327,8 @@ describe('deployment admin user safety', () => {
       expect(events).toEqual([
         expect.objectContaining({
           action: 'user.two-step-reset',
-          actorName: 'Admin',
-          subjectName: 'Locked Out'
+          actor: { id: ADMIN_ID, name: 'Admin' },
+          subject: { type: 'user', id: USER_ID, name: 'Locked Out' }
         })
       ])
     } finally {

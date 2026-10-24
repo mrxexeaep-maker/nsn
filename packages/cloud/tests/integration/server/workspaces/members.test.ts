@@ -240,10 +240,17 @@ describe('workspace members', () => {
       const listed = await responseJSON(
         await as(people.alice)(`/api/workspaces/${workspaceId}/members`),
         v.object({
-          invitations: v.array(v.object({ id: v.string(), invitedByName: v.nullable(v.string()) }))
+          invitations: v.array(
+            v.object({
+              id: v.string(),
+              invitedBy: v.object({ id: v.string(), name: v.nullable(v.string()) })
+            })
+          )
         })
       )
-      expect(listed.invitations).toEqual([{ id: resent.invitation.id, invitedByName: 'Alice' }])
+      expect(listed.invitations).toEqual([
+        { id: resent.invitation.id, invitedBy: { id: people.alice.userId, name: 'Alice' } }
+      ])
 
       const stale = await as(people.bob)(`/api/invitations/${first.invitation.id}/accept`, {
         method: 'POST',

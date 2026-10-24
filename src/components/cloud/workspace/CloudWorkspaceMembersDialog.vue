@@ -138,8 +138,9 @@ const shownMembers = computed(() => {
 })
 function invitationDetail(invitation: WorkspaceMembers['invitations'][number]): string {
   const date = dates.format(invitation.invitedAt, 'day')
-  const sent = invitation.invitedByName
-    ? t.value.invitationSentBy({ date, name: invitation.invitedByName })
+  const inviter = invitation.invitedBy.name
+  const sent = inviter
+    ? t.value.invitationSentBy({ date, name: inviter })
     : t.value.invitationSent({ date })
   const expires = t.value.shareInvitationExpires({
     date: dates.format(invitation.expiresAt, 'day')

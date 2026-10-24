@@ -86,7 +86,8 @@ function invitationContract(row: {
   id: string
   emailNormalized: string
   role: WorkspaceRole
-  invitedByName: string | null
+  invitedBy: string
+  inviterName: string | null
   invitedAt: Date | string
   expiresAt: Date | string
 }): WorkspaceInvitation {
@@ -94,7 +95,7 @@ function invitationContract(row: {
     id: row.id,
     email: row.emailNormalized,
     role: row.role,
-    invitedByName: row.invitedByName,
+    invitedBy: { id: row.invitedBy, name: row.inviterName },
     invitedAt: dateString(row.invitedAt) ?? '',
     expiresAt: dateString(row.expiresAt) ?? ''
   }
@@ -213,7 +214,7 @@ export function createWorkspaceMemberService(
           acceptedAt: null,
           revokedAt: null
         })
-        .returning(['id', 'emailNormalized', 'role', 'invitedAt', 'expiresAt'])
+        .returning(['id', 'emailNormalized', 'role', 'invitedBy', 'invitedAt', 'expiresAt'])
         .executeTakeFirstOrThrow()
       await options.email?.enqueue(
         {
@@ -233,7 +234,7 @@ export function createWorkspaceMemberService(
       return inserted
     })
     return {
-      invitation: invitationContract({ ...row, invitedByName: inviter?.name ?? null }),
+      invitation: invitationContract({ ...row, inviterName: inviter?.name ?? null }),
       acceptanceURL: url
     }
   }
@@ -281,7 +282,8 @@ export function createWorkspaceMemberService(
                 'workspaceInvitation.role',
                 'workspaceInvitation.invitedAt',
                 'workspaceInvitation.expiresAt',
-                'user.name as invitedByName'
+                'workspaceInvitation.invitedBy',
+                'user.name as inviterName'
               ])
               .where('workspaceInvitation.workspaceId', '=', workspaceId)
               .where('workspaceInvitation.acceptedAt', 'is', null)

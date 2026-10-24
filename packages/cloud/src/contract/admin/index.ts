@@ -122,15 +122,15 @@ export const adminEmailResponseSchema = v.object({
   messages: v.array(transactionalEmailAdminSchema)
 })
 
+/** Who or what an event names; `name` is null once the server no longer knows it. */
+const auditPartySchema = v.object({ id: v.string(), name: v.nullable(v.string()) })
+
 export const adminAuditEventSchema = v.object({
   id: v.string(),
-  actorUserId: v.string(),
-  actorName: v.nullable(v.string()),
-  /** The account or requester the event is about, in words, when the server still knows it. */
-  subjectName: v.nullable(v.string()),
+  actor: auditPartySchema,
   action: v.string(),
-  subjectType: v.string(),
-  subjectId: v.string(),
+  /** What the event is about: an account, an access request, or an email. */
+  subject: v.object({ ...auditPartySchema.entries, type: v.string() }),
   metadata: v.unknown(),
   createdAt: timestampSchema
 })

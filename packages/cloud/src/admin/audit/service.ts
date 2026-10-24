@@ -46,12 +46,19 @@ export function createAdminAuditService(database: Kysely<CloudDatabase>) {
         ])
       )
       return events.map((event) => ({
-        ...event,
-        actorName: names.get(event.actorUserId) ?? null,
-        subjectName:
-          (event.subjectType === 'enrollment'
-            ? requesters.get(event.subjectId)
-            : names.get(event.subjectId)) ?? null
+        id: event.id,
+        actor: { id: event.actorUserId, name: names.get(event.actorUserId) ?? null },
+        action: event.action,
+        subject: {
+          type: event.subjectType,
+          id: event.subjectId,
+          name:
+            (event.subjectType === 'enrollment'
+              ? requesters.get(event.subjectId)
+              : names.get(event.subjectId)) ?? null
+        },
+        metadata: event.metadata,
+        createdAt: event.createdAt
       }))
     }
   }

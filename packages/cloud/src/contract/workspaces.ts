@@ -53,8 +53,8 @@ export const workspaceInvitationSchema = v.object({
   id: v.pipe(v.string(), v.uuid()),
   email: v.string(),
   role: workspaceRoleSchema,
-  /** Who sent it, while their account still exists. */
-  invitedByName: v.nullable(v.string()),
+  /** Who sent it; the name is null once their account is gone. */
+  invitedBy: v.object({ id: v.string(), name: v.nullable(v.string()) }),
   invitedAt: v.string(),
   expiresAt: v.string()
 })

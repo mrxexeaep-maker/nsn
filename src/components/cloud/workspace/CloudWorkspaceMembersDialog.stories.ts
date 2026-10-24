@@ -44,7 +44,7 @@ const members: WorkspaceMembers = {
       id: '6f1d3a52-1d4e-4c7b-9a1e-2f9b9c1a0d11',
       email: 'chloe@agency.example',
       role: 'editor',
-      invitedByName: 'Ana Duarte',
+      invitedBy: { id: 'user-ana', name: 'Ana Duarte' },
       invitedAt: '2026-10-20T09:00:00.000Z',
       expiresAt: '2026-10-27T09:00:00.000Z'
     }

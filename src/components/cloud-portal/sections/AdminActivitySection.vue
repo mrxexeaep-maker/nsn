@@ -26,9 +26,9 @@ const { data: entries, error } = usePortalLoad(async (): Promise<PortalActivityE
   const { events } = await portal.api.audit()
   return events.map((event) => ({
     id: event.id,
-    actor: { id: event.actorUserId, name: event.actorName ?? messages.value.someoneElse },
+    actor: { id: event.actor.id, name: event.actor.name ?? messages.value.someoneElse },
     action: event.action,
-    target: event.subjectName ?? event.subjectId,
+    target: event.subject.name ?? event.subject.id,
     reason: eventReason(event.metadata),
     when: formatDate(event.createdAt, 'dateTime', locale.value)
   }))
