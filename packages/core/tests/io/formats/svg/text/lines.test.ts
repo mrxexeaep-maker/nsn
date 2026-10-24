@@ -169,6 +169,72 @@ describe('SVG text lines without a measured layout', () => {
     expect(text).toContain('<tspan x="0" y="35.2">Second line</tspan>')
   })
 
+  test('an automatic line height steps by the font size of the line it reaches', () => {
+    const below = exportText({
+      text: 'Aa\nBc',
+      fontSize: 16,
+      lineHeight: null,
+      width: 100,
+      // Only "B" is larger, so the line takes the tallest font on it: 40 * 1.2.
+      styleRuns: [{ start: 3, length: 1, style: { fontSize: 40 } }]
+    })
+    const belowText = textElement(below)
+    expect(belowText).toContain('<tspan x="0" y="16">Aa</tspan>')
+    expect(belowText).toContain('<tspan x="0" y="64" font-size="40">B</tspan>')
+    expect(belowText).toContain('<tspan>c</tspan>')
+
+    const above = exportText({
+      text: 'Aa\nBb',
+      fontSize: 16,
+      lineHeight: null,
+      width: 100,
+      styleRuns: [{ start: 0, length: 2, style: { fontSize: 40 } }]
+    })
+    const aboveText = textElement(above)
+    expect(aboveText).toContain('<tspan x="0" y="16" font-size="40">Aa</tspan>')
+    expect(aboveText).toContain('<tspan x="0" y="35.2">Bb</tspan>')
+  })
+
+  test('an explicit line height does not follow a run font size', () => {
+    const svg = exportText({
+      text: 'Aa\nBb',
+      fontSize: 16,
+      lineHeight: 24,
+      width: 100,
+      styleRuns: [{ start: 3, length: 2, style: { fontSize: 40 } }]
+    })
+    const text = textElement(svg)
+    expect(text).toContain('<tspan x="0" y="16">Aa</tspan>')
+    expect(text).toContain('<tspan x="0" y="40" font-size="40">Bb</tspan>')
+  })
+
+  test("a run's line height sets the step of the line it is on", () => {
+    const svg = exportText({
+      text: 'one\ntwo\nthree',
+      fontSize: 16,
+      lineHeight: null,
+      width: 100,
+      styleRuns: [{ start: 4, length: 3, style: { lineHeight: 50 } }]
+    })
+    const text = textElement(svg)
+    expect(text).toContain('<tspan x="0" y="16">one</tspan>')
+    expect(text).toContain('<tspan x="0" y="66">two</tspan>')
+    expect(text).toContain('<tspan x="0" y="85.2">three</tspan>')
+  })
+
+  test('a blank line is as tall as the newline that makes it', () => {
+    const svg = exportText({
+      text: 'A\n\nC',
+      fontSize: 16,
+      lineHeight: null,
+      width: 100,
+      styleRuns: [{ start: 2, length: 1, style: { fontSize: 40 } }]
+    })
+    const text = textElement(svg)
+    expect(text).toContain('<tspan x="0" y="16">A</tspan>')
+    expect(text).toContain('<tspan x="0" y="83.2">C</tspan>')
+  })
+
   test('a percent line height spaces by the pixel length stored on the node', () => {
     const svg = exportText({
       text: 'First line\nSecond line',
@@ -238,6 +304,27 @@ describe('SVG text lines without a measured layout', () => {
     expect(text).toContain('<tspan x="0" y="16">A</tspan>')
     expect(text).toContain('<tspan x="0" y="64">C</tspan>')
     expect(text).not.toContain('\n')
+  })
+
+  test('a carriage return is dropped only when it belongs to a CRLF', () => {
+    const crlf = textElement(
+      exportText({ text: 'A\r\nB', fontSize: 16, lineHeight: 24, width: 100 })
+    )
+    expect(crlf).toContain('<tspan x="0" y="16">A</tspan>')
+    expect(crlf).toContain('<tspan x="0" y="40">B</tspan>')
+    expect(crlf).not.toContain('\r')
+
+    const trailing = textElement(
+      exportText({ text: 'A\nB\r', fontSize: 16, lineHeight: 24, width: 100 })
+    )
+    expect(trailing).toContain('<tspan x="0" y="16">A</tspan>')
+    expect(trailing).toContain('>B\r</tspan>')
+
+    const middle = textElement(
+      exportText({ text: 'A\rB\nC', fontSize: 16, lineHeight: 24, width: 100 })
+    )
+    expect(middle).toContain('>A\rB</tspan>')
+    expect(middle).toContain('<tspan x="0" y="40">C</tspan>')
   })
 
   test('spaces at the ends of a line are kept', () => {
