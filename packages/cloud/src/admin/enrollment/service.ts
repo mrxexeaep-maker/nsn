@@ -212,6 +212,34 @@ export function createEnrollmentService(
         .where('status', '=', 'approved')
         .execute()
     },
+    /**
+     * Moves an approved account's enrollment to the address it changed to, so the approval stays
+     * with the account rather than with an address it no longer uses. Any other request from the
+     * new address gives way to it.
+     */
+    async followEmailChange(userId: string, email: string): Promise<void> {
+      const emailNormalized = normalizeEnrollmentEmail(email)
+      await database.transaction().execute(async (transaction) => {
+        const approved = await transaction
+          .selectFrom('cloudEnrollment')
+          .select(['id', 'emailNormalized'])
+          .where('approvedUserId', '=', userId)
+          .where('status', '=', 'approved')
+          .forUpdate()
+          .executeTakeFirst()
+        if (!approved || approved.emailNormalized === emailNormalized) return
+        await transaction
+          .deleteFrom('cloudEnrollment')
+          .where('emailNormalized', '=', emailNormalized)
+          .where('id', '!=', approved.id)
+          .execute()
+        await transaction
+          .updateTable('cloudEnrollment')
+          .set({ emailNormalized })
+          .where('id', '=', approved.id)
+          .execute()
+      })
+    },
     async pendingCount(): Promise<number> {
       const row = await database
         .selectFrom('cloudEnrollment')

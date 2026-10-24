@@ -1,5 +1,5 @@
 import type { EnrollmentStatus } from '#cloud/admin/enrollment/service'
-import type { DocumentPermission, WorkspaceRole } from '#cloud/contract'
+import type { CloudSignInMethod, DocumentPermission, WorkspaceRole } from '#cloud/contract'
 import type { TransactionalEmailKind, TransactionalEmailPayloadByKind } from '#cloud/email'
 import type { Account, Session } from 'better-auth'
 import type { ColumnType, Generated, Insertable, Selectable, Updateable } from 'kysely'
@@ -207,6 +207,16 @@ export interface CloudMFAAssuranceTable {
   verifiedAt: TimestampColumn
 }
 
+export interface CloudSignInTable {
+  id: string
+  userId: string
+  sessionId: string | null
+  method: CloudSignInMethod
+  ipAddress: string | null
+  userAgent: string | null
+  createdAt: TimestampColumn
+}
+
 export interface DocumentCollaborationStateTable {
   documentId: string
   roomEpoch: number
@@ -318,6 +328,7 @@ export interface CloudDatabase {
   twoFactor: TwoFactorTable
   passkey: PasskeyTable
   cloudMfaAssurance: CloudMFAAssuranceTable
+  cloudSignIn: CloudSignInTable
   user: AuthUserTable
   cloudAuthSchema: CloudAuthSchemaTable
   cloudEnrollment: CloudEnrollmentTable
