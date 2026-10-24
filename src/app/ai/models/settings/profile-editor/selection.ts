@@ -191,7 +191,7 @@ export function useProfileModelSelection(
     isCloud: cloud.isCloud,
     cloudWorkspaces: cloud.workspaces,
     cloudState: cloud.state,
-    retryCloudCatalog: cloud.retryCatalog,
+    retryCloud: cloud.retry,
     customModelSelected,
     supportsThinking,
     providerDisplayName,
