@@ -4,9 +4,10 @@ import { useHeldContent } from '@/components/ui/overlay/held'
 
 import SaveToDialog from './SaveToDialog.vue'
 
-/** The Save to dialog, driven by the app's save flow for whichever tab opened it. */
-
-// A finished save resets the state as it closes; the dialog keeps its progress while it fades.
+/**
+ * The Save to dialog, driven by the app's save flow for whichever tab opened it. A finished save
+ * resets the state as it closes; the dialog keeps its progress while it fades.
+ */
 const state = useHeldContent(
   () => saveToSession.value?.state,
   () => saveToSession.value?.open ?? false
