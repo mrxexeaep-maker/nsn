@@ -13,6 +13,7 @@ import LibraryComparisonPreview from '@/components/libraries/review/LibraryCompa
 import AppButton from '@/components/ui/button/AppButton.vue'
 import IconButton from '@/components/ui/button/IconButton.vue'
 import { AppDialogFooter, AppDialogHeader, AppDialogRoot } from '@/components/ui/dialog'
+import { useHeldContent } from '@/components/ui/overlay/held'
 import SegmentedControl from '@/components/ui/select/SegmentedControl.vue'
 
 const editor = useEditorStore()
@@ -48,7 +49,8 @@ const modeOptions = computed(() => [
   { value: 'side-by-side', label: panels.value.sideBySide },
   { value: 'overlay', label: panels.value.overlay }
 ])
-const request = computed(() => libraryReviewRequest.value)
+// Closing clears the request; the dialog keeps reviewing it while it animates closed.
+const request = useHeldContent(libraryReviewRequest)
 const currentInstanceId = computed(() => request.value?.instanceIds[instanceIndex.value] ?? null)
 
 function pageIdForNode(nodeId: string): string | null {

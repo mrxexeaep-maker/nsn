@@ -133,6 +133,24 @@ function contentNames(element: VueTemplateNode): Set<string> {
 
 const HELD_CONTENT = '`useHeldContent` from `@/components/ui/overlay/held`'
 
+/**
+ * Overlays that close at once rather than animating out (`motionStyles.floating` in
+ * `src/theme/motion/styles.ts`), so nothing is drawn after their state clears.
+ */
+const INSTANT_CLOSE_ROOTS = new Set([
+  'PopoverRoot',
+  'TooltipRoot',
+  'HoverCardRoot',
+  'DropdownMenuRoot',
+  'ContextMenuRoot',
+  'MenubarRoot',
+  'SelectRoot',
+  'ComboboxRoot',
+  'AppPicker',
+  'AppSelect',
+  'AppCombobox'
+])
+
 const noOverlayContentFromOpenState = {
   meta: {
     docs: {
@@ -149,7 +167,7 @@ const noOverlayContentFromOpenState = {
         const template = vueTemplateAst(context.sourceCode.getText(), file)
         if (!template) return
         walkVueTemplateAst(template, (element) => {
-          if (element.type !== VUE_ELEMENT_NODE) return
+          if (element.type !== VUE_ELEMENT_NODE || INSTANT_CLOSE_ROOTS.has(element.tag)) return
           const open = element.props.find((prop) => isVueBindDirective(prop, 'open'))
           if (!open || open.type !== VUE_DIRECTIVE_NODE) return
           if (open.exp?.type === VUE_SIMPLE_EXPRESSION_NODE && open.exp.content.trim() === 'true') {

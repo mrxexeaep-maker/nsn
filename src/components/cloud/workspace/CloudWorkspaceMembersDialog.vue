@@ -14,6 +14,7 @@ import AppDialogHeader from '@/components/ui/dialog/AppDialogHeader.vue'
 import AppDialogRoot from '@/components/ui/dialog/AppDialogRoot.vue'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 import AppInput from '@/components/ui/input/AppInput.vue'
+import { useHeldContent } from '@/components/ui/overlay/held'
 import AppSelect from '@/components/ui/select/AppSelect.vue'
 import { cloudWorkspace } from '@/theme/cloud/workspace'
 
@@ -98,8 +99,9 @@ const renamed = computed(() => name.value.trim() && name.value.trim() !== worksp
 const confirming = ref<
   { kind: 'leave' } | { kind: 'delete' } | { kind: 'remove'; userId: string; name: string } | null
 >(null)
+const confirmingShown = useHeldContent(confirming)
 const confirmation = computed(() => {
-  const pending = confirming.value
+  const pending = confirmingShown.value
   if (!pending) return null
   if (pending.kind === 'delete') {
     return {
@@ -304,7 +306,7 @@ function invite() {
     </AppDialogFooter>
   </AppDialogRoot>
   <AppConfirmationDialog
-    :open="confirmation !== null"
+    :open="confirming !== null"
     tone="danger"
     :heading="confirmation?.heading ?? ''"
     :description="confirmation?.description"
@@ -314,7 +316,7 @@ function invite() {
     @update:open="(isOpen) => !isOpen && (confirming = null)"
     @confirm="confirm"
   >
-    <div v-if="confirming?.kind === 'delete'" :class="ui.confirmName()">
+    <div v-if="confirmingShown?.kind === 'delete'" :class="ui.confirmName()">
       <label for="cloud-workspace-delete-name" :class="ui.label()">
         {{ t.deleteWorkspaceTypeName({ workspace: workspaceName }) }}
       </label>

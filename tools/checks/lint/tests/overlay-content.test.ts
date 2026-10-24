@@ -26,7 +26,9 @@ test('leaves overlays whose open is not a presence test', async () => {
   expect(
     await flagged({
       'src/components/List.vue': `${SCRIPT}<template><Disclosure v-for="group in groups" :open="expanded.includes(group.id)">{{ group.name }}</Disclosure></template>\n`,
-      'src/components/Context.vue': `${SCRIPT}<template><ComboboxRoot :open="ctx.open">{{ ctx.label }}</ComboboxRoot></template>\n`
+      'src/components/Context.vue': `${SCRIPT}<template><ComboboxRoot :open="ctx.open">{{ ctx.label }}</ComboboxRoot></template>\n`,
+      // Popovers close at once, so nothing draws after their state clears.
+      'src/components/Popover.vue': `${SCRIPT}<template><PopoverRoot :open="!!removing">{{ removing.name }}</PopoverRoot></template>\n`
     })
   ).toEqual([])
 })
