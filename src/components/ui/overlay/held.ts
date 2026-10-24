@@ -8,6 +8,9 @@ import { computed, shallowRef, toValue, watch, type ComputedRef, type MaybeRefOr
  * the cleared content: an empty name, the other variant's labels, a vanished error. Once closed
  * the overlay unmounts, so the held value is never seen. `open` defaults to the source being
  * present, for an overlay whose `open` is that test.
+ *
+ * The value is taken once per tick, before rendering: a flow that clears its state and then
+ * closes in the same tick keeps what the overlay showed before either change.
  */
 export function useHeldContent<T>(
   source: MaybeRefOrGetter<T>,
@@ -22,7 +25,7 @@ export function useHeldContent<T>(
     ([value, isOpen]) => {
       if (isOpen) held.value = value
     },
-    { immediate: true, flush: 'sync' }
+    { immediate: true }
   )
   return computed(() => (toValue(open) ? toValue(source) : held.value))
 }

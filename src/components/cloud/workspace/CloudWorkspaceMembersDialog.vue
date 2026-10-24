@@ -124,11 +124,14 @@ const confirmation = computed(() => {
 })
 /** Deleting can't be undone, so it waits for the workspace's name. */
 const typedName = ref('')
-watch(confirming, () => {
-  typedName.value = ''
-})
+watch(
+  () => confirming.value !== null,
+  (isOpen) => {
+    if (isOpen) typedName.value = ''
+  }
+)
 const confirmBlocked = computed(
-  () => confirming.value?.kind === 'delete' && typedName.value.trim() !== workspaceName.trim()
+  () => confirmingShown.value?.kind === 'delete' && typedName.value.trim() !== workspaceName.trim()
 )
 function confirm() {
   const pending = confirming.value

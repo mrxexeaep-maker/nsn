@@ -139,7 +139,8 @@ async function updateAll() {
   }
 }
 
-watch(request, (value, previous) => {
+// The live request, not the held one, which stays set while the dialog animates closed.
+watch(libraryReviewRequest, (value, previous) => {
   if (!value) {
     if (previous) void restoreOrigin()
     return

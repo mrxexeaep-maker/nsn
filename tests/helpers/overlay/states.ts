@@ -61,12 +61,16 @@ export async function recordOverlayFrames(
     },
     { selector, settleFrames }
   )
-  await action()
-  await recorder.evaluate((state) => state.armed())
-  await recorder.evaluate((state) => state.settled)
-  const frames = await recorder.evaluate((state) => state.stop())
-  await recorder.dispose()
-  return frames
+  try {
+    await action()
+    await recorder.evaluate((state) => state.armed())
+    await recorder.evaluate((state) => state.settled)
+    return await recorder.evaluate((state) => state.stop())
+  } finally {
+    // Stops the frame loop even when a step threw, so it does not run for the rest of the test.
+    await recorder.evaluate((state) => state.stop()).catch(() => undefined)
+    await recorder.dispose()
+  }
 }
 
 /** The distinct contents an overlay showed, leaving out the frames with no overlay. */
