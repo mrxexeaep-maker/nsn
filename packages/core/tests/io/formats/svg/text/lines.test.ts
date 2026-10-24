@@ -235,6 +235,47 @@ describe('SVG text lines without a measured layout', () => {
     expect(text).toContain('<tspan x="0" y="83.2">C</tspan>')
   })
 
+  test('a newline styled apart from its line does not set that line', () => {
+    const svg = exportText({
+      text: 'A\nB\nC',
+      fontSize: 16,
+      lineHeight: null,
+      width: 100,
+      // The break before C, and C itself. The break must not size "B".
+      styleRuns: [{ start: 3, length: 2, style: { fontSize: 40 } }]
+    })
+    const text = textElement(svg)
+    expect(text).toContain('<tspan x="0" y="16">A</tspan>')
+    expect(text).toContain('<tspan x="0" y="35.2">B</tspan>')
+    expect(text).toContain('<tspan x="0" y="83.2" font-size="40">C</tspan>')
+
+    const crlf = exportText({
+      text: 'A\nB\r\nC',
+      fontSize: 16,
+      lineHeight: null,
+      width: 100,
+      styleRuns: [{ start: 3, length: 2, style: { fontSize: 40 } }]
+    })
+    const crlfText = textElement(crlf)
+    expect(crlfText).toContain('<tspan x="0" y="16">A</tspan>')
+    expect(crlfText).toContain('<tspan x="0" y="35.2">B</tspan>')
+    expect(crlfText).toContain('<tspan x="0" y="54.4">C</tspan>')
+  })
+
+  test('a line shorter than the node steps by its own font size', () => {
+    const svg = exportText({
+      text: 'A\nBb\nC',
+      fontSize: 40,
+      lineHeight: null,
+      width: 100,
+      styleRuns: [{ start: 2, length: 2, style: { fontSize: 10 } }]
+    })
+    const text = textElement(svg)
+    expect(text).toContain('<tspan x="0" y="40">A</tspan>')
+    expect(text).toContain('<tspan x="0" y="52" font-size="10">Bb</tspan>')
+    expect(text).toContain('<tspan x="0" y="100">C</tspan>')
+  })
+
   test('a percent line height spaces by the pixel length stored on the node', () => {
     const svg = exportText({
       text: 'First line\nSecond line',

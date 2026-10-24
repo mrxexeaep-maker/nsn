@@ -118,6 +118,22 @@ function runLineHeight(node: SceneNode, style: CharacterStyleOverride | null): n
 }
 
 /**
+ * The characters that set a line's height. Text excludes the LF that ends the line and the CR
+ * of that CRLF, as the canvas does. An empty line is the newline that makes it.
+ */
+function lineHeightSpan(text: string, start: number, end: number): { from: number; to: number } {
+  if (end > start && text[end - 1] === '\n') {
+    let contentEnd = end - 1
+    if (contentEnd > start && text[contentEnd - 1] === '\r') contentEnd -= 1
+    if (contentEnd > start) return { from: start, to: contentEnd }
+    return { from: end - 1, to: end }
+  }
+  if (end > start) return { from: start, to: end }
+  // A trailing empty line has no characters of its own; the newline that opened it does.
+  return { from: Math.max(0, start - 1), to: start }
+}
+
+/**
  * How far this line's baseline stands below the one before it. The line is as tall as the
  * tallest line height on it, and an empty line is as tall as the newline that makes it.
  */
@@ -127,9 +143,7 @@ function explicitLineHeight(
   start: number,
   end: number
 ): number {
-  // A trailing empty line has no characters of its own; the newline that opened it does.
-  const from = end > start ? start : Math.max(0, start - 1)
-  const to = end > start ? end : start
+  const { from, to } = lineHeightSpan(node.text, start, end)
   let height = 0
   let covered = false
   for (const piece of pieces) {
