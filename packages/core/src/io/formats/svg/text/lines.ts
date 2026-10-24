@@ -28,7 +28,10 @@ export interface SVGCharacterEdges {
   right: number
 }
 
-/** The lines of a text node from the host's text layout, or null to keep the text on one line. */
+/**
+ * Measured lines of a text node, or null when this node has none. Export then keeps only the
+ * text's explicit newlines, each on its own baseline.
+ */
 export type SVGTextLayout = (node: SceneNode) => readonly SVGTextLine[] | null
 
 type SpanAttrs = (style: CharacterStyleOverride) => Record<string, string | number | undefined>
@@ -90,6 +93,41 @@ function lineSpans(
     spans.push(svg('tspan', { ...position, ...attrs }, shownTextSlice(node, from, to)))
   }
   return spans
+}
+
+/**
+ * Baseline-to-baseline distance with no measured layout. A line height on the node is pixels —
+ * a percent is already that fraction of the font size — and automatic (`null` or `0`) is 1.2
+ * times the font size, the estimate text layout uses when it has no font metrics.
+ */
+function resolvedLineHeight(fontSize: number, lineHeight: number | null): number {
+  return lineHeight || fontSize * 1.2
+}
+
+/**
+ * One line per explicit newline, for text exported without a measured layout. `x` is the
+ * alignment anchor and `firstBaseline` the first line's baseline, both as the single-line
+ * fallback computes them. Each later line stands one resolved line height below the previous.
+ * `null` when the text has no newline, so a single line stays one `<text>`.
+ */
+export function explicitNewlineLines(
+  node: SceneNode,
+  x: number,
+  firstBaseline: number
+): SVGTextLine[] | null {
+  if (!node.text.includes('\n')) return null
+  const spacing = resolvedLineHeight(firstBaseline, node.lineHeight)
+  const parts = node.text.split('\n')
+  const lines: SVGTextLine[] = []
+  let start = 0
+  for (const [index, part] of parts.entries()) {
+    // The newline that ends a line stays inside the range, as a measured line's `end` does.
+    const endsWithBreak = index < parts.length - 1
+    const end = start + part.length + (endsWithBreak ? 1 : 0)
+    lines.push({ start, end, x, y: firstBaseline + index * spacing, width: node.width })
+    start = end
+  }
+  return lines
 }
 
 /**
