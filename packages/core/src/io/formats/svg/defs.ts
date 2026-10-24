@@ -70,11 +70,16 @@ export function formatSolidColor(
 }
 
 /**
- * `fill-opacity` for an sRGB solid paint. Omitted at full opacity so an opaque export stays
- * unchanged. Display P3 already carries the same alpha in the color `formatSolidColor` returns.
+ * `fill-opacity` for a solid paint. Omitted at full opacity so an opaque export stays unchanged.
+ * Display P3 already carries the same alpha in the color `formatSolidColor` returns, unless
+ * `separate` is set because that color was replaced and can no longer carry it.
  */
-export function solidFillOpacity(fill: Fill, colorSpace: RenderColorSpace): number | undefined {
-  if (fill.type !== 'SOLID' || colorSpace === 'display-p3') return undefined
+export function solidFillOpacity(
+  fill: Fill,
+  colorSpace: RenderColorSpace,
+  separate = false
+): number | undefined {
+  if (fill.type !== 'SOLID' || (colorSpace === 'display-p3' && !separate)) return undefined
   const alpha = round(fill.opacity)
   return alpha < 1 ? alpha : undefined
 }

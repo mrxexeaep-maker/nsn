@@ -366,8 +366,11 @@ function renderNode(node: SceneNode, ctx: SVGExportContext): SVGNode | null {
   const tint = ctx.tint?.(node) ?? []
   const ownFill = visibleFills.length > 0 && !hasPathLevelFills(node) ? visibleFills[0] : undefined
   const fill = exportedFill(ownFill, node, ctx)
-  const fillAttr = fill.color && tint.includes('fill') ? CURRENT_COLOR : fill.color
-  const fillOpacity = fill.opacity
+  const tintedFill = fill.color !== null && tint.includes('fill')
+  const fillAttr = tintedFill ? CURRENT_COLOR : fill.color
+  // `currentColor` has no alpha. Display P3 normally bakes solid opacity into the color, which a
+  // tint throws away, so a tinted solid keeps `fill-opacity` in every color space.
+  const fillOpacity = ownFill ? solidFillOpacity(ownFill, ctx.colorSpace, tintedFill) : fill.opacity
   const ownStrokes = buildSVGStrokeAttrs(visibleStrokes, ctx.colorSpace, node.strokeCap)
   const strokeAttrs =
     ownStrokes.stroke && tint.includes('stroke')

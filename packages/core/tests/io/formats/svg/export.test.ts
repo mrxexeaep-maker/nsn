@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 
 import { expectDefined } from '#core-tests/helpers/assert'
+import { renderNodeSVGElement } from '#core/io/formats/svg/export'
 
-import { renderNodesToSVG, type SVGExportOptions } from '@open-pencil/core/io/formats/svg'
+import { renderNodesToSVG, renderSVGNode, type SVGExportOptions } from '@open-pencil/core/io/formats/svg'
 import { parsePenFile } from '@open-pencil/pen'
 import { SceneGraph, type Fill, type SceneNode, type Stroke } from '@open-pencil/scene-graph'
 
@@ -329,6 +330,53 @@ describe('solid paint opacity exported to SVG', () => {
       '<rect width="40" height="40" fill="color(display-p3 0 0 0 / 0.5)" stroke="color(display-p3 0 0 0)" stroke-width="2" stroke-opacity="0.5"/>'
     )
     expect(p3).not.toContain('0.25')
+  })
+
+  test('keeps a tinted solid fill opacity beside currentColor in Display P3', () => {
+    const graph = new SceneGraph()
+    const pageId = graph.getPages()[0].id
+    const node = graph.createNode('RECTANGLE', pageId, {
+      width: 40,
+      height: 40,
+      fills: [solid(0, 0, 0, 1, 0.4)]
+    })
+    const element = (colorSpace: 'srgb' | 'display-p3', tinted: boolean) => {
+      const drawn = expectDefined(
+        renderNodeSVGElement(graph, node, {
+          idPrefix: 'n-',
+          colorSpace,
+          tint: tinted ? () => ['fill'] : undefined
+        }),
+        'SVG element'
+      )
+      return renderSVGNode(drawn)
+    }
+
+    expect(element('display-p3', true)).toContain('fill="currentColor" fill-opacity="0.4"')
+    // Untinted Display P3 still carries the alpha in the color and omits fill-opacity.
+    const plain = element('display-p3', false)
+    expect(plain).toContain('fill="color(display-p3 0 0 0 / 0.4)"')
+    expect(plain).not.toContain('fill-opacity')
+    expect(element('srgb', true)).toContain('fill="currentColor" fill-opacity="0.4"')
+
+    // An opaque tint, such as an icon path, stays currentColor without an extra fill-opacity.
+    const opaque = graph.createNode('RECTANGLE', pageId, {
+      width: 40,
+      height: 40,
+      fills: [solid(0, 0, 0, 1, 1)]
+    })
+    const opaqueSvg = renderSVGNode(
+      expectDefined(
+        renderNodeSVGElement(graph, opaque, {
+          idPrefix: 'n-',
+          colorSpace: 'display-p3',
+          tint: () => ['fill']
+        }),
+        'opaque SVG element'
+      )
+    )
+    expect(opaqueSvg).toContain('fill="currentColor"')
+    expect(opaqueSvg).not.toContain('fill-opacity')
   })
 
   test('keeps each geometry fill of a vector, translucent and opaque', () => {
