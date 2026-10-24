@@ -1,7 +1,12 @@
 import type { CharacterStyleOverride, SceneNode } from '@open-pencil/scene-graph'
 import { resolveNodeTextDirection } from '@open-pencil/scene-graph/text/direction'
 
-import { formatColor, type SVGExportContext, type SVGFontAlias } from '#core/io/formats/svg/defs'
+import {
+  formatColor,
+  solidFillOpacity,
+  type SVGExportContext,
+  type SVGFontAlias
+} from '#core/io/formats/svg/defs'
 import { svg, type SVGNode } from '#core/io/formats/svg/node'
 import { round } from '#core/io/formats/svg/paths'
 import { laidOutTextSpans } from '#core/io/formats/svg/text/lines'
@@ -11,7 +16,8 @@ import { textFontFace } from '#core/text/requirements'
 
 function styleOverrideToTspanAttrs(
   style: CharacterStyleOverride,
-  colorSpace: 'srgb' | 'display-p3'
+  colorSpace: 'srgb' | 'display-p3',
+  parentFillOpacity: number | undefined
 ): Record<string, string | number | undefined> {
   const attrs: Record<string, string | number | undefined> = {}
   if (style.fontFamily) attrs['font-family'] = style.fontFamily
@@ -25,6 +31,10 @@ function styleOverrideToTspanAttrs(
     const visibleFill = style.fills.find((f) => f.visible && f.type === 'SOLID')
     if (visibleFill) {
       attrs.fill = formatColor(visibleFill.color, visibleFill.opacity, colorSpace)
+      // `fill-opacity` inherits, so an opaque run has to cover a translucent parent.
+      const opacity = solidFillOpacity(visibleFill, colorSpace)
+      if (opacity !== undefined) attrs['fill-opacity'] = opacity
+      else if (parentFillOpacity !== undefined) attrs['fill-opacity'] = 1
     }
   }
   return attrs
@@ -72,7 +82,8 @@ function textXForNode(node: SceneNode, direction: 'LTR' | 'RTL'): number {
 export function renderTextNode(
   node: SceneNode,
   fillAttr: string | null,
-  ctx: SVGExportContext
+  ctx: SVGExportContext,
+  fillOpacity?: number
 ): SVGNode {
   const { colorSpace, textLayout, fontAlias } = ctx
   const direction = resolveNodeTextDirection(node)
@@ -89,6 +100,7 @@ export function renderTextNode(
     'font-weight': node.fontWeight !== 400 ? node.fontWeight : undefined,
     'font-style': node.italic ? 'italic' : undefined,
     fill: fillAttr ?? undefined,
+    'fill-opacity': fillOpacity,
     // Laid-out spans each start at their own left edge, so they take no direction or anchor.
     direction: direction === 'RTL' && !laidOut ? 'rtl' : undefined,
     'text-anchor': laidOut ? undefined : textAnchorForNode(node, direction),
@@ -97,7 +109,7 @@ export function renderTextNode(
     ...(fontAlias ? aliasedFontAttrs(textFontFace(node), fontAlias) : {})
   }
   const spanAttrs = (style: CharacterStyleOverride) => ({
-    ...styleOverrideToTspanAttrs(style, colorSpace),
+    ...styleOverrideToTspanAttrs(style, colorSpace, fillOpacity),
     ...(fontAlias ? aliasedFontAttrs(textFontFace(node, style), fontAlias) : {})
   })
 

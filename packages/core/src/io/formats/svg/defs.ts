@@ -49,7 +49,18 @@ export function formatColor(
   if (colorSpace === 'display-p3') {
     return colorToDisplayCSS(alphaColor, { colorSpace })
   }
+  // Hex has no alpha. Stops and shadows already emit theirs; solid fills use `solidFillOpacity`.
   return colorToHex(alphaColor)
+}
+
+/**
+ * `fill-opacity` for an sRGB solid paint. Omitted at full opacity so an opaque export stays
+ * unchanged. Display P3 already carries the same alpha in the color `formatColor` returns.
+ */
+export function solidFillOpacity(fill: Fill, colorSpace: RenderColorSpace): number | undefined {
+  if (fill.type !== 'SOLID' || colorSpace === 'display-p3') return undefined
+  const alpha = round(fill.color.a * fill.opacity)
+  return alpha < 1 ? alpha : undefined
 }
 
 function createGradientDef(
