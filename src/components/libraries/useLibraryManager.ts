@@ -28,6 +28,18 @@ export function useLibraryManager(
   const showAllPages = ref(false)
   const applying = ref<string | null>(null)
   const updateGroups = ref<LibraryAssetUpdateGroup[]>([])
+  /**
+   * Whether this opening's first read has finished. The dialog shows once it has, so it never
+   * opens on the previous opening's updates, or on none, and then fills in.
+   */
+  const ready = ref(false)
+  watch(
+    open,
+    (isOpen) => {
+      if (isOpen) ready.value = false
+    },
+    { flush: 'sync' }
+  )
   let requestId = 0
   const visibleUpdateGroups = computed(() =>
     scopeLibraryUpdateGroups(editor, updateGroups.value, showAllPages.value)
@@ -45,7 +57,10 @@ export function useLibraryManager(
         toast.error(notificationMessages.get().operationFailed({ error: errorDetail(cause) }))
       }
     } finally {
-      if (request === requestId) loading.value = false
+      if (request === requestId) {
+        loading.value = false
+        ready.value = true
+      }
     }
   }
 
@@ -142,6 +157,7 @@ export function useLibraryManager(
   return {
     section,
     loading,
+    ready,
     showAllPages,
     applying,
     visibleUpdateGroups,

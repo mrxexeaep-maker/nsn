@@ -57,30 +57,42 @@ function isAbsent(node: ExpressionNode | undefined): boolean {
  * The state an `open` expression tests for presence: `x`, `!!x`, `Boolean(x)`, `x !== null`,
  * `x != undefined`, and their `&&` combinations. Such an overlay closes by clearing that state.
  */
-function presenceNames(node: ExpressionNode | undefined, names = new Set<string>()): Set<string> {
-  if (!node) return names
-  if (node.type === 'Identifier' && node.name && node.name !== 'undefined') names.add(node.name)
-  else if (node.type === 'UnaryExpression' && node.operator === '!') {
-    const inner = node.argument as ExpressionNode | undefined
-    if (inner?.type === 'UnaryExpression' && inner.operator === '!') {
-      presenceNames(inner.argument as ExpressionNode, names)
+/** The operands a presence test reads, by expression type. */
+const PRESENCE_OPERANDS: Record<string, (node: ExpressionNode) => (ExpressionNode | undefined)[]> =
+  {
+    // `!!x`
+    UnaryExpression: (node) => {
+      const inner = node.argument as ExpressionNode | undefined
+      const doubled =
+        node.operator === '!' && inner?.type === 'UnaryExpression' && inner.operator === '!'
+      return doubled ? [inner.argument as ExpressionNode] : []
+    },
+    // `x !== null`, `undefined != x`
+    BinaryExpression: (node) => {
+      if (node.operator !== '!==' && node.operator !== '!=') return []
+      const left = node.left as ExpressionNode | undefined
+      const right = node.right as ExpressionNode | undefined
+      if (isAbsent(right)) return [left]
+      return isAbsent(left) ? [right] : []
+    },
+    // `a && b`
+    LogicalExpression: (node) =>
+      node.operator === '&&' ? [node.left as ExpressionNode, node.right as ExpressionNode] : [],
+    // `Boolean(x)`
+    CallExpression: (node) => {
+      const callee = node.callee as ExpressionNode | undefined
+      const [argument] = (node.arguments as ExpressionNode[] | undefined) ?? []
+      return callee?.type === 'Identifier' && callee.name === 'Boolean' ? [argument] : []
     }
-  } else if (
-    node.type === 'BinaryExpression' &&
-    (node.operator === '!==' || node.operator === '!=')
-  ) {
-    const left = node.left as ExpressionNode | undefined
-    const right = node.right as ExpressionNode | undefined
-    if (isAbsent(right)) presenceNames(left, names)
-    else if (isAbsent(left)) presenceNames(right, names)
-  } else if (node.type === 'LogicalExpression' && node.operator === '&&') {
-    presenceNames(node.left as ExpressionNode, names)
-    presenceNames(node.right as ExpressionNode, names)
-  } else if (node.type === 'CallExpression') {
-    const callee = node.callee as ExpressionNode | undefined
-    const [argument] = (node.arguments as ExpressionNode[] | undefined) ?? []
-    if (callee?.type === 'Identifier' && callee.name === 'Boolean') presenceNames(argument, names)
   }
+
+function presenceNames(node: ExpressionNode | undefined, names = new Set<string>()): Set<string> {
+  if (!node?.type) return names
+  if (node.type === 'Identifier') {
+    if (node.name && node.name !== 'undefined') names.add(node.name)
+    return names
+  }
+  for (const operand of PRESENCE_OPERANDS[node.type]?.(node) ?? []) presenceNames(operand, names)
   return names
 }
 

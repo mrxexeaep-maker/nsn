@@ -215,8 +215,9 @@ function invite() {
         <AppAlert v-if="failure" tone="error" :heading="failure" />
 
         <section :class="ui.section()">
-          <h3 :class="ui.sectionTitle()">
-            {{ t.shareMemberCount(members?.members.length ?? 0) }}
+          <!-- Counted once known; "0 members" while loading would be a wrong first frame. -->
+          <h3 v-if="members" :class="ui.sectionTitle()">
+            {{ t.shareMemberCount(members.members.length) }}
           </h3>
           <p v-if="loading" :class="ui.note()" role="status">{{ t.membersLoading }}</p>
           <ul v-else :class="ui.list()">
