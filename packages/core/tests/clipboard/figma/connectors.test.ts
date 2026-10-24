@@ -10,7 +10,13 @@ import { buildFigmaClipboardHTML, importClipboardNodes } from '@open-pencil/core
 import { parseFigmaClipboard } from '@open-pencil/fig/clipboard'
 import { initCodec } from '@open-pencil/kiwi/fig/codec'
 import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
-import { connectorSublayers, layoutConnector } from '@open-pencil/scene-graph/connectors'
+import {
+  boundEndpoint,
+  connectorSublayers,
+  createConnector,
+  freeEndpoint,
+  layoutConnector
+} from '@open-pencil/scene-graph/connectors'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
 
 /** Two FigJam stickies joined by four connectors, as FigJam copies them. */
@@ -135,6 +141,31 @@ describe('FigJam connectors', () => {
 const HANDLES = v.optional(
   v.array(v.object({ position: v.object({ x: v.number(), y: v.number() }) }))
 )
+
+test('a connector copied before a layer it joins keeps both ends joined', async () => {
+  const graph = new SceneGraph()
+  const page = graph.getPages()[0].id
+  const target = graph.createNode('RECTANGLE', page, { name: 'Target', x: 400, width: 100, height: 100 })
+  const connector = createConnector(graph, page, {
+    start: freeEndpoint(0, 0),
+    end: freeEndpoint(0, 0)
+  })
+  const before = graph.createNode('RECTANGLE', page, { name: 'Before', width: 100, height: 100 })
+  graph.updateNode(connector.id, {
+    name: 'Joined',
+    connectorStart: boundEndpoint(before.id),
+    connectorEnd: boundEndpoint(target.id)
+  })
+  // The connector is written before Before, whose GUID it then has no record of yet.
+  const nodes = [target, connector, before].map((node) => expectDefined(graph.getNode(node.id)))
+  const parsed = expectDefined(
+    await parseFigmaClipboard(expectDefined(await buildFigmaClipboardHTML(nodes, graph)))
+  )
+  const guidOf = (name: string) => parsed.nodes.find((node) => node.name === name)?.guid
+  const record = expectDefined(parsed.nodes.find((node) => node.name === 'Joined'))
+  expect(record.connectorStart).toMatchObject({ endpointNodeID: guidOf('Before'), magnet: 'AUTO' })
+  expect(record.connectorEnd).toMatchObject({ endpointNodeID: guidOf('Target'), magnet: 'AUTO' })
+})
 
 /**
  * A FigJam section holding two shapes, an elbow dragged at its middle and then its first segment,

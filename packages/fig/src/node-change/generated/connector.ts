@@ -295,6 +295,39 @@ function kiwiConnectorEndpoint(
 }
 
 /**
+ * Joins the ends of the connectors in `records` to the layers they are bound to, once every layer
+ * an export writes has its GUID. A connector written before a layer its end joins found no GUID
+ * for that layer and was written free; when the layer turns out to be written too, the end joins
+ * it again, as Figma pastes it.
+ */
+export function relinkConnectorEnds(
+  records: readonly KiwiNodeChange[],
+  graph: SceneGraph,
+  nodeIdToGuid: ReadonlyMap<string, GUID>
+): void {
+  const recordByGuid = new Map(
+    records.flatMap((record) => (record.guid ? [[guidToString(record.guid), record] as const] : []))
+  )
+  for (const [nodeId, guid] of nodeIdToGuid) {
+    const node = graph.getNode(nodeId)
+    const record = recordByGuid.get(guidToString(guid))
+    if (node?.type !== 'CONNECTOR' || record?.type !== 'CONNECTOR') continue
+    for (const [field, endpoint] of [
+      ['connectorStart', node.connectorStart],
+      ['connectorEnd', node.connectorEnd]
+    ] as const) {
+      const joined = endpoint?.nodeId ? nodeIdToGuid.get(endpoint.nodeId) : undefined
+      if (!endpoint || !joined || !recordByGuid.has(guidToString(joined))) continue
+      record[field] = {
+        endpointNodeID: { ...joined },
+        position: { ...endpoint.position },
+        magnet: endpoint.magnet
+      }
+    }
+  }
+}
+
+/**
  * A connector's record: its ends, line type, and caps, and its line, label, and label plate as
  * `nodeGenerationData` entries, with the route as drawn under `derivedImmutableFrameData`. As for
  * a sticky note, the derived data is written only when the label is shaped, since Figma draws a
