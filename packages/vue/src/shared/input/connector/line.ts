@@ -5,6 +5,7 @@ import {
   connectorScreenLabel
 } from '@open-pencil/core/geometry'
 
+import { MOVE_CURSOR, buildResizeCursor } from '#vue/shared/input/geometry'
 import type { DragState } from '#vue/shared/input/types'
 
 /** How far past a line handle the pointer still picks it, in screen pixels. */
@@ -45,8 +46,21 @@ function connectorLineAt(editor: Editor, sx: number, sy: number) {
     part:
       hit.kind === 'curve'
         ? { kind: 'curve' as const }
-        : { kind: 'segment' as const, index: hit.index }
+        : { kind: 'segment' as const, index: hit.index },
+    vertical: hit.kind === 'segment' && hit.vertical
   }
+}
+
+/**
+ * The cursor over a selected connector's line handle, as FigJam shows it: a two-way arrow across
+ * an elbow segment, the way it slides, and the four-way arrow over a curve's handle.
+ */
+export function connectorLineCursor(editor: Editor, cx: number, cy: number): string | null {
+  const { panX, panY, zoom } = editor.state
+  const hit = connectorLineAt(editor, cx * zoom + panX, cy * zoom + panY)
+  if (!hit || hit.part.kind === 'label') return null
+  if (hit.part.kind === 'curve') return MOVE_CURSOR
+  return buildResizeCursor(hit.vertical ? 0 : 90)
 }
 
 /** Drags a selected connector's elbow segment, curve, or label by its handle. */
