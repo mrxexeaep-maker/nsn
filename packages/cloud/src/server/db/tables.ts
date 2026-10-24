@@ -171,7 +171,8 @@ export interface AuthUserTable {
   banned: Generated<boolean | null>
   banReason: Generated<string | null>
   banExpires: TimestampColumn | null
-  twoFactorEnabled: Generated<boolean>
+  /** Unset on accounts that never turned two-step sign-in on. */
+  twoFactorEnabled: Generated<boolean | null>
   createdAt: TimestampColumn
   updatedAt: TimestampColumn
 }

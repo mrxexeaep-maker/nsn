@@ -48,7 +48,7 @@ export function createAdminOperationsService(
           .executeTakeFirstOrThrow(),
         database
           .selectFrom('workspaceStorageUsage')
-          .select(({ fn }) => fn.sum<number>('committedBytes').as('bytes'))
+          .select(({ fn }) => fn.sum<number | null>('committedBytes').as('bytes'))
           .executeTakeFirstOrThrow()
       ])
       return {

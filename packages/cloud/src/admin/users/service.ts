@@ -65,7 +65,7 @@ type UserRow = {
   role: string | null
   banned: boolean | null
   banReason: string | null
-  twoFactorEnabled: boolean
+  twoFactorEnabled: boolean | null
   createdAt: Date | string
 }
 
