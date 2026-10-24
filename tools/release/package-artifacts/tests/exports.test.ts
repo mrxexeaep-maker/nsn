@@ -79,4 +79,10 @@ describe('export metadata', () => {
       })
     ).toEqual([])
   })
+
+  test('accepts a wildcard import target in another package', () => {
+    expect(validateManifest({ ...validManifest, imports: { '#icons/*': 'icon-pack/*' } })).toEqual(
+      []
+    )
+  })
 })
