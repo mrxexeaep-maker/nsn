@@ -7,7 +7,7 @@ import { computeContentBounds } from '#core/io/formats/raster'
 
 import {
   nextDefId,
-  formatColor,
+  formatSolidColor,
   createFilterDef,
   resolveFill,
   solidFillOpacity,
@@ -265,17 +265,12 @@ function buildSVGStrokeAttrs(
   const stroke = visibleStrokes[0]
   const cap = stroke.cap ?? nodeCap
   const attrs: Record<string, string | number | undefined> = {
-    stroke: formatColor(stroke.color, 1, colorSpace),
+    // Opacity 1 keeps the color opaque. Display P3 must not also keep color alpha here, or a
+    // viewer multiplies it by stroke-opacity; the canvas paints stroke.opacity alone.
+    stroke: formatSolidColor(stroke.color, 1, colorSpace),
     'stroke-width': round(stroke.weight)
   }
-  // Display P3 keeps color alpha in the stroke color. sRGB hex drops it, so it joins stroke
-  // opacity; an opaque color keeps the attribute stroke.opacity already produced.
-  if (colorSpace === 'display-p3' || stroke.color.a >= 1) {
-    if (stroke.opacity < 1) attrs['stroke-opacity'] = round(stroke.opacity)
-  } else {
-    const alpha = round(stroke.color.a * stroke.opacity)
-    if (alpha < 1) attrs['stroke-opacity'] = alpha
-  }
+  if (stroke.opacity < 1) attrs['stroke-opacity'] = round(stroke.opacity)
   if (cap !== 'NONE') attrs['stroke-linecap'] = SVG_STROKE_CAP[cap] ?? 'butt'
   if (stroke.join && stroke.join !== 'MITER') {
     attrs['stroke-linejoin'] = SVG_STROKE_JOIN[stroke.join] ?? 'miter'

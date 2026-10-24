@@ -54,12 +54,28 @@ export function formatColor(
 }
 
 /**
+ * A solid paint's SVG color. The canvas paints `opacity` and drops color alpha: `setAlphaf`
+ * replaces it, and `.pen` stores a hex alpha in both fields. Display P3 carries that painted
+ * alpha in the color. sRGB hex cannot, so `solidFillOpacity` emits it beside the color.
+ */
+export function formatSolidColor(
+  color: Color,
+  opacity: number,
+  colorSpace: RenderColorSpace
+): string {
+  if (colorSpace === 'display-p3') {
+    return formatColor({ ...color, a: 1 }, round(opacity), colorSpace)
+  }
+  return formatColor(color, 1, colorSpace)
+}
+
+/**
  * `fill-opacity` for an sRGB solid paint. Omitted at full opacity so an opaque export stays
- * unchanged. Display P3 already carries the same alpha in the color `formatColor` returns.
+ * unchanged. Display P3 already carries the same alpha in the color `formatSolidColor` returns.
  */
 export function solidFillOpacity(fill: Fill, colorSpace: RenderColorSpace): number | undefined {
   if (fill.type !== 'SOLID' || colorSpace === 'display-p3') return undefined
-  const alpha = round(fill.color.a * fill.opacity)
+  const alpha = round(fill.opacity)
   return alpha < 1 ? alpha : undefined
 }
 
@@ -241,7 +257,7 @@ export function resolveFill(fill: Fill, node: SceneNode, ctx: SVGExportContext):
   if (!fill.visible) return null
 
   if (fill.type === 'SOLID') {
-    return formatColor(fill.color, fill.opacity, ctx.colorSpace)
+    return formatSolidColor(fill.color, fill.opacity, ctx.colorSpace)
   }
 
   if (fill.type.startsWith('GRADIENT')) {

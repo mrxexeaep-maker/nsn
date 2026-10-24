@@ -2,7 +2,7 @@ import type { CharacterStyleOverride, SceneNode } from '@open-pencil/scene-graph
 import { resolveNodeTextDirection } from '@open-pencil/scene-graph/text/direction'
 
 import {
-  formatColor,
+  formatSolidColor,
   solidFillOpacity,
   type SVGExportContext,
   type SVGFontAlias
@@ -30,7 +30,7 @@ function styleOverrideToTspanAttrs(
   if (style.fills) {
     const visibleFill = style.fills.find((f) => f.visible && f.type === 'SOLID')
     if (visibleFill) {
-      attrs.fill = formatColor(visibleFill.color, visibleFill.opacity, colorSpace)
+      attrs.fill = formatSolidColor(visibleFill.color, visibleFill.opacity, colorSpace)
       // `fill-opacity` inherits, so an opaque run has to cover a translucent parent.
       const opacity = solidFillOpacity(visibleFill, colorSpace)
       if (opacity !== undefined) attrs['fill-opacity'] = opacity

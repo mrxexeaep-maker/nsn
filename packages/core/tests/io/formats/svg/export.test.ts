@@ -3,7 +3,8 @@ import { describe, expect, test } from 'bun:test'
 import { expectDefined } from '#core-tests/helpers/assert'
 
 import { renderNodesToSVG, type SVGExportOptions } from '@open-pencil/core/io/formats/svg'
-import { SceneGraph, type SceneNode, type Stroke } from '@open-pencil/scene-graph'
+import { parsePenFile } from '@open-pencil/pen'
+import { SceneGraph, type Fill, type SceneNode, type Stroke } from '@open-pencil/scene-graph'
 
 /** The attributes of the `<line>` an SVG export writes for a line with a 6 px black stroke. */
 function exportedLine(
@@ -73,6 +74,24 @@ function rects(svg: string): string[] {
   return Array.from(svg.matchAll(/<rect\b[^>]*>/g), ([element]) => element)
 }
 
+function paths(svg: string): string[] {
+  return Array.from(svg.matchAll(/<path\b[^>]*>/g), ([element]) => element)
+}
+
+/** A move command, enough for a vector geometry to export as a path. */
+function moveTo(x: number, y: number): Uint8Array {
+  const blob = new Uint8Array(9)
+  blob[0] = 1
+  const view = new DataView(blob.buffer)
+  view.setFloat32(1, x, true)
+  view.setFloat32(5, y, true)
+  return blob
+}
+
+function solid(r: number, g: number, b: number, a: number, opacity: number): Fill {
+  return { type: 'SOLID', color: { r, g, b, a }, opacity, visible: true }
+}
+
 // Solid fill opacity is a paint attribute. Baking it into the layer would also fade strokes.
 describe('solid paint opacity exported to SVG', () => {
   test('keeps sRGB fill opacities and leaves a fully opaque fill unchanged', () => {
@@ -101,17 +120,30 @@ describe('solid paint opacity exported to SVG', () => {
     ])
   })
 
-  test('multiplies a solid fill color alpha by its opacity', () => {
-    const svg = svgOf((graph, pageId) => [
+  test('paints a solid fill at its opacity, which replaces color alpha', () => {
+    const build = (graph: SceneGraph, pageId: string) => [
       graph.createNode('RECTANGLE', pageId, {
         width: 40,
         height: 40,
-        fills: [{ type: 'SOLID', color: { r: 0, g: 0, b: 0, a: 0.5 }, opacity: 0.5, visible: true }]
+        fills: [solid(0, 0, 0, 0.5, 0.5)]
+      }).id
+    ]
+    // `.pen` stores one hex alpha in both fields. The product would export 0.25.
+    expect(rects(svgOf(build))).toEqual([
+      '<rect width="40" height="40" fill="#000000" fill-opacity="0.5"/>'
+    ])
+    expect(rects(svgOf(build, { colorSpace: 'display-p3' }))).toEqual([
+      '<rect width="40" height="40" fill="color(display-p3 0 0 0 / 0.5)"/>'
+    ])
+
+    const colorAlphaOnly = svgOf((graph, pageId) => [
+      graph.createNode('RECTANGLE', pageId, {
+        width: 40,
+        height: 40,
+        fills: [solid(0, 0, 0, 0.5, 1)]
       }).id
     ])
-    expect(rects(svg)).toEqual([
-      '<rect width="40" height="40" fill="#000000" fill-opacity="0.25"/>'
-    ])
+    expect(rects(colorAlphaOnly)).toEqual(['<rect width="40" height="40" fill="#000000"/>'])
   })
 
   test('fades the fill without fading an opaque stroke', () => {
@@ -165,7 +197,7 @@ describe('solid paint opacity exported to SVG', () => {
     ])
   })
 
-  test('keeps stroke opacity, including alpha in the stroke color', () => {
+  test('keeps stroke opacity and drops color alpha the canvas replaces', () => {
     const stroke = (graph: SceneGraph, pageId: string, color: Stroke['color'], opacity: number) =>
       graph.createNode('RECTANGLE', pageId, {
         width: 40,
@@ -184,23 +216,23 @@ describe('solid paint opacity exported to SVG', () => {
       stroke(graph, pageId, { r: 0, g: 0, b: 0, a: 0.5 }, 1)
     ])
     expect(colorAlpha).toContain(
-      '<rect width="40" height="40" fill="none" stroke="#000000" stroke-width="2" stroke-opacity="0.5"/>'
+      '<rect width="40" height="40" fill="none" stroke="#000000" stroke-width="2"/>'
     )
 
     const both = svgOf((graph, pageId) => [
       stroke(graph, pageId, { r: 0, g: 0, b: 0, a: 0.5 }, 0.4)
     ])
     expect(both).toContain(
-      '<rect width="40" height="40" fill="none" stroke="#000000" stroke-width="2" stroke-opacity="0.2"/>'
+      '<rect width="40" height="40" fill="none" stroke="#000000" stroke-width="2" stroke-opacity="0.4"/>'
     )
 
-    // Display P3 already stores color alpha in the stroke color, so stroke-opacity stays the paint opacity.
+    // Display P3 leaves the color opaque so a viewer does not multiply it by stroke-opacity.
     const p3 = svgOf(
       (graph, pageId) => [stroke(graph, pageId, { r: 0, g: 0, b: 0, a: 0.5 }, 0.4)],
       { colorSpace: 'display-p3' }
     )
     expect(p3).toContain(
-      '<rect width="40" height="40" fill="none" stroke="color(display-p3 0 0 0 / 0.5)" stroke-width="2" stroke-opacity="0.4"/>'
+      '<rect width="40" height="40" fill="none" stroke="color(display-p3 0 0 0)" stroke-width="2" stroke-opacity="0.4"/>'
     )
   })
 
@@ -228,5 +260,76 @@ describe('solid paint opacity exported to SVG', () => {
     expect(svg).toContain(
       '<text x="0" y="14" font-family="Inter" font-size="14" fill="#000000" fill-opacity="0.4"><tspan>A</tspan><tspan fill="#FF0000" fill-opacity="1">b</tspan></text>'
     )
+  })
+
+  test('exports a .pen #00000080 fill and stroke at that alpha once', () => {
+    const graph = parsePenFile(
+      JSON.stringify({
+        version: '2.21',
+        children: [
+          {
+            id: 'mark',
+            type: 'rectangle',
+            width: 40,
+            height: 40,
+            fill: '#00000080',
+            stroke: '#00000080',
+            strokeWidth: 2
+          }
+        ]
+      })
+    )
+    const node = expectDefined(graph.getNode('mark'), 'imported rectangle')
+    const alpha = 128 / 255
+    expect(node.fills[0]).toMatchObject({ opacity: alpha, color: { a: alpha } })
+    expect(node.strokes[0]).toMatchObject({ opacity: alpha, color: { a: alpha } })
+
+    const pageId = graph.getPages()[0].id
+    const svg = expectDefined(
+      renderNodesToSVG(graph, pageId, [node.id], { xmlDeclaration: false }),
+      'SVG output'
+    )
+    expect(svg).toContain(
+      '<rect width="40" height="40" fill="#000000" fill-opacity="0.5" stroke="#000000" stroke-width="2" stroke-opacity="0.5"/>'
+    )
+    expect(svg).not.toContain('0.25')
+
+    const p3 = expectDefined(
+      renderNodesToSVG(graph, pageId, [node.id], {
+        xmlDeclaration: false,
+        colorSpace: 'display-p3'
+      }),
+      'Display P3 SVG output'
+    )
+    expect(p3).toContain(
+      '<rect width="40" height="40" fill="color(display-p3 0 0 0 / 0.5)" stroke="color(display-p3 0 0 0)" stroke-width="2" stroke-opacity="0.5"/>'
+    )
+    expect(p3).not.toContain('0.25')
+  })
+
+  test('keeps each geometry fill of a vector, translucent and opaque', () => {
+    const svg = svgOf((graph, pageId) => [
+      graph.createNode('VECTOR', pageId, {
+        width: 40,
+        height: 40,
+        fillGeometry: [
+          {
+            windingRule: 'NONZERO',
+            commandsBlob: moveTo(0, 0),
+            fills: [solid(0, 0, 0, 0.5, 0.5), solid(0, 0, 1, 1, 1)]
+          },
+          {
+            windingRule: 'NONZERO',
+            commandsBlob: moveTo(10, 0),
+            fills: [solid(1, 0, 0, 1, 0.4)]
+          }
+        ]
+      }).id
+    ])
+    expect(paths(svg)).toEqual([
+      '<path d="M0 0" fill="#000000" fill-opacity="0.5" stroke="none"/>',
+      '<path d="M0 0" fill="#0000FF"/>',
+      '<path d="M10 0" fill="#FF0000" fill-opacity="0.4"/>'
+    ])
   })
 })
