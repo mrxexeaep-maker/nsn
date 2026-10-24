@@ -262,6 +262,30 @@ describe('solid paint opacity exported to SVG', () => {
     )
   })
 
+  test('multiplies a character fill color alpha by its opacity', () => {
+    const build = (graph: SceneGraph, pageId: string) => [
+      graph.createNode('TEXT', pageId, {
+        text: 'Ab',
+        width: 40,
+        height: 20,
+        fills: [solid(0, 0, 0, 1, 1)],
+        styleRuns: [
+          { start: 0, length: 1, style: {} },
+          {
+            start: 1,
+            length: 1,
+            style: { fills: [solid(0, 0, 0, 0.5, 0.4)] }
+          }
+        ]
+      }).id
+    ]
+
+    expect(svgOf(build)).toContain('<tspan fill="#000000" fill-opacity="0.2">b</tspan>')
+    expect(svgOf(build, { colorSpace: 'display-p3' })).toContain(
+      '<tspan fill="color(display-p3 0 0 0 / 0.2)">b</tspan>'
+    )
+  })
+
   test('exports a .pen #00000080 fill and stroke at that alpha once', () => {
     const graph = parsePenFile(
       JSON.stringify({

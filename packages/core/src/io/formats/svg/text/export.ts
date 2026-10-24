@@ -1,12 +1,7 @@
 import type { CharacterStyleOverride, SceneNode } from '@open-pencil/scene-graph'
 import { resolveNodeTextDirection } from '@open-pencil/scene-graph/text/direction'
 
-import {
-  formatSolidColor,
-  solidFillOpacity,
-  type SVGExportContext,
-  type SVGFontAlias
-} from '#core/io/formats/svg/defs'
+import { formatColor, type SVGExportContext, type SVGFontAlias } from '#core/io/formats/svg/defs'
 import { svg, type SVGNode } from '#core/io/formats/svg/node'
 import { round } from '#core/io/formats/svg/paths'
 import { laidOutTextSpans } from '#core/io/formats/svg/text/lines'
@@ -30,11 +25,16 @@ function styleOverrideToTspanAttrs(
   if (style.fills) {
     const visibleFill = style.fills.find((f) => f.visible && f.type === 'SOLID')
     if (visibleFill) {
-      attrs.fill = formatSolidColor(visibleFill.color, visibleFill.opacity, colorSpace)
+      // Paragraphs and saved glyphs draw a run at color.a * opacity. Shapes paint opacity alone.
+      const alpha = round(visibleFill.color.a * visibleFill.opacity)
+      if (colorSpace === 'display-p3') {
+        attrs.fill = formatColor({ ...visibleFill.color, a: 1 }, alpha, colorSpace)
+      } else {
+        attrs.fill = formatColor(visibleFill.color, 1, colorSpace)
+        if (alpha < 1) attrs['fill-opacity'] = alpha
+      }
       // `fill-opacity` inherits, so an opaque run has to cover a translucent parent.
-      const opacity = solidFillOpacity(visibleFill, colorSpace)
-      if (opacity !== undefined) attrs['fill-opacity'] = opacity
-      else if (parentFillOpacity !== undefined) attrs['fill-opacity'] = 1
+      if (alpha >= 1 && parentFillOpacity !== undefined) attrs['fill-opacity'] = 1
     }
   }
   return attrs
