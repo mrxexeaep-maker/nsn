@@ -12,6 +12,7 @@ import type { SceneGraph } from '@open-pencil/scene-graph'
 import { drawIcon, iconify, type IconData, type IconProvider } from '#core/icons'
 import { layoutAuthoredNodes } from '#core/layout'
 
+import type { DrawioExportTarget } from './formats/drawio/export'
 import { exportFigFile, parseFigFile } from './formats/fig'
 import type { PPTXExportOptions } from './formats/pptx'
 import { headlessRenderNodes, renderNodesToImage, type RasterExportFormat } from './formats/raster'
@@ -314,8 +315,14 @@ export const drawioFormat: IOFormatAdapter<'drawio'> = {
   extensions: ['drawio', 'dio'],
   mimeTypes: ['application/vnd.jgraph.mxfile'],
   support: {
-    readDocument: true
+    readDocument: true,
+    writeDocument: true,
+    exportDocument: true,
+    exportPage: true,
+    exportSelection: true,
+    exportNode: true
   },
+  exportOptions: FIXED_SIZE_EXPORT,
   // A draw.io PNG or SVG export opens as its diagram when its name says it is one.
   matchesFile(fileName, mimeType) {
     const ext = lowerExt(fileName)
@@ -341,6 +348,33 @@ export const drawioFormat: IOFormatAdapter<'drawio'> = {
       graph.getPages().map((page) => page.id)
     )
     return { graph, sourceFormat: 'drawio' }
+  },
+  async writeDocument(graph) {
+    const pageIds = graph.getPages().map((page) => page.id)
+    return writeDrawio(graph, { pageIds })
+  },
+  // A page or a selection goes as a one-page diagram; the document, every page.
+  async exportContent(request) {
+    if (request.target.scope === 'document') {
+      const pageIds = request.graph.getPages().map((page) => page.id)
+      return writeDrawio(request.graph, { pageIds })
+    }
+    const target = resolveExportNodes(request)
+    if (!target) throw new Error('Nothing to export')
+    return writeDrawio(request.graph, target)
+  }
+}
+
+/** Pages or layers as a draw.io file, loading the writer only when one is saved. */
+async function writeDrawio(graph: SceneGraph, target: DrawioExportTarget): Promise<ExportResult> {
+  const { writeDrawioFile } = await import('@open-pencil/drawio')
+  const { sceneGraphToDrawio } = await import('./formats/drawio')
+  return {
+    format: 'drawio',
+    mimeType: 'application/vnd.jgraph.mxfile',
+    extension: 'drawio',
+    data: writeDrawioFile(sceneGraphToDrawio(graph, target)),
+    encoding: 'utf8'
   }
 }
 
