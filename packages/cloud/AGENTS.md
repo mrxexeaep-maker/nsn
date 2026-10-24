@@ -10,6 +10,7 @@ Optional, self-hostable backend; the design is in `packages/docs/development/clo
 
 ## Data and security
 
+- Every sign-in is recorded through the auth handler, not a database hook, since Better Auth's two-step sign-in creates and deletes a session first; code that runs inside Better Auth's own callbacks must not query the database, which deadlocks its transaction on one connection (`src/server/auth/activity.ts`, `tests/integration/server/account/routes.test.ts`).
 - Database rows use `crypto.randomUUID()`; secrets that leave the server use `randomHex` from `@open-pencil/scene-graph/random`, are stored as SHA-256 digests (a single-use OAuth continuation keeps a JWE copy), and travel in URL fragments (`src/server/sharing/capabilities/service.ts`).
 - Every HTTP body goes through `validatedJSON` with a contract schema, and every response the client reads is parsed with Valibot (`src/server/validation.ts`, `src/client/api.ts`).
 - A revision's images live in `revision_image`; code that makes a revision from another copies them with `copyRevisionImages`, and a storage object a `workspace_image` holds is never unreferenced (`src/server/documents/images.ts`, `tests/integration/server/documents/images.test.ts`).
@@ -36,6 +37,6 @@ Optional, self-hostable backend; the design is in `packages/docs/development/clo
 
 ## Tests
 
-- Unit tests mirror `src` under `tests/{client,contract,runtime,server}`; integration tests mirror `src` under `tests/integration` and run on PGlite through `tests/helpers/database.ts`; `tests/e2e` holds Docker Compose runners that `test` never starts.
+- Unit tests mirror `src` under `tests/{client,contract,email,runtime,server}`; integration tests mirror `src` under `tests/integration` and run on PGlite through `tests/helpers/database.ts`; `tests/e2e` holds Docker Compose runners that `test` never starts.
 - Tests import source through `#cloud/*` and helpers through `#cloud-tests/*`, and read responses with `responseJSON` from `tests/helpers/response.ts`.
 - `bun run test:cloud` type-checks the package and runs unit and integration suites.
