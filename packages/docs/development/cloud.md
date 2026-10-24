@@ -124,10 +124,11 @@ Database rows use UUIDs. Capability secrets and invitation tokens are random hex
 digests are stored, and they travel in URL fragments so they never reach access logs or `Referer`
 headers. Invitation continuations through OAuth are single-use compact JWE.
 
-Every sign-in is recorded in `cloud_sign_in` with the session it made and how it was made, read
-from the Better Auth endpoint that set the session (`signInMethod` in
-`src/server/auth/activity.ts`): a password, Google or Apple, a passkey, a second step, an email
-link, or the desktop app's device code. A person's Sessions page lists their live sessions with
+Every sign-in is recorded in `sign_in` with the session it made and how it was made. A Better
+Auth plugin, `accountActivity` in `src/server/auth/activity.ts`, reads the session an endpoint
+issued from the hook context's `newSession`, which two-step sign-in leaves empty until the second
+step, and the method from the endpoint, as Better Auth's own `lastLoginMethod` does: a password,
+Google or Apple, a passkey, a second step, an email link, or the desktop app's device code. A person's Sessions page lists their live sessions with
 that method and the browser the server reads from the user agent, and their latest sign-ins. A
 sign-in from an address the account was never signed in from is emailed to its owner, except the
 account's first. Adding or removing an authenticator app or a passkey is emailed too, and so is
@@ -482,3 +483,8 @@ for 30 days so it can be restored; a Cloud workspace can only be deleted once it
 documents, and deleted documents already have their own retention, so a delay would protect
 nothing but the name and members. Workspace settings stay in the editor's Members dialog, which
 the desktop app reaches without leaving for a browser.
+
+**2026-10 · Tables are named for what they hold.** OpenPencil's tables beside Better Auth's had a
+`cloud_` prefix the rest never had; they lose it, and only a name Better Auth already uses gets a
+qualifier (`api_rate_limit` beside its `rate_limit`). Migrations that shipped before the rename
+type their queries against the names they ran with, so their SQL never changes.

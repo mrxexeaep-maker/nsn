@@ -5,18 +5,20 @@ import { describeUserAgent } from '#cloud/server/auth/user-agent'
 
 describe('sign-in activity', () => {
   test('names how each Better Auth endpoint signed someone in', () => {
-    expect(signInMethod('/api/auth/sign-in/email')).toBe('password')
-    expect(signInMethod('/api/auth/callback/google')).toBe('google')
-    expect(signInMethod('/api/auth/callback/apple')).toBe('apple')
-    expect(signInMethod('/api/auth/passkey/verify-authentication')).toBe('passkey')
-    expect(signInMethod('/api/auth/two-factor/verify-totp')).toBe('two-step')
-    expect(signInMethod('/api/auth/verify-email')).toBe('email-link')
-    expect(signInMethod('/api/auth/device/token')).toBe('desktop')
+    expect(signInMethod({ path: '/sign-in/email' })).toBe('password')
+    expect(signInMethod({ path: '/callback/:id', params: { id: 'google' } })).toBe('google')
+    expect(signInMethod({ path: '/callback/:id', params: { id: 'apple' } })).toBe('apple')
+    expect(signInMethod({ path: '/callback/:id', params: { id: 'github' } })).toBe('other')
+    expect(signInMethod({ path: '/passkey/verify-authentication' })).toBe('passkey')
+    expect(signInMethod({ path: '/two-factor/verify-totp' })).toBe('two-step')
+    expect(signInMethod({ path: '/verify-email' })).toBe('email-link')
+    expect(signInMethod({ path: '/device/token' })).toBe('desktop')
   })
 
   test('ignores endpoints that only refresh or change a session', () => {
-    expect(signInMethod('/api/auth/get-session')).toBeNull()
-    expect(signInMethod('/api/auth/update-user')).toBeNull()
+    expect(signInMethod({ path: '/get-session' })).toBeNull()
+    expect(signInMethod({ path: '/update-user' })).toBeNull()
+    expect(signInMethod({})).toBeNull()
   })
 
   test('reads a browser and system from a user agent, and nothing from none', () => {

@@ -15,6 +15,9 @@ import {
   cloudProfileResponseSchema,
   cloudSignInsResponseSchema
 } from '#cloud/contract'
+import { base32 } from '@better-auth/utils/base32'
+import { createOTP } from '@better-auth/utils/otp'
+import * as v from 'valibot'
 
 const PASSWORD = 'a sufficiently long password'
 const CHROME =
@@ -143,7 +146,7 @@ describe('account profile', () => {
       )
       expect((await user()).email).toBe('new@example.com')
       const enrollment = await fixture.database
-        .selectFrom('cloudEnrollment')
+        .selectFrom('enrollment')
         .select(['emailNormalized', 'status'])
         .where('approvedUserId', '=', account.userId)
         .executeTakeFirstOrThrow()
@@ -311,6 +314,80 @@ describe('account sessions and sign-ins', () => {
       expect(signIns).toHaveLength(3)
       expect(signIns.every((entry) => entry.method === 'password')).toBe(true)
       expect(signIns[0]?.ipAddress).toBe('198.51.100.4')
+    } finally {
+      await fixture.close()
+    }
+  })
+
+  test('records a two-step sign-in once its second step is done', async () => {
+    const changes: string[] = []
+    const fixture = await createAccountAuthenticationFixture({
+      config: { ...config, totpEnabled: true, recoveryCodesEnabled: true },
+      email: {
+        async sendTwoStepChanged(input) {
+          changes.push(input.change)
+        }
+      }
+    })
+    try {
+      const account = await createVerifiedCredentialAccount(fixture, {
+        email: 'steps@example.com',
+        name: 'Two Steps',
+        password: PASSWORD,
+        approved: true
+      })
+      const setup = await responseJSON(
+        await fixture.app.fetch(
+          accountAuthenticationRequest(
+            '/api/account/mfa/totp/enable',
+            { password: PASSWORD },
+            account.sessionCookie
+          )
+        ),
+        v.object({ totpURI: v.string() })
+      )
+      const secret = new TextDecoder().decode(
+        base32.decode(new URL(setup.totpURI).searchParams.get('secret') ?? '')
+      )
+      const otp = createOTP(secret)
+      await fixture.app.fetch(
+        accountAuthenticationRequest(
+          '/api/account/mfa/totp/verify',
+          { code: await otp.totp() },
+          account.sessionCookie
+        )
+      )
+      expect(changes).toEqual(['authenticator-on'])
+      const recorded = async () =>
+        (
+          await fixture.database
+            .selectFrom('signIn')
+            .select('method')
+            .where('userId', '=', account.userId)
+            .orderBy('createdAt')
+            .execute()
+        ).map((row) => row.method)
+      const before = await recorded()
+
+      const pending = await fixture.app.fetch(
+        accountAuthenticationRequest('/api/auth/sign-in/email', {
+          email: 'steps@example.com',
+          password: PASSWORD
+        })
+      )
+      expect(await recorded()).toEqual(before)
+      const challenge = pending.headers
+        .getSetCookie()
+        .map((cookie) => cookie.split(';', 1)[0])
+        .find((cookie) => cookie?.includes('two_factor'))
+      await fixture.app.fetch(
+        accountAuthenticationRequest(
+          '/api/auth/two-factor/verify-totp',
+          { code: await otp.totp() },
+          challenge
+        )
+      )
+      expect(await recorded()).toEqual([...before, 'two-step'])
     } finally {
       await fixture.close()
     }

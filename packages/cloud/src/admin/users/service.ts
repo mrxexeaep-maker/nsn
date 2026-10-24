@@ -83,7 +83,7 @@ export function createAdminUserService(
     metadata: Record<string, unknown> = {}
   ): Promise<void> {
     await database
-      .insertInto('cloudAdminAuditEvent')
+      .insertInto('adminAuditEvent')
       .values({
         id: crypto.randomUUID(),
         actorUserId: actorId,
@@ -336,14 +336,14 @@ export function createAdminUserService(
           .executeTakeFirstOrThrow()
         await transaction.deleteFrom('twoFactor').where('userId', '=', userId).execute()
         await transaction.deleteFrom('passkey').where('userId', '=', userId).execute()
-        await transaction.deleteFrom('cloudMfaAssurance').where('userId', '=', userId).execute()
+        await transaction.deleteFrom('mfaAssurance').where('userId', '=', userId).execute()
         await transaction
           .updateTable('user')
           .set({ twoFactorEnabled: false, updatedAt: new Date() })
           .where('id', '=', userId)
           .execute()
         await transaction
-          .insertInto('cloudAdminAuditEvent')
+          .insertInto('adminAuditEvent')
           .values({
             id: crypto.randomUUID(),
             actorUserId: actorId,

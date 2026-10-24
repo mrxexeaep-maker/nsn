@@ -12,7 +12,7 @@ export function createAdminAuditService(database: Kysely<CloudDatabase>) {
     /** The newest events, each with its actor's and subject's names while the server knows them. */
     async list(limit = 100) {
       const events = await database
-        .selectFrom('cloudAdminAuditEvent')
+        .selectFrom('adminAuditEvent')
         .selectAll()
         .orderBy('createdAt', 'desc')
         .limit(clamp(limit, 1, ADMIN_LIST_MAXIMUM))
@@ -32,7 +32,7 @@ export function createAdminAuditService(database: Kysely<CloudDatabase>) {
           : [],
         enrollmentIds.length
           ? database
-              .selectFrom('cloudEnrollment')
+              .selectFrom('enrollment')
               .select(['id', 'name', 'emailNormalized'])
               .where('id', 'in', enrollmentIds)
               .execute()

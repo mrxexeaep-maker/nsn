@@ -116,7 +116,7 @@ export async function approveAccount(
   input: { email: string; name: string; userId: string }
 ): Promise<void> {
   await database
-    .insertInto('cloudEnrollment')
+    .insertInto('enrollment')
     .values({
       id: crypto.randomUUID(),
       emailNormalized: input.email,

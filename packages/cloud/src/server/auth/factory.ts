@@ -15,7 +15,7 @@ import {
 import { importPKCS8, SignJWT } from 'jose'
 import type { Kysely } from 'kysely'
 
-import { createSignInActivity, issuedSessionToken, signInMethod } from './activity'
+import { accountActivity, createSignInActivity } from './activity'
 import type { CloudAuthAdapter } from './adapter'
 import type { AuthenticationEmailService } from './email'
 import { createMFAAssuranceService } from './mfa-assurance'
@@ -302,7 +302,9 @@ export function createBetterAuthAdapter(
       deviceAuthorization({
         verificationUri: new URL('/auth/device', config.publicURL).href,
         validateClient: (clientId) => clientId.startsWith('openpencil-desktop:')
-      })
+      }),
+      // After two-step sign-in's own hooks, so a sign-in waiting for its second step is skipped.
+      accountActivity(activity, (user) => notifyTwoStep(user, 'passkey-added'))
     ],
     socialProviders: socialProviders(config),
     trustedOrigins: [
@@ -373,13 +375,6 @@ export function createBetterAuthAdapter(
       const method = assuranceMethod(path)
       if (response.ok && method)
         await recordResponseAssurance(response, method, database, assurance)
-      const signIn = signInMethod(path)
-      const token = signIn ? await issuedSessionToken(response, path) : null
-      if (signIn && token) await activity.record(token, signIn)
-      if (response.ok && path === '/api/auth/passkey/verify-registration') {
-        const session = await currentSession(request.headers)
-        if (session) await notifyTwoStep(session.user, 'passkey-added')
-      }
       return response
     },
     resolveIdentity,

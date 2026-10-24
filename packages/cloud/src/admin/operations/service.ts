@@ -27,7 +27,7 @@ export function createAdminOperationsService(
         stored
       ] = await Promise.all([
         database
-          .selectFrom('cloudEnrollment')
+          .selectFrom('enrollment')
           .select(({ fn }) => fn.countAll<number>().as('count'))
           .where('status', '=', 'pending')
           .executeTakeFirstOrThrow(),

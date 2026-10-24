@@ -23,7 +23,7 @@ const emailKinds = [
  */
 export async function up(database: Kysely<unknown>): Promise<void> {
   await database.schema
-    .createTable('cloud_sign_in')
+    .createTable('sign_in')
     .addColumn('id', 'uuid', (column) => column.primaryKey())
     // Better Auth's tables may come after this migration, so the account is not a foreign key.
     .addColumn('user_id', 'uuid', (column) => column.notNull())
@@ -36,13 +36,13 @@ export async function up(database: Kysely<unknown>): Promise<void> {
     )
     .execute()
   await database.schema
-    .createIndex('cloud_sign_in_user_index')
-    .on('cloud_sign_in')
+    .createIndex('sign_in_user_index')
+    .on('sign_in')
     .columns(['user_id', 'created_at'])
     .execute()
   await database.schema
-    .createIndex('cloud_sign_in_session_index')
-    .on('cloud_sign_in')
+    .createIndex('sign_in_session_index')
+    .on('sign_in')
     .column('session_id')
     .execute()
   await replaceCheckConstraint(
@@ -62,5 +62,5 @@ export async function down(database: Kysely<unknown>): Promise<void> {
     'kind',
     emailKinds
   )
-  await database.schema.dropTable('cloud_sign_in').execute()
+  await database.schema.dropTable('sign_in').execute()
 }
