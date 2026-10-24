@@ -73,8 +73,8 @@ export function parseCloudLinkPath(
 
 /**
  * The desktop app's form of a Cloud link, `openpencil://cloud?url=<link>#secret`: the web link,
- * whose address names the server, with its secret kept in the fragment. `desktop/src/deep_link.rs`
- * validates it before the editor sees it.
+ * whose address names the server, with its secret kept in the fragment.
+ * `desktop/src/launch/links.rs` validates it before the editor sees it.
  */
 export function cloudDesktopLinkURL(
   kind: CloudLinkKind,
