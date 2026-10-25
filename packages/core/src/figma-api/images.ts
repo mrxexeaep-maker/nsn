@@ -28,11 +28,19 @@ const MIN_HEADER_BYTES: Partial<Record<ImageMimeType, number>> = {
   'image/gif': 10
 }
 
+/** A PNG's signature and the type of its first chunk, which Figma requires byte for byte. */
+const PNG_HEADER = [
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52
+]
+
 /** Figma's complaint about `data` as an image, or null when it takes it. */
 function imageProblem(data: Uint8Array): string | null {
   const type = imageMimeType(data)
   const size = type === 'image/webp' ? null : imageSize(data)
   if (!size || size.width === 0 || size.height === 0) return 'Image type is unsupported'
+  if (type === 'image/png' && PNG_HEADER.some((byte, index) => data[index] !== byte)) {
+    return 'Image type is unsupported'
+  }
   if (data.length < (MIN_HEADER_BYTES[type] ?? 0)) return 'Image type is unsupported'
   if (size.width > MAX_IMAGE_SIDE || size.height > MAX_IMAGE_SIDE) return 'Image is too large'
   return null

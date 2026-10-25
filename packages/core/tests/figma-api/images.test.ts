@@ -14,6 +14,10 @@ const PNG_1X1 =
 const PNG_1X1_HASH = 'b2bbe763c7e1828c750d53f78550709a6fea19be'
 const PNG_3X2 =
   'iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAEElEQVR4nGP4z8AAQQxwFgBB0gX7h/C5SAAAAABJRU5ErkJggg=='
+/** A 3 × 2 JPEG, which Figma stores under the hash below. */
+const JPEG_3X2 =
+  '/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAA6ADAAQAAAABAAAAAgAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAAgADAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAQEBAQEBAgEBAgMCAgIDBAMDAwMEBQQEBAQEBQYFBQUFBQUGBgYGBgYGBgcHBwcHBwgICAgICQkJCQkJCQkJCf/bAEMBAQEBAgICBAICBAkGBQYJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCf/dAAQAAf/aAAwDAQACEQMRAD8A/F+iiiv8pz/v4P/Z'
+const JPEG_3X2_HASH = '7a28914c98c0ec831e892346a126c7ec9677ac7c'
 const GIF_1X1 = 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
 const WEBP_1X1 = 'UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA='
 
@@ -54,7 +58,11 @@ describe('figma.createImage', () => {
           first: (await image.getBytesAsync())[0],
           size: await image.getSizeAsync(),
           png: await figma.createImage(figma.base64Decode('${PNG_3X2}')).getSizeAsync(),
-          gif: await figma.createImage(figma.base64Decode('${GIF_1X1}')).getSizeAsync()
+          gif: await figma.createImage(figma.base64Decode('${GIF_1X1}')).getSizeAsync(),
+          jpeg: await (async () => {
+            const jpeg = figma.createImage(figma.base64Decode('${JPEG_3X2}'))
+            return [jpeg.hash, await jpeg.getSizeAsync()]
+          })()
         }
       `)
     ).toEqual({
@@ -64,7 +72,8 @@ describe('figma.createImage', () => {
       first: 0x89,
       size: { width: 1, height: 1 },
       png: { width: 3, height: 2 },
-      gif: { width: 1, height: 1 }
+      gif: { width: 1, height: 1 },
+      jpeg: [JPEG_3X2_HASH, { width: 3, height: 2 }]
     })
   })
 
@@ -82,6 +91,9 @@ describe('figma.createImage', () => {
   test('takes a PNG, JPEG, or GIF up to 4096 pixels a side, and finds only images it stored', async () => {
     const png = (width: number, height: number, length = 26) =>
       `new Uint8Array(${JSON.stringify(pngHeader(width, height).slice(0, length))})`
+    /** A 1 × 1 PNG header with `value` at `index`, breaking its signature or chunk type. */
+    const brokenPNG = (index: number, value: number) =>
+      `(() => { const bytes = ${png(1, 1)}; bytes[${index}] = ${value}; return figma.createImage(bytes).hash })()`
     expect(
       await scriptResult(
         attempts({
@@ -90,6 +102,9 @@ describe('figma.createImage', () => {
           tall: `figma.createImage(${png(1, 4097)}).hash`,
           empty: `figma.createImage(${png(0, 0)}).hash`,
           noColorType: `figma.createImage(${png(1, 1, 25)}).hash`,
+          signature: brokenPNG(0, 0),
+          lineEnding: brokenPNG(4, 0),
+          chunkType: brokenPNG(12, 0x58),
           webp: `figma.createImage(bytes('${WEBP_1X1}')).hash`,
           junk: 'figma.createImage(new Uint8Array([1, 2, 3])).hash',
           array: 'figma.createImage([1, 2, 3]).hash',
@@ -104,6 +119,9 @@ describe('figma.createImage', () => {
       tall: 'in createImage: Image is too large',
       empty: 'in createImage: Image type is unsupported',
       noColorType: 'in createImage: Image type is unsupported',
+      signature: 'in createImage: Image type is unsupported',
+      lineEnding: 'in createImage: Image type is unsupported',
+      chunkType: 'in createImage: Image type is unsupported',
       webp: 'in createImage: Image type is unsupported',
       junk: 'in createImage: Image type is unsupported',
       array:
