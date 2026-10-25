@@ -113,7 +113,8 @@ function addIcons(
 ) {
   for (const library of libraries) {
     for (const icon of icons) {
-      const name = iconName(library, icon)
+      // A variable without a name in some theme draws no icon there.
+      const name = icon ? iconName(library, icon) : null
       if (!name) continue
       for (const weight of weights) {
         const options = iconOptions(library, weight)

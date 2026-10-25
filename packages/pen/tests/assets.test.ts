@@ -104,6 +104,35 @@ describe('penAssets', () => {
     expect(penAssets(doc).icons).toEqual([{ name: 'lucide:sun' }, { name: 'lucide:moon' }])
   })
 
+  test('lists the empty value a theme without an entry reads, as drawing does', () => {
+    const doc = parsePenDocument(
+      JSON.stringify({
+        version: '2.21',
+        themes: { mode: ['light', 'dark'] },
+        variables: {
+          thin: { type: 'number', value: [{ value: 300, theme: { mode: 'dark' } }] },
+          glyph: { type: 'string', value: [{ value: 'moon', theme: { mode: 'dark' } }] }
+        },
+        children: [
+          {
+            id: 'a',
+            type: 'icon',
+            library: 'Material Symbols Rounded',
+            icon: 'home',
+            weight: '$thin'
+          },
+          // In the light theme the name is empty, so nothing is drawn there.
+          { id: 'b', type: 'icon', library: 'lucide', icon: '$glyph' }
+        ]
+      })
+    )
+    expect(penAssets(doc).icons).toEqual([
+      { name: 'material-symbols-rounded:home', options: { wght: 0 } },
+      { name: 'material-symbols-rounded:home', options: { wght: 300 } },
+      { name: 'lucide:moon' }
+    ])
+  })
+
   test("names each library's icons in its set, Material Symbols at their weight, 200 unless set", () => {
     expect(iconName('feather', 'star')).toBe('feather:star')
     expect(iconName('phosphor', 'airplane')).toBe('ph:airplane')
@@ -260,5 +289,16 @@ describe('parsePenFile — icons', () => {
       }
     )
     expect(calls.map((call) => call.name)).toEqual(['feather:moon'])
+  })
+
+  test('draws at the weight a theme without an entry reads, which the assets list', () => {
+    const { calls } = drawn(
+      { library: 'Material Symbols Rounded', icon: 'home', weight: '$thin' },
+      {
+        themes: { mode: ['light', 'dark'] },
+        variables: { thin: { type: 'number', value: [{ value: 300, theme: { mode: 'dark' } }] } }
+      }
+    )
+    expect(calls.map((call) => call.options)).toEqual([{ wght: 0 }])
   })
 })

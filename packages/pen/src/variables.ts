@@ -87,10 +87,12 @@ export function resolveString(value: string | undefined, ctx: VarContext): strin
 }
 
 /**
- * Every value a field can take: the value itself, or each value its variable has in any theme,
- * through aliases. For loading what a document may draw before it is read in a theme.
+ * Every value a field can take: the value itself, or the value its variable has in each theme,
+ * through aliases, with the empty value where a theme has none, as reading resolves it. For
+ * loading what a document may draw before it is read in a theme.
  */
 export function possibleValues(value: string | undefined, doc: PenDocument): string[] {
+  const themes = combinations(themeAxes(doc))
   const found = new Set<string>()
   const seen = new Set<string>()
   const visit = (raw: PenVariableScalar | undefined) => {
@@ -103,10 +105,12 @@ export function possibleValues(value: string | undefined, doc: PenDocument): str
     const definition = doc.variables?.[name]
     if (!definition || seen.has(name)) return
     seen.add(name)
-    const entries = Array.isArray(definition.value)
-      ? definition.value
-      : [{ value: definition.value }]
-    for (const entry of entries) visit(entry.value)
+    const empty = emptyValue(sceneType(definition.type))
+    for (const theme of themes) {
+      const themed = rawValue(definition, theme)
+      if (themed !== undefined) visit(themed)
+      else if (typeof empty !== 'object') found.add(String(empty))
+    }
   }
   visit(value)
   return [...found]
@@ -133,6 +137,11 @@ function emptyValue(type: VariableType): VariableValue {
 }
 
 type Axis = [name: string, values: string[]]
+
+/** The document's theme axes that have values. */
+function themeAxes(doc: PenDocument): Axis[] {
+  return Object.entries(doc.themes ?? {}).filter(([, values]) => values.length > 0)
+}
 
 /** Every combination of one value per axis, the first values first. */
 function combinations(axes: Axis[]): Theme[] {
@@ -178,7 +187,7 @@ function themeKey(theme: Theme, axes: Axis[]): string {
 }
 
 export function buildVarContext(graph: SceneGraph, doc: PenDocument): VarContext {
-  const axes: Axis[] = Object.entries(doc.themes ?? {}).filter(([, values]) => values.length > 0)
+  const axes = themeAxes(doc)
   const themes = combinations(axes)
   const modes: VariableCollectionMode[] = themes.map((theme) => ({
     modeId: generateId(),
