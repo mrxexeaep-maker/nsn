@@ -1,0 +1,1 @@
+- Imported FIG files can be saved again after a reader recovery following deletion of a component child, without restoring deleted layers.
