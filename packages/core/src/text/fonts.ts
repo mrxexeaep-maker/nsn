@@ -83,6 +83,10 @@ export class FontManager {
   private fileFamilies = new Map<ArrayBuffer, string>()
   private remoteCoverage = new Map<string, Set<string>>()
   private instanceVariations = new WeakMap<ArrayBuffer, Map<string, FontVariation[] | null>>()
+  private variations = new WeakMap<
+    ArrayBuffer,
+    { axes: FontAxis[]; instances: NamedInstance[] } | null
+  >()
   private blockedNodeIds = new Set<string>()
   private fontProvider: TypefaceFontProvider | null = null
   private bundledFontLocator: BundledFontLocator = defaultBundledFontLocator
@@ -553,8 +557,13 @@ export class FontManager {
     for (const [key, data] of this.loadedFamilies) {
       if (!key.startsWith(`${family}|`)) continue
       loaded = true
-      const axes = fontAxes(data)
-      if (axes) return { data, axes, instances: namedInstances(data) }
+      let variation = this.variations.get(data)
+      if (variation === undefined) {
+        const axes = fontAxes(data)
+        variation = axes ? { axes, instances: namedInstances(data) } : null
+        this.variations.set(data, variation)
+      }
+      if (variation) return { data, ...variation }
     }
     return loaded ? null : undefined
   }
