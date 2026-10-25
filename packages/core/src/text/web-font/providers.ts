@@ -35,7 +35,9 @@ export const providerFactories = {
 } satisfies Record<WebFontProviderId, () => WebFontProviders>
 
 export async function createProviderUnifont(provider: WebFontProviderId): Promise<WebUnifont> {
-  return createUnifont(providerFactories[provider](), { throwOnError: false })
+  // In a page unifont sends provider requests to its hosted proxy; ours go through the host's
+  // fetch, which reaches the providers itself.
+  return createUnifont(providerFactories[provider](), { throwOnError: false, apiBase: false })
 }
 
 export function isRemoteFontSource(
