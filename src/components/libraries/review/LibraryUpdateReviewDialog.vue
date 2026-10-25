@@ -102,7 +102,10 @@ async function restoreOrigin() {
   if (!value || accepted) return
   // A page switch already under way lands first, then the origin replaces it.
   await focusing?.catch(() => undefined)
+  // A review opened meanwhile owns the canvas now.
+  if (libraryReviewRequest.value) return
   if (editor.state.currentPageId !== value.pageId) await editor.switchPage(value.pageId)
+  if (libraryReviewRequest.value) return
   editor.select(value.selectedIds)
   editor.state.panX = value.panX
   editor.state.panY = value.panY
