@@ -72,6 +72,33 @@ describe('icon sets', () => {
     expect(Object.keys(found.collections)).toEqual(['lucide', 'font-set'])
   })
 
+  test('hides a replaced set from a search or browse scoped to it', async () => {
+    const { provider } = setup()
+    expect((await provider.search('anything', { prefix: 'iconify-copy' })).icons).toEqual([])
+    expect(await provider.browse('iconify-copy')).toEqual([])
+  })
+
+  test('takes matches from each source in turn up to the limit', async () => {
+    const many = (prefix: string): IconProvider => ({
+      ...fake([prefix], []),
+      search: async () => ({
+        icons: ['a', 'b', 'c'].map((name) => `${prefix}:${name}`),
+        total: 3,
+        collections: { [prefix]: { name: prefix, total: 3 } }
+      })
+    })
+    const provider = createIconSetsProvider({
+      sources: [{ prefixes: ['font-set'], provider: many('font-set') }],
+      fallback: many('lucide')
+    })
+    expect((await provider.search('anything', { limit: 4 })).icons).toEqual([
+      'lucide:a',
+      'font-set:a',
+      'lucide:b',
+      'font-set:b'
+    ])
+  })
+
   test('keeps the icons other sources answer when one source fails', async () => {
     const offline: IconProvider = {
       ...fake(['font-set'], []),

@@ -59,6 +59,8 @@ export function createIconSetsProvider({
 
   return {
     async search(query, options = {}): Promise<IconSearchResult> {
+      if (options.prefix && replaced.includes(options.prefix))
+        return { icons: [], total: 0, collections: {} }
       if (options.prefix) return owner(options.prefix).search(query, options)
       const results = await Promise.allSettled(
         [fallback, ...sources.map((source) => source.provider)].map((provider) =>
@@ -69,7 +71,14 @@ export function createIconSetsProvider({
         result.status === 'fulfilled' ? [result.value] : []
       )
       if (found.length === 0 && results[0]?.status === 'rejected') throw results[0].reason
-      const icons = found.flatMap((result) => result.icons.filter(shown))
+      // The sources take turns, so one with many matches cannot crowd the others past the limit.
+      const lists = found.map((result) => result.icons.filter(shown))
+      const longest = Math.max(0, ...lists.map((list) => list.length))
+      const icons = Array.from({ length: longest }, (_, index) =>
+        lists.flatMap((list) => (index < list.length ? [list[index]] : []))
+      )
+        .flat()
+        .slice(0, options.limit)
       return {
         icons,
         total: icons.length,
@@ -100,8 +109,8 @@ export function createIconSetsProvider({
       return listed.filter((info) => !replaced.includes(info.prefix))
     },
 
-    browse(prefix) {
-      return owner(prefix).browse(prefix)
+    async browse(prefix) {
+      return replaced.includes(prefix) ? [] : owner(prefix).browse(prefix)
     }
   }
 }
