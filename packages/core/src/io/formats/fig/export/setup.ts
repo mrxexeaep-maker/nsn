@@ -550,7 +550,8 @@ export async function figFileExtras(
   imageNames: ReadonlyMap<string, string>,
   options: FigFileExtrasOptions
 ): Promise<FigFileExtras> {
-  const thumbnailPageId = options.pageId ?? figThumbnailPageId(graph.getPages(true))
+  // Internal pages hold library data, not anything a person drew, so the thumbnail skips them.
+  const thumbnailPageId = options.pageId ?? figThumbnailPageId(graph.getPages())
   const thumbnail = await renderFigThumbnail(graph, thumbnailPageId, options)
   const metaJSON = figArchiveMetaJSON({
     fileName: options.documentName || UNTITLED_FILE_NAME,

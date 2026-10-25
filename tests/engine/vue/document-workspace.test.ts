@@ -268,6 +268,7 @@ describe('useDocumentWorkspace', () => {
     held.release?.()
     await refreshing
     expect(current.documents.value).toHaveLength(1)
+    expect(current.error.value).toBeNull()
     app.unmount()
   })
 })
