@@ -89,6 +89,23 @@ describe('Material Symbols', () => {
     expect(thin?.paths[0]?.vectorNetwork.regions[0]?.loops.length).toBeGreaterThan(1)
   })
 
+  test('fills an icon at the axes its fill sets, as fontTools draws the font', async () => {
+    const { provider } = await setup()
+    const name = 'material-symbols-rounded:home'
+    // At the font's own 960-unit em, so the outline reads in font units, y from the top.
+    const outlined = (await provider.icons([name], 960)).get(name)
+    const filled = (await provider.icons([name], 960, { FILL: 1 })).get(name)
+    const vertices = (icon: typeof filled) => icon?.paths[0]?.vectorNetwork.vertices ?? []
+    const box = (icon: typeof filled) => [
+      bounds(vertices(icon).map((v) => v.x)),
+      bounds(vertices(icon).map((v) => v.y))
+    ]
+    expect(box(filled)).toEqual(box(outlined))
+    // The door's corners on the floor, where every tuple's deltas land on their own points.
+    expect(vertices(filled)).toContainEqual({ x: 400, y: 800 })
+    expect(vertices(filled)).toContainEqual({ x: 560, y: 800 })
+  })
+
   test('lists, browses, and searches the sets by the names Google lists for each font', async () => {
     const { provider } = await setup()
     const sets = await provider.collections()
