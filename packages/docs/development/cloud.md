@@ -222,8 +222,8 @@ page crops and shrinks a picture to a 256-pixel JPEG; the server accepts PNG or 
 256 KB and 1024 pixels a side, reading the type and size from the bytes. A Google picture is
 fetched once a sign-in issues its session and kept the same way; one that cannot be fetched leaves
 initials, never a link to Google. The server fetches only from Google's picture host and follows no
-redirects, and only a provider's sign-in may write `user.image` through Better Auth, which also
-takes one on email sign-up and user updates; those are dropped.
+redirects. Only a provider's sign-in may write `user.image` through Better Auth; an address
+sent with email sign-up or a user update is dropped.
 
 ## Portal
 

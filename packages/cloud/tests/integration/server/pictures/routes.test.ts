@@ -199,6 +199,7 @@ describe('account pictures', () => {
           )
         )
         expect(updated.status).toBe(200)
+        expect(await profileImage(fixture, account.sessionCookie)).toBeNull()
       }
       const profile = await fixture.app.fetch(
         accountAuthenticationRequest('/api/account/profile', undefined, account.sessionCookie)
