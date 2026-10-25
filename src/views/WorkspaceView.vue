@@ -33,7 +33,6 @@ import { useEditorMenu } from '@/app/shell/menu/use'
 import { toast } from '@/app/shell/ui'
 import {
   activeTab,
-  createDocumentInCurrentTab,
   createHomeTab,
   createTab,
   getActiveStore,
@@ -77,24 +76,25 @@ watch(
 )
 const router = useRouter()
 const createdInitialTab = tabCount() === 0
-// Home opens first where it lists something: recent files, or the workspaces of the Cloud server
-// that serves the editor.
-const shouldCreateHome =
-  route.path === '/' &&
-  !appRuntimeConfig.test &&
-  !route.meta.demo &&
-  (recentFilesAvailable() || IS_CLOUD_SITE)
+// Home is pinned first everywhere but tests and the demo, and opens in front where it lists
+// something: recent files, or the workspaces of the Cloud server that serves the editor.
+const pinHome = !appRuntimeConfig.test && !route.meta.demo
+const showHomeFirst = route.path === '/' && pinHome && (recentFilesAvailable() || IS_CLOUD_SITE)
 const { collaboration } = useI18n()
 const joinRoomFromInput = useJoinRoom()
 
-/** A share link opens its room in a tab of its own, so nothing editable shows before it. */
+/**
+ * A share link opens its room in a tab of its own, so nothing editable shows before it. Home, where
+ * the app has one, is pinned first behind it.
+ */
 function openFirstTab(): Tab {
   const roomId = typeof route.params.roomId === 'string' ? route.params.roomId : null
+  if (pinHome) createHomeTab()
   if (roomId) {
     if (joinRoomFromInput(roomId) && activeTab.value) return activeTab.value
     toast.error(collaboration.value.invalidRoomLink)
   }
-  return shouldCreateHome ? createHomeTab() : createTab()
+  return showHomeFirst ? createHomeTab() : createTab()
 }
 
 // Block-scoped so the view does not keep the first tab's store after that tab closes.
@@ -275,7 +275,7 @@ onUnmounted(() => {
     <RenameSelectionDialog />
     <CommandPalette />
     <TabBar />
-    <HomeWorkspace v-show="activeTab?.kind === 'home'" @new-document="createDocumentInCurrentTab" />
+    <HomeWorkspace v-show="activeTab?.kind === 'home'" @new-document="createTab()" />
     <CloudVersionDialog />
     <EditorWorkspace v-if="shown && shown.tab.kind !== 'home'" :key="shown.key" :tab="shown.tab" />
   </div>

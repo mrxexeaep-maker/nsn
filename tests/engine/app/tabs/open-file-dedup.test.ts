@@ -7,7 +7,7 @@ import { SceneGraph } from '@open-pencil/scene-graph'
 import { resolveBrowserFileURL } from '@/app/document/io/browser'
 import type { DocumentSourceIdentity } from '@/app/document/io/types'
 import {
-  createDocumentInCurrentTab,
+  closeTab,
   createHomeTab,
   createTab,
   getActiveStore,
@@ -173,30 +173,31 @@ describe('openFileInNewTab deduplication', () => {
     expect(getTabsSnapshot().filter((tab) => tab.kind === 'home')).toHaveLength(1)
   })
 
-  test('converts the current New tab into a blank document', () => {
-    createHomeTab()
-    const home = getTabsSnapshot().at(-1)
-    const count = tabCount()
-
-    const document = createDocumentInCurrentTab()
-
-    expect(tabCount()).toBe(count)
-    expect(document.id).toBe(expectDefined(home, 'home tab').id)
-    expect(document.kind).toBe('document')
+  test('keeps one Home pinned first, which never closes', async () => {
+    createTab()
+    const home = createHomeTab()
+    expect(createHomeTab().id).toBe(home.id)
+    expect(getTabsSnapshot()[0]?.id).toBe(home.id)
+    await closeTab(home.id)
+    expect(getTabsSnapshot().filter((tab) => tab.kind === 'home')).toEqual([home])
   })
 
-  test('opens a file in the current New tab', async () => {
-    createHomeTab()
-    const home = getTabsSnapshot().at(-1)
+  test('opens a file from Home in a tab of its own, leaving Home as it is', async () => {
+    const home = createHomeTab()
     const count = tabCount()
 
     await settleFileOpen(
       openFileInNewTab(new File([], 'design.fig'), undefined, '/tmp/from-home.fig')
     )
 
-    expect(tabCount()).toBe(count)
-    expect(getTabsSnapshot().at(-1)?.id).toBe(home?.id)
+    expect(tabCount()).toBe(count + 1)
     expect(getTabsSnapshot().at(-1)?.kind).toBe('document')
+    expect(
+      expectDefined(
+        getTabsSnapshot().find((tab) => tab.id === home.id),
+        'home'
+      ).kind
+    ).toBe('home')
   })
 
   test('activates the existing tab when the same path is opened again', async () => {

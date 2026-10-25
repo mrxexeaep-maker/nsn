@@ -107,34 +107,23 @@ export function createTab(store?: EditorStore, initialGraph?: SceneGraph): Tab {
   return tab
 }
 
+/**
+ * Shows Home, the one tab pinned first that never closes and never turns into a design, as in
+ * Figma's desktop app; it is made the first time it is asked for.
+ */
 export function createHomeTab(): Tab {
+  const existing = tabsRef.value.find((tab) => tab.kind === 'home')
+  if (existing) {
+    activateTab(existing)
+    return existing
+  }
   const tab: Tab = { id: generateTabId(), store: createEditorStore(), kind: 'home' }
-  tabsRef.value = [...tabsRef.value, tab]
+  tabsRef.value = [tab, ...tabsRef.value]
   activateTab(tab)
   return tab
 }
 
-export function leaveHome(tabId: string): void {
-  const tabIndex = tabsRef.value.findIndex((candidate) => candidate.id === tabId)
-  if (tabIndex === -1) return
-  const tab = tabsRef.value[tabIndex]
-  if (tab.kind !== 'home') return
-  tabsRef.value = tabsRef.value.with(tabIndex, { ...tab, kind: 'document' })
-}
-
-export function createDocumentInCurrentTab(): Tab {
-  const current = activeTab.value
-  if (current?.kind !== 'home') return createTab()
-  leaveHome(current.id)
-  return getTabById(current.id) ?? current
-}
-
 export function showNewTab(): void {
-  const homeTab = tabsRef.value.find((tab) => tab.kind === 'home')
-  if (homeTab) {
-    switchTab(homeTab.id)
-    return
-  }
   createHomeTab()
 }
 
@@ -166,7 +155,7 @@ export async function closeTab(tabId: string, unsaved?: 'save' | 'discard'): Pro
   if (idx === -1) return
 
   const closingTab = tabsRef.value[idx]
-  if (closingTab.kind === 'home' && tabsRef.value.length === 1) return
+  if (closingTab.kind === 'home') return
   const choice = unsaved
     ? await confirmDocumentClose(closingTab.store, async () => unsaved)
     : await requestDocumentClose(closingTab.store, closingTab.store.state.documentName)
@@ -203,18 +192,16 @@ function isDOMImportFile(file: File): boolean {
   return /\.(html?|xhtml)$/i.test(file.name)
 }
 
+/** The tab a file opens in: an untouched new design in front, or else a new tab; never Home. */
 function reusableTabStore(): { store: EditorStore; created: boolean } {
   const current = activeTab.value
-  if (current?.kind === 'home') {
-    leaveHome(current.id)
-    return { store: current.store, created: false }
-  }
   const isUntouched =
-    current?.store.state.documentName === 'Untitled' && !current.store.undo.canUndo
-  if (isUntouched) {
-    leaveHome(current.id)
-    return { store: current.store, created: false }
-  }
+    current?.kind === 'document' &&
+    current.store.state.documentName === 'Untitled' &&
+    !current.store.undo.canUndo &&
+    current.store.getStorageBinding() === null &&
+    current.store.getSourceIdentity().path === null
+  if (current && isUntouched) return { store: current.store, created: false }
   return { store: createTab().store, created: true }
 }
 
@@ -605,9 +592,7 @@ export function useTabsStore() {
     tabs: allTabs,
     activeTabId,
     createHomeTab,
-    createDocumentInCurrentTab,
     createTab,
-    leaveHome,
     switchTab,
     closeTab,
     getActiveTabId,
