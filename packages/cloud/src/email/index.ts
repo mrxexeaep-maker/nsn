@@ -1,5 +1,5 @@
 export { renderTransactionalEmail } from './render'
-export { transactionalEmailContentSchema } from './types'
+export { transactionalEmailContentSchema } from './schema'
 export type {
   AdminEnrollmentNotificationPayload,
   DocumentInvitationEmailPayload,
@@ -8,5 +8,6 @@ export type {
   TransactionalEmailContent,
   TransactionalEmailKind,
   TransactionalEmailMessage,
-  TransactionalEmailPayloadByKind
-} from './types'
+  TransactionalEmailPayloadByKind,
+  TwoStepChange
+} from './schema'

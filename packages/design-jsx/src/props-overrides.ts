@@ -1,20 +1,17 @@
+import type { Fill, SceneNode, ArcData, NodeType } from '@open-pencil/scene-graph'
+import { colorToFill } from '@open-pencil/scene-graph/color'
+import { parseCSSGridTracks, parseCSSNumber } from '@open-pencil/scene-graph/css'
 import {
   autoLayoutSizingFields,
   fillSizingFields,
   parseAutoLayoutDirection,
   parseCounterAxisAlign,
-  parsePrimaryAxisAlign,
-  withShaderPaints,
-  type ArcData,
-  type Fill,
-  type NodeType,
-  type SceneNode,
-  type ShaderPaint
-} from '@open-pencil/scene-graph'
-import { colorToFill } from '@open-pencil/scene-graph/color'
-import { parseCSSGridTracks, parseCSSNumber } from '@open-pencil/scene-graph/css'
+  parsePrimaryAxisAlign
+} from '@open-pencil/scene-graph/layout'
 import type { Color, JSONObject } from '@open-pencil/scene-graph/primitives'
+import { withShaderPaints, type ShaderPaint } from '@open-pencil/scene-graph/shaders'
 
+import { DESIGN_JSX_STYLE_KEYS, designJSXProp } from './definitions'
 import {
   BLEND_MODE,
   TEXT_ALIGN,
@@ -30,7 +27,6 @@ import { applyStateOverrides } from './overrides/state'
 import { applyStrokeOverrides } from './overrides/strokes'
 import { applyTextDetailOverrides, AUTO } from './overrides/text'
 import { isShaderFill } from './paints'
-import { DESIGN_JSX_STYLE_KEYS, designJSXProp } from './schema'
 
 const WEIGHT_MAP: Record<string, number> = {
   normal: 400,

@@ -1,4 +1,10 @@
-import { fitEnclosingGroups, redoGroupFit, undoGroupFit } from '@open-pencil/scene-graph'
+import { compact } from 'es-toolkit/array'
+
+import {
+  fitEnclosingGroups,
+  redoGroupFit,
+  undoGroupFit
+} from '@open-pencil/scene-graph/group-bounds'
 
 import { groupFitOptions } from '#core/canvas/boolean'
 import type { EditorContext } from '#core/editor/types'
@@ -19,4 +25,14 @@ export function fitEnclosingGroupsWithUndo(ctx: EditorContext, parentIds: Iterab
     forward: () => redoGroupFit(ctx.graph, fit),
     inverse: () => undoGroupFit(ctx.graph, fit)
   })
+}
+
+/**
+ * Refits the groups around layers that were shown or hidden, since a group spans only the layers
+ * it shows. The fit follows from what the layers show, so an edit that replays on undo and redo
+ * refits again and needs no undo step of its own.
+ */
+export function refitGroupsAroundLayers(ctx: EditorContext, layerIds: Iterable<string>) {
+  const parentIds = compact([...layerIds].map((id) => ctx.graph.getNode(id)?.parentId))
+  fitEnclosingGroups(ctx.graph, parentIds, groupFitOptions(ctx.getRenderer(), ctx.graph))
 }

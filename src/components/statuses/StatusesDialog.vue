@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, useTemplateRef, watch, type ComponentPublicInstance } from 'vue'
 
-import type { StatusWorkflowPreset } from '@open-pencil/scene-graph'
-import { useCommonMessages, useFlatReorderDrag, useStatusMessages } from '@open-pencil/vue'
+import type { StatusWorkflowPreset } from '@open-pencil/scene-graph/statuses'
+import { useCommonMessages, useStatusMessages } from '@open-pencil/vue/i18n'
+import { useFlatReorderDrag } from '@open-pencil/vue/shared/drag'
 
 import { useEditorStore } from '@/app/editor/active-store'
 import { useStatusWorkflowDraft } from '@/app/editor/statuses/workflow'
@@ -44,9 +45,14 @@ const open = computed({
   }
 })
 
+/** Discarded edits are dropped as the dialog next opens, so its closing animation keeps them. */
+let discarded = false
+
 // A draft opens on the document's statuses as they are now, unless it holds edits not applied.
 watch(open, (value) => {
-  if (value && !dirty.value) editor.reset()
+  if (!value || (dirty.value && !discarded)) return
+  discarded = false
+  editor.reset()
 })
 
 /** The preset menu's value while the statuses match no preset. */
@@ -116,7 +122,7 @@ function choosePreset(value: string) {
 }
 
 function discard() {
-  editor.reset()
+  discarded = true
   store.state.statusesOpen = false
 }
 </script>
@@ -230,6 +236,7 @@ function discard() {
         :model-value="preset ?? CUSTOM"
         :options="presetOptions"
         :label="messages.preset"
+        size="sm"
         :ui="{ trigger: 'w-40' }"
         class="mr-auto"
         @update:model-value="choosePreset(String($event))"

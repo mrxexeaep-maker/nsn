@@ -1,6 +1,7 @@
 import type { Canvas } from 'canvaskit-wasm'
 
-import type { Color, SceneNode } from '@open-pencil/scene-graph'
+import type { SceneNode } from '@open-pencil/scene-graph'
+import type { Color } from '@open-pencil/scene-graph/primitives'
 
 import type { SkiaRenderer } from '#core/canvas/renderer'
 import { TEXT_CARET_COLOR, TEXT_CARET_WIDTH, TEXT_SELECTION_ALPHA } from '#core/constants'
@@ -30,7 +31,9 @@ export function drawTextEditOverlay(
   r: SkiaRenderer,
   canvas: Canvas,
   node: SceneNode,
-  editor: TextEditor
+  editor: TextEditor,
+  /** How far the outline sits outside the text, as around a connector label's plate. */
+  outset = 0
 ): void {
   // Path text lays the paragraph out flat and then maps each glyph onto the
   // path. The flat caret / selection rects are in that flat space, so painting
@@ -43,7 +46,10 @@ export function drawTextEditOverlay(
   }
 
   withScreenStroke(r, { color: r.selColor() }, (paint) =>
-    canvas.drawRect(r.ck.LTRBRect(0, 0, node.width, node.height), paint)
+    canvas.drawRect(
+      r.ck.LTRBRect(-outset, -outset, node.width + outset, node.height + outset),
+      paint
+    )
   )
 
   const selRects = editor.getSelectionRects()

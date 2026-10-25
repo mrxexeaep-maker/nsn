@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { nextTick, watch } from 'vue'
 
-import { useI18n, useViewportKind } from '@open-pencil/vue'
+import { useViewportKind } from '@open-pencil/vue/editor/viewport-kind'
+import { useI18n } from '@open-pencil/vue/i18n'
 
 import { useEditorStore } from '@/app/editor/active-store'
 import { openLibraryReview, openPublishLibraryDialog, useLibraryService } from '@/app/libraries'
@@ -39,6 +40,7 @@ async function openPublish() {
 const {
   section,
   loading,
+  ready,
   showAllPages,
   applying,
   visibleUpdateGroups,
@@ -68,7 +70,13 @@ function reviewUpdate(group: (typeof visibleUpdateGroups.value)[number]) {
 </script>
 
 <template>
-  <AppDialogRoot v-model:open="open" size="lg" height="tall" data-test-id="asset-libraries-dialog">
+  <AppDialogRoot
+    :open="open && ready"
+    size="lg"
+    height="tall"
+    data-test-id="asset-libraries-dialog"
+    @update:open="open = $event"
+  >
     <AppDialogHeader
       :heading="panels.manageLibraries"
       :description="panels.manageLibrariesDescription"

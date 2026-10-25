@@ -1,8 +1,14 @@
 import { isEqual } from 'es-toolkit'
+import * as v from 'valibot'
 import { effectScope, onScopeDispose, shallowRef, watch } from 'vue'
 
-import { RELAY_SERVER_PEER, type CollaborationTicket } from '@open-pencil/cloud/contract'
+import {
+  cloudPresenceSchema,
+  RELAY_SERVER_PEER,
+  type CollaborationTicket
+} from '@open-pencil/cloud/contract'
 
+import type { RoomImageStore } from '@/app/collab/images'
 import { leaveRoom, openDocumentRoom, roomForStore } from '@/app/collab/rooms'
 import type { RoomIdentity, RoomSession } from '@/app/collab/session'
 import type { JoinCollabRoom } from '@/app/collab/transport'
@@ -24,6 +30,7 @@ import { cloudConnection, cloudConnections, type CloudSessionState } from '../se
 import { cloudShareTarget } from '../sharing/document'
 import { versionsChanged } from '../versions/history'
 import { accountRoomIdentity } from './identity'
+import { cloudRoomImages } from './images'
 import { onceOnServer, shareRoomUploads, uploadStoredDocument } from './upload'
 
 /** Each Cloud tab's permission in its room, for the status beside the name. */
@@ -51,9 +58,8 @@ export function electCloudSaver(
   const editors = [...presence]
     .filter(([clientId, state]) => {
       if (clientId === self.clientId) return self.canSave
-      const cloud = state.cloud
-      if (typeof cloud !== 'object' || cloud === null) return false
-      return Reflect.get(cloud, 'permission') === 'edit' && Reflect.get(cloud, 'kind') === 'user'
+      const cloud = v.safeParse(cloudPresenceSchema, state.cloud)
+      return cloud.success && cloud.output.permission === 'edit' && cloud.output.kind === 'user'
     })
     .map(([clientId]) => clientId)
   return editors.length ? Math.min(...editors) : null
@@ -180,11 +186,19 @@ export function openCloudDocumentRoom(
     uploadNow?: () => Promise<boolean>
     /** Who the tab is in the room; the device's own identity unless an account names it. */
     identity?: RoomIdentity
+    /** Where the room keeps its images: the document's workspace, so the room names them. */
+    images?: RoomImageStore
   }
 ) {
   const canEdit = options.permission === 'edit'
   const canSave = canEdit && !options.guest
-  const session = openDocumentRoom(store, options.roomId, options.transport, options.identity)
+  const session = openDocumentRoom(
+    store,
+    options.roomId,
+    options.transport,
+    options.identity,
+    options.images
+  )
   // Everything the room follows lives in one scope, so stopping it leaves nothing behind.
   const scope = effectScope(true)
   const uploads = scope.run(() => {
@@ -386,6 +400,7 @@ export async function startCloudRoom(store: EditorStore): Promise<void> {
         onRefused: () => leaveRefusedRoom(store, { permission: first.permission, canSave: true })
       }),
       permission: first.permission,
+      images: cloudRoomImages(target.client, binding.documentId, first.permission === 'edit'),
       roomIsCurrent: async () => (await nextTicket()).roomId === first.roomId,
       onRestored: restart
     })

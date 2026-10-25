@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { useCloudPortalMessages } from '@open-pencil/vue'
+import { useCloudPortalMessages } from '@open-pencil/vue/i18n'
 
 import AppButton from '@/components/ui/button/AppButton.vue'
 import { portalList } from '@/theme/cloud-portal/list'
@@ -28,6 +28,7 @@ const statusLabels = computed(() => ({
 }))
 const kindLabels = computed<Record<string, string>>(() => ({
   'document-invitation': messages.value.emailKindInvitation,
+  'workspace-invitation': messages.value.emailKindWorkspaceInvitation,
   'enrollment-requested': messages.value.emailKindEnrollmentRequested,
   'admin-enrollment-notification': messages.value.emailKindAdminNotification,
   'enrollment-approved': messages.value.emailKindEnrollmentApproved,
@@ -35,7 +36,10 @@ const kindLabels = computed<Record<string, string>>(() => ({
   'enrollment-revoked': messages.value.emailKindEnrollmentRevoked,
   'email-verification': messages.value.emailKindVerification,
   'password-reset': messages.value.emailKindPasswordReset,
-  'password-changed': messages.value.emailKindPasswordChanged
+  'password-changed': messages.value.emailKindPasswordChanged,
+  'email-change-requested': messages.value.emailKindEmailChangeRequested,
+  'new-sign-in': messages.value.emailKindNewSignIn,
+  'two-step-changed': messages.value.emailKindTwoStepChanged
 }))
 function detail(email: PortalEmail) {
   const to = messages.value.emailTo({ recipient: email.recipient })

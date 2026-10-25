@@ -8,6 +8,9 @@
  * no shared references between source and copy.
  */
 
+import { geometryCommandCoordCount } from './geometry'
+import { cloneInstanceOverrideState } from './instances/overrides'
+import { createDefaultSourceMetadata } from './node-defaults'
 import type {
   ArcData,
   ComponentPropertyDefinition,
@@ -21,10 +24,7 @@ import type {
   SceneNode,
   Stroke,
   StyleRun
-} from './'
-import { geometryCommandCoordCount } from './geometry'
-import { cloneInstanceOverrideState } from './instance-overrides'
-import { createDefaultSourceMetadata } from './node-defaults'
+} from './types'
 import { cloneVectorNetwork } from './vector-network'
 
 // --- Individual copy functions ---
@@ -315,6 +315,9 @@ export function cloneNodeProps(
     gridPosition: src.gridPosition ? { ...src.gridPosition } : null,
     targetAspectRatio: src.targetAspectRatio ? { ...src.targetAspectRatio } : null,
     connectorStart: src.connectorStart ? copyConnectorEndpoint(src.connectorStart) : null,
-    connectorEnd: src.connectorEnd ? copyConnectorEndpoint(src.connectorEnd) : null
+    connectorEnd: src.connectorEnd ? copyConnectorEndpoint(src.connectorEnd) : null,
+    connectorControlPoints: structuredClone(src.connectorControlPoints),
+    connectorCurveHandles: structuredClone(src.connectorCurveHandles),
+    connectorLabelPosition: src.connectorLabelPosition ? { ...src.connectorLabelPosition } : null
   }
 }

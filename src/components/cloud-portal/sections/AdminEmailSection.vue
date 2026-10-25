@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { useCloudPortalMessages, useI18n } from '@open-pencil/vue'
+import { useCloudPortalMessages, useI18n } from '@open-pencil/vue/i18n'
 
 import { usePortal } from '@/app/cloud-portal/context'
 import { usePortalAction, usePortalLoad } from '@/app/cloud-portal/state'
@@ -34,7 +34,7 @@ const {
     recipient: row.recipientEmailNormalized,
     status: deliveryStatus(row.status),
     attempts: row.attemptCount,
-    when: formatDate(row.nextAttemptAt, 'date', locale.value),
+    when: formatDate(row.nextAttemptAt, 'dateTime', locale.value),
     error: row.lastErrorCode
   }))
 }, [])

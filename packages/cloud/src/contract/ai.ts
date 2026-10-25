@@ -12,16 +12,28 @@ export const CLOUD_AI_TOKEN_AUDIENCE = 'openpencil-ai' as const
 /** Where Cloud publishes the public keys an AI service verifies its tokens with. */
 export const CLOUD_AI_JWKS_PATH = '/.well-known/jwks.json' as const
 
-const url = v.pipe(v.string(), v.url())
-const credits = v.pipe(v.number(), v.integer(), v.minValue(0))
+/**
+ * Where a service answers, below the discovered `endpoint`. Model requests follow the OpenAI chat
+ * completions API, so an OpenAI-compatible client takes `${endpoint}${base}` as its base URL.
+ */
+export const CLOUD_AI_API_PATHS = {
+  base: '/v1',
+  chatCompletions: '/v1/chat/completions',
+  catalog: '/v1/catalog',
+  wallet: '/v1/wallet',
+  usage: '/v1/usage'
+} as const
+
+const urlSchema = v.pipe(v.string(), v.url())
+const creditsSchema = v.pipe(v.number(), v.integer(), v.minValue(0))
 
 export const cloudAIDiscoverySchema = v.object({
-  endpoint: url,
+  endpoint: urlSchema,
   contractVersion: v.literal(CLOUD_AI_CONTRACT_VERSION)
 })
 export type CloudAIDiscovery = v.InferOutput<typeof cloudAIDiscoverySchema>
 
-export const cloudBillingDiscoverySchema = v.object({ portalURL: url })
+export const cloudBillingDiscoverySchema = v.object({ portalURL: urlSchema })
 export type CloudBillingDiscovery = v.InferOutput<typeof cloudBillingDiscoverySchema>
 
 export const createAITokenSchema = v.object({ workspaceId: v.pipe(v.string(), v.uuid()) })
@@ -39,12 +51,12 @@ export type AIToken = v.InferOutput<typeof aiTokenSchema>
 
 /** What an AI service may rely on once a token's signature, issuer, audience, and expiry check. */
 export const aiTokenClaimsSchema = v.object({
-  iss: url,
+  iss: urlSchema,
   aud: v.literal(CLOUD_AI_TOKEN_AUDIENCE),
   sub: v.pipe(v.string(), v.minLength(1)),
   workspaceId: v.pipe(v.string(), v.uuid()),
   /** Credits the workspace's plan grants each month; `null` when Cloud sets no allowance. */
-  monthlyCreditAllowance: v.nullable(credits),
+  monthlyCreditAllowance: v.nullable(creditsSchema),
   iat: v.pipe(v.number(), v.integer()),
   exp: v.pipe(v.number(), v.integer())
 })
@@ -54,8 +66,8 @@ export const aiModelSchema = v.object({
   id: v.pipe(v.string(), v.minLength(1)),
   label: v.pipe(v.string(), v.minLength(1)),
   /** Credits per million input and output tokens. */
-  creditsPerMillionInputTokens: credits,
-  creditsPerMillionOutputTokens: credits,
+  creditsPerMillionInputTokens: creditsSchema,
+  creditsPerMillionOutputTokens: creditsSchema,
   contextTokens: v.pipe(v.number(), v.integer(), v.minValue(1)),
   capabilities: v.object({ reasoning: v.boolean(), vision: v.boolean(), tools: v.boolean() })
 })
@@ -69,13 +81,14 @@ export type AICatalog = v.InferOutput<typeof aiCatalogSchema>
 
 export const aiCreditBucketSchema = v.object({
   kind: v.picklist(['allowance', 'purchased', 'grant']),
-  remaining: credits,
+  remaining: creditsSchema,
   expiresAt: v.nullable(v.pipe(v.string(), v.isoTimestamp()))
 })
 export type AICreditBucket = v.InferOutput<typeof aiCreditBucketSchema>
 
 export const aiWalletSchema = v.object({
-  balance: credits,
+  /** Credits left to spend; `null` when the service sets no limit. */
+  balance: v.nullable(creditsSchema),
   /** Spent first to last. */
   buckets: v.array(aiCreditBucketSchema)
 })
@@ -87,9 +100,18 @@ export const aiUsageEntrySchema = v.object({
   kind: v.picklist(['model', 'image', 'search']),
   modelID: v.nullable(v.string()),
   userId: v.pipe(v.string(), v.minLength(1)),
-  credits
+  credits: creditsSchema
 })
 export type AIUsageEntry = v.InferOutput<typeof aiUsageEntrySchema>
+
+export const aiUsageQuerySchema = v.object({
+  cursor: v.optional(v.pipe(v.string(), v.minLength(1)))
+})
+export type AIUsageQuery = v.InferOutput<typeof aiUsageQuerySchema>
+
+export function parseAIUsageQuery(input: unknown): AIUsageQuery {
+  return v.parse(aiUsageQuerySchema, input)
+}
 
 export const aiUsagePageSchema = v.object({
   entries: v.array(aiUsageEntrySchema),

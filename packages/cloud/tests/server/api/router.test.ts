@@ -52,6 +52,12 @@ function services() {
       commitImageUploads: async () => {
         throw new Error('not used')
       },
+      imageLinks: async () => {
+        throw new Error('not used')
+      },
+      imageLinksShared: async () => {
+        throw new Error('not used')
+      },
       commitUpload: async () => {
         throw new Error('not used')
       }
@@ -117,6 +123,7 @@ function services() {
       list: notUsed,
       invite: notUsed,
       revokeInvitation: notUsed,
+      resendInvitation: notUsed,
       updateRole: notUsed,
       remove: notUsed,
       delete: notUsed,

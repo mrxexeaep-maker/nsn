@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 
-import { useCloudPortalMessages, useI18n } from '@open-pencil/vue'
+import { useCloudPortalMessages, useI18n } from '@open-pencil/vue/i18n'
 
 import { usePortal } from '@/app/cloud-portal/context'
 import { usePortalAction, usePortalLoad } from '@/app/cloud-portal/state'
@@ -30,7 +30,8 @@ const {
     reason: enrollment.reason,
     requestedOn: formatDate(enrollment.requestedAt, 'date', locale.value),
     status: enrollment.status,
-    reviewedBy: enrollment.reviewedBy
+    reviewedBy: enrollment.reviewedBy,
+    note: enrollment.reviewNote
   }))
 }, [])
 
@@ -38,8 +39,8 @@ const {
   subject: busy,
   error: reviewError,
   run: review
-} = usePortalAction(async (id: string, action: 'approve' | 'reject' | 'revoke') => {
-  await portal.api.reviewEnrollment(id, action)
+} = usePortalAction(async (id: string, action: 'approve' | 'reject' | 'revoke', note?: string) => {
+  await portal.api.reviewEnrollment(id, action, note)
   emit('changed')
   await reload()
 })
@@ -56,8 +57,8 @@ watch(filter, () => void reload())
       :requests="requests"
       :busy="busy"
       @approve="(id) => review(id, 'approve')"
-      @reject="(id) => review(id, 'reject')"
-      @revoke="(id) => review(id, 'revoke')"
+      @reject="(id, note) => review(id, 'reject', note)"
+      @revoke="(id, note) => review(id, 'revoke', note)"
     />
   </div>
 </template>

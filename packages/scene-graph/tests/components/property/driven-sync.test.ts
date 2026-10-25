@@ -1,10 +1,8 @@
 import { expect, test } from 'bun:test'
 
-import {
-  applyComponentPropertyValue,
-  recordInstanceOverride,
-  SceneGraph
-} from '@open-pencil/scene-graph'
+import { SceneGraph } from '@open-pencil/scene-graph'
+import { applyComponentPropertyValue } from '@open-pencil/scene-graph/components'
+import { recordInstanceOverride } from '@open-pencil/scene-graph/instances'
 
 function graphWithAssignedLabel() {
   const graph = new SceneGraph()

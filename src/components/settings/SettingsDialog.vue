@@ -3,7 +3,8 @@ import { tryOnScopeDispose } from '@vueuse/core'
 import { AlertDialogCancel, DialogClose } from 'reka-ui'
 import { computed } from 'vue'
 
-import { useI18n, useViewportKind } from '@open-pencil/vue'
+import { useViewportKind } from '@open-pencil/vue/editor/viewport-kind'
+import { useI18n } from '@open-pencil/vue/i18n'
 
 import { CLOUD_INCLUDED } from '@/app/cloud/integration'
 import {
@@ -17,6 +18,7 @@ import { CloudSettingsSection } from '@/components/cloud/integration'
 import ChatSettingsSection from '@/components/settings/chat/ChatSettingsSection.vue'
 import DiagnosticsSettingsPanel from '@/components/settings/diagnostics/DiagnosticsSettingsPanel.vue'
 import GeneralSettingsPanel from '@/components/settings/general/GeneralSettingsPanel.vue'
+import SettingsBreadcrumb from '@/components/settings/layout/SettingsBreadcrumb.vue'
 import SettingsPage from '@/components/settings/layout/SettingsPage.vue'
 import MCPWorkspacePanel from '@/components/settings/mcp/MCPWorkspacePanel.vue'
 import MediaSettingsPanel from '@/components/settings/media/MediaSettingsPanel.vue'
@@ -43,7 +45,7 @@ const { isMobile } = useViewportKind()
 const { settings, common } = useI18n()
 const navigation = provideSettingsNavigation()
 tryOnScopeDispose(registerSettingsNavigation(navigation.request))
-const { editing, confirming } = navigation
+const { editing, confirming, crumb } = navigation
 const sections = computed(
   () =>
     [
@@ -70,9 +72,12 @@ function onSectionChange(section: string | number): void {
 function onOpenChange(open: boolean): void {
   if (open) settingsDialogOpen.value = true
   else
-    navigation.request(() => {
-      settingsDialogOpen.value = false
-    })
+    navigation.request(
+      () => {
+        settingsDialogOpen.value = false
+      },
+      { closesWindow: true }
+    )
 }
 </script>
 
@@ -89,7 +94,18 @@ function onOpenChange(open: boolean): void {
       :heading="settings.title"
       :description="settings.description"
       :close-label="common.close"
-    />
+    >
+      <!-- An open editor turns the title into the path back to where it was opened from. On a
+           phone the section picker below already names the section, so the path starts at the
+           list. -->
+      <template v-if="crumb" #title>
+        <SettingsBreadcrumb
+          :steps="isMobile ? [crumb.parent] : [settings.title, crumb.parent]"
+          :current="crumb.title"
+          @back="navigation.back()"
+        />
+      </template>
+    </AppDialogHeader>
 
     <AppTabsRoot
       :model-value="settingsDialogSection"

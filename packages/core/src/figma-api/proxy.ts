@@ -1,11 +1,5 @@
-import {
-  attachedConnectors,
-  createsComponentCycle,
-  recordInstanceOverride,
-  slotPropertyId
-} from '@open-pencil/scene-graph'
 import type {
-  GroupFitOptions,
+  ArcData,
   HyperlinkTarget,
   SceneGraph,
   SceneNode,
@@ -15,8 +9,12 @@ import type {
   LayoutGrid,
   LayoutMode
 } from '@open-pencil/scene-graph'
+import { attachedConnectors } from '@open-pencil/scene-graph/connectors'
+import type { GroupFitOptions } from '@open-pencil/scene-graph/group-bounds'
+import { createsComponentCycle, recordInstanceOverride } from '@open-pencil/scene-graph/instances'
 import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
 import type { ShapeWithTextType } from '@open-pencil/scene-graph/shape-with-text'
+import { slotPropertyId } from '@open-pencil/scene-graph/slots'
 
 import { assertNodeEditable } from '#core/editor/capabilities'
 import type { FigmaEffect } from '#core/figma-api/effects'
@@ -25,6 +23,7 @@ import { prepareFollowedFieldEdit, fitGroupsAround } from './accessor-utils'
 import { installBasicNodeProxyAccessors } from './accessors/basic'
 import { installConnectorNodeProxyAccessors } from './accessors/connector'
 import { installLayoutNodeProxyAccessors } from './accessors/layout'
+import { installShapeNodeProxyAccessors } from './accessors/shape'
 import { installStickyNodeProxyAccessors, pluginChildren } from './accessors/sticky'
 import { installStrokeNodeProxyAccessors } from './accessors/strokes'
 import { installTextNodeProxyAccessors } from './accessors/text'
@@ -49,6 +48,7 @@ import type { FigmaFontName } from './fonts'
 import type { FigmaFrameNode, FigmaInstanceNode } from './node-types'
 import { installInstanceOverrideAccessors, type FigmaInstanceOverride } from './overrides'
 import { getPageBackgrounds, setPageBackgrounds } from './page-backgrounds'
+import { toFigmaPaint, type WithFigmaTransforms } from './paints'
 import { installPluginDataMethods, type PluginDataMethods } from './plugin-data'
 import { nodeProxyToJSON } from './serialization'
 import { installShapeWithTextAccessors } from './shape-with-text'
@@ -110,8 +110,8 @@ export class FigmaNodeProxy {
   declare readonly absoluteBoundingBox: Rect
   declare readonly absoluteRenderBounds: Rect | null
 
-  declare fills: readonly Fill[] | symbol
-  declare strokes: readonly Stroke[]
+  declare fills: readonly WithFigmaTransforms<Fill>[] | symbol
+  declare strokes: readonly WithFigmaTransforms<Stroke>[]
   declare effects: readonly FigmaEffect[]
   declare opacity: number
   declare visible: boolean
@@ -157,6 +157,9 @@ export class FigmaNodeProxy {
   declare constrainProportions: boolean
   declare lockAspectRatio: () => void
   declare unlockAspectRatio: () => void
+  declare pointCount: number
+  declare innerRadius: number
+  declare arcData: Readonly<ArcData>
   declare vectorPaths: readonly FigmaVectorPath[]
   declare vectorNetwork: FigmaVectorNetwork
   declare setVectorNetworkAsync: (vectorNetwork: FigmaVectorNetwork) => Promise<void>
@@ -180,6 +183,8 @@ export class FigmaNodeProxy {
   declare authorVisible: boolean | undefined
   declare isWideWidth: boolean | undefined
   declare shapeType: ShapeWithTextType | undefined
+  /** On pages alone, as in Figma. */
+  declare loadAsync: () => Promise<void>
   declare resetOverrides: () => void
 
   declare strokeWeight: number
@@ -269,13 +274,14 @@ export class FigmaNodeProxy {
     this[INTERNAL_ID] = id
     this[INTERNAL_GRAPH] = graph
     this[INTERNAL_API] = api
-    if (graph.getNode(id)?.type === 'VECTOR') {
-      installVectorNodeProxyAccessors(
-        this,
-        { id: INTERNAL_ID, graph: INTERNAL_GRAPH, api: INTERNAL_API },
-        MIXED
-      )
-    }
+    const type = graph.getNode(id)?.type
+    const internals = { id: INTERNAL_ID, graph: INTERNAL_GRAPH, api: INTERNAL_API }
+    if (type === 'VECTOR') installVectorNodeProxyAccessors(this, internals, MIXED)
+    if (type) installShapeNodeProxyAccessors(this, internals, type)
+    // Figma loads a page's layers on demand in dynamic-page mode and has `loadAsync` on pages
+    // alone; every page here is already loaded.
+    if (type === 'CANVAS')
+      Object.defineProperty(this, 'loadAsync', { value: () => Promise.resolve() })
   }
 
   private _update(changes: Partial<SceneNode>): void {
@@ -292,8 +298,12 @@ export class FigmaNodeProxy {
     return n
   }
 
-  insertCharacters(start: number, characters: string): void {
-    TextProxy.insertCharacters(this[INTERNAL_GRAPH], this._raw(), start, characters)
+  insertCharacters(
+    start: number,
+    characters: string,
+    useStyle: TextProxy.InsertStyleSource = 'BEFORE'
+  ): void {
+    TextProxy.insertCharacters(this[INTERNAL_GRAPH], this._raw(), start, characters, useStyle)
   }
 
   deleteCharacters(start: number, end: number): void {
@@ -307,6 +317,8 @@ export class FigmaNodeProxy {
   set isMask(v: boolean) {
     prepareFollowedFieldEdit(this[INTERNAL_GRAPH], this._raw(), 'isMask', 'is-mask')
     this._update({ isMask: v })
+    // A mask limits what its group spans.
+    fitGroupsAround(this[INTERNAL_GRAPH], this._raw().parentId, this[INTERNAL_API].groupFitOptions)
   }
 
   get maskType(): string {
@@ -330,12 +342,15 @@ export class FigmaNodeProxy {
 
   // --- Components ---
 
-  get backgrounds(): readonly Fill[] {
-    return getPageBackgrounds(this._raw())
+  get backgrounds(): readonly WithFigmaTransforms<Fill>[] {
+    return Object.freeze(getPageBackgrounds(this._raw()).map(toFigmaPaint))
   }
 
   set backgrounds(value: readonly FigmaPaint[]) {
-    setPageBackgrounds(this[INTERNAL_GRAPH], this._raw(), value.map(figmaPaintToFill))
+    const fills = value.map((paint, index) =>
+      figmaPaintToFill(paint, index, 'set_backgrounds', 'backgrounds')
+    )
+    setPageBackgrounds(this[INTERNAL_GRAPH], this._raw(), fills)
   }
 
   /** The async form Figma requires in dynamic-page mode; same result as mainComponent. */
@@ -436,7 +451,7 @@ export class FigmaNodeProxy {
     )
     prepareSlotMove(this[INTERNAL_GRAPH], this[INTERNAL_ID], child[INTERNAL_ID], 'insertChild')
     this._reparentAndFit(child[INTERNAL_ID])
-    this[INTERNAL_GRAPH].reorderChild(child[INTERNAL_ID], this[INTERNAL_ID], index)
+    this[INTERNAL_GRAPH].insertChildAt(child[INTERNAL_ID], this[INTERNAL_ID], index)
   }
 
   clone(): FigmaNodeProxy {

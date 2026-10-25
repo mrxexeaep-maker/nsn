@@ -4,12 +4,12 @@ import { guidToString, isUnsetGuid } from '@open-pencil/kiwi/fig/guid'
 import {
   DEFAULT_FONT_FAMILY,
   DEFAULT_STROKE_MITER_LIMIT,
-  DEFAULT_STROKE_WEIGHT,
-  getNodeLocalMatrix,
-  OPEN_PENCIL_PLUGIN_DATA,
-  styleToWeight
-} from '@open-pencil/scene-graph'
+  DEFAULT_STROKE_WEIGHT
+} from '@open-pencil/scene-graph/constants'
+import { getNodeLocalMatrix } from '@open-pencil/scene-graph/coordinate'
+import { styleToWeight } from '@open-pencil/scene-graph/font-style'
 import { createDefaultSourceMetadata } from '@open-pencil/scene-graph/node-defaults'
+import { OPEN_PENCIL_PLUGIN_DATA } from '@open-pencil/scene-graph/plugin-data'
 import { POINT_COUNT_RANGE } from '@open-pencil/scene-graph/polygon'
 import { isShapeWithTextType } from '@open-pencil/scene-graph/shape-with-text'
 import { parseVariantName } from '@open-pencil/scene-graph/variant-name'
@@ -79,12 +79,10 @@ import type {
   ComponentPropertyType,
   SymbolLink,
   VariantPropSpec,
-  VariableModeMap,
-  Vector
+  VariableModeMap
 } from '@open-pencil/scene-graph'
-import type { GUID } from '@open-pencil/scene-graph/primitives'
+import type { Vector, GUID } from '@open-pencil/scene-graph/primitives'
 
-export { guidToString, stringToGuid } from '@open-pencil/kiwi/fig/guid'
 import { numericVariableAssignmentScales, sourceVariableBindingScales } from './variable/bindings'
 export { VARIABLE_BINDING_FIELDS, VARIABLE_BINDING_FIELDS_INVERSE } from './variable/bindings'
 
@@ -367,6 +365,7 @@ type TextProps = Pick<
   | 'hangingList'
   | 'styleRuns'
   | 'fontVariations'
+  | 'opticalSizeFromFontSize'
   | 'fontFeatures'
   | 'textTruncation'
   | 'textDirection'
@@ -454,6 +453,7 @@ function convertTextProps(nc: NodeChange, blobs: Uint8Array[]): TextProps {
     ...convertParagraphProps(nc),
     styleRuns: importStyleRuns(nc),
     fontVariations: convertFontVariations(nc),
+    opticalSizeFromFontSize: nc.detachOpticalSizeFromFontSize !== true,
     fontFeatures: convertFontFeatures(nc),
     textTruncation: (nc.textTruncation as string) === 'ENDING' ? 'ENDING' : 'DISABLED',
     textDirection: readNodeChangePluginData(nc, OPEN_PENCIL_PLUGIN_DATA.textDirection) ?? 'AUTO',
@@ -741,7 +741,11 @@ export function nodeChangeToProps(
     maxHeight: maximumSizeDimension(nc.maxSize, 'y'),
     targetAspectRatio: targetAspectRatio(nc),
     isMask: nc.mask ?? false,
-    maskType: (nc.maskType ?? 'ALPHA') as 'ALPHA' | 'VECTOR' | 'LUMINANCE',
+    // A .fig file stores a vector mask as OUTLINE.
+    maskType: (nc.maskType === 'OUTLINE' ? 'VECTOR' : (nc.maskType ?? 'ALPHA')) as
+      | 'ALPHA'
+      | 'VECTOR'
+      | 'LUMINANCE',
     maskIsOutline: nc.maskIsOutline ?? false,
     expanded: true,
     autoRename: (nc.autoRename ?? true) as boolean,
@@ -1205,6 +1209,7 @@ export const FIGMA_RAW_NODE_FIELD_KEYS = [
   'textUserLayoutVersion',
   'textExplicitLayoutVersion',
   'fontVariations',
+  'detachOpticalSizeFromFontSize',
   'fontVariantCommonLigatures',
   'fontVariantContextualLigatures',
   'toggledOnOTFeatures',

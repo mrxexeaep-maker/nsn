@@ -10,6 +10,10 @@ Optional, self-hostable backend; the design is in `packages/docs/development/clo
 
 ## Data and security
 
+- Sign-ins are recorded by the `accountActivity` Better Auth plugin from the hook context's `newSession`, never by parsing tokens from responses (`src/server/auth/activity.ts`).
+- Code inside Better Auth's own callbacks must not query the database, which deadlocks its transaction on one connection (`tests/integration/server/account/routes.test.ts`).
+- Name a table for what it holds, without a `cloud_` prefix; only a name Better Auth already uses gets a qualifier, such as `api_rate_limit` (`src/server/db/migrations/025_table_names.ts`).
+- Renaming a table that shipped migrations query gives them a type under the name they ran with, so their SQL stays the same (`LegacyAuthSchemaDatabase` in `src/server/db/migrations/helpers.ts`).
 - Database rows use `crypto.randomUUID()`; secrets that leave the server use `randomHex` from `@open-pencil/scene-graph/random`, are stored as SHA-256 digests (a single-use OAuth continuation keeps a JWE copy), and travel in URL fragments (`src/server/sharing/capabilities/service.ts`).
 - Every HTTP body goes through `validatedJSON` with a contract schema, and every response the client reads is parsed with Valibot (`src/server/validation.ts`, `src/client/api.ts`).
 - A revision's images live in `revision_image`; code that makes a revision from another copies them with `copyRevisionImages`, and a storage object a `workspace_image` holds is never unreferenced (`src/server/documents/images.ts`, `tests/integration/server/documents/images.test.ts`).
@@ -24,9 +28,18 @@ Optional, self-hostable backend; the design is in `packages/docs/development/clo
 - Decoders must consume exactly the frame's bytes and copy payloads out, since socket buffers are pooled (`src/contract/relay.ts`, `tests/contract/relay.test.ts`).
 - Send frames through `relayServerMessages` and `relayClientMessages`, which split anything past `RELAY_FRAGMENT_BYTES` into fragments, and read sockets through the matching assemblers; never send an encoded frame whole (`tests/server/collaboration/relay/hub.test.ts`).
 
+## AI relay
+
+- The reference AI service in `src/ai-relay/` is runtime-neutral like `src/server`; runtimes own listening and keys (`src/runtime/node/ai-relay/server.ts`).
+- It speaks only the contract in `src/contract/ai.ts` (`tests/contract/ai.test.ts`).
+- It trusts nothing about a request beyond a token that verifies against Cloud's keys (`tests/integration/ai-relay/app.test.ts`).
+- It forwards only the chat completion fields in `FORWARDED_FIELDS`, so routing fields cannot reach models outside the catalog (`tests/integration/ai-relay/app.test.ts`).
+- The relay's tables are `ai_relay_*` with their own migration history, so it can share Cloud's database (`src/ai-relay/db/migrate.ts`).
+- Neither the relay nor Cloud reads the other's tables (`src/ai-relay/db/schema.ts`).
+
 ## Portal
 
-- The portal's pages live in the app (`cloud.html`, `src/views/cloud/`, `src/components/cloud-portal/`); this package owns only their paths (`src/contract/portal.ts`) and serving them (`src/runtime/node/portal.ts`). Links the server sends to people point at portal paths on `publicURL`; only the editor itself is on `appURL` (`src/admin/enrollment/email.ts`).
+- The portal's pages live in the app (`cloud.html`, `src/views/cloud/`, `src/components/cloud-portal/`); this package owns only their paths (`src/contract/portal.ts`) and serving them beside the editor (`src/runtime/site/server.ts`). Links the server sends to people point at `publicURL`, its editor and portal alike (`src/contract/links.ts`, `src/admin/enrollment/email.ts`).
 
 ## Configuration
 
@@ -36,6 +49,6 @@ Optional, self-hostable backend; the design is in `packages/docs/development/clo
 
 ## Tests
 
-- Unit tests mirror `src` under `tests/{client,contract,runtime,server}`; integration tests mirror `src` under `tests/integration` and run on PGlite through `tests/helpers/database.ts`; `tests/e2e` holds Docker Compose runners that `test` never starts.
+- Unit tests mirror `src` under `tests/{ai-relay,client,contract,email,runtime,server}`; integration tests mirror `src` under `tests/integration` and run on PGlite through `tests/helpers/database.ts`; `tests/e2e` holds Docker Compose runners that `test` never starts.
 - Tests import source through `#cloud/*` and helpers through `#cloud-tests/*`, and read responses with `responseJSON` from `tests/helpers/response.ts`.
 - `bun run test:cloud` type-checks the package and runs unit and integration suites.

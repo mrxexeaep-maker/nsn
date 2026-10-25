@@ -2,7 +2,8 @@
 import { computedAsync, useLocalStorage, useOnline } from '@vueuse/core'
 import { computed, shallowRef, watch } from 'vue'
 
-import { useCloudMessages, useDocumentWorkspace, useI18n } from '@open-pencil/vue'
+import { useDocumentWorkspace } from '@open-pencil/vue/document/workspace'
+import { useCloudMessages, useI18n } from '@open-pencil/vue/i18n'
 
 import { cloudSyncState } from '@/app/cloud/documents/status'
 import { findCloudServer } from '@/app/cloud/servers/store'
@@ -140,7 +141,9 @@ function reviewConflicts() {
 
 function open(row: CloudDocumentRow) {
   const document = listed.value.find((candidate) => candidate.id === row.id)
-  if (document) void openStorageDocumentInNewTab(document, location.value)
+  if (!document) return
+  // Opening reports its own failure.
+  void openStorageDocumentInNewTab(document, location.value).catch(() => undefined)
 }
 </script>
 

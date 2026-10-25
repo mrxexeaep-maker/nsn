@@ -73,11 +73,6 @@
       "import": "./dist/design-jsx/index.js",
       "default": "./dist/design-jsx/index.js"
     },
-    "./editor": {
-      "types": "./dist/editor/index.d.ts",
-      "import": "./dist/editor/index.js",
-      "default": "./dist/editor/index.js"
-    },
     "./tools": {
       "types": "./dist/tools/index.d.ts",
       "import": "./dist/tools/index.js",
@@ -114,6 +109,11 @@
       "import": "./dist/io/formats/fig/index.js",
       "default": "./dist/io/formats/fig/index.js"
     },
+    "./io/formats/html": {
+      "types": "./dist/io/formats/html/index.d.ts",
+      "import": "./dist/io/formats/html/index.js",
+      "default": "./dist/io/formats/html/index.js"
+    },
     "./io/formats/html/import": {
       "types": "./dist/io/formats/html/import.d.ts",
       "import": "./dist/io/formats/html/import.js",
@@ -138,11 +138,6 @@
       "types": "./dist/io/formats/svg/index.d.ts",
       "import": "./dist/io/formats/svg/index.js",
       "default": "./dist/io/formats/svg/index.js"
-    },
-    "./kiwi": {
-      "types": "./dist/kiwi/index.d.ts",
-      "import": "./dist/kiwi/index.js",
-      "default": "./dist/kiwi/index.js"
     },
     "./clipboard": {
       "types": "./dist/clipboard.d.ts",
@@ -185,6 +180,7 @@
     "@iconify/utils": "^3.1.4",
     "@open-pencil/design-jsx": "workspace:*",
     "@open-pencil/dom-css": "workspace:*",
+    "@open-pencil/drawio": "workspace:*",
     "@open-pencil/fig": "workspace:*",
     "@open-pencil/kiwi": "workspace:*",
     "@open-pencil/pen": "workspace:*",
@@ -207,6 +203,7 @@
     "nanoevents": "^9.1.0",
     "ofetch": "^1.5.1",
     "opentype.js": "^2.0.0",
+    "parse5": "^8.0.1",
     "pixelmatch": "^7.2.0",
     "pptxgenjs": "^4.0.1",
     "rbush": "^4.0.1",
@@ -214,8 +211,9 @@
     "svg2pdf.js": "^2.8.1",
     "svgpath": "^2.6.0",
     "twirlwind": "^0.4.1",
-    "unifont": "0.7.4",
+    "unifont": "1.0.3",
     "valibot": "^1.5.0",
+    "woff2-encoder": "2.0.0",
     "yoga-layout": "npm:@open-pencil/yoga-layout@3.3.0-grid.3"
   },
   "devDependencies": {
@@ -226,5 +224,13 @@
     "@types/rbush": "^4.0.0",
     "typescript": "~5.8.3",
     "unplugin-raw": "^0.7.0"
+  },
+  "peerDependencies": {
+    "ai": "^7.0.127"
+  },
+  "peerDependenciesMeta": {
+    "ai": {
+      "optional": true
+    }
   }
 }

@@ -2,13 +2,15 @@ import { beforeAll, expect, test } from 'bun:test'
 
 import { expectDefined } from '#core-tests/helpers/assert'
 
-import { exportFigFile, initCodec, parseFigFile, SceneGraph } from '@open-pencil/core'
+import { exportFigFile, parseFigFile } from '@open-pencil/core/io/formats/fig'
 import { fontManager } from '@open-pencil/core/text'
+import { initCodec } from '@open-pencil/kiwi/fig/codec'
+import { SceneGraph } from '@open-pencil/scene-graph'
 
 beforeAll(async () => {
   await initCodec()
   const inter = expectDefined(
-    await fontManager.fetchBundledFont('/Inter-Regular.ttf'),
+    await fontManager.fetchBundledFont('/InterVariable.ttf'),
     'bundled Inter font'
   )
   fontManager.markLoaded('Inter', 'Regular', inter)

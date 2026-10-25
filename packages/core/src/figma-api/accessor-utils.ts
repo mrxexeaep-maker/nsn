@@ -1,14 +1,11 @@
 import { isEqual } from 'es-toolkit/predicate'
 
-import {
-  fitEnclosingGroups,
-  FITTED_CONTAINER_TYPES,
-  claimSlotContent,
-  connectorSublayers,
-  recordInstanceOverride,
-  slotScope
-} from '@open-pencil/scene-graph'
-import type { GroupFitOptions, SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import { connectorSublayers } from '@open-pencil/scene-graph/connectors'
+import { fitEnclosingGroups, type GroupFitOptions } from '@open-pencil/scene-graph/group-bounds'
+import { recordInstanceOverride } from '@open-pencil/scene-graph/instances'
+import { FITTED_CONTAINER_TYPES } from '@open-pencil/scene-graph/node-defaults'
+import { claimSlotContent, slotScope } from '@open-pencil/scene-graph/slots'
 
 import { assertNodeEditable } from '#core/editor/capabilities'
 import type { NodeProxyHost } from '#core/figma-api/proxy'
@@ -85,8 +82,9 @@ export function prepareFollowedFieldEdit(
   if (scope.kind === 'slot') claimSlotContent(scene, scope)
 }
 
-/** Fields whose change can move a node's bounds, so the groups around it refit. */
+/** Fields whose change can move a node's bounds or drop it from its group's, so groups refit. */
 const GEOMETRY_FIELDS: ReadonlySet<string> = new Set([
+  'visible',
   'x',
   'y',
   'width',

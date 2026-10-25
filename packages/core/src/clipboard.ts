@@ -3,23 +3,21 @@ import {
   encodeFigmaClipboard,
   type FigmaClipboardAssetType
 } from '@open-pencil/fig/clipboard'
-import { randomInt } from '@open-pencil/scene-graph/random'
-export {
-  parseFigmaClipboard,
-  figmaNodesBounds,
-  type FigmaClipboardAssetType
-} from '@open-pencil/fig/clipboard'
-import { placeSlotContent, type FigNodeChangeExportRuntime } from '@open-pencil/fig/node-change'
-import { initCodec } from '@open-pencil/kiwi/fig/codec'
-import type { GUID, NodeChange as KiwiNodeChange } from '@open-pencil/kiwi/fig/codec'
 import {
-  derivedAssetKey,
-  derivedAssetVersion,
-  ownsSlotContent,
-  type SceneGraph,
-  type SceneNode
-} from '@open-pencil/scene-graph'
+  placeSlotContent,
+  relinkConnectorEnds,
+  type FigNodeChangeExportRuntime,
+  sceneNodeToKiwi,
+  makeDocumentNodeChange,
+  makeCanvasNodeChange
+} from '@open-pencil/fig/node-change'
+import type { GUID } from '@open-pencil/kiwi/fig'
+import { initCodec, type NodeChange as KiwiNodeChange } from '@open-pencil/kiwi/fig/codec'
+import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import { derivedAssetKey, derivedAssetVersion } from '@open-pencil/scene-graph/asset-keys'
 import { fractionalPosition } from '@open-pencil/scene-graph/order-keys'
+import { randomInt } from '@open-pencil/scene-graph/random'
+import { ownsSlotContent } from '@open-pencil/scene-graph/slots'
 
 import {
   collectComponentPropertyIds,
@@ -34,12 +32,7 @@ import {
 
 import { withFigExportRuntime } from './canvas/text/shape'
 import { prepareClipboardImport } from './clipboard/fig-import'
-import {
-  sceneNodeToKiwi,
-  makeDocumentNodeChange,
-  makeCanvasNodeChange,
-  buildFontDigestMap
-} from './kiwi/fig/node-change/serialize'
+import { buildFontDigestMap } from './kiwi/fig/node-change/serialize'
 import { cloneSceneGraphForFigExport } from './kiwi/fig/parse/transfer'
 
 export async function prefetchFigmaSchema(): Promise<void> {
@@ -238,6 +231,8 @@ async function writeFigmaClipboardHTML(
   ).length
   placeSlotContent(slotContentRecords, dependencyCanvas, written, fractionalPosition)
   nodeChanges.push(...slotContentRecords)
+  // A connector copied before a layer its end joins is joined to it now that both have GUIDs.
+  relinkConnectorEnds(nodeChanges, graph, nodeIdToGuid)
   // Pair each text record with the node it was written from; instance content and slot
   // content are not emitted in traversal order.
   const textById = new Map(exportedTextNodes.map((node) => [node.id, node]))

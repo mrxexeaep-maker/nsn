@@ -3,7 +3,7 @@ import { AlertDialogCancel, AlertDialogDescription, AlertDialogTitle } from 'rek
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
-import { useI18n } from '@open-pencil/vue'
+import { useI18n } from '@open-pencil/vue/i18n'
 
 import type { RecoverySnapshotMeta } from '@/app/document/recovery'
 import { recoveryEnabled } from '@/app/document/recovery/preferences'
@@ -25,12 +25,18 @@ const dates = useDateFormat()
 const updatedLabel = (snapshot: RecoverySnapshotMeta) =>
   dates.format(snapshot.updatedAt, 'dateTime')
 
+/** Drops a handled snapshot; the last one stays listed while the dialog animates closed. */
+function settle(snapshot: RecoverySnapshotMeta): void {
+  const remaining = snapshots.value.filter((candidate) => candidate.id !== snapshot.id)
+  if (remaining.length === 0) open.value = false
+  else snapshots.value = remaining
+}
+
 async function restore(snapshot: RecoverySnapshotMeta): Promise<void> {
   busyId.value = snapshot.id
   try {
     await restoreRecoverySnapshot(snapshot.id)
-    snapshots.value = snapshots.value.filter((candidate) => candidate.id !== snapshot.id)
-    if (snapshots.value.length === 0) open.value = false
+    settle(snapshot)
   } catch (error) {
     toast.error(
       notifications.value.operationFailed({
@@ -46,8 +52,7 @@ async function discard(snapshot: RecoverySnapshotMeta): Promise<void> {
   busyId.value = snapshot.id
   try {
     await discardRecoverySnapshot(snapshot.id)
-    snapshots.value = snapshots.value.filter((candidate) => candidate.id !== snapshot.id)
-    if (snapshots.value.length === 0) open.value = false
+    settle(snapshot)
   } finally {
     busyId.value = null
   }

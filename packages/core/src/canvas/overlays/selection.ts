@@ -1,10 +1,11 @@
 import type { Canvas } from 'canvaskit-wasm'
 
-import { layerRotates, slotPropertyId } from '@open-pencil/scene-graph'
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import { layerRotates } from '@open-pencil/scene-graph/generated'
 import { computeBounds, rotatedCorners } from '@open-pencil/scene-graph/geometry'
 import Matrix from '@open-pencil/scene-graph/matrix'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
+import { slotPropertyId } from '@open-pencil/scene-graph/slots'
 
 import { drawConnectorHover, drawConnectorSelection } from '#core/canvas/overlays/connectors'
 import type { RenderOverlays, SkiaRenderer } from '#core/canvas/renderer'
@@ -118,7 +119,9 @@ function drawSingleSelection(
 
   const rotation = node.rotation
   if (node.type === 'CONNECTOR') {
-    drawConnectorSelection(r, canvas, graph, node, preview)
+    // While its label is typed into, FigJam shows only the label's box.
+    const label = overlays.editingTextId ? graph.getNode(overlays.editingTextId) : undefined
+    if (label?.parentId !== node.id) drawConnectorSelection(r, canvas, graph, node, preview)
   } else if (isPathText) {
     drawTextPathSelection(r, canvas, node, rotation, graph, editing, preview)
     if (!editing) r.drawSelectionLabels(canvas, graph, selectedIds, overlays)

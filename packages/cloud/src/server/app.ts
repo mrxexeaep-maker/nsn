@@ -14,13 +14,14 @@ import {
   type CloudDiscovery
 } from '#cloud/contract'
 import { createAccountRoutes } from '#cloud/server/account/routes'
-import { createAIRoutes, createAITokenService, type AISigningKey } from '#cloud/server/ai'
+import { createAITokenService, type AISigningKey } from '#cloud/server/ai'
 import {
   createCloudAPIRouter,
   createPublicCloudAPIRouter,
   type CloudAPIEnvironment
 } from '#cloud/server/api'
 import {
+  createAuthenticationEmailService,
   createCloudIdentityResolver,
   createCloudSessionResolver,
   type CloudAuthAdapter,
@@ -41,12 +42,10 @@ import { createInternalRoutes, createInternalService } from '#cloud/server/inter
 import type { InvitationDelivery, InvitationOutbox } from '#cloud/server/invitations'
 import type { ObjectStore } from '#cloud/server/objects'
 import {
+  createConfiguredCloudPolicy,
   createDefaultCloudPolicy,
   createEntitlementService,
-  DatabaseEntitlementSource,
   EntitlementOpenFeatureProvider,
-  StaticEntitlementSource,
-  staticEntitlementValues,
   type CloudPolicy,
   type EntitlementSource
 } from '#cloud/server/policy'
@@ -172,26 +171,26 @@ export function createCloudApp(services: CloudServices) {
   const workspaces = createWorkspaceService(services.database)
   const workspaceMembers = createWorkspaceMemberService(services.database, {
     email: services.transactionalEmail,
-    publicURL: services.config.publicURL,
-    appURL: services.config.appURL ?? services.config.publicURL
+    publicURL: services.config.publicURL
   })
   const enrollment =
     services.enrollment ??
     createEnrollmentService(services.database, {
-      appURL: services.config.appURL ?? services.config.publicURL,
-      portalURL: services.config.publicURL,
+      publicURL: services.config.publicURL,
       adminRecipients: services.config.enrollmentAdminNotificationEmails,
       email: services.transactionalEmail
     })
   const admin = createCloudAdminRoutes(
     {
       email: createAdminEmailService(services.database, services.transactionalEmail, {
-        appURL: services.config.appURL ?? services.config.publicURL,
-        portalURL: services.config.publicURL
+        publicURL: services.config.publicURL
       }),
       enrollment,
       users: createAdminUserService(services.database, services.auth, {
-        requireMFA: services.config.deploymentAdminMFARequired
+        requireMFA: services.config.deploymentAdminMFARequired,
+        notify: services.transactionalEmail
+          ? createAuthenticationEmailService(services.transactionalEmail, services.config.publicURL)
+          : undefined
       }),
       audit: createAdminAuditService(services.database),
       operations: createAdminOperationsService(services.database, services.config)
@@ -204,14 +203,11 @@ export function createCloudApp(services: CloudServices) {
       requireMFA: services.config.deploymentAdminMFARequired
     }
   )
-  const entitlementSource =
-    services.entitlementSource ??
-    (services.config.staticEntitlements
-      ? new StaticEntitlementSource(staticEntitlementValues(services.config.staticEntitlements))
-      : new DatabaseEntitlementSource(services.database))
   const policy =
     services.policy ??
-    createDefaultCloudPolicy(new EntitlementOpenFeatureProvider(entitlementSource))
+    (services.entitlementSource
+      ? createDefaultCloudPolicy(new EntitlementOpenFeatureProvider(services.entitlementSource))
+      : createConfiguredCloudPolicy(services.config, services.database))
   const documents = createDocumentService(services.database, services.objects, {
     policy,
     technicalMaximumUploadBytes: services.config.technicalLimits.maximumUploadBytes,
@@ -234,7 +230,6 @@ export function createCloudApp(services: CloudServices) {
     outbox: services.invitationOutbox,
     continuationSecret: services.config.authSecret,
     publicURL: services.config.publicURL,
-    appURL: services.config.appURL ?? services.config.publicURL,
     policy,
     deploymentMode: services.config.deployment,
     workspaceInvitations: workspaceMembers
@@ -317,6 +312,7 @@ export function createCloudApp(services: CloudServices) {
     documents,
     versions,
     entitlements,
+    aiTokens,
     sharing,
     workspaces,
     workspaceMembers,
@@ -411,10 +407,6 @@ export function createCloudApp(services: CloudServices) {
     .use('/api/*', requireActiveSession)
     .route('/api/admin', admin)
     .use('/api/*', authenticatedMutationLimiter)
-    .route(
-      '/api',
-      createAIRoutes(aiTokens, { database: services.database, secret: services.config.authSecret })
-    )
     .route('/api', cloudAPI)
 }
 

@@ -10,13 +10,16 @@ export {
   aiTokenSchema,
   aiUsageEntrySchema,
   aiUsagePageSchema,
+  aiUsageQuerySchema,
   aiWalletSchema,
+  CLOUD_AI_API_PATHS,
   CLOUD_AI_CONTRACT_VERSION,
   CLOUD_AI_JWKS_PATH,
   CLOUD_AI_TOKEN_AUDIENCE,
   cloudAIDiscoverySchema,
   cloudBillingDiscoverySchema,
   createAITokenSchema,
+  parseAIUsageQuery,
   parseCreateAIToken,
   type AICatalog,
   type AICreditBucket,
@@ -27,6 +30,7 @@ export {
   type AITokenClaims,
   type AIUsageEntry,
   type AIUsagePage,
+  type AIUsageQuery,
   type AIWallet,
   type CloudAIDiscovery,
   type CloudBillingDiscovery,
@@ -34,8 +38,10 @@ export {
 } from './ai'
 export * from './admin'
 export {
+  cloudPresenceSchema,
   collaborationPrincipalSchema,
   collaborationTicketSchema,
+  type CloudPresence,
   type CollaborationPrincipal,
   type CollaborationTicket
 } from './collaboration'
@@ -50,6 +56,7 @@ export {
   cloudDiscoverySchema,
   cloudEditorVersionSchema,
   cloudListingSchema,
+  cloudServerOrigin,
   parseCloudDiscovery,
   type CloudAuthentication,
   type CloudCapabilities,
@@ -71,6 +78,7 @@ export {
   documentAccessSourceSchema,
   documentDownloadSchema,
   documentImageDownloadSchema,
+  documentImageLinkSchema,
   documentPermissionSchema,
   imageUploadOfferSchema,
   objectUploadSchema,
@@ -78,11 +86,14 @@ export {
   sharedDocumentSchema,
   type SharedDocument,
   workspaceUsageSchema,
+  isCloudChecksum,
   parseCommitImageUploads,
   parseCommitUpload,
   parseCreateDocument,
   parseCreateUpload,
+  parseRequestImageLinks,
   parseRequestImageUploads,
+  requestImageLinksSchema,
   requestImageUploadsSchema,
   type CloudActorContract,
   type CloudSession,
@@ -95,8 +106,10 @@ export {
   type DocumentAccessSource,
   type DocumentDownload,
   type DocumentImageDownload,
+  type DocumentImageLink,
   type DocumentPermission,
   type DocumentSummary,
+  type RequestImageLinksInput,
   type ImageUploadOffer,
   type ObjectUploadTarget,
   type RequestImageUploadsInput,
@@ -121,9 +134,11 @@ export {
   parseCreateDocumentShare,
   parseLookupCloudUser,
   parsePutDocumentGrant,
+  parseRequestSharedImageLinks,
   parseResolveDocumentShare,
   parseUpdateDocumentShare,
   putDocumentGrantSchema,
+  requestSharedImageLinksSchema,
   resolveDocumentShareSchema,
   resolvedDocumentShareSchema,
   updateDocumentShareSchema,
@@ -140,6 +155,7 @@ export {
   type InvitationPreview,
   type LookupCloudUserInput,
   type PutDocumentGrantInput,
+  type RequestSharedImageLinksInput,
   type ResolveDocumentShareInput,
   type ResolvedDocumentShare,
   type UpdateDocumentShareInput
@@ -178,7 +194,9 @@ export {
   cloudDocumentURL,
   cloudInvitationURL,
   cloudShareURL,
-  type CloudLinkKind
+  parseCloudLinkPath,
+  type CloudLinkKind,
+  type CloudLinkPathKind
 } from './links'
 export { CLOUD_PORTAL_PAGE_ROOTS, isCloudPortalPage } from './portal'
 export * from './versions'

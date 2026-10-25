@@ -1,6 +1,6 @@
 import { BLACK } from '../constants'
 import type { GeneratedFrameKind } from '../generated/kind'
-import type { SceneGraph } from '../index'
+import type { SceneGraph } from '../graph'
 import type { Color, Vector } from '../primitives'
 import type { ConnectorEndpoint, Fill, SceneNode, Stroke, VectorNetwork } from '../types'
 
@@ -190,4 +190,12 @@ export function boundEndpoint(
   magnet: ConnectorEndpoint['magnet'] = 'AUTO'
 ): ConnectorEndpoint {
   return { nodeId, magnet, position: { x: 0, y: 0 } }
+}
+
+/** The connector whose label `node` is, if it is one. */
+export function labelledConnector(graph: SceneGraph, node: SceneNode): SceneNode | null {
+  if (node.type !== 'TEXT' || !node.parentId) return null
+  const owner = graph.getNode(node.parentId)
+  if (owner?.type !== 'CONNECTOR') return null
+  return connectorSublayers(graph, owner)?.label.id === node.id ? owner : null
 }

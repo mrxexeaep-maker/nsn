@@ -1,9 +1,11 @@
+import { isSVGFile } from '@open-pencil/scene-graph/images'
+
 import type {
   ImageAttachmentMediaType,
   PreparedImageAttachment
 } from '@/app/ai/attachment/image/types'
 import { IMAGE_ATTACHMENT_MEDIA_TYPES } from '@/app/ai/attachment/image/types'
-import { boundedImageScale } from '@/app/ai/tools/vision'
+import { boundedImageScale } from '@/app/ai/tools/vision/inspect'
 
 const MAX_IMAGE_FILE_BYTES = 20 * 1024 * 1024
 const MAX_IMAGE_PIXELS = 40_000_000
@@ -56,13 +58,6 @@ function canvasToBlob(
       quality
     )
   })
-}
-
-/** Whether a file is an SVG image, which some systems report without a media type. */
-export function isSVGFile(file: File): boolean {
-  return (
-    file.type === 'image/svg+xml' || (file.type === '' && file.name.toLowerCase().endsWith('.svg'))
-  )
 }
 
 /** Whether a file can be attached as an image, as it is or after drawing an SVG as PNG. */

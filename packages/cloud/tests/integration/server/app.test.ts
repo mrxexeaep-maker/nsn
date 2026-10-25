@@ -131,7 +131,7 @@ describe('createCloudApp', () => {
       })
       expect(
         await runtime.database
-          .selectFrom('cloudEnrollment')
+          .selectFrom('enrollment')
           .select(['emailNormalized', 'status'])
           .executeTakeFirstOrThrow()
       ).toEqual({ emailNormalized: 'pending@example.com', status: 'pending' })
@@ -322,7 +322,7 @@ describe('createCloudApp', () => {
       expect(authCalls).toBe(8)
       expect(
         await runtime.database
-          .selectFrom('cloudRateLimit')
+          .selectFrom('apiRateLimit')
           .select(({ fn }) => fn.countAll<number>().as('count'))
           .executeTakeFirstOrThrow()
       ).toEqual({ count: 0 })
@@ -368,7 +368,7 @@ describe('createCloudApp', () => {
       deployment: 'self-hosted',
       apiURL: 'https://pencil.example.com/api',
       authURL: 'https://pencil.example.com/api/auth',
-      appURL: 'https://pencil.example.com',
+      localEditor: true,
       authentication: {
         socialProviders: ['google'],
         enterpriseSSO: false,

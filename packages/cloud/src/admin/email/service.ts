@@ -1,6 +1,6 @@
-import { ADMIN_LIST_MAXIMUM } from '#cloud/admin/contracts'
 import type { EnrollmentStatus } from '#cloud/admin/enrollment/service'
 import { AdminDomainError } from '#cloud/admin/errors'
+import { ADMIN_LIST_MAXIMUM } from '#cloud/admin/schema'
 import type { CloudDatabase } from '#cloud/server/db'
 import type { TransactionalEmailService } from '#cloud/server/email'
 import { clamp } from 'es-toolkit'
@@ -17,7 +17,7 @@ const ENROLLMENT_MESSAGE_STATUS: Partial<Record<string, EnrollmentStatus>> = {
 export function createAdminEmailService(
   database: Kysely<CloudDatabase>,
   email?: TransactionalEmailService,
-  links: { appURL: string; portalURL: string } = { appURL: '', portalURL: '' }
+  links: { publicURL: string } = { publicURL: '' }
 ) {
   return {
     async list(limit = 100) {
@@ -61,7 +61,7 @@ export function createAdminEmailService(
         }
         const kind = original.kind
         const enrollment = await transaction
-          .selectFrom('cloudEnrollment')
+          .selectFrom('enrollment')
           .selectAll()
           .where('emailNormalized', '=', original.recipientEmailNormalized)
           .executeTakeFirst()
@@ -82,14 +82,14 @@ export function createAdminEmailService(
               name: enrollment.name ?? 'there',
               actionURL:
                 kind === 'enrollment-approved'
-                  ? links.appURL
-                  : new URL('/auth/sign-in', links.portalURL).href
+                  ? links.publicURL
+                  : new URL('/auth/sign-in', links.publicURL).href
             }
           },
           transaction
         )
         await transaction
-          .insertInto('cloudAdminAuditEvent')
+          .insertInto('adminAuditEvent')
           .values({
             id: crypto.randomUUID(),
             actorUserId: actorId,

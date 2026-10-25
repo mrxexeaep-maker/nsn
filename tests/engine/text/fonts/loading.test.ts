@@ -9,14 +9,16 @@ import {
   fontWeightMatchOrder,
   fontManager,
   isVariableFont,
+  FontManager
+} from '@open-pencil/core/text'
+import { weightToFigmaStyle } from '@open-pencil/fig/node-change'
+import { SceneGraph } from '@open-pencil/scene-graph'
+import {
   normalizeFontFamily,
   styleToVariant,
   styleToWeight,
-  weightToFigmaStyle,
-  weightToStyle,
-  FontManager,
-  SceneGraph
-} from '@open-pencil/core'
+  weightToStyle
+} from '@open-pencil/scene-graph/font-style'
 
 import { expectDefined } from '#tests/helpers/assert'
 import { fetchStub } from '#tests/helpers/fetch'
@@ -647,20 +649,20 @@ describe('isVariableFont', () => {
 })
 
 describe('fetchBundledFont', () => {
-  test('loads Inter-Regular.ttf from assets in headless', async () => {
-    const buffer = await fontManager.fetchBundledFont('/Inter-Regular.ttf')
+  test('loads InterVariable.ttf from assets in headless', async () => {
+    const buffer = await fontManager.fetchBundledFont('/InterVariable.ttf')
     expect(buffer).toBeInstanceOf(ArrayBuffer)
     expect(expectDefined(buffer, 'Inter font buffer').byteLength).toBeGreaterThan(100_000)
   })
 
-  test('loads Inter-Bold.ttf from assets in headless', async () => {
-    const buffer = await fontManager.fetchBundledFont('/Inter-Bold.ttf')
+  test('loads InterVariable.ttf from assets in headless', async () => {
+    const buffer = await fontManager.fetchBundledFont('/InterVariable.ttf')
     expect(buffer).toBeInstanceOf(ArrayBuffer)
     expect(expectDefined(buffer, 'Inter bold font buffer').byteLength).toBeGreaterThan(100_000)
   })
 
   test('returns valid TTF data', async () => {
-    const buffer = await fontManager.fetchBundledFont('/Inter-Regular.ttf')
+    const buffer = await fontManager.fetchBundledFont('/InterVariable.ttf')
     const view = new DataView(expectDefined(buffer, 'Inter font buffer'))
     // TrueType magic: 0x00010000
     expect(view.getUint32(0)).toBe(0x00010000)

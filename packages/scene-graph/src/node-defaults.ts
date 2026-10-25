@@ -4,7 +4,7 @@ import {
   DEFAULT_STROKE_MITER_LIMIT,
   DEFAULT_STROKE_WEIGHT
 } from './constants'
-import { createInstanceOverrideState } from './instance-overrides'
+import { createInstanceOverrideState } from './instances/overrides'
 import type { NodeType, SceneNode, SourceMetadata } from './types'
 
 export function createDefaultSourceMetadata(): SourceMetadata {
@@ -142,6 +142,7 @@ export function createDefaultNode(
     hangingList: false,
     styleRuns: [],
     fontVariations: [],
+    opticalSizeFromFontSize: true,
     fontFeatures: [],
     horizontalConstraint: 'MIN',
     verticalConstraint: 'MIN',
@@ -166,6 +167,9 @@ export function createDefaultNode(
     connectorLineType: 'ELBOWED',
     connectorStartCap: 'ROUND',
     connectorEndCap: 'ARROW_LINES',
+    connectorControlPoints: [],
+    connectorCurveHandles: null,
+    connectorLabelPosition: null,
     isMask: false,
     maskType: 'ALPHA',
     maskIsOutline: false,

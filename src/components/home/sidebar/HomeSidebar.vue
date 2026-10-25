@@ -10,7 +10,7 @@ import {
 } from 'reka-ui'
 import { computed } from 'vue'
 
-import { useCloudMessages } from '@open-pencil/vue'
+import { useCloudMessages } from '@open-pencil/vue/i18n'
 
 import IconButton from '@/components/ui/button/IconButton.vue'
 import { menu } from '@/components/ui/menu/menu'
@@ -66,7 +66,7 @@ const workspaceLocations = computed(() =>
 
 <template>
   <nav :class="ui.root()" :aria-label="t.homeLocations">
-    <div :class="[ui.items(), 'pt-1']">
+    <div :class="ui.group()">
       <button
         type="button"
         :class="ui.item()"

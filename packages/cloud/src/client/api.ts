@@ -1,13 +1,13 @@
 import type { CloudFetch } from '#cloud/client/discovery'
 import {
   acceptedInvitationSchema,
+  aiTokenSchema,
   cloudSessionSchema,
   cloudUserProfileSchema,
   collaborationTicketSchema,
   createInvitationContinuationSchema,
   documentAccessSchema,
   documentDownloadSchema,
-  imageUploadOfferSchema,
   objectUploadSchema,
   documentGrantSchema,
   documentInvitationSchema,
@@ -22,14 +22,13 @@ import {
   invitationPreviewSchema,
   resolvedDocumentShareSchema,
   type AcceptDocumentInvitationInput,
+  type AIToken,
   type CloudSession,
   type CloudUserProfile,
   type CollaborationTicket,
   type CreateInvitationContinuationInput,
   type InvitationContinuation,
-  type CommitImageUploadsInput,
   type CommitUploadRequest,
-  type RequestImageUploadsInput,
   type CreateDocumentInput,
   type CreateDocumentInvitationInput,
   type CreateDocumentShareInput,
@@ -40,7 +39,6 @@ import {
   type DocumentInvitation,
   type DocumentShare,
   type DocumentSummary,
-  type ImageUploadOffer,
   type DocumentVersion,
   type DocumentVersionDownload,
   type DocumentVersions,
@@ -60,6 +58,7 @@ import { pickBy } from 'es-toolkit/object'
 import { hc } from 'hono/client'
 import * as v from 'valibot'
 
+import { createImageRequests } from './images'
 import { CloudAPIError, parseResponse, responseBody, type CloudClientDiagnostic } from './response'
 import { createWorkspaceRequests } from './workspaces'
 
@@ -97,7 +96,6 @@ const uploadResponseSchema = v.object({
   id: v.pipe(v.string(), v.uuid()),
   upload: objectUploadSchema
 })
-const imageUploadsResponseSchema = v.object({ uploads: v.array(imageUploadOfferSchema) })
 
 export type CloudRequestOptions = {
   fetch?: CloudFetch
@@ -139,6 +137,14 @@ export function createCloudAPIClient(baseURL: string, options: CloudRequestOptio
       if (response.status === 401) return null
       return v.parse(cloudSessionSchema, await responseBody(response, options.onDiagnostic))
     },
+    /** A short-lived token for the deployment's AI service, on the workspace's behalf. */
+    async requestAIToken(workspaceId: string): Promise<AIToken> {
+      return parseResponse(
+        client.ai.token.$post({ json: { workspaceId } }),
+        aiTokenSchema,
+        options.onDiagnostic
+      )
+    },
     async lookupUser(
       documentId: string,
       input: LookupCloudUserInput
@@ -164,6 +170,7 @@ export function createCloudAPIClient(baseURL: string, options: CloudRequestOptio
       return response.user
     },
     ...createWorkspaceRequests(client, options.onDiagnostic),
+    ...createImageRequests(client, publicClient, options.onDiagnostic),
     /** Documents shared with the person directly, outside their workspaces. */
     async listSharedDocuments(): Promise<SharedDocument[]> {
       const response = await parseResponse(
@@ -427,32 +434,6 @@ export function createCloudAPIClient(baseURL: string, options: CloudRequestOptio
         uploadResponseSchema,
         options.onDiagnostic
       )
-    },
-    /** Commits the image uploads a save asked for, once their bytes are in place. */
-    async commitImageUploads(
-      documentId: string,
-      uploads: CommitImageUploadsInput['uploads']
-    ): Promise<void> {
-      const response = await client.documents[':documentId'].images.commit.$post({
-        param: { documentId },
-        json: { uploads }
-      })
-      await responseBody(response, options.onDiagnostic)
-    },
-    /** Uploads for the images a save will name that the document's workspace lacks. */
-    async requestImageUploads(
-      documentId: string,
-      input: RequestImageUploadsInput
-    ): Promise<ImageUploadOffer[]> {
-      const response = await parseResponse(
-        client.documents[':documentId'].images.$post({
-          param: { documentId },
-          json: input
-        }),
-        imageUploadsResponseSchema,
-        options.onDiagnostic
-      )
-      return response.uploads
     },
     async commitUpload(uploadId: string, input: CommitUploadRequest): Promise<DocumentSummary> {
       const response = await parseResponse(

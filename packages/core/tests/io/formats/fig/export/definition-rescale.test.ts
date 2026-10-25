@@ -1,17 +1,17 @@
 import { expect, test } from 'bun:test'
 
 import { expectDefined } from '#core-tests/helpers/assert'
-import { CapturedFigRecords, readFixture } from '#core-tests/helpers/fig/fixtures'
+import { capturedFigRecordsSchema, readFixture } from '#core-tests/helpers/fig/fixtures'
 import { inheritedNestedBindingRecords } from '#core-tests/helpers/fig/nested-binding'
 
-import { OpenPencilAPI } from '@open-pencil/core'
-import { createEditor } from '@open-pencil/core/editor'
+import { OpenPencilAPI } from '@open-pencil/core/openpencil-api'
+import { createEditor } from '@open-pencil/core'
 import { FigmaAPI } from '@open-pencil/core/figma-api'
-import { exportFigFile } from '@open-pencil/core/io'
-import { initCodec } from '@open-pencil/core/kiwi'
+import { exportFigFile } from '@open-pencil/core/io/formats/fig'
 import { materializeDocument, parseFigBuffer } from '@open-pencil/fig'
+import { initCodec } from '@open-pencil/kiwi/fig/codec'
 
-const fixture = readFixture('nested-binding-ownership-records.json', CapturedFigRecords)
+const fixture = readFixture('nested-binding-ownership-records.json', capturedFigRecordsSchema)
 
 test('a placed binding does not freeze an unrelated inherited binding', async () => {
   const { graph, sources } = materializeDocument(

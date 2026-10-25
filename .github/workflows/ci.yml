@@ -325,6 +325,11 @@ jobs:
           # Garage's S3 compatibility for the object-store checks.
           - store: Garage
             script: test:e2e:garage
+          # The Cloudflare Worker under wrangler dev, with its relay Durable Object, against
+          # PostgreSQL and SeaweedFS.
+          - store: Cloudflare Workers
+            script: test:e2e:cloudflare
+            worker: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -334,6 +339,21 @@ jobs:
 
       - name: Generate package declarations
         run: bun run build:packages
+
+      # The editor's demo document draws its shader fills at build time in a headless Chromium.
+      - name: Install Chromium for the demo document
+        if: matrix.worker
+        run: bunx playwright install --with-deps chromium
+
+      # The Worker serves the editor and the portal as static assets, and every official
+      # deployment bundles them.
+      - name: Build the Cloud site and bundle the official Workers
+        if: matrix.worker
+        run: |
+          bun run build:cloud
+          for deployment in packages/cloud/deploy/openpencil/*/; do
+            (cd "$deployment" && bunx wrangler deploy --dry-run --assets "$GITHUB_WORKSPACE/dist-cloud")
+          done
 
       - name: Run Cloud end-to-end tests against ${{ matrix.store }}
         env:

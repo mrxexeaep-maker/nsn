@@ -25,19 +25,15 @@ import {
   SECTION_TITLE_HEIGHT
 } from '@open-pencil/core/constants'
 import type { ViewportTransform } from '@open-pencil/core/geometry'
-import {
-  autoLayoutValueAnchor,
-  PlayIslands,
-  toolCursor,
-  useCanvas,
-  useCanvasDrop,
-  useCanvasInput,
-  useCanvasIssueMarkers,
-  useCanvasStatusLabels,
-  useCanvasVirtualReference,
-  useTextEdit,
-  type AutoLayoutValueField
-} from '@open-pencil/vue'
+import { PlayIslands, useCanvasInput } from '@open-pencil/vue/canvas'
+import { useCanvasDrop } from '@open-pencil/vue/canvas/drop'
+import { useCanvasIssueMarkers } from '@open-pencil/vue/canvas/issues'
+import { useCanvasVirtualReference } from '@open-pencil/vue/canvas/overlays'
+import { useCanvasStatusLabels } from '@open-pencil/vue/canvas/statuses'
+import { useCanvas } from '@open-pencil/vue/canvas/surface'
+import { useTextEdit } from '@open-pencil/vue/canvas/text-edit'
+import { toolCursor } from '@open-pencil/vue/editor/tool-cursor'
+import { autoLayoutValueAnchor, type AutoLayoutValueField } from '@open-pencil/vue/shared/input'
 
 import { useAIChat } from '@/app/ai/chat/use'
 import { useEditorStore } from '@/app/editor/active-store'
@@ -98,8 +94,14 @@ const shouldSuspendRender = () =>
 /** The pan and zoom of the scene's last drawn frame, which preview islands follow. */
 const drawnView = shallowRef<ViewportTransform | null>(null)
 
-// The tab's scene is presented only here, so waiting for it times out only while it is shown.
-onUnmounted(store.preparationController.attachCanvas())
+// The tab's scene is presented only here once the canvas can draw, so waiting for it times out
+// only while it is shown and drawing, not while the renderer and its fonts download.
+let detachCanvas: (() => void) | null = null
+onUnmounted(() => detachCanvas?.())
+function canvasReady() {
+  store.markCanvasReady()
+  detachCanvas ??= store.preparationController.attachCanvas()
+}
 
 useCanvas(sceneCanvasRef, store, {
   layer: 'scene',
@@ -107,7 +109,11 @@ useCanvas(sceneCanvasRef, store, {
     drawnView.value = view
   },
   sceneRenderer: appRuntimeConfig.sceneRenderer,
-  onReady: store.markCanvasReady,
+  onReady: canvasReady,
+  onFailed: (error) =>
+    store.preparationController.failCanvas(
+      new Error('The canvas could not start', { cause: error })
+    ),
   shouldSuspendRender,
   showRulers: false,
   getRenderState,
@@ -126,6 +132,8 @@ const {
   hitTestStatusLabel
 } = useCanvas(canvasRef, store, {
   layer: 'overlays',
+  // The scene canvas reports a canvas that cannot start.
+  onFailed: () => undefined,
   get showRulers() {
     return appRuntimeConfig.showRulers && store.state.showRulers && paneView.value.play === null
   },

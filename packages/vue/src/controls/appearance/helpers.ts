@@ -2,7 +2,7 @@ import { compact } from 'es-toolkit'
 import { computed } from 'vue'
 import type { ComputedRef, Ref } from 'vue'
 
-import type { Editor } from '@open-pencil/core/editor'
+import type { Editor } from '@open-pencil/core'
 import type { BlendMode, SceneNode } from '@open-pencil/scene-graph'
 
 import type { CornerGeometryKey, CornerRadiusKey } from '#vue/controls/appearance/types'
@@ -241,9 +241,7 @@ export function createAppearanceActions({
       if (liveNodes.length === 0) return
       const allVisible = liveNodes.every((n) => n.visible)
       editor.undo.runBatch('Toggle visibility', () => {
-        for (const n of liveNodes) {
-          editor.updateNodeWithUndo(n.id, { visible: !allVisible }, 'Toggle visibility')
-        }
+        for (const n of liveNodes) editor.setNodeVisibility(n.id, !allVisible)
       })
       return
     }
@@ -252,7 +250,7 @@ export function createAppearanceActions({
     if (!selected) return
     const liveNode = editor.getNode(selected.id)
     if (!liveNode) return
-    editor.updateNodeWithUndo(liveNode.id, { visible: !liveNode.visible }, 'Toggle visibility')
+    editor.setNodeVisibility(liveNode.id, !liveNode.visible)
   }
 
   function toggleIndependentCorners() {
