@@ -52,6 +52,20 @@ describe('SF Symbols', () => {
     expect((await provider.search('home')).icons).toEqual(['sf-symbols:house.fill'])
     expect((await provider.search('house fill')).icons).toEqual(['sf-symbols:house.fill'])
     expect((await provider.search('house', { prefix: 'lucide' })).icons).toEqual([])
+    expect(await provider.search('house', { limit: 1 })).toMatchObject({
+      icons: ['sf-symbols:house'],
+      total: 2,
+      collections: { 'sf-symbols': { total: 2 } }
+    })
+  })
+
+  test('draws only its own set’s names, though another set has one alike', async () => {
+    const { provider } = setup()
+    const icons = await provider.icons(['sf-symbols:house', 'lucide:house'], 24)
+    expect([...icons.keys()]).toEqual(['sf-symbols:house'])
+    const previews = await provider.previews(['sf-symbols:house', 'lucide:house'])
+    expect(previews.get('lucide:house') ?? null).toBeNull()
+    expect(previews.get('sf-symbols:house')).toContain('<path')
   })
 
   test('offers nothing where the host cannot draw them', async () => {

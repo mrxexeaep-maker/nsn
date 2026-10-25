@@ -148,8 +148,8 @@ export function createSFSymbolsProvider(host: SFSymbolsHost): IconProvider {
         .map((name) => `${SF_SYMBOLS_PREFIX}:${name}`)
       return {
         icons,
-        total: icons.length,
-        collections: { [SF_SYMBOLS_PREFIX]: { name: 'SF Symbols', total: icons.length } }
+        total: found.length,
+        collections: { [SF_SYMBOLS_PREFIX]: { name: 'SF Symbols', total: found.length } }
       }
     },
 
@@ -180,7 +180,7 @@ export function createSFSymbolsProvider(host: SFSymbolsHost): IconProvider {
       const found = new Map<string, IconData>()
       for (const name of names) {
         const parsed = parseIconName(name)
-        const icon = parsed ? rendered[parsed.iconName] : undefined
+        const icon = parsed?.prefix === SF_SYMBOLS_PREFIX ? rendered[parsed.iconName] : undefined
         if (!parsed || !icon) continue
         found.set(name, {
           prefix: parsed.prefix,
@@ -198,7 +198,8 @@ export function createSFSymbolsProvider(host: SFSymbolsHost): IconProvider {
       const missing = names.filter((name) => !previewCache.has(name))
       const rendered = await render(missing, PREVIEW_SIZE, sfSymbolsOptions())
       for (const name of missing) {
-        const icon = rendered[parseIconName(name)?.iconName ?? '']
+        const parsed = parseIconName(name)
+        const icon = parsed?.prefix === SF_SYMBOLS_PREFIX ? rendered[parsed.iconName] : undefined
         previewCache.set(
           name,
           icon
