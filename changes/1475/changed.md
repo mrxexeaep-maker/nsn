@@ -1,1 +1,1 @@
-- Settings editors for models, media services, MCP connections, and storage show where they sit in the window title, such as **Settings › Models › Edit model**, and the earlier steps go back; leaving a model you haven't changed no longer asks to discard changes.
+- Settings editors for models, media services, MCP connections, and storage show where they sit in the window title, such as **Settings › Models › Edit model**, and the earlier steps go back.

@@ -55,11 +55,12 @@ export function useModelProfileEditor({ profileId, keyInput, labels: ai }: Profi
   const baseline = shallowRef(structuredClone(toRaw(draft)))
 
   /**
-   * The catalog's capabilities and output limit land after the editor opens. On an untouched
-   * form they are not the person's edits, so they move the baseline with them.
+   * The catalog's capabilities and output limit land after the editor opens. On an unchanged
+   * draft they are not the person's edits, so they move the baseline with them; a key typed
+   * meanwhile is not part of the draft and stays an edit of its own.
    */
   function applyCatalogDetails(apply: () => void): void {
-    const untouched = !dirty.value
+    const untouched = isEqual(draft, baseline.value)
     apply()
     if (untouched) baseline.value = structuredClone(toRaw(draft))
   }
