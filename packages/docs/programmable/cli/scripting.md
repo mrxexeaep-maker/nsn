@@ -249,6 +249,7 @@ Common node properties are readable/writable through the proxy, including:
 - `figma.loadFontAsync(fontName)` no-ops because OpenPencil does not gate text edits on plugin font loading
 - `figma.listAvailableFontsAsync()` returns host-provided fonts when available
 - `figma.getNodeByIdAsync(id)` and `instance.getMainComponentAsync()` resolve to the same nodes as `figma.getNodeById(id)` and `instance.mainComponent`, for scripts written for Figma's dynamic-page mode
+- `figma.setCurrentPageAsync(page)` switches pages as setting `figma.currentPage` does, and `page.loadAsync()` resolves at once because every page is already loaded, for scripts written for Figma's dynamic-page mode
 - `figma.notify(message)` logs a warning in headless mode
 - `figma.closePlugin(message?)` and `figma.loadAllPagesAsync()` let a script written as a Figma plugin run: nothing needs closing or loading, and `closePlugin` passes its message to `figma.notify`. Figma refuses every call after `closePlugin` while a script here keeps running, so follow it with `return` as Figma's docs do
 - `instance.swapComponent(component)` points an instance at another component
