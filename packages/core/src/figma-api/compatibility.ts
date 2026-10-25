@@ -27,6 +27,7 @@ export type SupportedPluginAPI = Pick<
   | 'base64Decode'
   | 'base64Encode'
   | 'closePlugin'
+  | 'getFontFamilyVariationAxes'
   | 'getImageByHash'
   | 'loadAllPagesAsync'
   | 'loadFontAsync'
