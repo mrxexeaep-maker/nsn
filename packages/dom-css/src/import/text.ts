@@ -6,9 +6,11 @@ import type {
   HyperlinkTarget,
   SceneNode,
   StyleRun,
+  TextLength,
   TextParagraphStyle
 } from '@open-pencil/scene-graph'
 import { parseCSSColor, parseCSSNumber } from '@open-pencil/scene-graph/css'
+import { percentLength, pixelLength } from '@open-pencil/scene-graph/text'
 
 import type { DesignElement, DesignNode, DesignStyleDeclaration } from '../types'
 import { colorToFillFromCSS, mergedStyle, pickStyle } from './css-values'
@@ -79,6 +81,39 @@ function pixels(value: string | undefined): number | null {
   return parseCSSNumber(trimmed)
 }
 
+/** A CSS number followed by `unit`, or null. */
+function withUnit(value: string, unit: string): number | null {
+  return value.endsWith(unit) && /^-?[\d.]+$/.test(value.slice(0, -unit.length))
+    ? parseCSSNumber(value.slice(0, -unit.length))
+    : null
+}
+
+/**
+ * A CSS line height: a unitless multiple or a percent follows the font size, as a percent does in
+ * Figma; pixels stay pixels; `normal` is automatic.
+ */
+function cssLineHeight(value: string | undefined): TextLength | null | undefined {
+  const trimmed = value?.trim()
+  if (!trimmed) return undefined
+  if (trimmed === 'normal') return null
+  const percent = withUnit(trimmed, '%')
+  if (percent !== null) return percentLength(percent)
+  if (/^-?[\d.]+$/.test(trimmed)) return percentLength((parseCSSNumber(trimmed) ?? 0) * 100)
+  const px = withUnit(trimmed, 'px')
+  return px === null ? undefined : pixelLength(px)
+}
+
+/** A CSS letter spacing: `em` is a percent of the font size, pixels stay pixels. */
+function cssLetterSpacing(value: string | undefined): TextLength | undefined {
+  const trimmed = value?.trim()
+  if (!trimmed) return undefined
+  if (trimmed === 'normal') return pixelLength(0)
+  const em = withUnit(trimmed, 'em')
+  if (em !== null) return percentLength(em * 100)
+  const px = pixels(trimmed)
+  return px === null ? undefined : pixelLength(px)
+}
+
 function decorationLine(value: string | undefined): SceneNode['textDecoration'] {
   if (value?.includes('underline')) return 'UNDERLINE'
   if (value?.includes('line-through')) return 'STRIKETHROUGH'
@@ -111,14 +146,16 @@ export function characterStyleFromCSS(
   const line = pickStyle(style, 'text-decoration-line')
   const fontStyle = pickStyle(style, 'font-style')
   const lineHeight = pickStyle(style, 'line-height')
+  // `normal` is automatic, a null; a value CSS writes some other way keeps the base.
+  const parsedLineHeight = cssLineHeight(lineHeight)
   const textTransform = pickStyle(style, 'text-transform')
   return {
     fontFamily: family || base.fontFamily,
     fontSize: parseCSSNumber(pickStyle(style, 'font-size')) ?? base.fontSize,
     fontWeight: parseCSSNumber(pickStyle(style, 'font-weight')) ?? base.fontWeight,
     italic: fontStyle === undefined ? base.italic : fontStyle === 'italic',
-    letterSpacing: pixels(pickStyle(style, 'letter-spacing')) ?? base.letterSpacing,
-    lineHeight: lineHeight === 'normal' ? null : (pixels(lineHeight) ?? base.lineHeight),
+    letterSpacing: cssLetterSpacing(pickStyle(style, 'letter-spacing')) ?? base.letterSpacing,
+    lineHeight: parsedLineHeight === undefined ? base.lineHeight : parsedLineHeight,
     fills: fills.length > 0 ? fills : base.fills,
     textDecoration: line === undefined ? base.textDecoration : decorationLine(line),
     textDecorationStyle:

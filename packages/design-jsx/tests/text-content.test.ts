@@ -4,6 +4,7 @@ import { createDesignJSXRenderer } from '#design-jsx/index'
 
 import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
 import { colorToFill } from '@open-pencil/scene-graph/color'
+import { percentLength, pixelLength } from '@open-pencil/scene-graph/text'
 
 const renderer = createDesignJSXRenderer<never>({
   icon: () => Promise.resolve(null),
@@ -66,10 +67,19 @@ describe('Span', () => {
       fontSize: 20,
       fontWeight: 600,
       italic: true,
-      lineHeight: 30,
-      letterSpacing: 1,
+      lineHeight: pixelLength(30),
+      letterSpacing: pixelLength(1),
       textDecoration: 'UNDERLINE'
     })
+    expect(warnings).toEqual([])
+  })
+
+  test('takes a line height and letter spacing as a percent of the font size', async () => {
+    const { node, warnings } = await renderText(
+      '<Text lineHeight="150%" letterSpacing="5%">a<Span letterSpacing="-2%">b</Span></Text>'
+    )
+    expect(node).toMatchObject({ lineHeight: percentLength(150), letterSpacing: percentLength(5) })
+    expect(node.styleRuns[0]?.style.letterSpacing).toEqual(percentLength(-2))
     expect(warnings).toEqual([])
   })
 

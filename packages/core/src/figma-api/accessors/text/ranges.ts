@@ -9,8 +9,10 @@ import type {
   TextBindableField,
   TextCase,
   TextDecoration,
-  TextDecorationStyle
+  TextDecorationStyle,
+  TextLength
 } from '@open-pencil/scene-graph'
+import { textLengthPixels } from '@open-pencil/scene-graph/text'
 
 import {
   assertProxyEditable,
@@ -84,12 +86,17 @@ function numberProblem(value: unknown, at = ''): string | null {
 /** A length in pixels for a font size: a percent is of the size of the characters it styles. */
 type SizedLength<T> = (fontSize: number) => T
 
-function lengthFor(value: { unit: 'PIXELS' | 'PERCENT'; value: number }): SizedLength<number> {
-  return (fontSize) => (value.unit === 'PERCENT' ? (value.value / 100) * fontSize : value.value)
+function lengthFor(value: { unit: 'PIXELS' | 'PERCENT'; value: number }): TextLength {
+  return { unit: value.unit, value: value.value }
+}
+
+/** `length` in pixels at the size of the characters it styles, for fields kept in pixels. */
+function sized(length: TextLength | null): SizedLength<number | null> {
+  return (fontSize) => length && textLengthPixels(length, fontSize)
 }
 
 /** A letter spacing Figma takes: pixels or percent, never automatic. */
-function letterSpacingLength(method: string, value: unknown): SizedLength<number> {
+function letterSpacingLength(method: string, value: unknown): TextLength {
   const length = value as Partial<FigmaTextLength & { value: number }> | null
   if (!length || typeof length !== 'object') {
     throw invalid(method, `Expected object, received ${received(value)}`)
@@ -106,12 +113,12 @@ function letterSpacingLength(method: string, value: unknown): SizedLength<number
 }
 
 /** A length that may also be automatic, as line heights and decoration sizes are. */
-function lengthOrAuto(method: string, value: unknown): SizedLength<number | null> {
+function lengthOrAuto(method: string, value: unknown): TextLength | null {
   const length = value as Partial<FigmaTextLength & { value: number }> | null
   if (!length || typeof length !== 'object') {
     throw invalid(method, `Expected object, received ${received(value)}`)
   }
-  if (length.unit === 'AUTO') return () => null
+  if (length.unit === 'AUTO') return null
   if (!LENGTH_UNITS.has(String(length.unit))) {
     throw invalid(
       method,
@@ -283,14 +290,13 @@ const RANGE_SETTERS: Record<string, RangeSetter> = {
   setRangeFills: (method, _node, _start, _end, value) => ({
     fills: fillsFromPaints(method, value)
   }),
-  setRangeLetterSpacing: (method, _node, _start, _end, value) => {
-    const length = letterSpacingLength(method, value)
-    return (fontSize) => ({ letterSpacing: length(fontSize) })
-  },
-  setRangeLineHeight: (method, _node, _start, _end, value) => {
-    const length = lengthOrAuto(method, value)
-    return (fontSize) => ({ lineHeight: length(fontSize) })
-  },
+  // A percent stays a percent, following the size of the characters it styles, as in Figma.
+  setRangeLetterSpacing: (method, _node, _start, _end, value) => ({
+    letterSpacing: letterSpacingLength(method, value)
+  }),
+  setRangeLineHeight: (method, _node, _start, _end, value) => ({
+    lineHeight: lengthOrAuto(method, value)
+  }),
   setRangeTextDecoration: (method, _node, _start, _end, value) => ({
     textDecoration: enumValue(method, value, DECORATIONS)
   }),
@@ -298,11 +304,11 @@ const RANGE_SETTERS: Record<string, RangeSetter> = {
     textDecorationStyle: enumValue(method, value, DECORATION_STYLES)
   })),
   setRangeTextDecorationOffset: underlineStyle('offset', (method, value) => {
-    const length = lengthOrAuto(method, value)
+    const length = sized(lengthOrAuto(method, value))
     return (fontSize) => ({ textUnderlineOffset: length(fontSize) })
   }),
   setRangeTextDecorationThickness: underlineStyle('thickness', (method, value) => {
-    const length = lengthOrAuto(method, value)
+    const length = sized(lengthOrAuto(method, value))
     return (fontSize) => ({ textDecorationThickness: length(fontSize) })
   }),
   setRangeTextDecorationColor: underlineStyle('color', (method, value) => ({

@@ -1,4 +1,5 @@
 import type { CharacterStyleOverride, SceneNode } from '@open-pencil/scene-graph'
+import { textLengthPixels } from '@open-pencil/scene-graph/text'
 import { resolveNodeTextDirection } from '@open-pencil/scene-graph/text/direction'
 
 import { formatColor, type SVGExportContext, type SVGFontAlias } from '#core/io/formats/svg/defs'
@@ -17,14 +18,18 @@ import { textFontFace } from '#core/text/requirements'
 function styleOverrideToTspanAttrs(
   style: CharacterStyleOverride,
   colorSpace: 'srgb' | 'display-p3',
-  parentFillOpacity: number | undefined
+  parentFillOpacity: number | undefined,
+  nodeFontSize: number
 ): Record<string, string | number | undefined> {
   const attrs: Record<string, string | number | undefined> = {}
   if (style.fontFamily) attrs['font-family'] = style.fontFamily
   if (style.fontSize) attrs['font-size'] = style.fontSize
   if (style.fontWeight) attrs['font-weight'] = style.fontWeight
   if (style.italic) attrs['font-style'] = 'italic'
-  if (style.letterSpacing) attrs['letter-spacing'] = round(style.letterSpacing)
+  // A percent spacing follows the run's own font size.
+  const letterSpacing =
+    style.letterSpacing && textLengthPixels(style.letterSpacing, style.fontSize ?? nodeFontSize)
+  if (letterSpacing) attrs['letter-spacing'] = round(letterSpacing)
   if (style.textDecoration === 'UNDERLINE') attrs['text-decoration'] = 'underline'
   if (style.textDecoration === 'STRIKETHROUGH') attrs['text-decoration'] = 'line-through'
   if (style.fills) {
@@ -128,6 +133,7 @@ export function renderTextNode(
   let textDecoration: 'underline' | 'line-through' | undefined
   if (node.textDecoration === 'UNDERLINE') textDecoration = 'underline'
   else if (node.textDecoration === 'STRIKETHROUGH') textDecoration = 'line-through'
+  const letterSpacing = textLengthPixels(node.letterSpacing, node.fontSize)
 
   const attrs: Record<string, string | number | undefined> = {
     'font-family': node.fontFamily || undefined,
@@ -140,11 +146,11 @@ export function renderTextNode(
     direction: direction === 'RTL' && !laidOut ? 'rtl' : undefined,
     'text-anchor': laidOut ? undefined : textAnchorForNode(node, direction),
     'text-decoration': textDecoration,
-    'letter-spacing': node.letterSpacing ? round(node.letterSpacing) : undefined,
+    'letter-spacing': letterSpacing ? round(letterSpacing) : undefined,
     ...(fontAlias ? aliasedFontAttrs(textFontFace(node), fontAlias) : {})
   }
   const spanAttrs = (style: CharacterStyleOverride) => ({
-    ...styleOverrideToTspanAttrs(style, colorSpace, fillOpacity),
+    ...styleOverrideToTspanAttrs(style, colorSpace, fillOpacity, node.fontSize),
     ...(fontAlias ? aliasedFontAttrs(textFontFace(node, style), fontAlias) : {})
   })
 

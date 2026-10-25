@@ -25,7 +25,7 @@ import { applyEffectOverrides } from './overrides/effects'
 import { fillFromValue, isColor, isFillValue } from './overrides/fills'
 import { applyStateOverrides } from './overrides/state'
 import { applyStrokeOverrides } from './overrides/strokes'
-import { applyTextDetailOverrides, AUTO } from './overrides/text'
+import { applyTextDetailOverrides, AUTO, textLengthProp } from './overrides/text'
 import { isShaderFill } from './paints'
 
 const WEIGHT_MAP: Record<string, number> = {
@@ -350,8 +350,8 @@ function applyTextStyleOverrides(props: Record<string, unknown>, o: Partial<Scen
   }
 
   if (props.lineHeight === AUTO) o.lineHeight = null
-  else if (props.lineHeight !== undefined) o.lineHeight = props.lineHeight as number
-  if (props.letterSpacing !== undefined) o.letterSpacing = props.letterSpacing as number
+  else if (props.lineHeight !== undefined) o.lineHeight = textLengthProp(props.lineHeight)
+  if (props.letterSpacing !== undefined) o.letterSpacing = textLengthProp(props.letterSpacing)
   const textDecoration = TEXT_DECORATION.parse(props.textDecoration)
   if (textDecoration) o.textDecoration = textDecoration
   applyTextDetailOverrides(props, o)

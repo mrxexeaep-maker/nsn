@@ -12,6 +12,7 @@ import {
   swapInstanceComponent
 } from '@open-pencil/scene-graph/instances'
 import type { Color } from '@open-pencil/scene-graph/primitives'
+import { pixelLength } from '@open-pencil/scene-graph/text'
 
 import { iconFontFamily, iconName } from './assets'
 import type { Build } from './nodes'
@@ -41,7 +42,7 @@ function drawFontGlyph(
     fontWeight: weight,
     fontVariations: [{ axis: 'wght', value: weight }],
     fontSize: size,
-    lineHeight: size,
+    lineHeight: pixelLength(size),
     width: size,
     height: size,
     textAutoResize: 'NONE',

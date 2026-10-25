@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
+import { pixelLength } from '@open-pencil/scene-graph/text'
 
 import { renderNodesToSVG, type SVGTextLine } from '#core/io/formats/svg'
 
@@ -31,7 +32,7 @@ describe('SVG text with laid-out lines', () => {
   test('without a measured layout, each explicit newline keeps its own baseline', () => {
     for (const lines of [undefined, null, []]) {
       const svg = exportText(
-        { text: 'First line\nSecond line', fontSize: 16, lineHeight: 24, width: 100 },
+        { text: 'First line\nSecond line', fontSize: 16, lineHeight: pixelLength(24), width: 100 },
         lines
       )
       const text = textElement(svg)
@@ -151,7 +152,12 @@ describe('SVG text with laid-out lines', () => {
 
 describe('SVG text lines without a measured layout', () => {
   test('a single line stays one text element', () => {
-    const svg = exportText({ text: 'First line', fontSize: 16, lineHeight: 24, width: 100 })
+    const svg = exportText({
+      text: 'First line',
+      fontSize: 16,
+      lineHeight: pixelLength(24),
+      width: 100
+    })
     expect(textElement(svg)).toBe(
       '<text x="0" y="16" font-family="Inter" font-size="16" fill="#000000">First line</text>'
     )
@@ -199,7 +205,7 @@ describe('SVG text lines without a measured layout', () => {
     const svg = exportText({
       text: 'Aa\nBb',
       fontSize: 16,
-      lineHeight: 24,
+      lineHeight: pixelLength(24),
       width: 100,
       styleRuns: [{ start: 3, length: 2, style: { fontSize: 40 } }]
     })
@@ -214,7 +220,7 @@ describe('SVG text lines without a measured layout', () => {
       fontSize: 16,
       lineHeight: null,
       width: 100,
-      styleRuns: [{ start: 4, length: 3, style: { lineHeight: 50 } }]
+      styleRuns: [{ start: 4, length: 3, style: { lineHeight: pixelLength(50) } }]
     })
     const text = textElement(svg)
     expect(text).toContain('<tspan x="0" y="16">one</tspan>')
@@ -281,7 +287,7 @@ describe('SVG text lines without a measured layout', () => {
       text: 'First line\nSecond line',
       fontSize: 10,
       // 120% of 10px is stored on the node as 12px.
-      lineHeight: 12,
+      lineHeight: pixelLength(12),
       width: 100
     })
     const text = textElement(svg)
@@ -293,7 +299,7 @@ describe('SVG text lines without a measured layout', () => {
     const center = exportText({
       text: 'First line\nSecond line',
       fontSize: 16,
-      lineHeight: 24,
+      lineHeight: pixelLength(24),
       width: 100,
       textAlignHorizontal: 'CENTER'
     })
@@ -304,7 +310,7 @@ describe('SVG text lines without a measured layout', () => {
     const right = exportText({
       text: 'First line\nSecond line',
       fontSize: 16,
-      lineHeight: 24,
+      lineHeight: pixelLength(24),
       width: 100,
       textAlignHorizontal: 'RIGHT'
     })
@@ -317,7 +323,7 @@ describe('SVG text lines without a measured layout', () => {
     const svg = exportText({
       text: 'أول\nثان',
       fontSize: 16,
-      lineHeight: 24,
+      lineHeight: pixelLength(24),
       width: 180,
       textDirection: 'RTL',
       textAlignHorizontal: 'LEFT'
@@ -332,7 +338,7 @@ describe('SVG text lines without a measured layout', () => {
     const styled = exportText({
       text: 'abcd\nefgh',
       fontSize: 16,
-      lineHeight: 24,
+      lineHeight: pixelLength(24),
       width: 100,
       styleRuns: [{ start: 2, length: 4, style: { fontWeight: 700 } }]
     })
@@ -340,7 +346,12 @@ describe('SVG text lines without a measured layout', () => {
       '<tspan x="0" y="16">ab</tspan><tspan font-weight="700">cd</tspan><tspan x="0" y="40" font-weight="700">e</tspan><tspan>fgh</tspan>'
     )
 
-    const blank = exportText({ text: 'A\n\nC', fontSize: 16, lineHeight: 24, width: 100 })
+    const blank = exportText({
+      text: 'A\n\nC',
+      fontSize: 16,
+      lineHeight: pixelLength(24),
+      width: 100
+    })
     const text = textElement(blank)
     expect(text).toContain('<tspan x="0" y="16">A</tspan>')
     expect(text).toContain('<tspan x="0" y="64">C</tspan>')
@@ -349,20 +360,20 @@ describe('SVG text lines without a measured layout', () => {
 
   test('a carriage return is dropped only when it belongs to a CRLF', () => {
     const crlf = textElement(
-      exportText({ text: 'A\r\nB', fontSize: 16, lineHeight: 24, width: 100 })
+      exportText({ text: 'A\r\nB', fontSize: 16, lineHeight: pixelLength(24), width: 100 })
     )
     expect(crlf).toContain('<tspan x="0" y="16">A</tspan>')
     expect(crlf).toContain('<tspan x="0" y="40">B</tspan>')
     expect(crlf).not.toContain('\r')
 
     const trailing = textElement(
-      exportText({ text: 'A\nB\r', fontSize: 16, lineHeight: 24, width: 100 })
+      exportText({ text: 'A\nB\r', fontSize: 16, lineHeight: pixelLength(24), width: 100 })
     )
     expect(trailing).toContain('<tspan x="0" y="16">A</tspan>')
     expect(trailing).toContain('>B\r</tspan>')
 
     const middle = textElement(
-      exportText({ text: 'A\rB\nC', fontSize: 16, lineHeight: 24, width: 100 })
+      exportText({ text: 'A\rB\nC', fontSize: 16, lineHeight: pixelLength(24), width: 100 })
     )
     expect(middle).toContain('>A\rB</tspan>')
     expect(middle).toContain('<tspan x="0" y="40">C</tspan>')
@@ -372,7 +383,7 @@ describe('SVG text lines without a measured layout', () => {
     const svg = exportText({
       text: '  First\nSecond  ',
       fontSize: 16,
-      lineHeight: 24,
+      lineHeight: pixelLength(24),
       width: 100
     })
     const text = textElement(svg)
@@ -400,7 +411,7 @@ describe('SVG text case', () => {
       text: 'straße\nnext',
       textCase: 'UPPER',
       fontSize: 16,
-      lineHeight: 24,
+      lineHeight: pixelLength(24),
       width: 100
     })
     const text = textElement(svg)

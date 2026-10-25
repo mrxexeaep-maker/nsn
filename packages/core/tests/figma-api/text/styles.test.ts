@@ -156,19 +156,23 @@ describe('character style ranges', () => {
     expect(expectFills(text.fills)[0]).toMatchObject({ color: { r: 0, g: 0, b: 1 } })
   })
 
+  // Recorded in Figma 126: a range keeps the unit it is given, and the text reads Mixed.
   test('take letter spacing and line height in pixels or percent of the font size', () => {
     const { api, text } = styledText('Abc')
     text.fontSize = 20
     text.setRangeLetterSpacing(0, 1, { value: 10, unit: 'PERCENT' })
-    expect(text.getRangeLetterSpacing(0, 1)).toEqual({ unit: 'PIXELS', value: 2 })
+    expect(text.getRangeLetterSpacing(0, 1)).toEqual({ unit: 'PERCENT', value: 10 })
     expect<unknown>(text.letterSpacing).toBe(api.mixed)
     text.setRangeLineHeight(0, 2, { value: 150, unit: 'PERCENT' })
+    expect(text.getRangeLineHeight(0, 1)).toEqual({ unit: 'PERCENT', value: 150 })
+    text.setRangeLineHeight(0, 2, { unit: 'PIXELS', value: 30 })
     expect(text.getRangeLineHeight(0, 1)).toEqual({ unit: 'PIXELS', value: 30 })
+    expect<unknown>(text.lineHeight).toBe(api.mixed)
     text.setRangeLineHeight(0, 2, { unit: 'AUTO' })
     expect(text.getRangeLineHeight(0, 1)).toEqual({ unit: 'AUTO' })
   })
 
-  test('resolve a percent against the size of each character it styles', () => {
+  test('keep a percent for characters of every size, as Figma does', () => {
     const { text } = styledText('Small Large')
     text.fontSize = 10
     text.setRangeFontSize(6, 11, 20)
@@ -178,20 +182,16 @@ describe('character style ranges', () => {
         .map((segment) => [segment.start, segment.end, segment.letterSpacing])
 
     text.letterSpacing = { value: 10, unit: 'PERCENT' }
-    expect(spacing()).toEqual([
-      [0, 6, { unit: 'PIXELS', value: 1 }],
-      [6, 11, { unit: 'PIXELS', value: 2 }]
-    ])
+    expect(spacing()).toEqual([[0, 11, { unit: 'PERCENT', value: 10 }]])
     text.setRangeLetterSpacing(4, 8, { value: 50, unit: 'PERCENT' })
     expect(spacing()).toEqual([
-      [0, 4, { unit: 'PIXELS', value: 1 }],
-      [4, 6, { unit: 'PIXELS', value: 5 }],
-      [6, 8, { unit: 'PIXELS', value: 10 }],
-      [8, 11, { unit: 'PIXELS', value: 2 }]
+      [0, 4, { unit: 'PERCENT', value: 10 }],
+      [4, 8, { unit: 'PERCENT', value: 50 }],
+      [8, 11, { unit: 'PERCENT', value: 10 }]
     ])
     text.lineHeight = { value: 150, unit: 'PERCENT' }
-    expect(text.getRangeLineHeight(0, 1)).toEqual({ unit: 'PIXELS', value: 15 })
-    expect(text.getRangeLineHeight(6, 7)).toEqual({ unit: 'PIXELS', value: 30 })
+    expect(text.getRangeLineHeight(0, 1)).toEqual({ unit: 'PERCENT', value: 150 })
+    expect(text.getRangeLineHeight(6, 7)).toEqual({ unit: 'PERCENT', value: 150 })
   })
 
   test('style decorations of underlined ranges only, keeping them when the underline returns', () => {
