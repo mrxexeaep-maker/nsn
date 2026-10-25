@@ -86,7 +86,7 @@ async function loadPreview() {
       await focusCurrentInstance()
     }
   } catch (cause) {
-    toast.error(operationFailed(cause))
+    if (currentRequest === requestId) toast.error(operationFailed(cause))
   } finally {
     if (currentRequest === requestId) loading.value = false
   }
@@ -142,6 +142,9 @@ async function updateAll() {
 // The live request, not the held one, which stays set while the dialog animates closed.
 watch(libraryReviewRequest, (value, previous) => {
   if (!value) {
+    // A preview still loading must not move the canvas away from where it is restored to.
+    requestId++
+    loading.value = false
     if (previous) void restoreOrigin()
     return
   }

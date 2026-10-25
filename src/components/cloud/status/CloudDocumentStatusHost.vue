@@ -64,12 +64,12 @@ async function openConflict() {
   const thumb = await getLocalCanvasStore()
     .readThumb(binding.documentId)
     .catch(() => null)
-  localPreview.value = thumb ? new Blob([Uint8Array.from(thumb)], { type: 'image/png' }) : null
   const stored = await createStorageAdapter(binding)
     .getDocumentMetadata?.(binding.documentId)
     .catch(() => null)
-  // A later request supersedes this one, and its own reads open the dialog.
+  // A later request supersedes this one, and its own reads fill and open the dialog.
   if (request !== conflictRequest) return
+  localPreview.value = thumb ? new Blob([Uint8Array.from(thumb)], { type: 'image/png' }) : null
   cloudSavedAt.value = stored?.updatedAt ?? null
   // Opened once both copies are read, so it never shows the last conflict's preview or time.
   resolving.value = true
