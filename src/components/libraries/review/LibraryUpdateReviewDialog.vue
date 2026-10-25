@@ -35,6 +35,8 @@ interface ReviewOrigin {
 let origin: ReviewOrigin | null = null
 let accepted = false
 let requestId = 0
+/** The canvas move toward the reviewed instance, which restoring the origin waits for. */
+let focusing: Promise<void> | null = null
 const operationFailed = (cause: unknown) =>
   notificationMessages.get().operationFailed({
     error: cause instanceof Error ? cause.message : String(cause)
@@ -63,11 +65,12 @@ function pageIdForNode(nodeId: string): string | null {
   return null
 }
 
-async function focusCurrentInstance() {
+async function focusCurrentInstance(currentRequest: number) {
   const instanceId = currentInstanceId.value
   if (!instanceId) return
   const pageId = pageIdForNode(instanceId)
   if (pageId && pageId !== editor.state.currentPageId) await editor.switchPage(pageId)
+  if (currentRequest !== requestId) return
   editor.select([instanceId])
   editor.zoomToSelection()
 }
@@ -83,7 +86,8 @@ async function loadPreview() {
     const next = createLibraryUpdatePreview(editor.graph, instanceId, revision)
     if (currentRequest === requestId) {
       preview.value = next
-      await focusCurrentInstance()
+      focusing = focusCurrentInstance(currentRequest)
+      await focusing
     }
   } catch (cause) {
     if (currentRequest === requestId) toast.error(operationFailed(cause))
@@ -96,6 +100,8 @@ async function restoreOrigin() {
   const value = origin
   origin = null
   if (!value || accepted) return
+  // A page switch already under way lands first, then the origin replaces it.
+  await focusing?.catch(() => undefined)
   if (editor.state.currentPageId !== value.pageId) await editor.switchPage(value.pageId)
   editor.select(value.selectedIds)
   editor.state.panX = value.panX
