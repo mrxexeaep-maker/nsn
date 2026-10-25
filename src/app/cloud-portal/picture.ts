@@ -1,13 +1,12 @@
 import { clamp } from 'es-toolkit'
 
 import { CLOUD_PICTURE_SIZE } from '@open-pencil/cloud/contract'
+import type { Size } from '@open-pencil/scene-graph/primitives'
 
 /** How far past filling the frame a picture can be zoomed. */
 export const PICTURE_MAX_ZOOM = 4
 /** JPEG quality for an uploaded picture, which keeps a 256-pixel photo near 30 KB. */
 const PICTURE_QUALITY = 0.9
-
-export type PictureSize = { width: number; height: number }
 
 /**
  * Where a picture sits in a square frame: `zoom` 1 fills the frame with its shorter side, and
@@ -16,12 +15,12 @@ export type PictureSize = { width: number; height: number }
 export type PictureCrop = { zoom: number; x: number; y: number }
 
 /** How many frame pixels one picture pixel takes at `zoom`. */
-export function pictureScale(picture: PictureSize, frame: number, zoom: number): number {
+export function pictureScale(picture: Size, frame: number, zoom: number): number {
   return (frame / Math.min(picture.width, picture.height)) * zoom
 }
 
 /** `crop` moved back inside the picture, so the frame shows picture everywhere. */
-export function clampCrop(picture: PictureSize, frame: number, crop: PictureCrop): PictureCrop {
+export function clampCrop(picture: Size, frame: number, crop: PictureCrop): PictureCrop {
   const zoom = clamp(crop.zoom, 1, PICTURE_MAX_ZOOM)
   const scale = pictureScale(picture, frame, zoom)
   return {
@@ -32,7 +31,7 @@ export function clampCrop(picture: PictureSize, frame: number, crop: PictureCrop
 }
 
 /** The picture centred in the frame at `zoom`. */
-export function centredCrop(picture: PictureSize, frame: number, zoom = 1): PictureCrop {
+export function centredCrop(picture: Size, frame: number, zoom = 1): PictureCrop {
   const scale = pictureScale(picture, frame, zoom)
   return clampCrop(picture, frame, {
     zoom,
@@ -43,7 +42,7 @@ export function centredCrop(picture: PictureSize, frame: number, zoom = 1): Pict
 
 /** `crop` at a new zoom, keeping the point under the frame's centre where it is. */
 export function zoomCrop(
-  picture: PictureSize,
+  picture: Size,
   frame: number,
   crop: PictureCrop,
   zoom: number
@@ -58,7 +57,7 @@ export function zoomCrop(
 }
 
 /** The square of the picture, in its own pixels, that the frame shows. */
-export function cropRegion(picture: PictureSize, frame: number, crop: PictureCrop) {
+export function cropRegion(picture: Size, frame: number, crop: PictureCrop) {
   const scale = pictureScale(picture, frame, crop.zoom)
   return { x: (0 - crop.x) / scale, y: (0 - crop.y) / scale, size: frame / scale }
 }

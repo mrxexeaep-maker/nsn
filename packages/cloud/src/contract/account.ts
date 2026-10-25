@@ -100,12 +100,17 @@ export function parseCloudUnlinkAuthenticationMethod(input: unknown) {
 
 export const cloudAccountMutationResponseSchema = v.object({ ok: v.literal(true) })
 
-/** What a person can see and change about themselves. */
-export const cloudProfileSchema = v.object({
+/** Who an account belongs to, as the portal shows it. */
+export const cloudPersonSchema = v.object({
   id: v.string(),
   name: v.string(),
   email: v.pipe(v.string(), v.email()),
-  image: v.nullable(v.string()),
+  /** The address of the account's picture, which the server serves; null shows initials. */
+  image: v.nullable(v.string())
+})
+/** What a person can see and change about themselves. */
+export const cloudProfileSchema = v.object({
+  ...cloudPersonSchema.entries,
   createdAt: v.string(),
   /** Whether the server can send the verification a new email address needs. */
   emailChangeAvailable: v.boolean()

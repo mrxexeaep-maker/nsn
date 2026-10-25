@@ -3,6 +3,7 @@ import { useObjectUrl } from '@vueuse/core'
 import { SliderRange, SliderRoot, SliderThumb, SliderTrack } from 'reka-ui'
 import { computed, ref, useTemplateRef, watch } from 'vue'
 
+import type { Size } from '@open-pencil/scene-graph/primitives'
 import { useCloudPortalMessages } from '@open-pencil/vue/i18n'
 
 import {
@@ -13,8 +14,7 @@ import {
   PICTURE_MAX_ZOOM,
   pictureScale,
   zoomCrop,
-  type PictureCrop,
-  type PictureSize
+  type PictureCrop
 } from '@/app/cloud-portal/picture'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import AppDialogBody from '@/components/ui/dialog/AppDialogBody.vue'
@@ -43,7 +43,7 @@ const emit = defineEmits<{ save: [picture: Blob] }>()
 const messages = useCloudPortalMessages()
 const url = useObjectUrl(() => file)
 const image = useTemplateRef<HTMLImageElement>('image')
-const size = ref<PictureSize | null>(null)
+const size = ref<Size | null>(null)
 const crop = ref<PictureCrop>({ zoom: 1, x: 0, y: 0 })
 const unreadable = ref(false)
 let drag: { pointerId: number; x: number; y: number; from: PictureCrop } | null = null
