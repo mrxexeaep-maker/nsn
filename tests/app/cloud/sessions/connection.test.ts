@@ -59,7 +59,8 @@ describe('Cloud connections', () => {
     expect(cloudServers.value[0]?.account).toEqual({
       id: 'user-1',
       name: 'Ada',
-      email: 'ada@example.com'
+      email: 'ada@example.com',
+      image: null
     })
   })
 
