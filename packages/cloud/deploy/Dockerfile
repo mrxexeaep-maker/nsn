@@ -3,10 +3,11 @@
 #   docker build -f packages/cloud/deploy/Dockerfile -t openpencil-cloud .
 # The image also runs the AI relay: `docker run … openpencil-cloud node ai-relay.mjs`.
 
-FROM oven/bun:1.4.2 AS bun
-
 # The build's output is JavaScript and static files, so it runs on the builder's own platform
-# once, whichever platforms the image is for. Playwright's Chromium draws the demo document.
+# once, whichever platforms the image is for, with Bun for that platform too. Playwright's
+# Chromium draws the demo document.
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.2 AS bun
+
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/playwright:v1.63.0-noble AS build
 COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 RUN ln -s /usr/local/bin/bun /usr/local/bin/bunx

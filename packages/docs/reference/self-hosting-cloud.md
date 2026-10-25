@@ -19,7 +19,7 @@ docker run -p 8787:8787 \
   ghcr.io/open-pencil/cloud:0.16
 ```
 
-The image sets `OPENPENCIL_CLOUD_SITE_DIR` itself, listens on port 8787, and reports health from `GET /ready`. `docker run … ghcr.io/open-pencil/cloud node ai-relay.mjs` runs the [AI relay](#ai) instead.
+The image serves its own editor and pages from `/app/site`, so leave `OPENPENCIL_CLOUD_SITE_DIR` out of the `.env` it is given, or the variable points the server somewhere the container does not have. It listens on port 8787, and reports health from `GET /ready`. `docker run … ghcr.io/open-pencil/cloud node ai-relay.mjs` runs the [AI relay](#ai) instead.
 
 To try it on one machine, [`compose.self-hosted.yml`](https://github.com/open-pencil/open-pencil/blob/master/packages/cloud/deploy/compose.self-hosted.yml) runs the image with PostgreSQL, SeaweedFS for storage, and Mailpit for email, configured by [`self-hosted/openpencil-cloud.toml`](https://github.com/open-pencil/open-pencil/blob/master/packages/cloud/deploy/self-hosted/openpencil-cloud.toml):
 
