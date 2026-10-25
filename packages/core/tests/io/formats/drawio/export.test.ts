@@ -5,7 +5,7 @@ import { expectDefined } from '#core-tests/helpers/assert'
 
 import { BUILTIN_IO_FORMATS, IORegistry } from '#core/io'
 
-import { parseDrawioFile } from '@open-pencil/drawio'
+import { parseDrawIOFile } from '@open-pencil/drawio'
 import type { ExportTarget } from '#core/io'
 
 import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
@@ -37,7 +37,7 @@ async function write(graph: SceneGraph): Promise<string> {
 async function exported(graph: SceneGraph, target: ExportTarget) {
   const result = await io.exportContent('drawio', { graph, target })
   if (typeof result.data !== 'string') throw new Error('Expected draw.io XML')
-  const file = expectDefined(parseDrawioFile(result.data))
+  const file = expectDefined(parseDrawIOFile(result.data))
   return expectDefined(file.pages[0]).cells
 }
 
@@ -89,7 +89,7 @@ describe('saving a draw.io file', () => {
 
   test('a dragged connector saves the corners it was dragged to, which draw.io runs through', async () => {
     const opened = await read(ORDER_FLOW)
-    const file = expectDefined(parseDrawioFile(await write(opened)))
+    const file = expectDefined(parseDrawIOFile(await write(opened)))
     const bent = expectDefined(file.pages[0]?.cells.find((cell) => cell.value === 'no'))
     expect(bent.geometry.points).toContainEqual({ x: 420, y: 160 })
     expect(bent.geometry.points).toContainEqual({ x: 530, y: 160 })
@@ -112,7 +112,7 @@ describe('saving a draw.io file', () => {
       end: freeEndpoint(300, 100)
     })
     graph.updateNode(connector.id, { name: 'Loose' })
-    const [star, edge] = expectDefined(parseDrawioFile(await write(graph))).pages[0]?.cells ?? []
+    const [star, edge] = expectDefined(parseDrawIOFile(await write(graph))).pages[0]?.cells ?? []
     expect(star.style.values.shape).toBe('image')
     expect(star.style.values.image).toStartWith('data:image/svg+xml,')
     expect(star.geometry).toMatchObject({ x: 10, y: 20, width: 40, height: 40 })
@@ -126,7 +126,7 @@ describe('saving a draw.io file', () => {
     graph.createNode('RECTANGLE', page.id, { width: 40, height: 20, rotation: 30 })
     graph.createNode('ELLIPSE', page.id, { width: 40, height: 20, rotation: -45 })
     graph.createNode('TEXT', page.id, { width: 40, height: 20, rotation: 15, text: 'Turned' })
-    const cells = expectDefined(parseDrawioFile(await write(graph))).pages[0]?.cells ?? []
+    const cells = expectDefined(parseDrawIOFile(await write(graph))).pages[0]?.cells ?? []
     expect(cells.map((cell) => cell.style.values.rotation)).toEqual(['30', '-45', '15'])
   })
 
@@ -136,7 +136,7 @@ describe('saving a draw.io file', () => {
     for (const shapeWithTextType of ['ELLIPSE', 'DIAMOND', 'TRIANGLE_UP', 'HEXAGON'] as const) {
       createShapeWithText(graph, page.id, { shapeWithTextType, width: 60, height: 40 }, {})
     }
-    const cells = expectDefined(parseDrawioFile(await write(graph))).pages[0]?.cells ?? []
+    const cells = expectDefined(parseDrawIOFile(await write(graph))).pages[0]?.cells ?? []
     expect(cells.map((cell) => cell.style.values.perimeter)).toEqual([
       'ellipsePerimeter',
       'rhombusPerimeter',

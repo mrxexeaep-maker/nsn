@@ -1,4 +1,4 @@
-import type { DrawioStyle } from '@open-pencil/drawio'
+import type { DrawIOStyle } from '@open-pencil/drawio'
 import type { ShapeWithTextType } from '@open-pencil/scene-graph/shape-with-text'
 
 /** What a draw.io vertex becomes: a FigJam shape, text, a section around its cells, or a group. */
@@ -69,7 +69,7 @@ const SHAPES = new Map<string, ShapeWithTextType>([
 const SHAPE_NAMES = new Set([...SHAPES.keys(), 'text', 'swimlane', 'group', 'image'])
 
 /** The shape a style draws: its `shape`, else the stylesheet style it names, else a rectangle. */
-export function shapeName(style: DrawioStyle): string {
+export function shapeName(style: DrawIOStyle): string {
   return style.values.shape ?? style.names.find((name) => SHAPE_NAMES.has(name)) ?? 'rectangle'
 }
 
@@ -87,7 +87,7 @@ const DIRECTION_TURN = new Map([
  * `direction` keeps its turn. Any other shape, a stencil FigJam has no shape for among them,
  * becomes a rectangle, named after the stencil so it can be found.
  */
-export function vertexKind(style: DrawioStyle, hasChildren: boolean): VertexKind {
+export function vertexKind(style: DrawIOStyle, hasChildren: boolean): VertexKind {
   const name = shapeName(style)
   if (name === 'text') return { type: 'TEXT' }
   if (name === 'swimlane' || (hasChildren && style.values.container === '1')) {

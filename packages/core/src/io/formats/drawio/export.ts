@@ -1,12 +1,12 @@
 import { fromUint8Array } from 'js-base64'
 
 import type {
-  DrawioCell,
-  DrawioFile,
-  DrawioGeometry,
-  DrawioPage,
-  DrawioPoint,
-  DrawioStyle
+  DrawIOCell,
+  DrawIOFile,
+  DrawIOGeometry,
+  DrawIOPage,
+  DrawIOPoint,
+  DrawIOStyle
 } from '@open-pencil/drawio'
 import type { ConnectorEndpoint, SceneGraph, SceneNode, StrokeCap } from '@open-pencil/scene-graph'
 import { colorToHex } from '@open-pencil/scene-graph/color'
@@ -34,7 +34,7 @@ import { drawioShapeValues } from './shapes'
 const ROOT_ID = '0'
 const LAYER_ID = '1'
 
-const EMPTY_GEOMETRY: DrawioGeometry = {
+const EMPTY_GEOMETRY: DrawIOGeometry = {
   x: 0,
   y: 0,
   width: 0,
@@ -46,7 +46,7 @@ const EMPTY_GEOMETRY: DrawioGeometry = {
   offset: null
 }
 
-function style(names: string[], values: Record<string, string | undefined>): DrawioStyle {
+function style(names: string[], values: Record<string, string | undefined>): DrawIOStyle {
   return {
     names,
     values: Object.fromEntries(Object.entries(values).filter(([, v]) => v !== undefined))
@@ -57,7 +57,7 @@ function round(value: number): number {
   return Math.round(value * 100) / 100
 }
 
-function box(node: SceneNode): DrawioGeometry {
+function box(node: SceneNode): DrawIOGeometry {
   return {
     ...EMPTY_GEOMETRY,
     x: round(node.x),
@@ -88,7 +88,7 @@ function toPageOf(graph: SceneGraph, node: SceneNode, pageId: string): ToPage | 
 
 /** Where a layer sits and how far it turns about its centre, in draw.io's axes. */
 interface Placed {
-  geometry: DrawioGeometry
+  geometry: DrawIOGeometry
   rotation: number
 }
 
@@ -242,10 +242,10 @@ const SIDE_POINTS: Partial<Record<ConnectorEndpoint['magnet'], [number, number]>
 
 /** Writes one page's layers as draw.io cells, in drawing order. */
 class PageWriter {
-  readonly cells: DrawioCell[] = []
+  readonly cells: DrawIOCell[] = []
   private readonly ids = new Map<string, string>()
   /** Where each edge's line last ran from and to, in draw.io's axes. */
-  private readonly drawnEnds = new Map<string, { start: DrawioPoint; end: DrawioPoint }>()
+  private readonly drawnEnds = new Map<string, { start: DrawIOPoint; end: DrawIOPoint }>()
   private next = 2
 
   constructor(
@@ -301,8 +301,8 @@ class PageWriter {
   private push(
     node: SceneNode,
     parent: string,
-    cell: Omit<DrawioCell, 'id' | 'parent' | 'visible' | 'attributes' | 'source' | 'target'> &
-      Partial<Pick<DrawioCell, 'source' | 'target'>>
+    cell: Omit<DrawIOCell, 'id' | 'parent' | 'visible' | 'attributes' | 'source' | 'target'> &
+      Partial<Pick<DrawIOCell, 'source' | 'target'>>
   ) {
     this.cells.push({
       id: this.idOf(node.id),
@@ -434,7 +434,7 @@ class PageWriter {
   }
 
   /** A layer draw.io has no cell for, drawn as the SVG image it exports as. */
-  private picture(node: SceneNode, parent: string, geometry: DrawioGeometry) {
+  private picture(node: SceneNode, parent: string, geometry: DrawIOGeometry) {
     const svg = renderNodesToSVG(this.graph, this.pageId, [node.id])
     if (!svg) return
     const data = fromUint8Array(new TextEncoder().encode(svg))
@@ -467,7 +467,7 @@ class PageWriter {
    * Where an edge's free ends sit, its bend points, and its label's place along it, with the
    * points carried into draw.io's axes.
    */
-  private edgeGeometry(node: SceneNode, toPage: ToPage | null): DrawioGeometry {
+  private edgeGeometry(node: SceneNode, toPage: ToPage | null): DrawIOGeometry {
     const at = (point: Vector) => {
       const mapped = toPage ? Matrix.mapPoint(toPage.matrix, point) : point
       return { x: round(mapped.x), y: round(mapped.y) }
@@ -533,7 +533,7 @@ class PageWriter {
 }
 
 /** One page of layers as a draw.io page, holding `nodeIds` or every layer on it. */
-function pageOf(graph: SceneGraph, pageId: string, nodeIds?: readonly string[]): DrawioPage {
+function pageOf(graph: SceneGraph, pageId: string, nodeIds?: readonly string[]): DrawIOPage {
   const page = graph.getNode(pageId)
   const writer = new PageWriter(graph, pageId)
   writer.write(nodeIds ?? page?.childIds ?? [])
@@ -548,7 +548,7 @@ function pageOf(graph: SceneGraph, pageId: string, nodeIds?: readonly string[]):
 }
 
 /** What a draw.io export holds: whole pages, or some layers of one page. */
-export type DrawioExportTarget =
+export type DrawIOExportTarget =
   | { pageIds: readonly string[] }
   | { pageId: string; nodeIds: readonly string[] }
 
@@ -558,7 +558,7 @@ export type DrawioExportTarget =
  * frames and groups as containers. A layer draw.io has no cell for goes as an SVG image of
  * itself, so nothing is lost.
  */
-export function sceneGraphToDrawio(graph: SceneGraph, target: DrawioExportTarget): DrawioFile {
+export function sceneGraphToDrawIO(graph: SceneGraph, target: DrawIOExportTarget): DrawIOFile {
   const pages =
     'pageIds' in target
       ? target.pageIds.map((pageId) => pageOf(graph, pageId))
