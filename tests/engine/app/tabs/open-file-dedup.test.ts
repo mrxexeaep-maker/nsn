@@ -220,6 +220,27 @@ describe('openFileInNewTab deduplication', () => {
     expect(getActiveStore()).toBe(after.store)
   })
 
+  test('brings Home back and reports the open failure when its recovery copy stays', async () => {
+    ;(figModule.readFigFile as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error('read failed')
+    )
+    createHomeTab()
+    const home = expectDefined(getTabsSnapshot().at(-1), 'home tab')
+    vi.spyOn(home.store, 'discardRecovery').mockRejectedValueOnce(new Error('disk full'))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+    await expect(
+      settleFileOpen(openFileInNewTab(new File([], 'broken.fig'), undefined, '/tmp/broken.fig'))
+    ).rejects.toThrow('read failed')
+
+    const after = expectDefined(getTabsSnapshot().at(-1), 'home tab')
+    expect(after.id).toBe(home.id)
+    expect(after.kind).toBe('home')
+    expect(after.store).not.toBe(home.store)
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
+  })
+
   test('activates the existing tab when the same path is opened again', async () => {
     const initialCount = tabCount()
     const file = new File([], 'design.fig')

@@ -237,9 +237,18 @@ async function releaseOpeningTab(opening: OpeningTab): Promise<void> {
     return
   }
   if (!opening.fromHome) return
-  const tabIndex = tabsRef.value.findIndex((candidate) => candidate.id === tab.id)
+  // Home comes back even when its recovery copy stays behind, which the next start offers again.
+  await tab.store.discardRecovery().catch((error: unknown) => {
+    console.warn(
+      '[Tabs] Failed to discard the recovery copy of a document that failed to open',
+      error
+    )
+  })
+  // Tabs may have closed meanwhile, so the tab is found again, and only while it still holds this store.
+  const tabIndex = tabsRef.value.findIndex(
+    (candidate) => candidate.id === tab.id && candidate.store === tab.store
+  )
   if (tabIndex === -1) return
-  await tab.store.discardRecovery()
   const home: Tab = { ...tab, kind: 'home', store: createEditorStore() }
   tabsRef.value = tabsRef.value.with(tabIndex, home)
   if (activeTabId.value === tab.id) activateTab(home)
