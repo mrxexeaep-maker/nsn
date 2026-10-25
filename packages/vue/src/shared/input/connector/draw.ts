@@ -1,7 +1,12 @@
-import type { Editor } from '@open-pencil/core'
+import type { AttachModifiers, Editor } from '@open-pencil/core'
 
 import { isPastPointerDragThreshold } from '#vue/shared/input/drag-threshold'
 import type { DragConnectorDraw, DragState } from '#vue/shared/input/types'
+
+/** How the keys held on a pointer event change where a connector end attaches. */
+export function attachModifiers(e: MouseEvent): AttachModifiers {
+  return { pin: e.metaKey || e.ctrlKey, centre: e.shiftKey }
+}
 
 /** Starts a connector at the press, or ends the one a click started, as FigJam's tool does. */
 export function startConnectorDraw(
@@ -10,9 +15,10 @@ export function startConnectorDraw(
   sx: number,
   sy: number,
   editor: Editor,
-  setDrag: (drag: DragState) => void
+  setDrag: (drag: DragState) => void,
+  modifiers: AttachModifiers
 ) {
-  editor.connectorBegin(cx, cy)
+  editor.connectorBegin(cx, cy, modifiers)
   const drag: DragConnectorDraw = {
     type: 'connector-draw',
     startSX: sx,
@@ -20,7 +26,8 @@ export function startConnectorDraw(
     moved: false,
     x: cx,
     y: cy,
-    commit: () => editor.connectorRelease(drag.x, drag.y, drag.moved),
+    modifiers,
+    commit: () => editor.connectorRelease(drag.x, drag.y, drag.moved, drag.modifiers),
     cancel: () => editor.connectorCancel()
   }
   setDrag(drag)
@@ -32,10 +39,12 @@ export function handleConnectorDrawMove(
   cy: number,
   sx: number,
   sy: number,
-  editor: Editor
+  editor: Editor,
+  modifiers: AttachModifiers
 ) {
   drag.x = cx
   drag.y = cy
+  drag.modifiers = modifiers
   drag.moved ||= isPastPointerDragThreshold(drag.startSX, drag.startSY, sx, sy)
-  if (drag.moved) editor.connectorDrag(cx, cy)
+  if (drag.moved) editor.connectorDrag(cx, cy, modifiers)
 }
