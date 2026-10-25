@@ -151,6 +151,14 @@ export function createCloudAdminRoutes(
       await services.users.resetTwoStep(context.get('actor').userId, userId)
       return context.json({ ok: true as const })
     })
+    .post('/users/remove-picture', validatedJSON(parseUserMutation), async (context) => {
+      const { userId } = context.req.valid('json')
+      if (!v.is(accountIdSchema, userId)) {
+        return context.json({ error: { code: 'not_found' as const } }, 404)
+      }
+      await services.users.removePicture(context.get('actor').userId, userId)
+      return context.json({ ok: true as const })
+    })
     .post('/users/ban', validatedJSON(parseUserMutation), async (context) => {
       const input = context.req.valid('json')
       await services.users.ban(

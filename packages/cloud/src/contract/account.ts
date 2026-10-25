@@ -1,3 +1,4 @@
+import { isValid as isBase64 } from 'js-base64'
 import * as v from 'valibot'
 
 export const cloudAccountStateSchema = v.picklist(['active', 'pending', 'rejected', 'revoked'])
@@ -45,7 +46,8 @@ export const accountSecurityErrorCodeSchema = v.picklist([
   'authentication_method_failed',
   'email_unchanged',
   'email_change_unavailable',
-  'current_session'
+  'current_session',
+  'picture_invalid'
 ])
 export const accountSecurityErrorResponseSchema = v.object({
   error: v.object({ code: accountSecurityErrorCodeSchema })
@@ -112,6 +114,20 @@ export const cloudProfileResponseSchema = v.object({ profile: cloudProfileSchema
 export const cloudProfileUpdateSchema = v.object({
   name: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(100))
 })
+/** The largest picture an account may upload, once the page has cropped and shrunk it. */
+export const CLOUD_PICTURE_MAX_BYTES = 256 * 1024
+/** The width and height a page shrinks a picture to before it uploads it. */
+export const CLOUD_PICTURE_SIZE = 256
+export const cloudPictureUploadSchema = v.object({
+  /** The picture's PNG or JPEG bytes, in Base64. */
+  data: v.pipe(
+    v.string(),
+    v.maxLength(Math.ceil(CLOUD_PICTURE_MAX_BYTES / 3) * 4),
+    v.check((value) => isBase64(value))
+  )
+})
+/** The address the account's picture is now served from. */
+export const cloudPictureResponseSchema = v.object({ image: v.string() })
 export const cloudEmailChangeSchema = v.object({
   newEmail: v.pipe(v.string(), v.trim(), v.toLowerCase(), v.email()),
   callbackURL: v.pipe(v.string(), v.url())
@@ -158,6 +174,9 @@ export const cloudSignInsResponseSchema = v.object({ signIns: v.array(cloudSignI
 
 export function parseCloudProfileUpdate(input: unknown) {
   return v.parse(cloudProfileUpdateSchema, input)
+}
+export function parseCloudPictureUpload(input: unknown) {
+  return v.parse(cloudPictureUploadSchema, input)
 }
 export function parseCloudEmailChange(input: unknown) {
   return v.parse(cloudEmailChangeSchema, input)
