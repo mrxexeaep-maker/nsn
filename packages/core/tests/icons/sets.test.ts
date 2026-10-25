@@ -71,4 +71,22 @@ describe('icon sets', () => {
     expect(found.icons).toEqual(['lucide:found', 'font-set:found'])
     expect(Object.keys(found.collections)).toEqual(['lucide', 'font-set'])
   })
+
+  test('keeps the icons other sources answer when one source fails', async () => {
+    const offline: IconProvider = {
+      ...fake(['font-set'], []),
+      icons: async () => {
+        throw new Error('offline')
+      },
+      previews: async () => {
+        throw new Error('offline')
+      }
+    }
+    const provider = createIconSetsProvider({
+      sources: [{ prefixes: ['font-set'], provider: offline }],
+      fallback: fake(['lucide'], [])
+    })
+    expect([...(await provider.previews(['lucide:a', 'font-set:b'])).keys()]).toEqual(['lucide:a'])
+    await expect(provider.icons(['font-set:b'], 24)).rejects.toThrow('offline')
+  })
 })

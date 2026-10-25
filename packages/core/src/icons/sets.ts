@@ -44,14 +44,17 @@ export function createIconSetsProvider({
     return parts
   }
 
+  /** What every provider answers for its names; one that fails leaves only its own out. */
   async function answered<T>(
     names: readonly string[],
     ask: (provider: IconProvider, names: string[]) => Promise<Map<string, T>>
   ): Promise<Map<string, T>> {
-    const parts = await Promise.all(
+    const parts = await Promise.allSettled(
       [...byProvider(names)].map(([provider, part]) => ask(provider, part))
     )
-    return new Map(parts.flatMap((part) => [...part]))
+    const failed = parts.find((part) => part.status === 'rejected')
+    if (failed && parts.every((part) => part.status === 'rejected')) throw failed.reason
+    return new Map(parts.flatMap((part) => (part.status === 'fulfilled' ? [...part.value] : [])))
   }
 
   return {
