@@ -125,8 +125,7 @@ function resolvedLineHeight(fontSize: number, lineHeight: number | null): number
 /** The line height a run contributes: its own when it sets one, otherwise the node's. */
 function runLineHeight(node: SceneNode, style: CharacterStyleOverride | null): number {
   const fontSize = style?.fontSize ?? node.fontSize
-  const lineHeight =
-    style != null && style.lineHeight !== undefined ? style.lineHeight : node.lineHeight
+  const lineHeight = style?.lineHeight !== undefined ? style.lineHeight : node.lineHeight
   return resolvedLineHeight(fontSize, lineHeight)
 }
 
