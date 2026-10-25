@@ -188,14 +188,18 @@ describe('account pictures', () => {
       })
       expect(await profileImage(fixture, account.sessionCookie)).toBeNull()
 
-      const updated = await fixture.app.fetch(
-        accountAuthenticationRequest(
-          '/api/auth/update-user',
-          { name: 'Renamed Person', image: GOOGLE_PICTURE },
-          account.sessionCookie
+      // Nor may it name an address that looks like one the server serves.
+      const lookalike = `${accountAuthenticationConfig.publicURL}/api/pictures/${account.userId}/0000000000000000`
+      for (const image of [GOOGLE_PICTURE, lookalike]) {
+        const updated = await fixture.app.fetch(
+          accountAuthenticationRequest(
+            '/api/auth/update-user',
+            { name: 'Renamed Person', image },
+            account.sessionCookie
+          )
         )
-      )
-      expect(updated.status).toBe(200)
+        expect(updated.status).toBe(200)
+      }
       const profile = await fixture.app.fetch(
         accountAuthenticationRequest('/api/account/profile', undefined, account.sessionCookie)
       )

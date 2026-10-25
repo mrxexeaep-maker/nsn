@@ -14,12 +14,12 @@ function providerSignIn(context: { path?: string } | null): boolean {
  * Keeps the picture a Google account gave the person once a sign-in issues their session, so pages
  * show the server's copy and never load it from Google. Accounts made before the server kept
  * pictures move over the next time they sign in this way. Better Auth also takes an `image` on
- * email sign-up and user updates; only a provider's sign-in may set one the server does not
- * serve, since the server fetches it.
+ * email sign-up and user updates; only a provider's sign-in may set one through it, since the
+ * server fetches it, and the server writes its own addresses itself.
  */
 export function providerPictures(pictures: UserPictureService): BetterAuthPlugin {
-  const foreign = (image: unknown, context: { path?: string } | null) =>
-    typeof image === 'string' && !pictures.served(image) && !providerSignIn(context)
+  const refused = (image: unknown, context: { path?: string } | null) =>
+    image !== undefined && image !== null && !providerSignIn(context)
   return {
     id: 'openpencil-provider-pictures',
     init: () => ({
@@ -28,12 +28,12 @@ export function providerPictures(pictures: UserPictureService): BetterAuthPlugin
           user: {
             create: {
               before: async (user, context) =>
-                foreign(user.image, context) ? { data: { ...user, image: null } } : true
+                refused(user.image, context) ? { data: { ...user, image: null } } : true
             },
             update: {
               // Better Auth merges what a hook returns into the update, so `image` is unset.
               before: async (user, context) =>
-                foreign(user.image, context) ? { data: { image: undefined } } : true
+                refused(user.image, context) ? { data: { image: undefined } } : true
             }
           }
         }
