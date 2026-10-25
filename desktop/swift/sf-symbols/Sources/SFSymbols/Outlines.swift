@@ -173,10 +173,17 @@ private let operators: CGPDFOperatorTableRef = {
   on("f*") { _, info in reader(info).fill(.evenOdd) }
   // A soft mask's gray is all that matters: black hides, white shows.
   on("g") { scanner, info in reader(info).state.gray = numbers(scanner, 1)[0] }
+  // A gray colour space sets one component, an RGB one three.
   on("sc") { scanner, info in
     let reader = reader(info)
-    let n = numbers(scanner, 3)
-    reader.state.gray = 0.2126 * n[0] + 0.7152 * n[1] + 0.0722 * n[2]
+    var n: [CGFloat] = []
+    var value: CGPDFReal = 0
+    while CGPDFScannerPopNumber(scanner, &value) { n.insert(value, at: 0) }
+    switch n.count {
+    case 1: reader.state.gray = n[0]
+    case 3: reader.state.gray = 0.2126 * n[0] + 0.7152 * n[1] + 0.0722 * n[2]
+    default: break
+    }
   }
   on("gs") { scanner, info in
     let reader = reader(info)
