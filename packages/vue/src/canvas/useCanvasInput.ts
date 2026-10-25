@@ -22,7 +22,11 @@ import {
 } from '#vue/canvas/vector-input/input'
 import { resolveAutoLayoutHover } from '#vue/shared/input/auto-layout-hover'
 import { createClickCounter } from '#vue/shared/input/click-count'
-import { attachModifiers, handleConnectorDrawMove } from '#vue/shared/input/connector/draw'
+import {
+  attachModifiers,
+  handleConnectorDrawMove,
+  refreshConnectorDrag
+} from '#vue/shared/input/connector/draw'
 import { handleDrawMove } from '#vue/shared/input/draw'
 import { cancelMove, handleMoveMove, handleMoveUp } from '#vue/shared/input/move/drag'
 import { setupPanZoom } from '#vue/shared/input/pan/zoom'
@@ -491,9 +495,14 @@ export function useCanvasInput(
   useEventListener(canvasRef, 'mousemove', onMouseMove)
   useEventListener(canvasRef, 'mouseup', onMouseUp)
   useEventListener(window, 'keydown', (event) => {
-    if (!guideInput.deleteSelected(event)) updateModifier(event.code, true)
+    if (guideInput.deleteSelected(event)) return
+    updateModifier(event.code, true)
+    refreshConnectorDrag(drag.value, lastPointer.value, event, editor)
   })
-  useEventListener(window, 'keyup', (event) => updateModifier(event.code, false))
+  useEventListener(window, 'keyup', (event) => {
+    updateModifier(event.code, false)
+    refreshConnectorDrag(drag.value, lastPointer.value, event, editor)
+  })
   useEventListener(
     window,
     'keydown',
