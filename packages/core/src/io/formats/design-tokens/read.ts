@@ -1,4 +1,5 @@
 import { isPlainObject } from 'es-toolkit/predicate'
+import { basename, dirname, join } from 'pathe'
 import * as v from 'valibot'
 
 import { pathName } from './paths'
@@ -131,24 +132,22 @@ export function documentTokens(parsed: Record<string, unknown>): ReadToken[] {
 
 /** `a/b/c.tokens.json` is `c`; `.tokens`, `.tokens.json`, and `.json` all go. */
 function baseName(path: string): string {
-  const file = path.split('/').at(-1) ?? path
-  return file.replace(/\.tokens(\.json)?$|\.json$/i, '')
+  return basename(path).replace(/\.tokens(\.json)?$|\.json$/i, '')
 }
 
+/** The folder a picked file sits in, or `''` for a file picked on its own. */
 function folderOf(path: string): string {
-  return path.split('/').slice(0, -1).join('/')
+  const folder = dirname(path)
+  return folder === '.' ? '' : folder
 }
 
-/** A `$ref` as a path among the picked files, relative to the file it appears in. */
+/**
+ * A `$ref` as a path among the picked files, relative to the file it appears in. A ref that
+ * starts with `/` or climbs above the picked folders stays at their top, since nothing was
+ * picked from outside them.
+ */
 function resolveRef(from: string, ref: string): string {
-  const segments = [...folderOf(from).split('/'), ...ref.split('/')]
-  const resolved: string[] = []
-  for (const segment of segments) {
-    if (segment === '' || segment === '.') continue
-    if (segment === '..') resolved.pop()
-    else resolved.push(segment)
-  }
-  return resolved.join('/')
+  return join(folderOf(from), ref).replace(/^(?:\.\.\/|\/)+/, '')
 }
 
 /**
@@ -158,8 +157,8 @@ function resolveRef(from: string, ref: string): string {
 function findRef(reader: Reader, from: string, ref: string): string {
   const path = resolveRef(from, ref)
   if (reader.documents.has(path)) return path
-  const name = path.split('/').at(-1)
-  const matches = [...reader.documents.keys()].filter((key) => key.split('/').at(-1) === name)
+  const name = basename(path)
+  const matches = [...reader.documents.keys()].filter((key) => basename(key) === name)
   return matches.length === 1 ? matches[0] : path
 }
 
@@ -291,7 +290,7 @@ function readModeFiles(paths: readonly string[], reader: Reader): ReadCollection
     // collection they name, or into one.
     const folder = folderOf(path)
     const key = folder || info.collection || ''
-    const name = info.collection ?? (folder.split('/').at(-1) || 'Tokens')
+    const name = info.collection ?? (basename(folder) || 'Tokens')
     const collection = collections.get(key) ?? { name, modes: [], modeAttribute: undefined }
     collection.modeAttribute ??= info.modeAttribute
     collection.modes.push({

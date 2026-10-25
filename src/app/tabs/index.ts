@@ -1,4 +1,5 @@
 import { promiseTimeout } from '@vueuse/core'
+import { filename } from 'pathe/utils'
 import { shallowRef, computed, triggerRef } from 'vue'
 
 import { BUILTIN_IO_FORMATS, IORegistry } from '@open-pencil/core/io'
@@ -461,7 +462,7 @@ export async function openFileInNewTab(
     }
 
     const { store, created } = reusableTabStore()
-    store.state.documentName = file.name.replace(/\.[^.]+$/i, '')
+    store.state.documentName = filename(file.name) ?? file.name
     const load = store.preparationController.begin({
       kind: isDOMImportFile(file) ? 'dom-import' : 'document-open',
       subject: file.name

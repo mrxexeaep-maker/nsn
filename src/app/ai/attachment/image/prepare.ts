@@ -1,3 +1,5 @@
+import { filename } from 'pathe/utils'
+
 import type {
   ImageAttachmentMediaType,
   PreparedImageAttachment
@@ -95,7 +97,7 @@ export async function rasterizeSVGAttachment(
     if (!context) throw new Error('Could not prepare the image.')
     context.drawImage(image, 0, 0, canvas.width, canvas.height)
     const blob = await canvasToBlob(canvas, 'image/png')
-    const name = file.name.replace(/\.svg$/i, '') + '.png'
+    const name = `${filename(file.name) ?? file.name}.png`
     return new File([blob], name, { type: 'image/png' })
   } finally {
     revokeImagePreviewURL(sourceURL)
