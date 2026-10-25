@@ -43,3 +43,32 @@ test('draws every weight its variable font covers from the one file, in the same
   // The file is upright, so it does not stand in for an italic.
   expect(await manager.loadFont('Fonts Test Variable', 'Bold Italic')).toBeNull()
 })
+
+test('a variable font shared with another weight still fetches the characters it lacks', async () => {
+  const manager = new FontManager()
+  manager.setOnlineFontProviders({ google: true })
+  const family = 'Fonts Test Shared Coverage'
+  const fontURL = 'https://fonts.gstatic.com/s/test/shared.ttf'
+  const variable = await Bun.file(join(FIXTURES, 'fonts', 'InterVariable-Latin.ttf')).arrayBuffer()
+  const asked: string[] = []
+  manager.setWebFontFetch(async (url) => {
+    if (url.startsWith('https://fonts.google.com/metadata/fonts'))
+      return Response.json({
+        familyMetadataList: [
+          { family, fonts: { '400': {}, '700': {} }, axes: [{ tag: 'wght', min: 100, max: 900 }] }
+        ]
+      })
+    if (url.startsWith('https://fonts.googleapis.com/css2')) {
+      asked.push(new URL(url).searchParams.get('text') ?? '')
+      return new Response(
+        `@font-face { font-family: '${family}'; font-style: normal; font-weight: 100 900; src: url(${fontURL}) format('truetype'); }`
+      )
+    }
+    if (url === fontURL) return new Response(variable.slice(0))
+    return new Response(null, { status: 404 })
+  })
+
+  await manager.loadFont(family, 'Regular', 'abc')
+  await manager.loadFont(family, 'Bold', 'xyz')
+  expect(asked.at(-1)).toContain('xyz')
+})

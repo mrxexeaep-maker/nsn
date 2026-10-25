@@ -434,23 +434,38 @@ export class FontManager {
     const loaded = this.loadedData(family, style)
     if (loaded) {
       this.registerFontInCanvasKit(family, loaded)
-      const remoteCoverage = this.remoteCoverage.get(`${family}|${style}`)
-      const missingRemoteCoverage = Boolean(
-        characters &&
-        remoteCoverage &&
-        Array.from(characters).some((character) => !remoteCoverage.has(character))
-      )
-      return missingRemoteCoverage
-        ? ((await this.loadRemoteFont(family, style, characters, signal)) ?? loaded)
-        : loaded
+      return this.withRemoteCoverage(family, style, loaded, characters, signal)
     }
+    const shared = this.sharedVariableFace(family, style)
+    if (shared) return this.withRemoteCoverage(family, style, shared, characters, signal)
 
     return (
-      this.sharedVariableFace(family, style) ??
       (await this.loadLocalFont(family, style)) ??
       (await this.loadCachedFont(family, style, characters)) ??
       (await this.loadRemoteFont(family, style, characters, signal))
     )
+  }
+
+  /**
+   * `data`, or a web font fetched again with `characters` when it came from the web without them,
+   * as a provider cuts a font down to the text it is asked for.
+   */
+  private async withRemoteCoverage(
+    family: string,
+    style: string,
+    data: ArrayBuffer,
+    characters: string,
+    signal?: AbortSignal
+  ): Promise<ArrayBuffer> {
+    const remoteCoverage = this.remoteCoverage.get(`${family}|${style}`)
+    const missingRemoteCoverage = Boolean(
+      characters &&
+      remoteCoverage &&
+      Array.from(characters).some((character) => !remoteCoverage.has(character))
+    )
+    return missingRemoteCoverage
+      ? ((await this.loadRemoteFont(family, style, characters, signal)) ?? data)
+      : data
   }
 
   /**
