@@ -14,7 +14,7 @@ import { exposeAutomationTestRequests } from '@/app/automation/bridge/test-hooks
 import { startMCPRuntime, stopMCPRuntime } from '@/app/automation/mcp/runtime'
 import { startWebMCP } from '@/app/automation/webmcp/runtime'
 import { exposeCollaborationActions } from '@/app/browser-bridge'
-import { shownEditorStore, versionPreviewKey } from '@/app/cloud/integration'
+import { openingCloudLink, shownEditorStore, versionPreviewKey } from '@/app/cloud/integration'
 import { useJoinRoom } from '@/app/collab/join'
 import { bindDesktopRoomLinks } from '@/app/collab/room/links'
 import { COLLAB_KEY, useCollab } from '@/app/collab/use'
@@ -51,6 +51,7 @@ import FileApiBanner from '@/components/FileApiBanner.vue'
 import FontStatusBanner from '@/components/font-status/FontStatusBanner.vue'
 import HomeWorkspace from '@/components/home/HomeWorkspace.vue'
 import RenameSelectionDialog from '@/components/selection/RenameSelectionDialog.vue'
+import LoadingScreen from '@/components/shell/LoadingScreen.vue'
 import TabBar from '@/components/TabBar.vue'
 import { IS_BROWSER, IS_CLOUD_SITE } from '@/constants'
 
@@ -80,6 +81,13 @@ const createdInitialTab = tabCount() === 0
 // something: recent files, or the workspaces of the Cloud server that serves the editor.
 const pinHome = !appRuntimeConfig.test && !route.meta.demo
 const showHomeFirst = route.path === '/' && pinHome && (recentFilesAvailable() || IS_CLOUD_SITE)
+/**
+ * A Cloud link's first tab is Home, beside which the document it opens gets its own tab; Home is
+ * also where a link that fails or waits for a sign-in leaves the person, never an empty document.
+ */
+const opensCloudLink = ['documentId', 'shareId', 'invitationId'].some(
+  (param) => typeof route.params[param] === 'string'
+)
 const { collaboration } = useI18n()
 const joinRoomFromInput = useJoinRoom()
 
@@ -94,7 +102,7 @@ function openFirstTab(): Tab {
     if (joinRoomFromInput(roomId) && activeTab.value) return activeTab.value
     toast.error(collaboration.value.invalidRoomLink)
   }
-  return showHomeFirst ? createHomeTab() : createTab()
+  return showHomeFirst || opensCloudLink ? createHomeTab() : createTab()
 }
 
 // Block-scoped so the view does not keep the first tab's store after that tab closes.
@@ -130,7 +138,15 @@ if (welcomeShown) {
     { once: true }
   )
 } else {
-  void sharingStarted.then(() => offerUsageStatsPrompt('prompt'))
+  // Asked once the window shows what it opened, not over the loading screen.
+  whenever(
+    () => !openingCloudLink.value,
+    async () => {
+      await sharingStarted
+      offerUsageStatsPrompt('prompt')
+    },
+    { once: true, immediate: true }
+  )
 }
 
 useHead({ title: route.meta.demo ? 'Demo' : undefined })
@@ -278,5 +294,6 @@ onUnmounted(() => {
     <HomeWorkspace v-show="activeTab?.kind === 'home'" @new-document="createTab()" />
     <CloudVersionDialog />
     <EditorWorkspace v-if="shown && shown.tab.kind !== 'home'" :key="shown.key" :tab="shown.tab" />
+    <LoadingScreen v-if="openingCloudLink" />
   </div>
 </template>

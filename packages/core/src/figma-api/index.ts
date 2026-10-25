@@ -4,7 +4,6 @@ import type { SceneGraph, SceneNode as CoreSceneNode, NodeType } from '@open-pen
 import { createConnector, freeEndpoint } from '@open-pencil/scene-graph/connectors'
 import { computeBounds } from '@open-pencil/scene-graph/geometry'
 import type { GroupFitOptions } from '@open-pencil/scene-graph/group-bounds'
-import { computeImageHash } from '@open-pencil/scene-graph/images'
 import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
 
 import type { SkiaRenderer } from '#core/canvas'
@@ -23,6 +22,7 @@ import { fontManager } from '#core/text/fonts'
 
 import { componentFromNode } from './components'
 import { flattenSceneNodes } from './flatten'
+import * as images from './images'
 import type {
   FigmaBooleanOperationNode,
   FigmaComponentNode,
@@ -51,16 +51,24 @@ import {
 } from './proxy'
 import { newShapeWithText } from './shape-with-text'
 import type { ExportImageOptions } from './types'
+import { figmaUtil } from './util'
 import { FigmaVariablesAPI } from './variables'
 import { combineComponentsAsVariants } from './variants'
 
 const noop = () => undefined
+
+/** What a host passes to `FigmaAPI` beyond the document. */
+export interface FigmaAPIOptions {
+  /** Fetches the HTTP(S) URLs `figma.createImageAsync` loads; the global `fetch` by default. */
+  fetch?: images.ImageFetch
+}
 
 export { FigmaNodeProxy } from './proxy'
 export { getPageBackgrounds, setPageBackgrounds } from './page-backgrounds'
 export { flushPendingLayout } from './pending-layout'
 export type { FigmaEffect } from './effects'
 export type { ExportImageOptions } from './types'
+export { MAX_IMAGE_FETCH_BYTES, type ImageFetch } from './images'
 export {
   FigmaVariable,
   FigmaVariableCollection,
@@ -103,11 +111,17 @@ export class FigmaAPI implements NodeProxyHost {
   theme: InterfaceTheme = 'light'
 
   readonly mixed = MIXED
+  /** Figma's color and Markdown helpers, as `figma.util`. */
+  readonly util: UtilAPI = figmaUtil
   /** The document's variables and collections, as Figma's `figma.variables`. */
   readonly variables: FigmaVariablesAPI
 
-  constructor(graph: SceneGraph) {
+  /** How `createImageAsync` fetches HTTP(S) URLs; a host passes one that gets past CORS. */
+  readonly #fetch: images.ImageFetch
+
+  constructor(graph: SceneGraph, options: FigmaAPIOptions = {}) {
     this.graph = graph
+    this.#fetch = options.fetch ?? ((input, init) => fetch(input, init))
     this.variables = new FigmaVariablesAPI(graph)
     startPendingLayout(graph)
     const pages = graph.getPages()
@@ -172,6 +186,22 @@ export class FigmaAPI implements NodeProxyHost {
   /** The async lookup that Figma requires in dynamic-page mode; same result as getNodeById. */
   async getNodeByIdAsync(id: string): Promise<FigmaNodeProxy | null> {
     return this.getNodeById(id)
+  }
+
+  /**
+   * The page switch Figma requires in dynamic-page mode, which sets `currentPage`. As in Figma, a
+   * missing node throws at once and a node that is no page rejects.
+   */
+  setCurrentPageAsync(page: FigmaNodeProxy): Promise<void>
+  setCurrentPageAsync(page: PageNode): Promise<void>
+  // Scripts are not type-checked, so the call checks for a missing node as Figma does.
+  setCurrentPageAsync(page: PageNode | FigmaNodeProxy | null | undefined): Promise<void> {
+    if (page == null) throw new Error(`in setCurrentPageAsync: Expected node, got ${String(page)}`)
+    if (this._rawNode(page).type !== 'CANVAS') {
+      return Promise.reject(new Error('figma.setCurrentPageAsync expects a PageNode'))
+    }
+    this._currentPageId = this._nodeId(page)
+    return Promise.resolve()
   }
 
   // --- Node Creation ---
@@ -491,10 +521,17 @@ export class FigmaAPI implements NodeProxyHost {
     this._viewport = { x: v.center.x, y: v.center.y, zoom: v.zoom }
   }
 
-  createImage(data: Uint8Array): { hash: string } {
-    const hash = computeImageHash(data)
-    this.graph.images.set(hash, data)
-    return { hash }
+  createImage(data: Uint8Array): Image {
+    return images.createImage(this.graph, data)
+  }
+
+  getImageByHash(hash: string): Image | null {
+    return images.imageByHash(this.graph, hash)
+  }
+
+  /** Fetches the image at `src` through the host's `fetch` and stores it as `createImage` does. */
+  createImageAsync(src: string): Promise<Image> {
+    return images.fetchImage(this.graph, src, this.#fetch)
   }
 
   // --- Stubs ---
@@ -525,6 +562,19 @@ export class FigmaAPI implements NodeProxyHost {
   notify(message: string): { cancel: () => void } {
     if (typeof console !== 'undefined') console.warn(`[figma.notify] ${message}`)
     return { cancel: noop }
+  }
+
+  /**
+   * A script is one call rather than a plugin with a lifetime, so nothing closes; the message is
+   * shown as Figma shows it, through `notify`.
+   */
+  closePlugin(message?: string): void {
+    if (message) this.notify(message)
+  }
+
+  /** Every page is already in memory. */
+  async loadAllPagesAsync(): Promise<void> {
+    return undefined
   }
 
   commitUndo(): void {

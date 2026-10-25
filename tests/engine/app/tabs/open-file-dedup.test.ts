@@ -200,6 +200,25 @@ describe('openFileInNewTab deduplication', () => {
     ).toBe('home')
   })
 
+  test('closes the tab a file opened from Home got when it fails, leaving Home as it was', async () => {
+    ;(figModule.readFigFile as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error('read failed')
+    )
+    const home = createHomeTab()
+    const count = tabCount()
+
+    await expect(
+      settleFileOpen(openFileInNewTab(new File([], 'broken.fig'), undefined, '/tmp/broken.fig'))
+    ).rejects.toThrow('read failed')
+
+    expect(tabCount()).toBe(count)
+    const after = expectDefined(
+      getTabsSnapshot().find((tab) => tab.id === home.id),
+      'home tab'
+    )
+    expect([after.kind, after.store]).toEqual(['home', home.store])
+  })
+
   test('activates the existing tab when the same path is opened again', async () => {
     const initialCount = tabCount()
     const file = new File([], 'design.fig')
