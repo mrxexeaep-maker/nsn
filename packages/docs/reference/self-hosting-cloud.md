@@ -44,7 +44,7 @@ The server serves the editor at its own address. Visitors who are not signed in 
 
 For a server only its members use, set `deployment.local_editor = false`: the welcome page then offers only signing in, and every editor page asks for it. To keep shared links to members too, turn off `guest_view`, `guest_edit`, and `guest_presence` under `[entitlements.sharing]`; links then open after signing in to the server.
 
-To send links to an editor at another address instead, set `deployment.app_url` to it and list its origin in `deployment.trusted_origins`. People sign in there by approving a code, as in the desktop app, which connects to the server directly either way.
+Links the server sends point at its own address: `/documents/<id>` for a document, `/share/<id>` for a shared link, and `/invitations/<id>` for an invitation. An editor at another address, such as a development build, can still connect when its origin is in `deployment.trusted_origins`; people sign in there by approving a code, as in the desktop app.
 
 ## Reverse proxy
 
@@ -87,6 +87,17 @@ Each runs from a repository checkout with the same `OPENPENCIL_CLOUD_CONFIG` and
 | `bun --filter @open-pencil/cloud quota:reconcile` | Recompute stored usage from committed revisions |
 | `bun --filter @open-pencil/cloud entitlements`    | Inspect or set a workspace's entitlements       |
 | `bun --filter @open-pencil/cloud admin`           | Approve enrollment and grant deployment admin   |
+
+## AI
+
+Cloud does not run models itself. It advertises an AI service and signs short-lived tokens that let workspace members use it, and the service holds each workspace to the credit allowance its entitlements grant. The repository's AI relay is a minimal service for this: it forwards chat completions to one OpenAI-compatible upstream, such as OpenRouter, with your key.
+
+1. Create a P-256 signing key, `openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256`, and pass the PEM in `OPENPENCIL_CLOUD_AI_SIGNING_KEY`. Cloud refuses to start with a key it cannot sign with.
+2. Add `[ai] endpoint` to the Cloud TOML with the relay's address, and enable `[entitlements.ai]`, optionally with a `monthly_credit_allowance`; without one, the relay does not limit spend. With entitlements from the database, set them per workspace with the `entitlements` command instead.
+3. Copy [`openpencil-ai-relay.example.toml`](https://github.com/open-pencil/open-pencil/blob/master/packages/cloud/deploy/openpencil-ai-relay.example.toml), set `relay.cloud_url` to Cloud's `public_url`, `allowed_origins` to the browser editors, and list the models with their credit prices.
+4. Start it with `OPENPENCIL_AI_RELAY_CONFIG`, `OPENPENCIL_AI_RELAY_UPSTREAM_KEY`, and `DATABASE_URL` set: `node --env-file=.env dist-standalone/ai-relay.mjs`. It listens on `PORT` (default `8788`) and can share Cloud's database, keeping its own tables and migration history.
+
+The relay charges a request once the upstream reports its usage, and admits one while the workspace has credits left, so requests already in flight can overdraw the month's allowance by what they cost; `relay.max_concurrent_requests` bounds them. A workspace's allowance renews at the start of each UTC month. It refuses a model request larger than `relay.max_request_bytes` (16 MiB by default) before reading it all. Choose an upstream that reports token usage: a request it reports none for is logged as an error and not charged.
 
 ## Email
 
