@@ -5,6 +5,7 @@ import { CONNECTOR_LABEL_PADDING, labelledConnector } from '@open-pencil/scene-g
 import type { Rect } from '@open-pencil/scene-graph/primitives'
 import type { SnapGuide } from '@open-pencil/scene-graph/snap'
 
+import { paintFills } from '#core/canvas/fills'
 import { drawNodeHighlightRect } from '#core/canvas/highlight-rect'
 import type { RenderOverlays, SkiaRenderer } from '#core/canvas/renderer'
 import { connectorLabelPlaceholderNode } from '#core/canvas/text/placeholder'
@@ -188,7 +189,11 @@ export function drawEditingText(
     node.id
   )
   inNodeSpace(r, canvas, createSceneGeometry(graph, overlays.rotationPreview), node, () => {
-    if (placeholder) r.renderText(canvas, placeholder)
+    if (placeholder) {
+      paintFills(r, placeholder.fills, placeholder, graph, (fill) =>
+        r.renderText(canvas, placeholder, fill)
+      )
+    }
     r.drawTextEditOverlay(canvas, node, editor, outset)
   })
 }
