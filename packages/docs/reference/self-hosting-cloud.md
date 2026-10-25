@@ -7,7 +7,18 @@ description: Run your own OpenPencil Cloud server with PostgreSQL and an S3-comp
 
 OpenPencil Cloud is one Node 22+ process in front of PostgreSQL 15 or later and an S3-compatible object store, with optional SMTP for email. The same process serves the API, the collaboration relay, the editor, and the server's own pages for signing in, account security, and administration. It also runs on [Cloudflare Workers](#cloudflare-workers) with the same configuration. People connect to it from the editor as described in [OpenPencil Cloud](/user-guide/openpencil-cloud).
 
-## Build
+## Install
+
+The server is published to npm as `@open-pencil/cloud`, released with the editor, and runs on Node 22 or later:
+
+```sh
+npm install -g @open-pencil/cloud
+openpencil-cloud --help
+```
+
+The package is the server only. The editor and the server's own pages are a separate build, `dist-cloud/`, made from a checkout as below; without it the server runs its API alone.
+
+## Build from source
 
 From a checkout of the repository:
 
@@ -19,7 +30,7 @@ bun run build:cloud                              # writes dist-cloud/: the edito
 bun --filter @open-pencil/cloud build:standalone # writes packages/cloud/dist-standalone/
 ```
 
-`dist-standalone/` bundles the server's dependencies, so copy the whole directory, together with `dist-cloud/`, to a host that has Node but no `node_modules`. Start the server with `node dist-standalone/server.mjs`.
+`dist-standalone/` bundles the server's dependencies, so copy the whole directory, together with `dist-cloud/`, to a host that has Node but no `node_modules`. Start the server with `node dist-standalone/server.mjs`, or with `openpencil-cloud` when it is installed from npm.
 
 ## Configure
 
@@ -95,7 +106,7 @@ Cloud does not run models itself. It advertises an AI service and signs short-li
 1. Create a P-256 signing key, `openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256`, and pass the PEM in `OPENPENCIL_CLOUD_AI_SIGNING_KEY`. Cloud refuses to start with a key it cannot sign with.
 2. Add `[ai] endpoint` to the Cloud TOML with the relay's address, and enable `[entitlements.ai]`, optionally with a `monthly_credit_allowance`; without one, the relay does not limit spend. With entitlements from the database, set them per workspace with the `entitlements` command instead.
 3. Copy [`openpencil-ai-relay.example.toml`](https://github.com/open-pencil/open-pencil/blob/master/packages/cloud/deploy/openpencil-ai-relay.example.toml), set `relay.cloud_url` to Cloud's `public_url`, `allowed_origins` to the browser editors, and list the models with their credit prices.
-4. Start it with `OPENPENCIL_AI_RELAY_CONFIG`, `OPENPENCIL_AI_RELAY_UPSTREAM_KEY`, and `DATABASE_URL` set: `node --env-file=.env dist-standalone/ai-relay.mjs`. It listens on `PORT` (default `8788`) and can share Cloud's database, keeping its own tables and migration history.
+4. Start it with `OPENPENCIL_AI_RELAY_CONFIG`, `OPENPENCIL_AI_RELAY_UPSTREAM_KEY`, and `DATABASE_URL` set: `node --env-file=.env dist-standalone/ai-relay.mjs`, or `openpencil-ai-relay` from the npm package. It listens on `PORT` (default `8788`) and can share Cloud's database, keeping its own tables and migration history.
 
 The relay charges a request once the upstream reports its usage, and admits one while the workspace has credits left, so requests already in flight can overdraw the month's allowance by what they cost; `relay.max_concurrent_requests` bounds them. A workspace's allowance renews at the start of each UTC month. It refuses a model request larger than `relay.max_request_bytes` (16 MiB by default) before reading it all. Choose an upstream that reports token usage: a request it reports none for is logged as an error and not charged.
 

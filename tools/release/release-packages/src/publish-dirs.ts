@@ -38,6 +38,8 @@ const PACKAGE_FIELDS = [
 ] as const satisfies ReadonlyArray<keyof PackageManifest>
 const PUBLISH_CONFIG_FIELDS = new Set(['access', 'provenance', 'registry'])
 const LICENSE_FILE = 'LICENSE'
+/** The repository's MIT text, for a package under its own license that is MIT in part. */
+const MIT_LICENSE_FILE = 'LICENSE-MIT'
 
 export function publishPackageJSON(source: PackageManifest, coreVersion: string): PackageManifest {
   if (source.publishConfig) {
@@ -126,9 +128,12 @@ export async function preparePublishDirectories(
       await cp(join(sourceDir, relativePath), destination, { dereference: false })
     }
 
-    if (!hasOwnLicense) await cp(rootLicense, join(destinationDir, LICENSE_FILE))
-
     const packageJSON = await readPackageManifest(join(sourceDir, 'package.json'))
+    if (!hasOwnLicense) await cp(rootLicense, join(destinationDir, LICENSE_FILE))
+    else if (/\bMIT\b/.test(packageJSON.license ?? '') && existsSync(rootLicense)) {
+      await cp(rootLicense, join(destinationDir, MIT_LICENSE_FILE))
+    }
+
     const publishJSON = publishPackageJSON(packageJSON, options.coreVersion)
     await writeFile(
       join(destinationDir, 'package.json'),

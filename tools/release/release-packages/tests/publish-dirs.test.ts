@@ -9,7 +9,10 @@ import {
   publishPackageJSON
 } from '#release/publish-dirs'
 
-async function fixtureRoot({ rootLicense = true } = {}) {
+async function fixtureRoot({
+  rootLicense = true,
+  license
+}: { rootLicense?: boolean; license?: string } = {}) {
   const root = join(tmpdir(), `open-pencil-release-packages-${crypto.randomUUID()}`)
   await mkdir(join(root, 'packages/example/dist'), { recursive: true })
   await writeFile(join(root, 'packages/example/dist/index.js'), 'export {}\n')
@@ -22,6 +25,7 @@ async function fixtureRoot({ rootLicense = true } = {}) {
       {
         name: '@open-pencil/example',
         version: '1.0.0',
+        ...(license ? { license } : {}),
         files: ['dist', 'README.md'],
         scripts: { build: 'tsdown' },
         dependencies: { '@open-pencil/core': 'workspace:*', zod: '^4.0.0' },
@@ -126,6 +130,22 @@ describe('preparePublishDirectories', () => {
       main: './dist/index.js',
       types: './dist/index.d.ts'
     })
+  }, 30_000)
+
+  test('ships the repository’s MIT text beside a package’s own license when it is MIT in part', async () => {
+    const root = await fixtureRoot({ license: 'Apache-2.0 AND MIT' })
+    await writeFile(join(root, 'packages/example/LICENSE'), 'apache license\n')
+    const outRoot = join(root, '.publish')
+
+    await preparePublishDirectories({
+      coreVersion: '0.13.2',
+      outRoot,
+      packages: await discoverPublishPackages(root),
+      root
+    })
+
+    expect(await readFile(join(outRoot, 'example/LICENSE'), 'utf8')).toBe('apache license\n')
+    expect(await readFile(join(outRoot, 'example/LICENSE-MIT'), 'utf8')).toBe('root license\n')
   }, 30_000)
 
   test('refuses to prepare a package without any license text before packing', async () => {
