@@ -141,16 +141,22 @@ describe('variable fonts in the plugin API', () => {
     expect(node.getRangeFontName(3, 7)).toMatchObject({ style: 'Regular' })
   })
 
-  test('loads every style of a family named alone', async () => {
+  test('loads every style of a family named alone, one of each slant before the rest', async () => {
     const loaded: string[] = []
+    const events: string[] = []
     // Only the host knows the family, so no web provider is asked for its faces.
     const providers = fontManager.enabledOnlineFontProviders()
     fontManager.setOnlineFontProviders({})
-    fontManager.setHostFontCatalog([{ family: 'Variations Load', styles: ['Regular', 'Bold'] }])
+    fontManager.setHostFontCatalog([
+      { family: 'Variations Load', styles: ['Regular', 'Bold', 'Regular Italic', 'Bold Italic'] }
+    ])
     const data = await Bun.file(join(FIXTURES, 'fonts', 'InterRegular-Faces.ttf')).arrayBuffer()
     fontManager.setHostFontLoader(async (family, style) => {
       if (family !== 'Variations Load') return null
       loaded.push(style)
+      events.push(`start ${style}`)
+      await Promise.resolve()
+      events.push(`end ${style}`)
       return data.slice(0)
     })
     try {
@@ -162,8 +168,12 @@ describe('variable fonts in the plugin API', () => {
         Object.fromEntries(providers.map((provider) => [provider, true]))
       )
     }
-    expect(loaded.sort()).toEqual(['Bold', 'Regular'])
-    expect(fontManager.loadedData('Variations Load', 'Regular')).not.toBeNull()
-    expect(fontManager.loadedData('Variations Load', 'Bold')).not.toBeNull()
+    expect(loaded.sort()).toEqual(['Bold', 'Bold Italic', 'Regular', 'Regular Italic'])
+    for (const style of ['Regular', 'Bold', 'Regular Italic', 'Bold Italic'])
+      expect(fontManager.loadedData('Variations Load', style)).not.toBeNull()
+    // A variable file the first style of a slant loads is there for the others to reuse.
+    const firstDone = Math.max(events.indexOf('end Regular'), events.indexOf('end Regular Italic'))
+    const restStart = Math.min(events.indexOf('start Bold'), events.indexOf('start Bold Italic'))
+    expect(firstDone).toBeLessThan(restStart)
   })
 })

@@ -1,3 +1,4 @@
+import { uniqBy } from 'es-toolkit/array'
 import { fromUint8Array, isValid, toUint8Array } from 'js-base64'
 
 import type { SceneGraph, SceneNode as CoreSceneNode, NodeType } from '@open-pencil/scene-graph'
@@ -540,15 +541,16 @@ export class FigmaAPI implements NodeProxyHost {
       await fontManager.loadFont(fontName.family, fontName.style).catch(() => null)
       return
     }
-    // A family named alone loads every style it has.
+    // A family named alone loads every style it has. One style of each slant loads first, so the
+    // rest reuse its file where one variable file draws the whole slant.
     const faces = (await fontManager.familyFaces(fontName.family).catch(() => null)) ?? [
       { weight: 400, italic: false }
     ]
-    await Promise.all(
-      faces.map(({ weight, italic }) =>
-        fontManager.loadFont(fontName.family, weightToStyleName(weight, italic)).catch(() => null)
-      )
-    )
+    const load = ({ weight, italic }: { weight: number; italic: boolean }) =>
+      fontManager.loadFont(fontName.family, weightToStyleName(weight, italic)).catch(() => null)
+    const first = uniqBy(faces, (face) => face.italic)
+    await Promise.all(first.map(load))
+    await Promise.all(faces.filter((face) => !first.includes(face)).map(load))
   }
 
   /**
