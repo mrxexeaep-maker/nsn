@@ -80,7 +80,7 @@ async function signInForLink(link: CloudLink): Promise<void> {
     return
   }
   signingIn.value = JSON.stringify(link satisfies CloudLink)
-  signInToOpen(server.id)
+  await signInToOpen(server.id)
 }
 
 /** Opens an invitation's dialog, or a shared document. */

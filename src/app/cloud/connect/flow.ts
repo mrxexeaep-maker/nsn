@@ -15,12 +15,7 @@ import { IS_TAURI, OFFICIAL_CLOUD_URL } from '@/constants'
 import { normalizeCloudServerURL } from '../servers/address'
 import { addCloudServer, findCloudServer, type CloudServer } from '../servers/store'
 import type { CloudAccountCredentials } from '../sessions/account-form'
-import {
-  cloudConnection,
-  cloudFetch,
-  discoverCloudServer,
-  refreshCloudConnection
-} from '../sessions/connection'
+import { cloudFetch, discoverCloudServer, refreshCloudConnection } from '../sessions/connection'
 import { createCloudDeviceSignIn } from '../sessions/device'
 import {
   cloudSignInRoute,
@@ -144,8 +139,9 @@ export function openCloudConnect(options: { kind?: CloudServer['kind']; serverId
  * its sign-in page, in place of this one and coming back to it, so no dialog stands in front of an
  * editor with nothing in it; anywhere else the connect dialog.
  */
-export function signInToOpen(serverId: string): void {
-  const discovery = cloudConnection(serverId).discovery
+export async function signInToOpen(serverId: string): Promise<void> {
+  const server = findCloudServer(serverId)
+  const discovery = server ? await discoverCloudServer(server.url).catch(() => null) : null
   if (discovery && cloudSignInRoute(discovery) === 'redirect') {
     redirectToCloudSignIn(serverId, discovery, { replace: true })
     return

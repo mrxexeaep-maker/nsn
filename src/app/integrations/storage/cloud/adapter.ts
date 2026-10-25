@@ -4,8 +4,8 @@ import { extractFigThumbnailFromReader } from '@open-pencil/fig'
 import { cloudServerHost } from '@/app/cloud/servers/address'
 import { findCloudServer } from '@/app/cloud/servers/store'
 import {
+  checkedCloudConnection,
   cloudAPIClient,
-  cloudConnection,
   refreshCloudConnection
 } from '@/app/cloud/sessions/connection'
 
@@ -36,7 +36,7 @@ export type CloudStorageDependencies = {
 async function signedInClient(serverId: string): Promise<CloudAPIClient> {
   const server = findCloudServer(serverId)
   if (!server) throw new StorageUnavailableError('This Cloud server was removed from the app')
-  let connection = cloudConnection(server.id)
+  let connection = await checkedCloudConnection(server)
   if (connection.state !== 'signed-in') connection = await refreshCloudConnection(server)
   if (connection.state !== 'signed-in' || !connection.discovery) {
     throw new StorageUnavailableError(`Sign in to ${cloudServerHost(server.url)} to sync`)

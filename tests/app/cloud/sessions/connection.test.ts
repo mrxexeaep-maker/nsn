@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
 
 import { addCloudServer, cloudServers, removeCloudServer } from '@/app/cloud/servers/store'
-import { cloudConnection, refreshCloudConnection } from '@/app/cloud/sessions/connection'
+import {
+  checkedCloudConnection,
+  cloudConnection,
+  refreshCloudConnection
+} from '@/app/cloud/sessions/connection'
 import { readCloudSessionToken, saveCloudSessionToken } from '@/app/cloud/sessions/token'
 
 import { cloudDiscoveryFixture } from '#tests/helpers/cloud/discovery'
@@ -88,5 +92,18 @@ describe('Cloud connections', () => {
     if (!remembered) throw new Error('Expected the server to be saved')
     expect((await refreshCloudConnection(remembered)).state).toBe('expired')
     expect(cloudConnection(target.id).account?.email).toBe('ada@example.com')
+  })
+
+  test('wait for the check under way instead of starting one that throws its answer away', async () => {
+    answers['/api/account/status'] = { status: 200, body: { user, state: 'active' } }
+    answers['/api/workspaces'] = { status: 200, body: { workspaces: [workspace] } }
+    const target = await server()
+    const starting = refreshCloudConnection(target)
+    const waiting = checkedCloudConnection(target)
+    await starting
+    expect(cloudConnection(target.id).state).toBe('signed-in')
+    expect((await waiting).state).toBe('signed-in')
+    // One account status and one workspace list: the server was asked once.
+    expect(authorization).toHaveLength(2)
   })
 })
