@@ -65,6 +65,7 @@ export function useCloudModelSelection(
   const workspaceAttempt = ref(0)
   // Signing out, switching accounts or choosing another provider supersedes a pending list.
   let workspaceRequest = 0
+  let listedIdentity: string | null = null
   watch(
     [isCloud, cloud.identity, workspaceAttempt],
     async ([usesCloud, identity]) => {
@@ -74,6 +75,8 @@ export function useCloudModelSelection(
         workspaceState.value = 'unavailable'
         return
       }
+      // Another account's workspaces never show while this one's load; the draft keeps its choice.
+      if (identity !== listedIdentity) workspaces.value = []
       workspaceState.value = 'loading'
       const listed = await cloud.workspaces().catch(() => null)
       if (request !== workspaceRequest) return
@@ -82,6 +85,7 @@ export function useCloudModelSelection(
         return
       }
       workspaces.value = listed
+      listedIdentity = identity
       if (!listed.some((workspace) => workspace.id === draft.cloudWorkspaceId)) {
         draft.cloudWorkspaceId = listed[0]?.id
       }

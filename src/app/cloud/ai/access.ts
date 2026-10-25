@@ -54,7 +54,7 @@ export function cloudAIClient(workspaceId: string): CloudAIClient | null {
 
 /**
  * The Home server's workspaces whose plan includes AI, in the order the server lists them. Rejects
- * when none qualifies and a check failed, since an eligible workspace may be among the failed.
+ * when any check fails, since the failed workspace may be the one a profile already uses.
  */
 export async function cloudAIWorkspaces(): Promise<CloudAIWorkspace[]> {
   const home = homeAI.value
@@ -66,10 +66,7 @@ export async function cloudAIWorkspaces(): Promise<CloudAIWorkspace[]> {
       return entitlements.features.cloudAI ? { id: workspace.id, name: workspace.name } : null
     })
   )
-  const entitled = compact(
-    checks.map((check) => (check.status === 'fulfilled' ? check.value : null))
-  )
   const failure = checks.find((check) => check.status === 'rejected')
-  if (!entitled.length && failure) throw failure.reason
-  return entitled
+  if (failure) throw failure.reason
+  return compact(checks.map((check) => (check.status === 'fulfilled' ? check.value : null)))
 }

@@ -202,4 +202,21 @@ describe('useCloudModelSelection', () => {
 
     expect(editor.selection.state.value).toBe('catalog-failed')
   })
+
+  test("hides an earlier account's workspaces while the next one's load or fail", async () => {
+    const home = homeCloud()
+    const editor = select(home.source)
+    home.workspaceAnswers[0]?.resolve([{ id: 'alice-team', name: 'Alice' }])
+    await settle()
+
+    home.identity.value = BOB
+    await settle()
+    expect(editor.selection.workspaces.value).toEqual([])
+
+    home.workspaceAnswers[1]?.reject(new Error('offline'))
+    await settle()
+    expect(editor.selection.state.value).toBe('workspaces-failed')
+    expect(editor.selection.workspaces.value).toEqual([])
+    expect(editor.draft.cloudWorkspaceId).toBe('alice-team')
+  })
 })
