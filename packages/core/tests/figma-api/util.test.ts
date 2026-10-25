@@ -116,14 +116,21 @@ describe('figma.util', () => {
   test('a color, alpha, or override it cannot take is refused with Figma’s message', async () => {
     expect(
       await withColors(
-        ['not a color', 'lch(50% 70 50)', { r: 255, g: 0, b: 0 }, { r: 2, g: -1, b: 0 }],
+        [
+          'not a color',
+          'lch(50% 70 50)',
+          'rgb(none 0 0)',
+          'rgb(255 0 0 / none)',
+          { r: 255, g: 0, b: 0 },
+          { r: 2, g: -1, b: 0 }
+        ],
         `return [
           attempt(() => toRGB(colors[0])),
           attempt(() => toRGBA(colors[1])),
-          attempt(() => toRGB('rgb(none 0 0)')),
-          attempt(() => toRGBA('rgb(255 0 0 / none)')),
-          attempt(() => solidPaint(colors[2])),
-          attempt(() => toRGB(colors[3])),
+          attempt(() => toRGB(colors[2])),
+          attempt(() => toRGBA(colors[3])),
+          attempt(() => solidPaint(colors[4])),
+          attempt(() => toRGB(colors[5])),
           attempt(() => toRGB({ r: 1, g: 0, b: 0, x: 1 })),
           attempt(() => toRGB(5)),
           attempt(() => toRGB(null)),
