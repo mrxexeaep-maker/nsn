@@ -66,7 +66,10 @@ export function createMaterialSymbolsProvider(
     }
   }
 
-  /** Loads the fonts holding `names`, one request per set for the names not yet loaded. */
+  /**
+   * Loads the fonts holding `names`, one request per set for the names not yet loaded. A font
+   * that fails leaves its names out; only when every one fails does loading fail.
+   */
   async function load(names: readonly string[]): Promise<void> {
     const waiting = new Set<Promise<void>>()
     const wanted = new Map<MaterialSymbolsPrefix, string[]>()
@@ -90,7 +93,9 @@ export function createMaterialSymbolsProvider(
         waiting.add(request)
       }
     }
-    await Promise.all(waiting)
+    const settled = await Promise.allSettled(waiting)
+    const failed = settled.find((result) => result.status === 'rejected')
+    if (failed && settled.every((result) => result.status === 'rejected')) throw failed.reason
   }
 
   function iconData(name: string, size: number, options: IconOptions): IconData | null {

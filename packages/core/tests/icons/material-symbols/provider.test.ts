@@ -14,8 +14,11 @@ const CODEPOINTS: Record<string, string> = {
   MaterialSymbolsSharp: 'dark_mode e51c\n'
 }
 
-/** A provider over a fake Google that serves the fixture font, recording each request. */
-async function setup() {
+/**
+ * A provider over a fake Google that serves the fixture font, recording each request; it fails
+ * the requests for fonts holding any of `failing`.
+ */
+async function setup(failing: readonly string[] = []) {
   const font = await Bun.file(
     join(FIXTURES, 'fonts', 'MaterialSymbolsRounded-home-dark_mode.ttf')
   ).arrayBuffer()
@@ -23,6 +26,9 @@ async function setup() {
   const google = async (input: string | URL | Request) => {
     const url = new URL(String(input))
     requests.push(url)
+    const names = url.searchParams.get('icon_names')?.split(',') ?? []
+    if (url.pathname === '/css2' && names.some((name) => failing.includes(name)))
+      return new Response(null, { status: 503 })
     if (url.pathname === '/css2')
       return new Response(`@font-face { src: url(${FONT_URL}) format('woff2'); }`)
     if (url.href === FONT_URL) return new Response(font)
@@ -87,6 +93,18 @@ describe('Material Symbols', () => {
     expect(thin?.paths[0]?.fill).toBe('currentColor')
     // One region of closed contours, so the inner ones cut the house's holes.
     expect(thin?.paths[0]?.vectorNetwork.regions[0]?.loops.length).toBeGreaterThan(1)
+  })
+
+  test('keeps the icons of the fonts that loaded when another font of the set fails', async () => {
+    // Past 150 names a set loads in several fonts; the second one fails here.
+    const { provider } = await setup(['dark_mode'])
+    const extra = Array.from({ length: 149 }, (_, index) => `material-symbols-rounded:extra_${index}`)
+    const icons = await provider.icons(
+      ['material-symbols-rounded:home', ...extra, 'material-symbols-rounded:dark_mode'],
+      40
+    )
+    expect([...icons.keys()]).toEqual(['material-symbols-rounded:home'])
+    await expect(provider.icons(['material-symbols-rounded:dark_mode'], 40)).rejects.toThrow()
   })
 
   test('fills an icon at the axes its fill sets, as fontTools draws the font', async () => {
