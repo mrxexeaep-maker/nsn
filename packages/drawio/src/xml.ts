@@ -26,7 +26,10 @@ export function childElements(element: Element, name?: string): Element[] {
 }
 
 /** All of an element's attributes but those in `except`. */
-export function attributesOf(element: Element, except: ReadonlySet<string>): Record<string, string> {
+export function attributesOf(
+  element: Element,
+  except: ReadonlySet<string>
+): Record<string, string> {
   const attributes: Record<string, string> = {}
   for (const attribute of Array.from(element.attributes)) {
     if (!except.has(attribute.name)) attributes[attribute.name] = attribute.value
