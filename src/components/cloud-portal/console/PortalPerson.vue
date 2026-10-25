@@ -64,9 +64,9 @@ const roleLabel = (role: WorkspaceRole) =>
     <div class="flex items-center gap-3">
       <AccountAvatar :id="person.id" :name="person.name" :image="person.image" size="lg" />
       <div class="min-w-0 flex-1">
-        <p class="flex items-center gap-1.5 truncate text-sm font-semibold text-surface">
-          {{ person.name }}
-          <span v-if="person.you" class="font-normal text-muted">{{ messages.you }}</span>
+        <p class="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-surface">
+          <span class="truncate">{{ person.name }}</span>
+          <span v-if="person.you" class="shrink-0 font-normal text-muted">{{ messages.you }}</span>
           <span v-if="person.admin" :class="ui.status()" data-tone="neutral">
             {{ messages.administrator }}
           </span>

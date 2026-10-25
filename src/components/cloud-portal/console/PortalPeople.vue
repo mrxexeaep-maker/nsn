@@ -100,8 +100,10 @@ const range = computed(() =>
           @click="emit('open', person.id)"
         >
           <span :class="ui.title()">
-            {{ person.name }}
-            <span v-if="person.you" class="font-normal text-muted">{{ messages.you }}</span>
+            <span class="truncate">{{ person.name }}</span>
+            <span v-if="person.you" class="shrink-0 font-normal text-muted">{{
+              messages.you
+            }}</span>
           </span>
           <span :class="[ui.detail(), 'block']">
             {{ person.email }}
