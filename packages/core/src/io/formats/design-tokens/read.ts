@@ -1,5 +1,5 @@
 import { isPlainObject } from 'es-toolkit/predicate'
-import { basename, dirname, join } from 'pathe'
+import { basename, dirname, join, normalize } from 'pathe'
 import * as v from 'valibot'
 
 import { pathName } from './paths'
@@ -142,12 +142,19 @@ function folderOf(path: string): string {
 }
 
 /**
- * A `$ref` as a path among the picked files, relative to the file it appears in. A ref that
- * starts with `/` or climbs above the picked folders stays at their top, since nothing was
- * picked from outside them.
+ * `path` as the picked files spell theirs: forward slashes, and nothing above their top, since
+ * nothing was picked from outside them.
+ */
+function pickedPath(path: string): string {
+  return normalize(path).replace(/^(?:\.\.\/|\/)+/, '')
+}
+
+/**
+ * A `$ref` as a path among the picked files: from the top of the picked folders when it starts
+ * with `/`, otherwise relative to the file it appears in.
  */
 function resolveRef(from: string, ref: string): string {
-  return join(folderOf(from), ref).replace(/^(?:\.\.\/|\/)+/, '')
+  return pickedPath(ref.startsWith('/') ? ref : join(folderOf(from), ref))
 }
 
 /**
@@ -332,7 +339,7 @@ export function readDesignTokens(files: readonly DesignTokenSourceFile[]): Desig
   const reader: Reader = { documents: new Map(), used: new Set(), issues: [] }
   for (const file of files) {
     const result = v.safeParse(documentSchema, file.text)
-    if (result.success) reader.documents.set(file.path, result.output)
+    if (result.success) reader.documents.set(pickedPath(file.path), result.output)
     else reader.issues.push({ kind: 'invalid-file', file: file.path })
   }
   const collections: ReadCollection[] = []

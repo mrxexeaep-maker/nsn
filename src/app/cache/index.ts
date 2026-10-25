@@ -22,8 +22,7 @@ function cachePath(key: string) {
 }
 
 function cacheDirectoryPath(key: string) {
-  const folder = dirname(key)
-  return folder === '.' ? APP_CACHE_DIR : cachePath(folder)
+  return dirname(cachePath(key))
 }
 
 function storageKey(key: string) {
