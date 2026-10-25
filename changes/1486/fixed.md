@@ -1,0 +1,1 @@
+- Text fields in Settings use the same fill as the selects beside them, and the **Advanced settings** chevron lines up with the fields.
