@@ -1,42 +1,120 @@
-import { readFileSync } from 'node:fs'
+import { basename } from 'node:path'
 
-import type { Plugin } from 'vite'
+import { build, type Plugin, type ResolvedConfig } from 'vite'
 
-/** Where a page wants the splash: inside its mount element, which the app replaces. */
-const PLACEHOLDER = '<!-- boot-splash -->'
+/** Marks the element a page mounts into; the splash goes inside it, and mounting replaces it. */
+const ATTRIBUTE = 'data-boot-splash'
+const MARKED = new RegExp(`<(\\w+)([^>]*?)\\s${ATTRIBUTE}(?:="")?([^>]*)>([\\s\\S]*?)</\\1>`, 'g')
 
 const MARKUP = `<div id="boot-splash" role="status" aria-label="Loading">
         <img src="/brand/app-icon.svg" width="40" height="40" alt="" />
         <div class="bar"></div>
       </div>`
 
-/**
- * Starts the splash in the theme the page will take (`src/app/settings/theme.ts`), so the
- * page does not change colour as its script loads; `auto` leaves it to the system.
- */
-function themeScript(storageKey: string): string {
-  return `try {
-  const theme = localStorage.getItem(${JSON.stringify(storageKey)})
-  if (theme !== 'auto') document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark'
-} catch {}`
+type Compiled = {
+  script: string
+  style: string
+  /** Every source the script and stylesheet were built from, to rebuild when one changes. */
+  sources: string[]
+}
+
+export type BootSplashOptions = {
+  /** The script that starts the page in its theme; it imports the splash's stylesheet. */
+  entry: string
+  /** Pages, by file name, that draw no splash; every other page must mark where it goes. */
+  without?: readonly string[]
+}
+
+/** Builds the script and its stylesheet with the app's own aliases and browser targets. */
+async function compile(config: ResolvedConfig, entry: string): Promise<Compiled> {
+  const result = await build({
+    configFile: false,
+    logLevel: 'silent',
+    root: config.root,
+    publicDir: false,
+    resolve: { alias: config.resolve.alias },
+    build: {
+      write: false,
+      target: config.build.target,
+      cssTarget: config.build.cssTarget,
+      minify: true,
+      cssCodeSplit: false,
+      modulePreload: false,
+      rolldownOptions: { input: entry, output: { format: 'iife' } }
+    }
+  })
+  const outputs = (Array.isArray(result) ? result : [result]).flatMap((output) =>
+    'output' in output ? output.output : []
+  )
+  const chunk = outputs.find((file) => file.type === 'chunk')
+  const style = outputs.find((file) => file.type === 'asset' && file.fileName.endsWith('.css'))
+  if (chunk?.type !== 'chunk' || style?.type !== 'asset') {
+    throw new Error(`The boot splash (${entry}) must build to one script and one stylesheet`)
+  }
+  const script = chunk.code.trim()
+  // Inlined as is, the script must not close its own tag.
+  if (script.includes('</script')) throw new Error('The boot splash script cannot be inlined')
+  return { script, style: String(style.source).trim(), sources: chunk.moduleIds }
+}
+
+/** The page with its marked mount element holding the splash, or null when it marks none. */
+function placeSplash(html: string, page: string): string | null {
+  const marked = [...html.matchAll(MARKED)]
+  if (marked.length === 0) return null
+  if (marked.length > 1) throw new Error(`${page} marks ${marked.length} elements ${ATTRIBUTE}`)
+  const [element, tag, before, after, content] = marked[0]
+  if (content.trim()) throw new Error(`${page} marks a non-empty <${tag}> ${ATTRIBUTE}`)
+  return html.replace(element, `<${tag}${before}${after}>\n      ${MARKUP}\n    </${tag}>`)
 }
 
 /**
- * Draws one boot splash, inlined so it shows before anything loads, on every page that marks
- * where it goes with `<!-- boot-splash -->`: the editor, a Cloud server's pages, and the metrics
- * dashboard, which would otherwise each keep a copy that drifts from the others.
+ * Draws one boot splash on every page: each marks the element it mounts into with
+ * `data-boot-splash`, and gets the splash inside it, its stylesheet, and the script that starts
+ * the page in its theme, all inlined so they show before anything loads. Both are built by Vite
+ * from `entry`, minified and lowered to the app's browser targets.
  */
-export function bootSplashPlugin({ themeStorageKey }: { themeStorageKey: string }): Plugin {
-  const style = readFileSync(new URL('splash.css', import.meta.url), 'utf8')
-  const script = themeScript(themeStorageKey)
+export function bootSplashPlugin({ entry, without = [] }: BootSplashOptions): Plugin {
+  let config: ResolvedConfig | undefined
+  let compiled: Promise<Compiled> | null = null
+  const current = () => {
+    if (!config) throw new Error('The boot splash plugin ran before Vite resolved its config')
+    compiled ??= compile(config, entry)
+    return compiled
+  }
+  const changed = async (file: string) => {
+    if (!compiled || !(await compiled).sources.includes(file)) return false
+    compiled = null
+    return true
+  }
   return {
     name: 'open-pencil-boot-splash',
+    configResolved(resolved) {
+      config = resolved
+    },
+    // `vite build --watch` rebuilds the pages when a source of the splash changes.
+    async buildStart() {
+      for (const source of (await current()).sources) this.addWatchFile(source)
+    },
+    async watchChange(id) {
+      await changed(id)
+    },
+    // The dev server reloads the page instead, since the splash only draws on a fresh load.
+    configureServer(server) {
+      void current().then(({ sources }) => server.watcher.add(sources))
+      server.watcher.on('change', (file) => {
+        void changed(file).then((reload) => reload && server.ws.send({ type: 'full-reload' }))
+      })
+    },
     transformIndexHtml: {
       order: 'pre',
-      handler(html) {
-        if (!html.includes(PLACEHOLDER)) return html
+      async handler(html, { filename }) {
+        const page = basename(filename)
+        if (without.includes(page)) return html
+        const placed = placeSplash(html, page)
+        if (placed === null) throw new Error(`${page} marks no element ${ATTRIBUTE}`)
+        const { script, style } = await current()
         return {
-          html: html.replace(PLACEHOLDER, MARKUP),
+          html: placed,
           tags: [
             { tag: 'style', children: style, injectTo: 'head' },
             { tag: 'script', children: script, injectTo: 'head' }
