@@ -25,6 +25,7 @@ import {
   fontNameInputStyle,
   readVariationSettings,
   weightToStyleName,
+  type CurrentFont,
   type FigmaFontName,
   type FigmaFontNameInput,
   type FigmaVariationSettings
@@ -49,7 +50,12 @@ import {
   type TextSegmentField
 } from '#core/figma-api/text/style'
 import type { FigmaVariableAlias } from '#core/figma-api/variables/values'
-import { styleRunsWithPatch, type TextStylePatch } from '#core/text/character-style'
+import {
+  characterStyles,
+  nodeStyle,
+  styleRunsWithPatch,
+  type TextStylePatch
+} from '#core/text/character-style'
 
 import { hyperlinkTarget } from './hyperlink'
 import { invalid, received } from './messages'
@@ -135,23 +141,21 @@ function stringProblem(value: unknown, at: string): string | null {
 }
 
 /** The font Figma reads for the character at `index`, as a font name left out reads from. */
-function currentFontName(node: SceneNode, index: number): FigmaFontName {
-  if (node.text.length === 0) {
-    const style = weightToStyleName(node.fontWeight, node.italic)
-    return {
-      family: node.fontFamily,
-      style,
-      variationSettings: readVariationSettings(
-        node.fontFamily,
-        style,
-        node.fontVariations,
-        node.opticalSizeFromFontSize
-      )
-    }
-  }
+/** The font of the character at `index`, and the axes it sets itself. */
+function currentFont(node: SceneNode, index: number): CurrentFont {
   const at = Math.min(index, node.text.length - 1)
-  const [segment] = getStyledTextSegments(node, ['fontName'], at, at + 1)
-  return segment.fontName as FigmaFontName
+  const [style] = at < 0 ? [nodeStyle(node)] : characterStyles(node, at, at + 1)
+  const name = weightToStyleName(style.fontWeight, style.italic)
+  return {
+    style: name,
+    fontVariations: style.fontVariations,
+    variationSettings: readVariationSettings(
+      style.fontFamily,
+      name,
+      style.fontVariations,
+      node.opticalSizeFromFontSize
+    )
+  }
 }
 
 /**
@@ -180,7 +184,7 @@ export function fontNameStyle(
       style: fontName.style as string | undefined,
       variationSettings: fontName.variationSettings as FigmaVariationSettings | undefined
     },
-    currentFontName(node, start)
+    currentFont(node, start)
   )
 }
 

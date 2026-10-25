@@ -547,13 +547,16 @@ export class FontManager {
   }
 
   /**
-   * The variation axes and named instances of a family's variable font, from a face it has loaded:
-   * `null` when the faces it has loaded are static, `undefined` when it has loaded none.
+   * The variation axes and named instances of a family's variable font, from a face it has loaded,
+   * in the slant asked for where it has one: `null` when the faces it has loaded are static,
+   * `undefined` when it has loaded none.
    */
   familyVariation(
-    family: string
+    family: string,
+    italic?: boolean
   ): { data: ArrayBuffer; axes: FontAxis[]; instances: NamedInstance[] } | null | undefined {
     let loaded = false
+    let other: { data: ArrayBuffer; axes: FontAxis[]; instances: NamedInstance[] } | null = null
     for (const [key, data] of this.loadedFamilies) {
       if (!key.startsWith(`${family}|`)) continue
       loaded = true
@@ -563,9 +566,12 @@ export class FontManager {
         variation = axes ? { axes, instances: namedInstances(data) } : null
         this.variations.set(data, variation)
       }
-      if (variation) return { data, ...variation }
+      if (!variation) continue
+      const slant = parseFontStyle(key.slice(family.length + 1)).italic
+      if (italic === undefined || slant === italic) return { data, ...variation }
+      other ??= { data, ...variation }
     }
-    return loaded ? null : undefined
+    return loaded ? other : undefined
   }
 
   /** Axis coordinates for `style` when the loaded face is a variable font, otherwise `null`. */

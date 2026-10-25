@@ -79,6 +79,30 @@ describe('variable fonts in the plugin API', () => {
     expect(node.fontName).toMatchObject({ style: 'Bold', variationSettings: { wght: 700 } })
   })
 
+  test('keeps the axes and the slant the text set when axes alone change', () => {
+    const { node } = text()
+    node.fontName = { family: VARIABLE, style: 'Italic' }
+    node.setRangeFontName(0, 7, { family: VARIABLE, variationSettings: { wght: 650 } })
+    node.setRangeFontName(0, 7, { family: VARIABLE, variationSettings: { opsz: 20 } })
+    // The optical size still follows the font size, so only the weight shows it was kept.
+    expect(node.fontName).toMatchObject({
+      style: 'Bold Italic',
+      variationSettings: { opsz: 14, wght: 650 }
+    })
+    node.fontName = { family: VARIABLE, style: 'Regular' }
+    expect(node.fontName).toMatchObject({ variationSettings: { opsz: 14, wght: 400 } })
+  })
+
+  test('reads the axes of the face in the text’s slant', async () => {
+    const data = await Bun.file(join(FIXTURES, 'fonts', 'InterVariable-Latin.ttf')).arrayBuffer()
+    const upright = data.slice(0)
+    const italic = data.slice(0)
+    fontManager.markLoaded('Variations Slant', 'Regular', upright)
+    fontManager.markLoaded('Variations Slant', 'Italic', italic)
+    expect(fontManager.familyVariation('Variations Slant', true)?.data).toBe(italic)
+    expect(fontManager.familyVariation('Variations Slant', false)?.data).toBe(upright)
+  })
+
   test('rejects axes the family does not have, as Figma does, and axes of a family not loaded', () => {
     const { node } = text()
     expect(() => {
@@ -123,9 +147,11 @@ describe('variable fonts in the plugin API', () => {
     const providers = fontManager.enabledOnlineFontProviders()
     fontManager.setOnlineFontProviders({})
     fontManager.setHostFontCatalog([{ family: 'Variations Load', styles: ['Regular', 'Bold'] }])
+    const data = await Bun.file(join(FIXTURES, 'fonts', 'InterRegular-Faces.ttf')).arrayBuffer()
     fontManager.setHostFontLoader(async (family, style) => {
-      if (family === 'Variations Load') loaded.push(style)
-      return null
+      if (family !== 'Variations Load') return null
+      loaded.push(style)
+      return data.slice(0)
     })
     try {
       await new FigmaAPI(new SceneGraph()).loadFontAsync({ family: 'Variations Load' })
@@ -137,5 +163,7 @@ describe('variable fonts in the plugin API', () => {
       )
     }
     expect(loaded.sort()).toEqual(['Bold', 'Regular'])
+    expect(fontManager.loadedData('Variations Load', 'Regular')).not.toBeNull()
+    expect(fontManager.loadedData('Variations Load', 'Bold')).not.toBeNull()
   })
 })

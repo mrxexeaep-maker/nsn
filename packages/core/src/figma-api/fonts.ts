@@ -50,7 +50,7 @@ export function readVariationSettings(
   variations: readonly FontVariation[],
   opticalSizeFromFontSize: boolean
 ): FigmaVariationSettings | undefined {
-  const variation = fontManager.familyVariation(family)
+  const variation = fontManager.familyVariation(family, parseFontStyle(style).italic)
   if (!variation) return undefined
   const named = namedInstanceVariations(variation.data, style) ?? []
   const set = opticalSizeFromFontSize
@@ -97,22 +97,17 @@ function nearestInstance(
  * input leaves out read from `current`; with no axes either, the current style stays. Axes the
  * family does not have throw, as Figma rejects them.
  */
-export function fontNameInputStyle(
-  method: string,
-  input: FigmaFontNameInput,
-  current?: { style: string; variationSettings?: FigmaVariationSettings }
-): { fontFamily: string; fontWeight: number; italic: boolean; fontVariations: FontVariation[] } {
-  const settings = input.variationSettings ?? {}
-  const tags = Object.keys(settings)
-  const variation = fontManager.familyVariation(input.family)
+/** The family's axes in the slant asked for, once each of `tags` is checked among them. */
+function checkedVariation(method: string, family: string, slanted: boolean, tags: string[]) {
+  const variation = fontManager.familyVariation(family, slanted)
   if (tags.length > 0 && variation === undefined) {
     throw new Error(
-      `in ${method}: Font family "${input.family}" is not loaded, so its variation axes are unknown. Call loadFontAsync first.`
+      `in ${method}: Font family "${family}" is not loaded, so its variation axes are unknown. Call loadFontAsync first.`
     )
   }
   if (tags.length > 0 && variation === null) {
     throw new Error(
-      `in ${method}: "${tags[0]}" is not a valid variation setting. Font "${input.family}" has no variation axes.`
+      `in ${method}: "${tags[0]}" is not a valid variation setting. Font "${family}" has no variation axes.`
     )
   }
   if (variation) {
@@ -124,6 +119,26 @@ export function fontNameInputStyle(
       )
     }
   }
+  return variation
+}
+
+/** The font a character has before a new one is set over it. */
+export interface CurrentFont {
+  style: string
+  /** The axes the text sets itself, over its style's. */
+  fontVariations: readonly FontVariation[]
+  variationSettings?: FigmaVariationSettings
+}
+
+export function fontNameInputStyle(
+  method: string,
+  input: FigmaFontNameInput,
+  current?: CurrentFont
+): { fontFamily: string; fontWeight: number; italic: boolean; fontVariations: FontVariation[] } {
+  const settings = input.variationSettings ?? {}
+  const tags = Object.keys(settings)
+  const slanted = parseFontStyle(input.style ?? current?.style ?? 'Regular').italic
+  const variation = checkedVariation(method, input.family, slanted, tags)
   const style =
     input.style ??
     (tags.length > 0 && variation
@@ -138,7 +153,14 @@ export function fontNameInputStyle(
   return {
     fontFamily: input.family,
     fontWeight: weight,
-    italic,
-    fontVariations: tags.map((axis) => ({ axis, value: settings[axis] ?? 0 }))
+    // A style picked from the axes keeps the text's slant, whichever file the axes came from.
+    italic: input.style ? italic : slanted,
+    // A style resets the axes to its own; without one, the axes the text set stay.
+    fontVariations: [
+      ...(input.style ? [] : (current?.fontVariations ?? [])).filter(
+        ({ axis }) => !tags.includes(axis)
+      ),
+      ...tags.map((axis) => ({ axis, value: settings[axis] ?? 0 }))
+    ]
   }
 }
