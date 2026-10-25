@@ -152,7 +152,6 @@ tests/engine/figma/api/flatten-renderer.test.ts
 tests/engine/figma/api/frozen/arrays.test.ts
 tests/engine/figma/api/grouping/compat.test.ts
 tests/engine/figma/api/grouping/group.test.ts
-tests/engine/figma/api/images.test.ts
 tests/engine/figma/api/internals/not-exposed.test.ts
 tests/engine/figma/api/layout/plugin-compat.test.ts
 tests/engine/figma/api/layout/sizing.test.ts
