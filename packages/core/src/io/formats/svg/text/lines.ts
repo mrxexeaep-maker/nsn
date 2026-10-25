@@ -34,7 +34,9 @@ export interface SVGCharacterEdges {
  */
 export type SVGTextLayout = (node: SceneNode) => readonly SVGTextLine[] | null
 
-type SpanAttrs = (style: CharacterStyleOverride) => Record<string, string | number | undefined>
+export type SpanAttrs = (
+  style: CharacterStyleOverride
+) => Record<string, string | number | undefined>
 
 interface TextPiece {
   from: number
@@ -55,6 +57,17 @@ function textPieces(node: SceneNode): TextPiece[] {
   }
   if (cursor < node.text.length) pieces.push({ from: cursor, to: node.text.length, style: null })
   return pieces
+}
+
+/** One unpositioned span per style run, including uncovered text in the node's own style. */
+export function textStyleSpans(node: SceneNode, spanAttrs: SpanAttrs): SVGNode[] {
+  return textPieces(node).map((piece) =>
+    svg(
+      'tspan',
+      piece.style ? spanAttrs(piece.style) : {},
+      shownTextSlice(node, piece.from, piece.to)
+    )
+  )
 }
 
 /** The left and right edges of the characters from `from` to `to` that have glyphs. */

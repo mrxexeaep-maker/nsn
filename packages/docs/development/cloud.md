@@ -92,11 +92,11 @@ keeps on its own, and versions someone named (`document_version`, one per revisi
   a version is named, renamed, or turned back into an autosave, or a save adds a checkpoint, the
   server sends `versions` to the document's rooms and every open history loads it again; peers
   cannot send it.
-- A document's address is `/cloud/documents/:id?server=…`, with `&version=…` for a version; the
-  editor keeps the address bar on the active tab's document and the version it shows, and a
-  version's Copy link builds the address on the server's advertised editor URL. The address carries
-  no secret: opening it signs in to the named server, one the app already knows or the official one,
-  and the server's access rules decide. Fetching a version returns the version with its download, so
+- A document's address is `/documents/:id` on its server, with `?version=…` for a version; the
+  editor keeps the address bar on the active tab's document and the version it shows when the
+  document is on the server serving the editor, and a version's Copy link builds the address on the
+  document's server. The address carries no secret: opening it signs in to the server at that
+  address, one the app already knows or the official one, and the server's access rules decide. Fetching a version returns the version with its download, so
   a link can show it without paging the history.
 - The cleanup worker compacts saves that are neither current nor a version once they are a day old,
   a batch at a time, and returns the bytes of files nothing else uses to the workspace's usage. A
@@ -116,7 +116,7 @@ Documents granted to someone outside their own workspaces are listed for them se
 client can show what was shared with them.
 
 Workspace administrators invite people by email with a role. Workspace invitations use the same
-`/cloud/invitations/:id` link as document invitations: preview and accept look for a workspace
+`/invitations/:id` link as document invitations: preview and accept look for a workspace
 invitation first and fall back to a document one, so email, the desktop handoff, and the editor's
 invitation dialog serve both. A workspace with members always keeps an administrator.
 
@@ -288,6 +288,18 @@ share, including the service's catalog, wallet, and error codes, is `src/contrac
 own version so a service can change without a Cloud release. A `[billing]` table only advertises
 where people manage their plan.
 
+A service answers below its endpoint at the paths in `CLOUD_AI_API_PATHS`: model requests follow
+the OpenAI chat completions API, so editors reach it with an OpenAI-compatible client, and the
+catalog, wallet, and usage pages are the contract's own. The reference service is the AI relay in
+`src/ai-relay`, run by `src/runtime/node/ai-relay`: it verifies tokens against Cloud's keys,
+forwards completions to one upstream with one key, and keeps one usage row per settled request, so a
+workspace's monthly spend is the sum of its rows. It reads usage from the upstream's answer, asking
+streams for it with `stream_options.include_usage`, and keeps reading after the editor disconnects
+so a request is still charged. It admits a request while credits remain and charges it afterwards,
+so in-flight requests can overdraw an allowance; the official service reserves credits instead. It forwards only
+chat completion fields, so a router's fallback or provider fields cannot run a model outside the
+catalog on its key. An upstream answer has ten minutes in all, streamed or not, before the relay ends it.
+
 Services that decide entitlements, such as billing, write them through the internal API rather than
 the database: `setWorkspaceEntitlements` in `src/server/internal`, which runtimes expose over HTTP
 with a bearer token (`[internal_api]`) or a private transport of their own. Every write carries an
@@ -409,8 +421,8 @@ continuations through OAuth stay document-only; the editor keeps a pending invit
 
 **2026-10 · Cloud links hand off to the desktop app through `openpencil://cloud`.** Links stay web
 addresses on the server's editor, so they work for anyone; the web editor on a computer offers the
-desktop app, which gets the same path, server, and secret as `openpencil://cloud/<kind>/<id>`.
-The native side checks the ID, secret, and server before the editor sees a link. The secret is
+desktop app, which gets the web link as `openpencil://cloud?url=<link>#<secret>`. The native side
+checks the link, ID, and secret before the editor sees it. The secret is
 visible in the launch arguments to other processes on the same computer; pasting links into the
 app would avoid that at the cost of a manual step for everyone.
 
@@ -449,3 +461,10 @@ signs in through the server's pages and its session, with no device code and no 
 page meets visitors who are not signed in, and the editor stays usable without an account, as it
 is on app.openpencil.dev, which can then redirect there. Keeping the editor only on a separate
 static host left a signed-in person on account settings with no way to their files.
+
+**2026-10 · Links name their server by their own address.** A document is `/documents/:id`, a
+shared link `/share/:id`, and an invitation `/invitations/:id` on the server that holds them, with
+no `server` parameter and no `/cloud` prefix, and the server has no separate editor address to
+send them to. Peer-to-peer rooms move to `/rooms/:id` so "share" names a shared document. The
+cost is that a browser editor at any other address cannot keep a Cloud document in its address
+bar; every server serves its own editor, and the desktop app gets links through `openpencil://`.
