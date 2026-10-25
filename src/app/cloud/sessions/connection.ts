@@ -152,6 +152,17 @@ export function checkedCloudConnection(server: CloudServer): Promise<CloudConnec
     : Promise.resolve(connection)
 }
 
+/**
+ * Where this app stands with a server now: signed in as last checked, or else the answer of the
+ * check under way or of a new one, since a server out of reach or a session that ended may have
+ * come back since the last answer.
+ */
+export function recheckedCloudConnection(server: CloudServer): Promise<CloudConnection> {
+  const connection = cloudConnection(server.id)
+  if (connection.state === 'signed-in') return Promise.resolve(connection)
+  return checks.get(server.id) ?? refreshCloudConnection(server)
+}
+
 async function askServer(server: CloudServer, generation: number): Promise<CloudConnection> {
   const previous = cloudConnection(server.id)
   publish(server.id, { ...previous, state: 'checking', failure: null })

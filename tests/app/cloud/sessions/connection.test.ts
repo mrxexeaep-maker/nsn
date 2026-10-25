@@ -4,6 +4,7 @@ import { addCloudServer, cloudServers, removeCloudServer } from '@/app/cloud/ser
 import {
   checkedCloudConnection,
   cloudConnection,
+  recheckedCloudConnection,
   refreshCloudConnection
 } from '@/app/cloud/sessions/connection'
 import { readCloudSessionToken, saveCloudSessionToken } from '@/app/cloud/sessions/token'
@@ -25,14 +26,17 @@ const workspace = {
 type Answer = { status: number; body?: unknown }
 let answers: Record<string, Answer> = {}
 let authorization: (string | null)[] = []
+let statusRequests = 0
 
 beforeEach(() => {
   answers = {}
   authorization = []
+  statusRequests = 0
   spyOn(globalThis, 'fetch').mockImplementation(
     fetchStub(async (input, init) => {
       const url = new URL(input instanceof Request ? input.url : String(input))
       authorization.push(new Headers(init?.headers).get('Authorization'))
+      if (url.pathname === '/api/account/status') statusRequests += 1
       if (url.pathname === '/.well-known/openpencil')
         return Response.json(cloudDiscoveryFixture(ORIGIN))
       const answer = answers[url.pathname]
@@ -105,5 +109,24 @@ describe('Cloud connections', () => {
     expect((await waiting).state).toBe('signed-in')
     // One account status and one workspace list: the server was asked once.
     expect(authorization).toHaveLength(2)
+  })
+
+  test('ask a server out of reach again rather than keep its old answer', async () => {
+    answers['/api/account/status'] = { status: 503, body: { error: { code: 'unavailable' } } }
+    const target = await server()
+    expect((await refreshCloudConnection(target)).state).toBe('unreachable')
+    answers['/api/account/status'] = { status: 200, body: { user, state: 'active' } }
+    answers['/api/workspaces'] = { status: 200, body: { workspaces: [workspace] } }
+    expect((await recheckedCloudConnection(target)).state).toBe('signed-in')
+  })
+
+  test('take the answer of the check under way without asking twice', async () => {
+    answers['/api/account/status'] = { status: 503, body: { error: { code: 'unavailable' } } }
+    const target = await server()
+    const starting = refreshCloudConnection(target)
+    const waiting = recheckedCloudConnection(target)
+    await starting
+    expect((await waiting).state).toBe('unreachable')
+    expect(statusRequests).toBe(1)
   })
 })

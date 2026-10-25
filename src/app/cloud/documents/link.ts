@@ -17,7 +17,7 @@ import { IS_BROWSER } from '@/constants'
 import { cloudSignedIn, signInToOpen } from '../connect/flow'
 import { cloudServerHost, normalizeCloudServerURL } from '../servers/address'
 import { cloudServerForLink, findCloudServer, isCloudSiteServer } from '../servers/store'
-import { checkedCloudConnection, cloudAPIClient } from '../sessions/connection'
+import { cloudAPIClient, recheckedCloudConnection } from '../sessions/connection'
 import { CLOUD_STORAGE_PROVIDER_ID } from '../sessions/token'
 import { openVersionHistory, previewVersion, versionHistoryOf } from '../versions/history'
 import { isCloudBinding } from './status'
@@ -99,7 +99,7 @@ export async function openCloudDocumentLink(link: CloudDocumentLink): Promise<vo
     toast.error(messages.documentLinkUnknownServer({ host: cloudServerHost(url) }))
     return
   }
-  const connection = await checkedCloudConnection(server)
+  const connection = await recheckedCloudConnection(server)
   if (connection.state === 'unreachable') {
     toast.error(messages.errorUnreachableHeading)
     return
