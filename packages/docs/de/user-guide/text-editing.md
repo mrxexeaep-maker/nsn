@@ -45,7 +45,7 @@ Die Schriftauswahl unterstützt Suche, Vorschau, virtuelles Scrollen und das Ans
 - Chrome und Edge können Systemschriften im Browser verwenden.
 - Heruntergeladene Schriftschnitte werden lokal gespeichert.
 
-Zugriff auf Systemschriften, Online-Anbieter und heruntergeladene Schriften verwaltest du unter **Einstellungen › Schriften**; das Zahnrad neben der Schriftfamilie öffnet die Seite.
+Zugriff auf Systemschriften und Online-Anbieter verwaltest du unter **Einstellungen › Schriften**, die das Zahnrad neben der Schriftfamilie öffnet; in der Desktop-App verwaltet die Seite auch heruntergeladene Schriften und Fallback-Pakete.
 
 ## Fehlende Schriften
 
