@@ -35,9 +35,10 @@ class PageBuilder {
 
   build() {
     const { graph, page, pageId } = this
-    // One layer draws straight onto the page; several each become a group named after it.
+    // One layer draws straight onto the page; several each become a group named after it, as
+    // does a single layer that is hidden or locked, so it stays so.
     for (const [index, layer] of page.layers.entries()) {
-      if (page.layers.length === 1) {
+      if (page.layers.length === 1 && layer.visible && !layer.locked) {
         this.layers.set(layer.id, pageId)
         continue
       }
@@ -62,18 +63,25 @@ class PageBuilder {
         labelsOf.set(cell.parent, labels)
       }
     }
-    for (const cell of page.cells) {
-      if (edgeIds.has(cell.parent)) continue
+    const cells = new Map(page.cells.map((cell) => [cell.id, cell]))
+    const placing = new Set<string>()
+    const place = (cell: DrawioCell) => {
+      if (edgeIds.has(cell.parent) || this.layers.has(cell.id) || placing.has(cell.id)) return
+      placing.add(cell.id)
+      // A cell listed before its parent, as draw.io's format allows, waits for the parent.
+      const parent = cells.get(cell.parent)
+      if (parent) place(parent)
       const parentId = this.layers.get(cell.parent) ?? pageId
       if (cell.kind === 'edge') {
         const pending = createEdge(graph, parentId, cell, labelsOf.get(cell.id) ?? [])
         this.layers.set(cell.id, pending.connector.id)
         this.edges.push(pending)
-        continue
+        return
       }
       const node = this.vertex(cell, parentId, parents.has(cell.id))
       this.layers.set(cell.id, node.id)
     }
+    for (const cell of page.cells) place(cell)
     const layerOf = (cellId: string) => this.layers.get(cellId)
     for (const pending of this.edges) {
       for (const extra of bindEdge(graph, pending, layerOf)) this.edgeText(pending, extra)
@@ -150,6 +158,7 @@ class PageBuilder {
     graph.createNode('TEXT', node.parentId, {
       x: (plate?.x ?? 0) + offset.x,
       y: (plate?.y ?? 0) + offset.y,
+      visible: cell.visible,
       name: nameOf(label.text, 'Text'),
       ...labelFields(cell.style, label.format),
       text: label.text,

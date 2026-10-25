@@ -90,16 +90,16 @@ export function labelFormat(style: DrawioStyle): LabelFormat {
   }
 }
 
-const HORIZONTAL: Record<string, SceneNode['textAlignHorizontal']> = {
-  left: 'LEFT',
-  center: 'CENTER',
-  right: 'RIGHT'
-}
-const VERTICAL: Record<string, SceneNode['textAlignVertical']> = {
-  top: 'TOP',
-  middle: 'CENTER',
-  bottom: 'BOTTOM'
-}
+const HORIZONTAL = new Map<string, SceneNode['textAlignHorizontal']>([
+  ['left', 'LEFT'],
+  ['center', 'CENTER'],
+  ['right', 'RIGHT']
+])
+const VERTICAL = new Map<string, SceneNode['textAlignVertical']>([
+  ['top', 'TOP'],
+  ['middle', 'CENTER'],
+  ['bottom', 'BOTTOM']
+])
 
 /** A label's text fields: its font, size, colour, and alignment, centred by default. */
 export function labelFields(style: DrawioStyle, format = labelFormat(style)): Partial<SceneNode> {
@@ -110,7 +110,7 @@ export function labelFields(style: DrawioStyle, format = labelFormat(style)): Pa
     fontSize: format.size,
     textDecoration: format.underline ? 'UNDERLINE' : 'NONE',
     fills: [solid(format.color, 1)],
-    textAlignHorizontal: HORIZONTAL[style.values.align ?? 'center'] ?? 'CENTER',
-    textAlignVertical: VERTICAL[style.values.verticalAlign ?? 'middle'] ?? 'CENTER'
+    textAlignHorizontal: HORIZONTAL.get(style.values.align ?? 'center') ?? 'CENTER',
+    textAlignVertical: VERTICAL.get(style.values.verticalAlign ?? 'middle') ?? 'CENTER'
   }
 }

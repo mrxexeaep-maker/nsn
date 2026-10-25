@@ -1,5 +1,5 @@
 import { sceneNodeToJSX, selectionToJSX } from '@open-pencil/design-jsx'
-import { isDrawioExportFileName, readDrawioBytes } from '@open-pencil/drawio'
+import { isDrawioExportFileName } from '@open-pencil/drawio'
 import {
   buildPenGraph,
   isDataURL,
@@ -12,7 +12,6 @@ import type { SceneGraph } from '@open-pencil/scene-graph'
 import { drawIcon, iconify, type IconData, type IconProvider } from '#core/icons'
 import { layoutAuthoredNodes } from '#core/layout'
 
-import { drawioToSceneGraph } from './formats/drawio'
 import { exportFigFile, parseFigFile } from './formats/fig'
 import type { PPTXExportOptions } from './formats/pptx'
 import { headlessRenderNodes, renderNodesToImage, type RasterExportFormat } from './formats/raster'
@@ -328,6 +327,8 @@ export const drawioFormat: IOFormatAdapter<'drawio'> = {
     )
   },
   async readDocument(input) {
+    const { readDrawioBytes } = await import('@open-pencil/drawio')
+    const { drawioToSceneGraph } = await import('./formats/drawio')
     const file = readDrawioBytes(input.data)
     if (!file) throw new Error('This file holds no draw.io diagram')
     if (file.unreadable.length > 0) {

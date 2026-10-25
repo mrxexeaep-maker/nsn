@@ -74,7 +74,12 @@ export function shapeName(style: DrawioStyle): string {
 }
 
 /** Which way `direction` points, in degrees anticlockwise from pointing right. */
-const DIRECTION_TURN: Record<string, number> = { east: 0, north: 90, west: 180, south: -90 }
+const DIRECTION_TURN = new Map([
+  ['east', 0],
+  ['north', 90],
+  ['west', 180],
+  ['south', -90]
+])
 
 /**
  * What a vertex becomes. Text stays text; a swimlane, or a vertex its style makes a container,
@@ -95,7 +100,7 @@ export function vertexKind(style: DrawioStyle, hasChildren: boolean): VertexKind
   if (shape === 'TRIANGLE_UP' && name === 'triangle') {
     // draw.io's triangle points right; FigJam's points up and turns, clockwise for a positive
     // rotation, to point elsewhere.
-    rotation = 90 - (DIRECTION_TURN[direction] ?? 0)
+    rotation = 90 - (DIRECTION_TURN.get(direction) ?? 0)
     if (rotation === 180) {
       shape = 'TRIANGLE_DOWN'
       rotation = 0

@@ -181,6 +181,34 @@ describe('draw.io edges', () => {
     // A second label draws as text by the edge.
     expect(byName(graph, 'second').type).toBe('TEXT')
   })
+
+  test('keep a hidden extra label hidden', async () => {
+    const graph = await read(
+      file(
+        shapes +
+          `<mxCell id="e" value="shown" style="" edge="1" parent="1" source="a" target="b"><mxGeometry relative="1" as="geometry"/></mxCell>` +
+          `<mxCell id="l" value="hidden" style="edgeLabel;" vertex="1" parent="e" visible="0"><mxGeometry x="0.5" relative="1" as="geometry"/></mxCell>`
+      )
+    )
+    expect(byName(graph, 'hidden').visible).toBe(false)
+  })
+})
+
+test('style values named like built-in object members fall back as unknown values do', async () => {
+  const graph = await read(
+    file(
+      vertex('a', 'triangle;direction=constructor;align=constructor;verticalAlign=toString;', [0, 0, 80, 60], 'A') +
+        vertex('b', '', [200, 0, 80, 60], 'B') +
+        `<mxCell id="e" style="endArrow=constructor;startArrow=valueOf;" edge="1" parent="1" source="a" target="b"><mxGeometry relative="1" as="geometry"/></mxCell>`
+    )
+  )
+  const shape = byName(graph, 'A')
+  // An unknown direction points east, as draw.io's default does: FigJam's triangle turned a quarter.
+  expect(shape.rotation).toBe(90)
+  const connector = expectDefined(onPage(graph).find((node) => node.type === 'CONNECTOR'))
+  expect([connector.connectorStartCap, connector.connectorEndCap]).toEqual(['ARROW_LINES', 'ARROW_LINES'])
+  const label = expectDefined([...graph.getAllNodes()].find((node) => node.type === 'TEXT' && node.text === 'A'))
+  expect([label.textAlignHorizontal, label.textAlignVertical]).toEqual(['CENTER', 'CENTER'])
 })
 
 describe('draw.io pages and layers', () => {
@@ -193,5 +221,35 @@ describe('draw.io pages and layers', () => {
     expect([base.type, base.name, notes.type, notes.name, notes.visible]).toEqual(['GROUP', 'Layer 1', 'GROUP', 'Notes', false])
     expect(graph.getChildren(base.id).map((node) => node.name)).toEqual(['Below', 'Above'])
     expect(graph.getChildren(notes.id).map((node) => node.name)).toEqual(['Hidden note'])
+  })
+
+  test('a single hidden or locked layer is a group that stays so', async () => {
+    const graph = await read(file(vertex('a', '', [0, 0, 50, 50], 'Shape'), '<mxCell id="1" value="Only" style="locked=1;" parent="0" visible="0"/>'))
+    const [layer] = onPage(graph)
+    expect([layer.type, layer.name, layer.visible, layer.locked]).toEqual(['GROUP', 'Only', false, true])
+  })
+
+  test('a cell listed before its parent still lands inside it', async () => {
+    const graph = await read(
+      file(vertex('child', '', [10, 10, 40, 40], 'Child', 'g') + vertex('g', 'group;', [100, 100, 60, 60], '', '1'))
+    )
+    const child = byName(graph, 'Child')
+    const group = expectDefined(graph.getNode(expectDefined(child.parentId)))
+    expect(group.type).toBe('GROUP')
+    expect([group.x + child.x, group.y + child.y]).toEqual([110, 110])
+  })
+
+  test('a free edge end stays where draw.io put it when its layer fits around its shapes', async () => {
+    const graph = await read(
+      file(
+        vertex('a', '', [300, 300, 50, 50], 'A', '2') +
+          `<mxCell id="e" style="" edge="1" parent="2" source="a"><mxGeometry relative="1" as="geometry"><mxPoint x="700" y="700" as="targetPoint"/></mxGeometry></mxCell>`,
+        '<mxCell id="1" parent="0"/><mxCell id="2" parent="0"/>'
+      )
+    )
+    const connector = expectDefined([...graph.getAllNodes()].find((node) => node.type === 'CONNECTOR'))
+    const layer = expectDefined(graph.getNode(expectDefined(connector.parentId)))
+    const end = expectDefined(connector.connectorEnd).position
+    expect([layer.x + end.x, layer.y + end.y]).toEqual([700, 700])
   })
 })

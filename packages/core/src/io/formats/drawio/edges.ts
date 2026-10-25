@@ -49,26 +49,26 @@ function lineTypeOf(edge: DrawioCell): ConnectorLineType {
  * draw.io arrowheads and the FigJam ends that draw them: a filled triangle is FigJam's triangle
  * arrow (its "triangle" end points back, as a reversed one), an open one its line arrow.
  */
-const CAPS: Record<string, StrokeCap> = {
-  none: 'NONE',
-  classic: 'ARROW_EQUILATERAL',
-  classicThin: 'ARROW_EQUILATERAL',
-  block: 'ARROW_EQUILATERAL',
-  blockThin: 'ARROW_EQUILATERAL',
-  open: 'ARROW_LINES',
-  openThin: 'ARROW_LINES',
-  openAsync: 'ARROW_LINES',
-  async: 'ARROW_LINES',
-  oval: 'CIRCLE_FILLED',
-  diamond: 'DIAMOND_FILLED',
-  diamondThin: 'DIAMOND_FILLED'
-}
+const CAPS = new Map<string, StrokeCap>([
+  ['none', 'NONE'],
+  ['classic', 'ARROW_EQUILATERAL'],
+  ['classicThin', 'ARROW_EQUILATERAL'],
+  ['block', 'ARROW_EQUILATERAL'],
+  ['blockThin', 'ARROW_EQUILATERAL'],
+  ['open', 'ARROW_LINES'],
+  ['openThin', 'ARROW_LINES'],
+  ['openAsync', 'ARROW_LINES'],
+  ['async', 'ARROW_LINES'],
+  ['oval', 'CIRCLE_FILLED'],
+  ['diamond', 'DIAMOND_FILLED'],
+  ['diamondThin', 'DIAMOND_FILLED']
+])
 
 /** An end's cap: `startArrow` is none and `endArrow` classic unless the style says otherwise. */
 function capOf(style: DrawioStyle, key: 'startArrow' | 'endArrow'): StrokeCap {
   const arrow = style.values[key] ?? (key === 'endArrow' ? 'classic' : 'none')
   const fill = style.values[key === 'endArrow' ? 'endFill' : 'startFill']
-  const cap = CAPS[arrow] ?? 'ARROW_LINES'
+  const cap = CAPS.get(arrow) ?? 'ARROW_LINES'
   // An unfilled triangle draws as FigJam's open arrow.
   return fill === '0' && cap === 'ARROW_EQUILATERAL' ? 'ARROW_LINES' : cap
 }
