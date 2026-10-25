@@ -59,8 +59,13 @@ async function save() {
     <SettingsPage>
       <div class="flex flex-col gap-5">
         <fieldset :disabled="busy" class="flex w-full min-w-0 flex-col gap-5">
-          <ProviderSettingsField v-if="service === 'vectorize'" :label="media.vectorizeProvider">
+          <ProviderSettingsField
+            v-if="service === 'vectorize'"
+            v-slot="{ control }"
+            :label="media.vectorizeProvider"
+          >
             <AppSelect
+              v-bind="control"
               v-model="providerID"
               :options="providerOptions"
               :label="media.vectorizeProvider"

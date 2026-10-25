@@ -71,17 +71,20 @@ const support = (capability: AIModelCapability) =>
     </SettingsGroup>
     <ProviderSettingsField
       v-if="thinking"
+      v-slot="{ control }"
       :label="ai.thinkingLevel"
       :hint="ai.thinkingLevelDescription"
     >
       <AppSelect
+        v-bind="control"
         v-model="thinkingLevel"
         :label="ai.thinkingLevel"
         :options="thinkingLevelOptions"
       />
     </ProviderSettingsField>
-    <ProviderSettingsField v-if="harness" :label="ai.harnessToolPermissions">
+    <ProviderSettingsField v-if="harness" v-slot="{ control }" :label="ai.harnessToolPermissions">
       <AppSelect
+        v-bind="control"
         v-model="permissionMode"
         :label="ai.harnessToolPermissions"
         :options="permissionOptions"
