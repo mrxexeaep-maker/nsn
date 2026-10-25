@@ -12,6 +12,7 @@ import { ensureBrandAssets } from '@open-pencil/brand-tools'
 import { ensureDemoDocument } from '@open-pencil/demo-tools'
 
 import packageJson from './package.json'
+import { THEME_STORAGE_KEY } from './src/app/settings/theme'
 import { viteBuildTarget } from './src/app/shell/support/baseline'
 import { createOpenPencilAliases } from './vite/aliases'
 import {
@@ -19,6 +20,7 @@ import {
   localAutomationToken,
   openPencilAutomationPlugin
 } from './vite/automation'
+import { bootSplashPlugin } from './vite/boot-splash'
 import { cloudSitePlugin } from './vite/cloud-site'
 import { aiIconCollection } from './vite/icons'
 import { metricsBrandPlugin } from './vite/metrics'
@@ -60,6 +62,7 @@ export default defineConfig(async ({ command, mode }) => {
     optimizeDeps: { include: ['ai/test'] },
     plugins: [
       rawMarkdownPlugin(),
+      bootSplashPlugin({ themeStorageKey: THEME_STORAGE_KEY }),
       tailwindcss(),
       Icons({ compiler: 'vue3', customCollections: { ai: aiIconCollection() } }),
       Components({ resolvers: [IconsResolver({ prefix: 'icon', customCollections: ['ai'] })] }),
