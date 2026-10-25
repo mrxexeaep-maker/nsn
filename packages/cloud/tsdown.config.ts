@@ -41,7 +41,7 @@ export default defineConfig([
     name: 'node',
     entry: {
       'runtime-node': './src/runtime/node/index.ts',
-      // The commands `npx @open-pencil/cloud` and `openpencil-ai-relay` run.
+      // The package's commands, `openpencil-cloud` and `openpencil-ai-relay`.
       'bin/server': './src/runtime/node/main.ts',
       'bin/ai-relay': './src/runtime/node/ai-relay/main.ts'
     },

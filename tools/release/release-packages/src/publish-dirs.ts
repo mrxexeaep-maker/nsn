@@ -129,12 +129,16 @@ export async function preparePublishDirectories(
     }
 
     const packageJSON = await readPackageManifest(join(sourceDir, 'package.json'))
+    const publishJSON = publishPackageJSON(packageJSON, options.coreVersion)
     if (!hasOwnLicense) await cp(rootLicense, join(destinationDir, LICENSE_FILE))
     else if (/\bMIT\b/.test(packageJSON.license ?? '') && existsSync(rootLicense)) {
       await cp(rootLicense, join(destinationDir, MIT_LICENSE_FILE))
+      // npm packs LICENSE by itself but not LICENSE-MIT, so a `files` list has to name it.
+      if (publishJSON.files && !publishJSON.files.includes(MIT_LICENSE_FILE)) {
+        publishJSON.files = [...publishJSON.files, MIT_LICENSE_FILE]
+      }
     }
 
-    const publishJSON = publishPackageJSON(packageJSON, options.coreVersion)
     await writeFile(
       join(destinationDir, 'package.json'),
       `${JSON.stringify(publishJSON, null, 2)}\n`

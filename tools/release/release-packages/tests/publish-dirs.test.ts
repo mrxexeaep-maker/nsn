@@ -5,6 +5,7 @@ import { join } from 'node:path'
 
 import {
   discoverPublishPackages,
+  npmPackFileList,
   preparePublishDirectories,
   publishPackageJSON
 } from '#release/publish-dirs'
@@ -146,6 +147,10 @@ describe('preparePublishDirectories', () => {
 
     expect(await readFile(join(outRoot, 'example/LICENSE'), 'utf8')).toBe('apache license\n')
     expect(await readFile(join(outRoot, 'example/LICENSE-MIT'), 'utf8')).toBe('root license\n')
+    // Packed from the prepared directory, as releases are, both license texts ship.
+    expect(await npmPackFileList(join(outRoot, 'example'))).toEqual(
+      expect.arrayContaining(['LICENSE', 'LICENSE-MIT'])
+    )
   }, 30_000)
 
   test('refuses to prepare a package without any license text before packing', async () => {
