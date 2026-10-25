@@ -63,6 +63,9 @@
         0% { transform: translateX(-100%); }
         100% { transform: translateX(350%); }
       }
+      @media (prefers-reduced-motion: reduce) {
+        #boot-splash .bar::after { animation: none; }
+      }
     </style>
   </head>
 
