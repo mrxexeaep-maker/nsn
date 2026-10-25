@@ -100,9 +100,9 @@ export function createCanvasSurfaceManager({
   function createSurface(
     canvas: HTMLCanvasElement,
     { reloadFonts = false }: { reloadFonts?: boolean } = {}
-  ) {
+  ): boolean {
     const ck = getCanvasKit()
-    if (!ck) return
+    if (!ck) return false
 
     if (state.renderer) editor.removeCanvasRenderer(state.renderer)
     state.renderer?.destroy()
@@ -126,7 +126,7 @@ export function createCanvasSurfaceManager({
     const surface = result.surface
     if (!surface) {
       canvas.dataset.surfaceError = 'webgl'
-      return
+      return false
     }
 
     const glCtx = canvas.getContext('webgl2') ?? null
@@ -152,6 +152,7 @@ export function createCanvasSurfaceManager({
         return undefined
       })
     }
+    return true
   }
 
   function acknowledgePresentation() {

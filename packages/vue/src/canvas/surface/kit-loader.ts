@@ -9,7 +9,8 @@ type CanvasKitLoaderOptions = {
   canvasRef: Ref<HTMLCanvasElement | null>
   lifecycle: { destroyed: boolean }
   setCanvasKit: (ck: CanvasKit | null) => void
-  createSurface: (canvas: HTMLCanvasElement) => void
+  /** Whether a surface the canvas can draw on was made. */
+  createSurface: (canvas: HTMLCanvasElement) => boolean
   loadFonts: () => Promise<unknown> | undefined
   renderNow: () => void
   onReady?: () => void
@@ -38,7 +39,7 @@ export function useCanvasKitLoader({
     await new Promise((resolve) => {
       requestAnimationFrame(resolve)
     })
-    createSurface(canvas)
+    if (!createSurface(canvas)) throw new Error('WebGL is unavailable, so the canvas cannot draw')
     await loadFonts()
     if (isDestroyed()) return
     renderNow()
