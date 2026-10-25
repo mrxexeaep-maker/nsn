@@ -18,7 +18,7 @@ export const portalLayout = tv({
     navItems: 'max-md:flex-row',
     navItem: 'max-md:w-auto max-md:shrink-0',
     main: 'min-w-0 flex-1 overflow-y-auto',
-    mainInner: 'mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-6',
+    mainInner: 'flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-6',
     pageTitle: 'text-base font-semibold',
     pageDescription: 'mt-0.5 text-xs text-muted'
   }
