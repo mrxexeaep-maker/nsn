@@ -1,8 +1,10 @@
 import { noop } from 'es-toolkit'
 import { computed } from 'vue'
 
+import type { CloudAIClient } from '@open-pencil/cloud/client'
 import type { WorkspaceSummary } from '@open-pencil/cloud/contract'
 
+import type { CloudAIWorkspace } from '@/app/cloud/ai/access'
 import type { CloudAccount } from '@/app/cloud/servers/store'
 import type { SaveDestination, SaveFailure } from '@/app/storage/save-to/model'
 
@@ -18,6 +20,20 @@ export { CLOUD_STORAGE_PROVIDER_ID } from '@/app/cloud/sessions/token'
 
 /** Nothing opens from a Cloud link without Cloud. */
 export const openingCloudLink = computed(() => false)
+
+export type { CloudAIWorkspace } from '@/app/cloud/ai/access'
+
+export const cloudAIAvailable = computed(() => false)
+export const cloudAIIdentity = computed<string | null>(() => null)
+export const cloudBillingURL = computed<string | null>(() => null)
+
+export function cloudAIClient(): CloudAIClient | null {
+  return null
+}
+
+export async function cloudAIWorkspaces(): Promise<CloudAIWorkspace[]> {
+  return []
+}
 
 export function startCloud(): () => void {
   return noop
