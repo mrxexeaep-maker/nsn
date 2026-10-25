@@ -1,5 +1,6 @@
 import { createHead } from '@unhead/vue/client'
 import { createApp } from 'vue'
+import { isNavigationFailure, NavigationFailureType } from 'vue-router'
 
 import '@/app.css'
 import { loadPortalContext, PORTAL_CONTEXT } from '@/app/cloud-portal/context'
@@ -29,8 +30,16 @@ async function start(): Promise<void> {
   const router = createCloudPortalRouter(context)
   app.use(router).use(head)
   // The splash stays until the first page can show, rather than a blank page between. A first
-  // navigation the guards stop leaves for the editor, so nothing mounts then.
-  await router.isReady().catch((error: unknown) => console.error(error))
+  // navigation the guards stop leaves for the editor, so nothing mounts then; one that fails, as
+  // when a page's code does not load, says the pages are unavailable.
+  try {
+    await router.isReady()
+  } catch (error) {
+    if (isNavigationFailure(error, NavigationFailureType.aborted)) return
+    console.error(error)
+    createApp(CloudPortalUnavailableView).use(createHead()).mount('#app')
+    return
+  }
   app.mount('#app')
 }
 
