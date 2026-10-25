@@ -26,14 +26,18 @@ function styleOverrideToTspanAttrs(
   if (style.fontSize) attrs['font-size'] = style.fontSize
   if (style.fontWeight) attrs['font-weight'] = style.fontWeight
   if (style.italic) attrs['font-style'] = 'italic'
-  // A percent spacing follows the run's own font size, the layer's too where the run inherits it.
+  // A run's own spacing is written even at zero, or it would inherit the layer's. A percent the
+  // run inherits follows its own font size, so a larger or smaller run writes it again.
   const inherited =
-    style.fontSize !== undefined && node.letterSpacing.unit === 'PERCENT'
+    style.fontSize !== undefined &&
+    node.letterSpacing.unit === 'PERCENT' &&
+    node.letterSpacing.value !== 0
       ? node.letterSpacing
       : undefined
   const spacing = style.letterSpacing ?? inherited
-  const letterSpacing = spacing && textLengthPixels(spacing, style.fontSize ?? node.fontSize)
-  if (letterSpacing) attrs['letter-spacing'] = round(letterSpacing)
+  if (spacing) {
+    attrs['letter-spacing'] = round(textLengthPixels(spacing, style.fontSize ?? node.fontSize))
+  }
   if (style.textDecoration === 'UNDERLINE') attrs['text-decoration'] = 'underline'
   if (style.textDecoration === 'STRIKETHROUGH') attrs['text-decoration'] = 'line-through'
   if (style.fills) {

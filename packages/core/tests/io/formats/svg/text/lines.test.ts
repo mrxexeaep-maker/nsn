@@ -445,3 +445,13 @@ test('a larger run resolves the percent spacing it inherits at its own size', ()
   expect(svg).toContain('letter-spacing="2"')
   expect(svg).toContain('<tspan font-size="40" letter-spacing="4">b</tspan>')
 })
+
+test("a run's own zero spacing is written, so it does not inherit the layer's", () => {
+  const svg = exportText({
+    text: 'ab',
+    fontSize: 20,
+    letterSpacing: pixelLength(2),
+    styleRuns: [{ start: 1, length: 1, style: { letterSpacing: percentLength(0) } }]
+  })
+  expect(svg).toContain('<tspan letter-spacing="0">b</tspan>')
+})
