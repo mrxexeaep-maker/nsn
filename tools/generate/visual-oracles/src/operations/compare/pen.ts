@@ -114,21 +114,24 @@ const assets = penAssets(doc)
 // pen.dev exports first, so a failed export leaves the fixtures as they were, and into a
 // directory of its own, which clearing the fixtures cannot reach.
 const exported = mkdtempSync(join(tmpdir(), 'pen-export-'))
-await exportFromPen(
-  source,
-  frames.map((frame) => frame.id),
-  exported
-)
-clearFixtures()
-writeFileSync(join(fixtures, 'probes.pen'), text)
-for (const image of assets.images.filter(isDocumentAssetPath)) {
-  mkdirSync(dirname(join(fixtures, image)), { recursive: true })
-  copyFileSync(join(dirname(source), image), join(fixtures, image))
+try {
+  await exportFromPen(
+    source,
+    frames.map((frame) => frame.id),
+    exported
+  )
+  clearFixtures()
+  writeFileSync(join(fixtures, 'probes.pen'), text)
+  for (const image of assets.images.filter(isDocumentAssetPath)) {
+    mkdirSync(dirname(join(fixtures, image)), { recursive: true })
+    copyFileSync(join(dirname(source), image), join(fixtures, image))
+  }
+  for (const frame of frames) {
+    copyFileSync(join(exported, `${frame.id}.png`), join(fixtures, `${frame.id}.png`))
+  }
+} finally {
+  rmSync(exported, { recursive: true, force: true })
 }
-for (const frame of frames) {
-  copyFileSync(join(exported, `${frame.id}.png`), join(fixtures, `${frame.id}.png`))
-}
-rmSync(exported, { recursive: true, force: true })
 
 const iconSets = await fetchIconSets(assets.icons)
 for (const set of iconSets.values()) {
