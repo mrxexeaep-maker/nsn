@@ -151,9 +151,9 @@ async function updateAll() {
 // The live request, not the held one, which stays set while the dialog animates closed.
 watch(libraryReviewRequest, (value, previous) => {
   if (!value) {
-    // A preview still loading must not move the canvas away from where it is restored to.
+    // A preview still loading must not move the canvas away from where it is restored to. Its
+    // loading message stays while the dialog animates closed; the next review loads afresh.
     requestId++
-    loading.value = false
     if (previous) void restoreOrigin()
     return
   }
