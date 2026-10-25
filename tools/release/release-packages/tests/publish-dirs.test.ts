@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -151,6 +152,21 @@ describe('preparePublishDirectories', () => {
     expect(await npmPackFileList(join(outRoot, 'example'))).toEqual(
       expect.arrayContaining(['LICENSE', 'LICENSE-MIT'])
     )
+  }, 30_000)
+
+  test('ships no MIT text beside a license that only resembles it, such as MIT-0', async () => {
+    const root = await fixtureRoot({ license: 'MIT-0' })
+    await writeFile(join(root, 'packages/example/LICENSE'), 'mit-0 license\n')
+    const outRoot = join(root, '.publish')
+
+    await preparePublishDirectories({
+      coreVersion: '0.13.2',
+      outRoot,
+      packages: await discoverPublishPackages(root),
+      root
+    })
+
+    expect(existsSync(join(outRoot, 'example/LICENSE-MIT'))).toBe(false)
   }, 30_000)
 
   test('refuses to prepare a package without any license text before packing', async () => {
