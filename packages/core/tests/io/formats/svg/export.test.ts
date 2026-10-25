@@ -1,11 +1,16 @@
 import { describe, expect, test } from 'bun:test'
 
 import { expectDefined } from '#core-tests/helpers/assert'
-import { renderNodeSVGElement } from '#core/io/formats/svg/export'
 
-import { renderNodesToSVG, renderSVGNode, type SVGExportOptions } from '@open-pencil/core/io/formats/svg'
+import {
+  renderNodesToSVG,
+  renderSVGNode,
+  type SVGExportOptions
+} from '@open-pencil/core/io/formats/svg'
 import { parsePenFile } from '@open-pencil/pen'
 import { SceneGraph, type Fill, type SceneNode, type Stroke } from '@open-pencil/scene-graph'
+
+import { renderNodeSVGElement } from '#core/io/formats/svg/export'
 
 /** The attributes of the `<line>` an SVG export writes for a line with a 6 px black stroke. */
 function exportedLine(
@@ -365,7 +370,7 @@ describe('solid paint opacity exported to SVG', () => {
       height: 40,
       fills: [solid(0, 0, 0, 1, 1)]
     })
-    const opaqueSvg = renderSVGNode(
+    const opaqueSVG = renderSVGNode(
       expectDefined(
         renderNodeSVGElement(graph, opaque, {
           idPrefix: 'n-',
@@ -375,8 +380,8 @@ describe('solid paint opacity exported to SVG', () => {
         'opaque SVG element'
       )
     )
-    expect(opaqueSvg).toContain('fill="currentColor"')
-    expect(opaqueSvg).not.toContain('fill-opacity')
+    expect(opaqueSVG).toContain('fill="currentColor"')
+    expect(opaqueSVG).not.toContain('fill-opacity')
   })
 
   test('keeps each geometry fill of a vector, translucent and opaque', () => {
