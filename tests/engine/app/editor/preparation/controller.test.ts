@@ -126,6 +126,30 @@ describe('editor preparation controller', () => {
     }
   })
 
+  test('fails the wait when the canvas cannot start, before or after it begins', async () => {
+    const state = createInitialAppEditorState('page')
+    const controller = createEditorPreparationController(state)
+    const failure = new Error('The canvas could not start')
+
+    const first = controller.begin({ kind: 'page-switch' })
+    const waiting = controller.waitForPresentation(first.id, 7)
+    controller.failCanvas(failure)
+    await expect(waiting).rejects.toBe(failure)
+    first.fail({ code: 'render-failed', message: failure.message, retryable: true })
+
+    const second = controller.begin({ kind: 'page-switch' })
+    await expect(controller.waitForPresentation(second.id, 8)).rejects.toBe(failure)
+    second.fail({ code: 'render-failed', message: failure.message, retryable: true })
+
+    // A canvas that starts later presents scenes again.
+    controller.attachCanvas()
+    const third = controller.begin({ kind: 'page-switch' })
+    const presenting = controller.waitForPresentation(third.id, 9)
+    controller.acknowledgePresentation(9)
+    await presenting
+    third.complete()
+  })
+
   test('counts the time a tab was shown toward the limit, across visits', async () => {
     jest.useFakeTimers()
     try {

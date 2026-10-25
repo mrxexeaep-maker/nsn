@@ -276,7 +276,8 @@ export function useCanvasSurfaceLifecycle({
   setCanvasKit,
   getCanvasKitValue,
   lifecycle,
-  onReady
+  onReady,
+  onFailed
 }: {
   canvasRef: Ref<HTMLCanvasElement | null>
   surface: ReturnType<typeof createCanvasSurfaceManager>
@@ -284,6 +285,7 @@ export function useCanvasSurfaceLifecycle({
   getCanvasKitValue: () => CanvasKit | null
   lifecycle: { destroyed: boolean }
   onReady?: () => void
+  onFailed?: (error: unknown) => void
 }) {
   useCanvasKitLoader({
     canvasRef,
@@ -292,7 +294,8 @@ export function useCanvasSurfaceLifecycle({
     createSurface: surface.createSurface,
     loadFonts: () => surface.getRenderer()?.loadFonts(surface.renderNow),
     renderNow: surface.renderNow,
-    onReady
+    onReady,
+    onFailed
   })
 
   const { cancelResize } = useCanvasResizeObserver({

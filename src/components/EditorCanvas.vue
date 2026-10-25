@@ -110,6 +110,10 @@ useCanvas(sceneCanvasRef, store, {
   },
   sceneRenderer: appRuntimeConfig.sceneRenderer,
   onReady: canvasReady,
+  onFailed: (error) =>
+    store.preparationController.failCanvas(
+      new Error('The canvas could not start', { cause: error })
+    ),
   shouldSuspendRender,
   showRulers: false,
   getRenderState,
