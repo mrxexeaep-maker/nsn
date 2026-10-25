@@ -41,7 +41,7 @@ for (const theme of ['light', 'dark']) {
       .poll(() =>
         page.evaluate((id) => window.openPencil?.getStore?.().graph.getNode(id)?.letterSpacing, id)
       )
-      .toBe(3)
+      .toEqual({ value: 3, unit: 'PIXELS' })
     await expect(field).not.toHaveAttribute('data-bound')
     await section.getByRole('heading', { name: 'Typography', exact: true }).click()
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
