@@ -150,6 +150,20 @@ describe('editor preparation controller', () => {
     third.complete()
   })
 
+  test('fails the wait once the last working canvas leaves after another could not start', async () => {
+    const state = createInitialAppEditorState('page')
+    const controller = createEditorPreparationController(state)
+    const failure = new Error('The canvas could not start')
+    const handle = controller.begin({ kind: 'page-switch' })
+    const detach = controller.attachCanvas()
+    const waiting = controller.waitForPresentation(handle.id, 7)
+    // Another pane fails while this one still draws; then this one closes before presenting.
+    controller.failCanvas(failure)
+    detach()
+    await expect(waiting).rejects.toBe(failure)
+    handle.fail({ code: 'render-failed', message: failure.message, retryable: true })
+  })
+
   test('counts the time a tab was shown toward the limit, across visits', async () => {
     jest.useFakeTimers()
     try {

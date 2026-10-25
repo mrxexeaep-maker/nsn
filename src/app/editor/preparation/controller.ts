@@ -190,6 +190,10 @@ export function createEditorPreparationController(
         attached = false
         canvases -= 1
         if (canvases > 0) return
+        if (canvasFailure) {
+          for (const id of presentationWaiters.keys()) settle(id, canvasFailure)
+          return
+        }
         for (const waiter of presentationWaiters.values()) pauseTimer(waiter)
       }
     },
