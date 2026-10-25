@@ -63,7 +63,7 @@ export default defineConfig(async ({ command, mode }) => {
       rawMarkdownPlugin(),
       bootSplashPlugin({
         entry: resolve(__dirname, 'src/splash/theme.ts'),
-        without: ['updater.html']
+        pages: ['index.html', 'cloud.html', 'metrics.html']
       }),
       tailwindcss(),
       Icons({ compiler: 'vue3', customCollections: { ai: aiIconCollection() } }),

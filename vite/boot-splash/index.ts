@@ -21,8 +21,11 @@ type Compiled = {
 export type BootSplashOptions = {
   /** The script that starts the page in its theme; it imports the splash's stylesheet. */
   entry: string
-  /** Pages, by file name, that draw no splash; every other page must mark where it goes. */
-  without?: readonly string[]
+  /**
+   * The app's pages, by file name, each of which must mark where the splash goes. Other pages
+   * Vite builds with this config, such as Storybook's, are left as they are.
+   */
+  pages: readonly string[]
 }
 
 /** Builds the script and its stylesheet with the app's own aliases and browser targets. */
@@ -68,12 +71,12 @@ function placeSplash(html: string, page: string): string | null {
 }
 
 /**
- * Draws one boot splash on every page: each marks the element it mounts into with
+ * Draws one boot splash on each of the app's pages: each marks the element it mounts into with
  * `data-boot-splash`, and gets the splash inside it, its stylesheet, and the script that starts
  * the page in its theme, all inlined so they show before anything loads. Both are built by Vite
  * from `entry`, minified and lowered to the app's browser targets.
  */
-export function bootSplashPlugin({ entry, without = [] }: BootSplashOptions): Plugin {
+export function bootSplashPlugin({ entry, pages }: BootSplashOptions): Plugin {
   let config: ResolvedConfig | undefined
   let compiled: Promise<Compiled> | null = null
   const current = () => {
@@ -109,7 +112,7 @@ export function bootSplashPlugin({ entry, without = [] }: BootSplashOptions): Pl
       order: 'pre',
       async handler(html, { filename }) {
         const page = basename(filename)
-        if (without.includes(page)) return html
+        if (!pages.includes(page)) return html
         const placed = placeSplash(html, page)
         if (placed === null) throw new Error(`${page} marks no element ${ATTRIBUTE}`)
         const { script, style } = await current()
