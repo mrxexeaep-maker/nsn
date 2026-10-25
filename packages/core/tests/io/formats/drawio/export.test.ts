@@ -6,8 +6,16 @@ import { expectDefined } from '#core-tests/helpers/assert'
 import { BUILTIN_IO_FORMATS, IORegistry } from '#core/io'
 
 import { parseDrawioFile } from '@open-pencil/drawio'
+import type { ExportTarget } from '#core/io'
+
 import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
-import { connectorSublayers, createConnector, freeEndpoint } from '@open-pencil/scene-graph/connectors'
+import {
+  boundEndpoint,
+  connectorSublayers,
+  createConnector,
+  freeEndpoint
+} from '@open-pencil/scene-graph/connectors'
+import { createShapeWithText } from '@open-pencil/scene-graph/generated'
 
 const io = new IORegistry(BUILTIN_IO_FORMATS)
 
@@ -23,6 +31,28 @@ async function write(graph: SceneGraph): Promise<string> {
   const result = expectDefined(await format.writeDocument?.(graph))
   if (typeof result.data !== 'string') throw new Error('Expected draw.io XML')
   return result.data
+}
+
+/** The cells a draw.io export of `target` writes on its one page. */
+async function exported(graph: SceneGraph, target: ExportTarget) {
+  const result = await io.exportContent('drawio', { graph, target })
+  if (typeof result.data !== 'string') throw new Error('Expected draw.io XML')
+  const file = expectDefined(parseDrawioFile(result.data))
+  return expectDefined(file.pages[0]).cells
+}
+
+/** A page with a rectangle and, in a group at 100, 100, a shape and a connector out of it. */
+function grouped() {
+  const graph = new SceneGraph()
+  const page = graph.getPages()[0]
+  const rect = graph.createNode('RECTANGLE', page.id, { name: 'Alone', width: 40, height: 40 })
+  const group = graph.createNode('GROUP', page.id, { name: 'Group', x: 100, y: 100, width: 200, height: 100 })
+  const shape = createShapeWithText(graph, group.id, { name: 'Inner', x: 10, y: 20, width: 60, height: 40 }, {})
+  const connector = createConnector(graph, group.id, {
+    start: boundEndpoint(shape.id, 'RIGHT'),
+    end: freeEndpoint(180, 40)
+  })
+  return { graph, page, rect, group, shape, connector }
 }
 
 /** What a page holds, as a round trip should keep it. */
@@ -88,5 +118,61 @@ describe('saving a draw.io file', () => {
     expect(star.geometry).toMatchObject({ x: 10, y: 20, width: 40, height: 40 })
     // A free connector keeps its ends as points.
     expect(edge.geometry).toMatchObject({ sourcePoint: { x: 100, y: 100 }, targetPoint: { x: 300, y: 100 } })
+  })
+
+  test('turned rectangles, ellipses, and text keep their turn', async () => {
+    const graph = new SceneGraph()
+    const page = graph.getPages()[0]
+    graph.createNode('RECTANGLE', page.id, { width: 40, height: 20, rotation: 30 })
+    graph.createNode('ELLIPSE', page.id, { width: 40, height: 20, rotation: -45 })
+    graph.createNode('TEXT', page.id, { width: 40, height: 20, rotation: 15, text: 'Turned' })
+    const cells = expectDefined(parseDrawioFile(await write(graph))).pages[0]?.cells ?? []
+    expect(cells.map((cell) => cell.style.values.rotation)).toEqual(['30', '-45', '15'])
+  })
+
+  test('non-rectangular shapes name the outline edges attach to', async () => {
+    const graph = new SceneGraph()
+    const page = graph.getPages()[0]
+    for (const shapeWithTextType of ['ELLIPSE', 'DIAMOND', 'TRIANGLE_UP', 'HEXAGON'] as const) {
+      createShapeWithText(graph, page.id, { shapeWithTextType, width: 60, height: 40 }, {})
+    }
+    const cells = expectDefined(parseDrawioFile(await write(graph))).pages[0]?.cells ?? []
+    expect(cells.map((cell) => cell.style.values.perimeter)).toEqual([
+      'ellipsePerimeter',
+      'rhombusPerimeter',
+      'trianglePerimeter',
+      'hexagonPerimeter2'
+    ])
+  })
+})
+
+describe('exporting part of a design as draw.io', () => {
+  test('a page holds that page’s layers, a node only itself', async () => {
+    const { graph, page, rect, group } = grouped()
+    const other = graph.addPage('Other')
+    graph.createNode('RECTANGLE', other.id, { width: 10, height: 10 })
+    expect((await exported(graph, { scope: 'page', pageId: page.id })).length).toBeGreaterThan(2)
+    const [only, ...rest] = await exported(graph, { scope: 'node', nodeId: rect.id })
+    expect([only?.geometry.width, rest.length]).toEqual([40, 0])
+    const selected = await exported(graph, { scope: 'selection', nodeIds: [rect.id, group.id] })
+    expect(selected.filter((cell) => cell.parent === '1')).toHaveLength(2)
+    await expect(exported(graph, { scope: 'selection', nodeIds: [] })).rejects.toThrow('Nothing to export')
+  })
+
+  test('layers selected inside a group keep their place on the page', async () => {
+    const { graph, shape, connector } = grouped()
+    const cells = await exported(graph, { scope: 'selection', nodeIds: [shape.id, connector.id] })
+    const [vertex, edge] = cells
+    expect(vertex?.geometry).toMatchObject({ x: 110, y: 120, width: 60, height: 40 })
+    expect(edge?.geometry.targetPoint).toEqual({ x: 280, y: 140 })
+  })
+
+  test('an edge whose layer is left out keeps that end as a point where its line ran', async () => {
+    const { graph, connector } = grouped()
+    const [edge] = await exported(graph, { scope: 'selection', nodeIds: [connector.id] })
+    expect(edge?.source).toBeNull()
+    // Off the shape's right side, 10 + 60 across and 20 + 40 / 2 down in the group at 100, 100,
+    // by the gap a joined end leaves.
+    expect(edge?.geometry.sourcePoint).toEqual({ x: 176, y: 140 })
   })
 })
