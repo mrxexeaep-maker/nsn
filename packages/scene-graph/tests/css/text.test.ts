@@ -10,7 +10,8 @@ describe('parseCSSLineHeight', () => {
     ['24px', pixelLength(24)],
     ['1.5rem', pixelLength(24)],
     ['normal', null],
-    ['2em', undefined],
+    ['2em', percentLength(200)],
+    ['2vh', undefined],
     ['', undefined]
   ])('%s', (value, expected) => {
     expect(parseCSSLineHeight(value)).toEqual(expected)

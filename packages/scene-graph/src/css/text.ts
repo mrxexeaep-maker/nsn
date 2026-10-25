@@ -13,7 +13,7 @@ function dimension(value: string): { number: number; unit: string } | null {
 }
 
 /**
- * A CSS `line-height` as a text length: a unitless multiple or a percent follows the font size,
+ * A CSS `line-height` as a text length: a unitless multiple, `em`, or a percent follows the font size,
  * as a percent does in Figma; pixels stay pixels; `normal` is automatic, a null. Undefined for a
  * value it cannot read.
  */
@@ -22,7 +22,7 @@ export function parseCSSLineHeight(value: string | undefined): TextLength | null
   if (!trimmed) return undefined
   if (trimmed === 'normal') return null
   const parsed = dimension(trimmed)
-  if (parsed?.unit === '') return percentLength(parsed.number * 100)
+  if (parsed?.unit === '' || parsed?.unit === 'em') return percentLength(parsed.number * 100)
   if (parsed?.unit === '%') return percentLength(parsed.number)
   const pixels = parseCSSNumber(trimmed)
   return pixels === null ? undefined : pixelLength(pixels)
