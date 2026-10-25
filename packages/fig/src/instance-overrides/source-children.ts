@@ -8,6 +8,8 @@ import type { InstanceOccurrence } from './occurrence/types'
 export interface MaterializedComponentOccurrence {
   occurrence: InstanceOccurrence
   materialized: MaterializedInstance
+  /** Original graph ids for checkpoint entries that are deliberately deleted from the graph. */
+  deletedNodeIds?: ReadonlyMap<InstanceOccurrence, string>
 }
 
 export function reconcileOccurrenceStructure(
