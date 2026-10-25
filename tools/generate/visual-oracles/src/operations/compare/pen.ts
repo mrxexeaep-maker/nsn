@@ -17,7 +17,8 @@
  * to --output.
  */
 
-import { copyFileSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 
@@ -110,10 +111,9 @@ const missing = [...wanted].filter((id) => !frames.some((frame) => frame.id === 
 if (missing.length > 0) throw new Error(`The document has no top-level ${missing.join(', ')}`)
 const assets = penAssets(doc)
 
-// pen.dev exports first, so a failed export leaves the fixtures as they were.
-const exported = join(output, 'pen-export')
-rmSync(exported, { recursive: true, force: true })
-mkdirSync(exported, { recursive: true })
+// pen.dev exports first, so a failed export leaves the fixtures as they were, and into a
+// directory of its own, which clearing the fixtures cannot reach.
+const exported = mkdtempSync(join(tmpdir(), 'pen-export-'))
 await exportFromPen(
   source,
   frames.map((frame) => frame.id),
@@ -128,6 +128,7 @@ for (const image of assets.images.filter(isDocumentAssetPath)) {
 for (const frame of frames) {
   copyFileSync(join(exported, `${frame.id}.png`), join(fixtures, `${frame.id}.png`))
 }
+rmSync(exported, { recursive: true, force: true })
 
 const iconSets = await fetchIconSets(assets.icons)
 for (const set of iconSets.values()) {
