@@ -270,8 +270,14 @@ class PageWriter {
       this.idOf(id)
       if (!isGeneratedFrame(node)) for (const child of node.childIds) assign(child)
     }
-    for (const id of nodeIds) assign(id)
-    for (const id of nodeIds) {
+    // A layer inside another chosen one goes with it, as a cell of its own or drawn in its picture.
+    const chosen = new Set(nodeIds)
+    const roots = nodeIds.filter((id) => {
+      const parentId = this.graph.getNode(id)?.parentId
+      return !parentId || !this.graph.closest(parentId, (node) => chosen.has(node.id))
+    })
+    for (const id of roots) assign(id)
+    for (const id of roots) {
       const node = this.graph.getNode(id)
       if (node) this.layer(node, LAYER_ID, toPageOf(this.graph, node, this.pageId))
     }

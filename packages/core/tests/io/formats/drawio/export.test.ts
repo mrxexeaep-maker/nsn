@@ -3,11 +3,7 @@ import { readFileSync } from 'node:fs'
 
 import { expectDefined } from '#core-tests/helpers/assert'
 
-import { BUILTIN_IO_FORMATS, IORegistry } from '#core/io'
-
 import { parseDrawIOFile } from '@open-pencil/drawio'
-import type { ExportTarget } from '#core/io'
-
 import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
 import {
   boundEndpoint,
@@ -17,13 +13,17 @@ import {
 } from '@open-pencil/scene-graph/connectors'
 import { createShapeWithText } from '@open-pencil/scene-graph/generated'
 
+import { BUILTIN_IO_FORMATS, IORegistry } from '#core/io'
+import type { ExportTarget } from '#core/io'
+
 const io = new IORegistry(BUILTIN_IO_FORMATS)
 
 /** A flowchart as draw.io saves it: shapes, text, elbowed, dashed, bent, and curved edges. */
 const ORDER_FLOW = readFileSync(new URL('order-flow.drawio', import.meta.url), 'utf8')
 
 async function read(source: string) {
-  return (await io.readDocument({ name: 'flow.drawio', data: new TextEncoder().encode(source) })).graph
+  return (await io.readDocument({ name: 'flow.drawio', data: new TextEncoder().encode(source) }))
+    .graph
 }
 
 async function write(graph: SceneGraph): Promise<string> {
@@ -46,8 +46,19 @@ function grouped() {
   const graph = new SceneGraph()
   const page = graph.getPages()[0]
   const rect = graph.createNode('RECTANGLE', page.id, { name: 'Alone', width: 40, height: 40 })
-  const group = graph.createNode('GROUP', page.id, { name: 'Group', x: 100, y: 100, width: 200, height: 100 })
-  const shape = createShapeWithText(graph, group.id, { name: 'Inner', x: 10, y: 20, width: 60, height: 40 }, {})
+  const group = graph.createNode('GROUP', page.id, {
+    name: 'Group',
+    x: 100,
+    y: 100,
+    width: 200,
+    height: 100
+  })
+  const shape = createShapeWithText(
+    graph,
+    group.id,
+    { name: 'Inner', x: 10, y: 20, width: 60, height: 40 },
+    {}
+  )
   const connector = createConnector(graph, group.id, {
     start: boundEndpoint(shape.id, 'RIGHT'),
     end: freeEndpoint(180, 40)
@@ -117,7 +128,10 @@ describe('saving a draw.io file', () => {
     expect(star.style.values.image).toStartWith('data:image/svg+xml,')
     expect(star.geometry).toMatchObject({ x: 10, y: 20, width: 40, height: 40 })
     // A free connector keeps its ends as points.
-    expect(edge.geometry).toMatchObject({ sourcePoint: { x: 100, y: 100 }, targetPoint: { x: 300, y: 100 } })
+    expect(edge.geometry).toMatchObject({
+      sourcePoint: { x: 100, y: 100 },
+      targetPoint: { x: 300, y: 100 }
+    })
   })
 
   test('turned rectangles, ellipses, and text keep their turn', async () => {
@@ -156,7 +170,9 @@ describe('exporting part of a design as draw.io', () => {
     expect([only?.geometry.width, rest.length]).toEqual([40, 0])
     const selected = await exported(graph, { scope: 'selection', nodeIds: [rect.id, group.id] })
     expect(selected.filter((cell) => cell.parent === '1')).toHaveLength(2)
-    await expect(exported(graph, { scope: 'selection', nodeIds: [] })).rejects.toThrow('Nothing to export')
+    await expect(exported(graph, { scope: 'selection', nodeIds: [] })).rejects.toThrow(
+      'Nothing to export'
+    )
   })
 
   test('layers selected inside a group keep their place on the page', async () => {
@@ -165,6 +181,15 @@ describe('exporting part of a design as draw.io', () => {
     const [vertex, edge] = cells
     expect(vertex?.geometry).toMatchObject({ x: 110, y: 120, width: 60, height: 40 })
     expect(edge?.geometry.targetPoint).toEqual({ x: 280, y: 140 })
+  })
+
+  test('a layer chosen with a group it is in is written once, inside the group', async () => {
+    const { graph, group, shape } = grouped()
+    const cells = await exported(graph, { scope: 'selection', nodeIds: [group.id, shape.id] })
+    const ids = cells.map((cell) => cell.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    const groupCell = expectDefined(cells.find((cell) => cell.style.names.includes('group')))
+    expect(cells.filter((cell) => cell.parent === '1')).toEqual([groupCell])
   })
 
   test('an edge whose layer is left out keeps that end as a point where its line ran', async () => {
