@@ -8,7 +8,13 @@ import { DEFAULT_FONT_FAMILY, IS_BROWSER } from '#core/constants'
 import { fontFaceRenderFamily } from '#core/text/face'
 import { facesFromStyles, hasFamilyFace, type FamilyFace } from '#core/text/font/faces'
 import { chooseLocalFontMatch } from '#core/text/font/style'
-import { fontAxes, namedInstanceVariations } from '#core/text/font/variation'
+import {
+  fontAxes,
+  namedInstances,
+  namedInstanceVariations,
+  type FontAxis,
+  type NamedInstance
+} from '#core/text/font/variation'
 
 export * from '#core/text/font/sources'
 export * from '#core/text/font/style'
@@ -534,6 +540,23 @@ export class FontManager {
 
   loadedData(family: string, style: string): ArrayBuffer | null {
     return this.loadedFamilies.get(`${family}|${style}`) ?? null
+  }
+
+  /**
+   * The variation axes and named instances of a family's variable font, from a face it has loaded:
+   * `null` when the faces it has loaded are static, `undefined` when it has loaded none.
+   */
+  familyVariation(
+    family: string
+  ): { data: ArrayBuffer; axes: FontAxis[]; instances: NamedInstance[] } | null | undefined {
+    let loaded = false
+    for (const [key, data] of this.loadedFamilies) {
+      if (!key.startsWith(`${family}|`)) continue
+      loaded = true
+      const axes = fontAxes(data)
+      if (axes) return { data, axes, instances: namedInstances(data) }
+    }
+    return loaded ? null : undefined
   }
 
   /** Axis coordinates for `style` when the loaded face is a variable font, otherwise `null`. */
