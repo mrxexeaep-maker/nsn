@@ -5,6 +5,7 @@ import PortalAccountSecurity from '../account/PortalAccountSecurity.vue'
 import PortalProfile from '../account/PortalProfile.vue'
 import PortalSessions from '../account/PortalSessions.vue'
 import PortalConsoleLayout from '../layout/PortalConsoleLayout.vue'
+import { PORTAL_SECTION_ICONS } from '../layout/sections'
 import type {
   AccessRequest,
   PortalPerson,
@@ -22,14 +23,25 @@ import PortalStatus from './PortalStatus.vue'
 
 const account = { id: 'user-ana', name: 'Ana Duarte', email: 'ana@studio.example' }
 const sections: PortalSection[] = [
-  { id: 'profile', label: 'Profile', group: 'Your account' },
-  { id: 'security', label: 'Sign-in and security', group: 'Your account' },
-  { id: 'sessions', label: 'Sessions', group: 'Your account' },
-  { id: 'status', label: 'Overview', group: 'Server' },
-  { id: 'requests', label: 'Access requests', group: 'Server', count: 3 },
-  { id: 'people', label: 'People', group: 'Server' },
-  { id: 'email', label: 'Email delivery', group: 'Server' },
-  { id: 'activity', label: 'Activity', group: 'Server' }
+  { id: 'profile', icon: PORTAL_SECTION_ICONS.profile, label: 'Profile', group: 'Your account' },
+  {
+    id: 'security',
+    icon: PORTAL_SECTION_ICONS.security,
+    label: 'Sign-in and security',
+    group: 'Your account'
+  },
+  { id: 'sessions', icon: PORTAL_SECTION_ICONS.sessions, label: 'Sessions', group: 'Your account' },
+  { id: 'status', icon: PORTAL_SECTION_ICONS.overview, label: 'Overview', group: 'Server' },
+  {
+    id: 'requests',
+    icon: PORTAL_SECTION_ICONS.requests,
+    label: 'Access requests',
+    group: 'Server',
+    count: 3
+  },
+  { id: 'people', icon: PORTAL_SECTION_ICONS.people, label: 'People', group: 'Server' },
+  { id: 'email', icon: PORTAL_SECTION_ICONS.email, label: 'Email delivery', group: 'Server' },
+  { id: 'activity', icon: PORTAL_SECTION_ICONS.activity, label: 'Activity', group: 'Server' }
 ]
 const requests: AccessRequest[] = [
   {

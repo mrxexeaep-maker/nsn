@@ -14,8 +14,7 @@ import type { PortalSection } from '../types'
 
 /**
  * Signed-in Cloud pages: account settings and, for operators, the deployment console. The bar
- * leads back to the editor at the server's root; the side list is drawn like the editor's Pages
- * panel.
+ * leads back to the editor at the server's root.
  */
 const { host, account, sections, active, heading, description } = defineProps<{
   host: string
@@ -67,6 +66,7 @@ const editorLink = useAppButtonUI({ variant: 'outline', size: 'sm' })
               :aria-current="section.id === active ? 'page' : undefined"
               @click="emit('select', section.id)"
             >
+              <component :is="section.icon" :class="side.icon()" />
               <span :class="side.label()">{{ section.label }}</span>
               <span v-if="section.count" :class="side.trailing()">{{ section.count }}</span>
             </button>

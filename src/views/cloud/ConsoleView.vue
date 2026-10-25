@@ -6,6 +6,7 @@ import { useCloudPortalMessages } from '@open-pencil/vue/i18n'
 
 import { usePortal } from '@/app/cloud-portal/context'
 import PortalConsoleLayout from '@/components/cloud-portal/layout/PortalConsoleLayout.vue'
+import { PORTAL_SECTION_ICONS } from '@/components/cloud-portal/layout/sections'
 import AdminActivitySection from '@/components/cloud-portal/sections/AdminActivitySection.vue'
 import AdminEmailSection from '@/components/cloud-portal/sections/AdminEmailSection.vue'
 import AdminOverviewSection from '@/components/cloud-portal/sections/AdminOverviewSection.vue'
@@ -53,23 +54,59 @@ const active = computed<SectionId>(() => {
 const sections = computed<PortalSection[]>(() => {
   const value = messages.value
   const account: PortalSection[] = [
-    { id: 'profile', label: value.profile, group: value.sectionAccount },
-    { id: 'security', label: value.security, group: value.sectionAccount },
-    { id: 'sessions', label: value.sessions, group: value.sectionAccount }
+    {
+      id: 'profile',
+      icon: PORTAL_SECTION_ICONS.profile,
+      label: value.profile,
+      group: value.sectionAccount
+    },
+    {
+      id: 'security',
+      icon: PORTAL_SECTION_ICONS.security,
+      label: value.security,
+      group: value.sectionAccount
+    },
+    {
+      id: 'sessions',
+      icon: PORTAL_SECTION_ICONS.sessions,
+      label: value.sessions,
+      group: value.sectionAccount
+    }
   ]
   if (!admin.value) return account
   return [
     ...account,
-    { id: 'overview', label: value.overview, group: value.sectionServer },
+    {
+      id: 'overview',
+      icon: PORTAL_SECTION_ICONS.overview,
+      label: value.overview,
+      group: value.sectionServer
+    },
     {
       id: 'requests',
+      icon: PORTAL_SECTION_ICONS.requests,
       label: value.accessRequests,
       group: value.sectionServer,
       count: waiting.value || undefined
     },
-    { id: 'people', label: value.people, group: value.sectionServer },
-    { id: 'email', label: value.emailDelivery, group: value.sectionServer },
-    { id: 'activity', label: value.activity, group: value.sectionServer }
+    {
+      id: 'people',
+      icon: PORTAL_SECTION_ICONS.people,
+      label: value.people,
+      group: value.sectionServer
+    },
+    {
+      id: 'email',
+      icon: PORTAL_SECTION_ICONS.email,
+      label: value.emailDelivery,
+      group: value.sectionServer
+    },
+    {
+      id: 'activity',
+      icon: PORTAL_SECTION_ICONS.activity,
+      label: value.activity,
+      group: value.sectionServer
+    }
   ]
 })
 const heading = computed(

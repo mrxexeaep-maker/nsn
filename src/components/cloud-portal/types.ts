@@ -1,8 +1,11 @@
+import type { Component } from 'vue'
+
 import type { CloudSignInMethod, WorkspaceRole } from '@open-pencil/cloud/contract'
 
 export type PortalSection = {
   id: string
   label: string
+  icon: Component
   group: string
   count?: number
 }
