@@ -1,8 +1,10 @@
-import { expect, test } from 'bun:test'
+import { expect, spyOn, test } from 'bun:test'
 
 import { createS3StorageAdapter } from '@/app/integrations/storage/s3/adapter'
 import { readDownloadStream } from '@/app/integrations/storage/s3/client'
-import { storageFetch } from '@/app/integrations/storage/s3/fetch'
+import { createStorageFetch, storageFetch } from '@/app/integrations/storage/s3/fetch'
+
+import { fetchStub } from '#tests/helpers/fetch'
 
 test('mid-stream cancellation discards partial bytes and stops progress', async () => {
   const abort = new AbortController()
@@ -76,4 +78,55 @@ test('pre-aborted storage downloads do not resolve credentials or start network 
     'AbortError'
   )
   expect(credentialResolutions).toBe(0)
+})
+
+/** A download whose body sends one byte each time `send` is called, then ends on `end`. */
+function trickle() {
+  let stream: ReadableStreamDefaultController<Uint8Array> | undefined
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      stream = controller
+    }
+  })
+  return {
+    response: new Response(body),
+    send: () => stream?.enqueue(new Uint8Array([1])),
+    end: () => stream?.close()
+  }
+}
+
+async function withFetch(response: Response, run: () => Promise<void>) {
+  const stub = spyOn(globalThis, 'fetch').mockImplementation(
+    fetchStub(() => Promise.resolve(response))
+  )
+  try {
+    await run()
+  } finally {
+    stub.mockRestore()
+  }
+}
+
+test('a slow download that keeps arriving finishes however long it takes', async () => {
+  const download = trickle()
+  await withFetch(download.response, async () => {
+    const response = await createStorageFetch(200)('https://storage.example.com/document.fig')
+    const reading = response.arrayBuffer()
+    // Twice the stall time in all, each byte well within it.
+    for (let sent = 0; sent < 20; sent++) {
+      download.send()
+      await Bun.sleep(20)
+    }
+    download.end()
+    expect((await reading).byteLength).toBe(20)
+  })
+})
+
+test('a download that stops arriving fails as timed out', async () => {
+  const download = trickle()
+  await withFetch(download.response, async () => {
+    const response = await createStorageFetch(20)('https://storage.example.com/document.fig')
+    const reading = response.arrayBuffer()
+    download.send()
+    await expect(reading).rejects.toThrow('Storage request timed out')
+  })
 })
