@@ -2,15 +2,16 @@ import { tryOnScopeDispose } from '@vueuse/core'
 import { computed, ref, type Ref } from 'vue'
 
 import {
-  testProviderConnection,
-  type ProviderConnectionTestFailureReason
-} from '@/app/ai/chat/connection-test'
-import {
   findModelConnectionForDraft,
   modelConnectionCredentialStatus,
+  modelConnectionCredentialStore,
   resolveModelConnectionAPIKey,
   type AIModelProfileDraft
 } from '@/app/ai/models'
+import {
+  testProviderConnection,
+  type ProviderConnectionTestFailureReason
+} from '@/app/ai/models/connection-test'
 import type { CredentialStatus } from '@/app/settings/credentials/types'
 
 interface ConnectionOptions {
@@ -72,14 +73,17 @@ export function useProfileConnection({ draft, keyInput }: ConnectionOptions) {
           ? await resolveModelConnectionAPIKey(connection.id)
           : null
       if (!current(request)) return
-      const result = await testProviderConnection({
-        providerID: target.providerID,
-        apiKey: replacement || existingKey || '',
-        modelID: target.modelID,
-        customModelID: target.customModelID,
-        customBaseURL: target.customBaseURL,
-        customAPIType: target.customAPIType
-      })
+      const result = await testProviderConnection(
+        {
+          providerID: target.providerID,
+          apiKey: replacement || existingKey || '',
+          modelID: target.modelID,
+          customModelID: target.customModelID,
+          customBaseURL: target.customBaseURL,
+          customAPIType: target.customAPIType
+        },
+        existingKey && connection ? modelConnectionCredentialStore(connection.id) : undefined
+      )
       if (!current(request)) return
       connectionTestStatus.value = result.ok ? 'success' : 'error'
       connectionTestReason.value = result.ok ? null : result.reason

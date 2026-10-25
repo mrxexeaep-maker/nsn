@@ -12,11 +12,13 @@ import { computed, ref, useTemplateRef, watch } from 'vue'
 
 import type { ViewportTransform } from '@open-pencil/core/geometry'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
-import { useCommentMessages } from '@open-pencil/vue'
+import { toolCursor } from '@open-pencil/vue/editor/tool-cursor'
+import { useCommentMessages } from '@open-pencil/vue/i18n'
 
 import { useComments } from '@/app/comments/use'
 import { useEditorStore } from '@/app/editor/active-store'
 import { useMenuUI } from '@/components/ui/menu/menu'
+import MenuScrollArea from '@/components/ui/menu/MenuScrollArea.vue'
 import { usePopoverUI } from '@/components/ui/overlay/popover'
 import { COMMENT_PIN_SIZE, comments as commentsTheme } from '@/theme/comments'
 
@@ -175,6 +177,7 @@ function closeCard() {
     <div
       v-if="commenting"
       :class="ui.capture()"
+      :style="{ cursor: toolCursor('COMMENT') }"
       data-slot="comments-capture"
       @pointerdown.prevent="placeDraft"
       @contextmenu.prevent
@@ -205,7 +208,9 @@ function closeCard() {
         </ContextMenuTrigger>
         <ContextMenuPortal>
           <ContextMenuContent :class="menuCls.content">
-            <CommentActionsMenu :thread="pin.thread" kind="context" show-hide />
+            <MenuScrollArea>
+              <CommentActionsMenu :thread="pin.thread" kind="context" show-hide />
+            </MenuScrollArea>
           </ContextMenuContent>
         </ContextMenuPortal>
       </ContextMenuRoot>

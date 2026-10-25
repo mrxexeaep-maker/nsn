@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { PositionControlsRoot, useI18n } from '@open-pencil/vue'
+import { useI18n } from '@open-pencil/vue/i18n'
+import { PositionControlsRoot } from '@open-pencil/vue/primitives/PositionControls'
 
 import { useEditorStore } from '@/app/editor/active-store'
 import NumberField from '@/components/inputs/NumberField.vue'
@@ -27,7 +28,16 @@ function handleAlign(
 
 <template>
   <PositionControlsRoot
-    v-slot="{ active, xValue, yValue, rotationValue, inAutoLayout, ignoresAutoLayout, actions }"
+    v-slot="{
+      active,
+      xValue,
+      yValue,
+      rotationValue,
+      rotates,
+      inAutoLayout,
+      ignoresAutoLayout,
+      actions
+    }"
   >
     <PanelSection v-if="active" :label="panels.position">
       <template v-if="inAutoLayout" #actions>
@@ -113,7 +123,7 @@ function handleAlign(
         </Tip>
       </PanelGrid>
 
-      <PanelGrid :columns="2" class="mt-1.5">
+      <PanelGrid v-if="rotates" :columns="2" class="mt-1.5">
         <Tip :label="panels.rotation">
           <NumberField
             suffix="°"

@@ -1,9 +1,11 @@
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile, realpath, writeFile } from 'node:fs/promises'
+import { dirname, resolve, sep } from 'node:path'
 
 import { SkiaRenderer } from '@open-pencil/core/canvas'
-import { BUILTIN_IO_FORMATS, IORegistry, initCanvasKit } from '@open-pencil/core/io'
+import { BUILTIN_IO_FORMATS, IORegistry } from '@open-pencil/core/io'
 import { populateAllFigPages, populateFigPage } from '@open-pencil/core/io/formats/fig'
 import { headlessHTMLReader } from '@open-pencil/core/io/formats/html/import'
+import { initCanvasKit } from '@open-pencil/core/io/formats/raster'
 import { computeAllLayouts, installTextMeasurer } from '@open-pencil/core/layout'
 import type { SceneGraph } from '@open-pencil/scene-graph'
 
@@ -16,9 +18,26 @@ export const CLI_IO_FORMATS = [...BUILTIN_IO_FORMATS, headlessHTMLReader]
 
 const io = new IORegistry(CLI_IO_FORMATS)
 
+/**
+ * Reads a file a document names relative to itself, only from the document's folder: a path that
+ * leaves it, through `..` or a link, reads nothing.
+ */
+function documentAssetReader(filePath: string) {
+  return async (path: string): Promise<Uint8Array | null> => {
+    const folder = await realpath(dirname(filePath))
+    const target = await realpath(resolve(folder, path)).catch(() => null)
+    if (!target?.startsWith(folder + sep)) return null
+    return new Uint8Array(await readFile(target))
+  }
+}
+
 export async function loadDocument(filePath: string): Promise<SceneGraph> {
   const bytes = new Uint8Array(await readFile(filePath))
-  const { graph } = await io.readDocument({ name: filePath, data: bytes })
+  const { graph } = await io.readDocument({
+    name: filePath,
+    data: bytes,
+    readAsset: documentAssetReader(filePath)
+  })
   graph.applyDerivedLayoutDuring(() => computeAllLayouts(graph))
   return graph
 }

@@ -1,6 +1,7 @@
 import { SkiaRenderer } from '@open-pencil/core/canvas'
 import { setPageBackgrounds } from '@open-pencil/core/figma-api'
-import { exportFigFile, initCanvasKit } from '@open-pencil/core/io'
+import { exportFigFile } from '@open-pencil/core/io/formats/fig'
+import { initCanvasKit } from '@open-pencil/core/io/formats/raster'
 import { computeAllLayouts, installTextMeasurer } from '@open-pencil/core/layout'
 import { fontManager, prepareGraphFonts } from '@open-pencil/core/text'
 import { SceneGraph } from '@open-pencil/scene-graph'
@@ -99,5 +100,5 @@ export async function buildDemoDocument(): Promise<Uint8Array> {
   const { ck, renderer } = await measuringRenderer()
   const graph = await buildDemoGraph(renderer)
   await drawShaderStills(graph)
-  return exportFigFile(graph, ck, renderer)
+  return exportFigFile(graph, { ck, renderer })
 }

@@ -6,17 +6,18 @@ import type { FontVariation, SceneGraph } from '@open-pencil/scene-graph'
 
 import { DEFAULT_FONT_FAMILY, IS_BROWSER } from '#core/constants'
 import { facesFromStyles, hasFamilyFace, type FamilyFace } from '#core/text/font/faces'
-import {
-  chooseLocalFontMatch,
-  normalizeFontFamily,
-  styleToWeight,
-  weightToStyle
-} from '#core/text/font/style'
+import { chooseLocalFontMatch } from '#core/text/font/style'
 import { isVariableFont, namedInstanceVariations } from '#core/text/font/variation'
 
 export * from '#core/text/font/sources'
 export * from '#core/text/font/style'
 export * from '#core/text/font/variation'
+import {
+  normalizeFontFamily,
+  styleToWeight,
+  weightToStyle
+} from '@open-pencil/scene-graph/font-style'
+
 import { fontFallbackEntry } from '#core/text/fallbacks'
 import type { FontFallbackScript } from '#core/text/fallbacks'
 import { UnsupportedFontFormatError } from '#core/text/font/sources'
@@ -41,7 +42,8 @@ const BUNDLED_FONTS: Record<string, string> = {
   'Inter|SemiBold': '/Inter-SemiBold.ttf',
   'Inter|Bold': '/Inter-Bold.ttf',
   'Inter|ExtraBold': '/Inter-ExtraBold.ttf',
-  'Noto Naskh Arabic|Regular': '/NotoNaskhArabic-Regular.ttf'
+  'Noto Naskh Arabic|Regular': '/NotoNaskhArabic-Regular.ttf',
+  'OpenPencil Emoji Metrics|Regular': '/OpenPencilEmojiMetrics-Regular.ttf'
 }
 
 /**
@@ -337,12 +339,8 @@ export class FontManager {
       return response.ok ? response.arrayBuffer() : null
     }
     const { readFile } = await import(/* @vite-ignore */ 'node:fs/promises')
-    const { resolve, dirname } = await import(/* @vite-ignore */ 'node:path')
-    const { fileURLToPath } = await import(/* @vite-ignore */ 'node:url')
     const packageJSONURL = import.meta.resolve('@open-pencil/core/package.json')
-    const packageRoot = dirname(fileURLToPath(packageJSONURL))
-    const assetPath = resolve(packageRoot, `assets${url}`)
-    const buf = await readFile(assetPath)
+    const buf = await readFile(new URL(`assets${url}`, packageJSONURL))
     return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
   }
 

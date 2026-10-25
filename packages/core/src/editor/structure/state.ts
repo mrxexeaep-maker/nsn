@@ -1,15 +1,15 @@
+import { findInstanceAncestor } from '@open-pencil/scene-graph/instances'
 import {
   cloneInstanceOverrideState,
-  findInstanceAncestor,
   setInstanceOverride
-} from '@open-pencil/scene-graph'
+} from '@open-pencil/scene-graph/instances/overrides'
 
 import { assertNodeEditable } from '#core/editor/capabilities'
 import {
   applyBoundVisibilityEdit,
   bindsVisibility
 } from '#core/editor/components/authoring/visibility-edit'
-import { refitGroupsAroundLayers } from '#core/editor/structure/group-bounds'
+import { refitGroupsAroundLayers } from '#core/editor/structure/group/bounds'
 import type { EditorContext } from '#core/editor/types'
 
 export function createStructureStateActions(ctx: EditorContext) {

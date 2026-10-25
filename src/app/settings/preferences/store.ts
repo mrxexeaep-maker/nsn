@@ -2,20 +2,19 @@ import { useLocalStorage } from '@vueuse/core'
 import { uniq } from 'es-toolkit'
 import * as v from 'valibot'
 
-import { DEFAULT_SNAPPING_PREFERENCES, type SnappingPreferences } from '@open-pencil/core/editor'
-import { COMMENT_SORTS, type CommentSort } from '@open-pencil/scene-graph'
+import { DEFAULT_SNAPPING_PREFERENCES, type SnappingPreferences } from '@open-pencil/core'
+import { COMMENT_SORTS, type CommentSort } from '@open-pencil/scene-graph/comments'
 
-import { DEFAULT_AGENT_STEPS, resolveAgentStepLimit } from '@/app/ai/chat/step-limit'
+import { DEFAULT_AGENT_STEPS, resolveAgentStepLimit } from '@/app/ai/reply/step-limit'
 import {
   DEFAULT_TOOLBAR_LAYOUT,
   normalizeToolbarLayout,
   type ToolbarLayout
 } from '@/app/editor/toolbar/layout'
-import {
-  accentPreferenceSchema,
-  DEFAULT_ACCENT,
-  type AccentPreference
-} from '@/app/shell/accent/palette'
+import { DEFAULT_RECENT_FILES_LIMIT } from '@/app/recent-files/limit'
+import { recentFilesLimitSchema } from '@/app/recent-files/schema'
+import { DEFAULT_ACCENT } from '@/app/shell/accent/palette'
+import { accentPreferenceSchema, type AccentPreference } from '@/app/shell/accent/schema'
 
 export const ANIMATION_PREFERENCES = ['system', 'off'] as const
 export type AnimationPreference = (typeof ANIMATION_PREFERENCES)[number]
@@ -77,6 +76,7 @@ export interface AppPreferences {
     /** Whether the view follows our AI agents while they work. */
     followAgents: boolean
   }
+  files: { recentLimit: number }
   version: 1
   recovery: {
     enabled: boolean
@@ -104,6 +104,7 @@ export const DEFAULT_APP_PREFERENCES: Readonly<AppPreferences> = {
     changePreviewSize: 'medium',
     followAgents: true
   },
+  files: { recentLimit: DEFAULT_RECENT_FILES_LIMIT },
   version: 1,
   recovery: { enabled: true },
   editing: {
@@ -151,6 +152,9 @@ const appPreferencesSchema = section({
       defaults.chat.changePreviewSize
     ),
     followAgents: v.fallback(v.boolean(), defaults.chat.followAgents)
+  }),
+  files: section({
+    recentLimit: v.fallback(recentFilesLimitSchema, defaults.files.recentLimit)
   }),
   version: v.fallback(v.literal(1), 1),
   recovery: section({ enabled: v.fallback(v.boolean(), defaults.recovery.enabled) }),

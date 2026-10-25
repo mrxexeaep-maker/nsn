@@ -2,10 +2,13 @@ import { beforeAll, describe, expect, test } from 'bun:test'
 
 import type { Canvas } from 'canvaskit-wasm'
 
-import { renderNodesToImage, SceneGraph, SkiaRenderer } from '@open-pencil/core'
-import { getWorldMatrix } from '@open-pencil/scene-graph'
+import { SkiaRenderer } from '@open-pencil/core/canvas'
+import { renderNodesToImage } from '@open-pencil/core/io/formats/raster'
+import { SceneGraph } from '@open-pencil/scene-graph'
+import { getWorldMatrix } from '@open-pencil/scene-graph/coordinate'
 
 import { initCanvasKit } from '#cli/headless'
+import { NodePathCaches } from '#core/canvas/paths/cache'
 import { renderSceneToCanvas } from '#core/canvas/renderer/pipeline'
 import { prepareSelectionRenderGraph } from '#core/io/formats/raster/render'
 import { extractExportGraph } from '#core/io/subgraph'
@@ -48,6 +51,7 @@ describe('raster export', () => {
     const renderer = {
       viewportImageRendering: true,
       worldViewport: viewport,
+      nodePaths: new NodePathCaches(),
       renderNode() {
         expect(this.viewportImageRendering).toBe(false)
         throw new Error('drawing failed')

@@ -3,7 +3,7 @@ import type { Chat } from '@ai-sdk/vue'
 import type { UIMessage } from 'ai'
 import { computed, shallowRef, useTemplateRef, watch } from 'vue'
 
-import { useI18n } from '@open-pencil/vue'
+import { useI18n } from '@open-pencil/vue/i18n'
 
 import { revokeImagePreviewURL } from '@/app/ai/attachment/image/prepare'
 import { chatDocumentId } from '@/app/ai/chat/history/document'
@@ -142,12 +142,18 @@ const failureMessage = computed(() => {
       return ai.value.chatRateLimited
     case 'request-failed':
       return ai.value.chatRequestFailed
+    case 'sign-in-expired':
+      return ai.value.chatSignInExpired
+    case 'plan-forbidden':
+      return ai.value.chatPlanForbidden
     default:
       return null
   }
 })
 const failureHasSettingsAction = computed(() =>
-  ['authentication', 'forbidden', 'model-not-found'].includes(chatFailure.value?.reason ?? '')
+  ['authentication', 'forbidden', 'model-not-found', 'sign-in-expired', 'plan-forbidden'].includes(
+    chatFailure.value?.reason ?? ''
+  )
 )
 const status = computed(() => chat.value?.status ?? 'ready')
 const showContinue = computed(() => {

@@ -48,8 +48,7 @@ export const UNIT_TEST_GROUPS = {
     'packages/design-jsx/tests',
     'packages/dom-css/tests',
     'packages/pen/tests',
-    'tests/engine/dom-css',
-    'tests/engine/pen'
+    'tests/engine/dom-css'
   ],
   fig: [
     'packages/fig/tests',
@@ -139,7 +138,7 @@ async function listTestFilesInPath(path: string): Promise<string[]> {
     entries.map(async (entry) => {
       const childPath = join(path, entry.name)
       if (entry.isDirectory()) return listTestFilesInPath(childPath)
-      if (entry.isFile() && entry.name.endsWith('.test.ts')) return [normalizePath(childPath)]
+      if (entry.isFile() && /\.test\.tsx?$/.test(entry.name)) return [normalizePath(childPath)]
       return []
     })
   )

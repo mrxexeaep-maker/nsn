@@ -1,14 +1,9 @@
 import { groupBy } from 'es-toolkit/array'
 
 import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
-import {
-  hasTextList,
-  normalizeFontFamily,
-  paragraphIndexAt,
-  textParagraphRanges,
-  weightToStyle
-} from '@open-pencil/scene-graph'
 import type { DerivedTextGlyph, SceneNode } from '@open-pencil/scene-graph'
+import { normalizeFontFamily, weightToStyle } from '@open-pencil/scene-graph/font-style'
+import { hasTextList, paragraphIndexAt, textParagraphRanges } from '@open-pencil/scene-graph/text'
 
 import { bytesToHex } from '../bytes'
 import type { PlacedTextGlyph, TextDecorationRecord } from '../export/runtime'
@@ -16,6 +11,7 @@ import { weightToFigmaStyle } from '../font/style'
 import { bakeGlyphScale, encodePathCommandsBlob, type OutlineCommand } from '../path/commands'
 import { characterStyleIDs } from '../text/data-export'
 import { buildDerivedTextData } from './data'
+import { emojiGlyphFields } from './glyphs'
 
 type DerivedTextData = NonNullable<NodeChange['derivedTextData']>
 type DerivedTextBaseline = NonNullable<DerivedTextData['baselines']>[number]
@@ -35,6 +31,8 @@ export interface ShapedTextGlyph {
   firstCharacter?: number
   /** Horizontal advance in pixels. */
   advance: number
+  /** The emoji the glyph stands for, when it is one: its outline is then the placeholder square. */
+  emojiCodePoints?: number[]
 }
 
 /** Text laid out at the node's width, as the renderer draws it. */
@@ -113,7 +111,8 @@ function shapedGlyphRecords(
     fontSize: glyph.fontSize,
     firstCharacter: glyph.firstCharacter,
     advance: glyph.fontSize > 0 ? glyph.advance / glyph.fontSize : 0,
-    rotation: 0
+    rotation: 0,
+    ...emojiGlyphFields(glyph)
   }))
 }
 
@@ -240,7 +239,8 @@ function savedGlyphRecords(
       firstCharacter: characters[index],
       advance: savedAdvance(glyph, sameLine ? next : undefined),
       // Preserve path-text radians; hardcoding 0 used to flatten circular text on re-export.
-      rotation: glyph.rotation ?? 0
+      rotation: glyph.rotation ?? 0,
+      ...emojiGlyphFields(glyph)
     }
   })
 }

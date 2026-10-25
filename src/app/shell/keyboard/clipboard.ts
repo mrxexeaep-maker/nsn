@@ -1,12 +1,12 @@
 import { useEventListener } from '@vueuse/core'
 
-import { isSVGMarkup } from '@open-pencil/core/io'
-import { extractImageFilesFromClipboard } from '@open-pencil/vue'
+import { isSVGMarkup } from '@open-pencil/core/io/formats/svg'
+import { extractImageFilesFromClipboard } from '@open-pencil/vue/canvas/drop'
 
 import type { EditorStore } from '@/app/editor/active-store'
 import { isDesignClipboardHTML } from '@/app/editor/clipboard/html'
 import { getInMemoryClipboardHTML } from '@/app/editor/clipboard/memory'
-import { pasteClipboardHTML, pastePoint, pasteSVGText } from '@/app/editor/clipboard/paste'
+import { pasteClipboardHTML, pastePoint, pasteSVGText } from '@/app/editor/clipboard/paste/content'
 import { browserSystemClipboard } from '@/app/editor/clipboard/system/browser'
 import { tauriSystemClipboard } from '@/app/editor/clipboard/system/tauri'
 import type { SystemClipboard } from '@/app/editor/clipboard/system/types'

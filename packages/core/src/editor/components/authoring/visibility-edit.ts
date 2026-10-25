@@ -1,14 +1,14 @@
 import { isEqual } from 'es-toolkit/predicate'
 
+import type { SceneNode } from '@open-pencil/scene-graph'
 import {
   applyComponentPropertyValue,
-  cloneInstanceOverrideState,
   componentPropertyDefinitions,
   findComponentPropertyTargets
-} from '@open-pencil/scene-graph'
-import type { SceneNode } from '@open-pencil/scene-graph'
+} from '@open-pencil/scene-graph/components'
+import { cloneInstanceOverrideState } from '@open-pencil/scene-graph/instances/overrides'
 
-import { refitGroupsAroundLayers } from '#core/editor/structure/group-bounds'
+import { refitGroupsAroundLayers } from '#core/editor/structure/group/bounds'
 import type { EditorContext } from '#core/editor/types'
 
 /** Whether a boolean property drives the layer's visibility. */

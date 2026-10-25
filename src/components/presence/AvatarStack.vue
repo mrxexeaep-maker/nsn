@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { useCommonMessages } from '@open-pencil/vue'
+import { useCommonMessages } from '@open-pencil/vue/i18n'
 
-import { avatarStack } from '@/theme/collaboration/avatar-stack'
+import { avatarStack } from '@/theme/collaboration/avatar/stack'
 
 import PersonAvatar from './PersonAvatar.vue'
 import type { PresencePersonRow } from './rows'

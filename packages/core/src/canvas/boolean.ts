@@ -1,12 +1,12 @@
 import type { Canvas, Path, PathBuilder, PathOp } from 'canvaskit-wasm'
 
-import type { GroupFitOptions, SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import type { GroupFitOptions } from '@open-pencil/scene-graph/group-bounds'
 
 import { getTextOutlineSupport } from '#core/text/outlines'
 
-import { makeArcPath } from './fills'
 import type { SkiaRenderer } from './renderer'
-import { nodeHasRadius } from './shapes'
+import { makeLineStrokeOutline } from './strokes/line'
 import { textNodeToOutlinePath } from './text/outlines'
 
 const BOOLEAN_PATH_OP: Record<
@@ -62,24 +62,10 @@ export function canMakeBooleanSourceNode(node: SceneNode, graph: SceneGraph): bo
   })
 }
 
-function lineStrokePath(r: SkiaRenderer, node: SceneNode): Path | null {
-  const path = new r.ck.PathBuilder()
-  path.moveTo(0, 0)
-  path.lineTo(node.width, node.height)
-  const stroke = node.strokes.find((item) => item.visible)
-  const source = path.detachAndDelete()
-  const outline = source.makeStroked({ width: stroke?.weight ?? 1 })
-  source.delete()
-  return outline
-}
-
 function baseShapePath(r: SkiaRenderer, node: SceneNode): Path | null {
   if (node.type === 'TEXT') return textNodeToOutlinePath(r, node)
-  if (node.type === 'LINE') return lineStrokePath(r, node)
-  if (node.type === 'ELLIPSE' && node.arcData) return makeArcPath(r, node)
-
-  const rect = r.ck.LTRBRect(0, 0, node.width, node.height)
-  return r.makeNodeShapePath(node, rect, nodeHasRadius(node))
+  if (node.type === 'LINE') return makeLineStrokeOutline(r, node)
+  return r.makeNodeShapePath(node)
 }
 
 function nodeHasVisibleFill(node: SceneNode): boolean {
@@ -319,11 +305,13 @@ export function groupFitOptions(r: SkiaRenderer | null, graph: SceneGraph): Grou
   return r ? { booleanBounds: booleanResultBounds(r, graph) } : {}
 }
 
-export function renderBooleanOperation(
+/** Draws the operation's fills and strokes, without its effects. */
+export function paintBooleanOperation(
   r: SkiaRenderer,
   canvas: Canvas,
   node: SceneNode,
-  graph: SceneGraph
+  graph: SceneGraph,
+  between?: () => void
 ): void {
   const path = makeBooleanOperationPath(r, node, graph)
   if (!path) return
@@ -339,6 +327,7 @@ export function renderBooleanOperation(
         r.fillPaint.setShader(null)
       }
     }
+    between?.()
 
     for (const stroke of node.strokes) {
       if (!stroke.visible) continue
@@ -351,4 +340,16 @@ export function renderBooleanOperation(
   } finally {
     path.delete()
   }
+}
+
+/** Draws a boolean operation with its shadows: inner shadows sit over its fills, under strokes. */
+export function renderBooleanOperation(
+  r: SkiaRenderer,
+  canvas: Canvas,
+  node: SceneNode,
+  graph: SceneGraph
+): void {
+  r.renderEffects(canvas, node, graph, 'behind')
+  paintBooleanOperation(r, canvas, node, graph, () => r.renderEffects(canvas, node, graph, 'inner'))
+  r.renderEffects(canvas, node, graph, 'front')
 }

@@ -203,7 +203,7 @@ For documentation-aware agents, the docs site publishes [llms.txt](https://openp
 Share a link to co-edit in real time. No server, no account — peers connect directly via WebRTC.
 
 1. Click the share button in the top-right panel
-2. Share the generated link (`app.openpencil.dev/share/<room-id>`)
+2. Share the generated link (`app.openpencil.dev/rooms/<room-id>`)
 3. Collaborators see your cursor, selection, and edits in real time
 4. Click a peer's avatar to follow their viewport
 5. Click the headphones beside the avatars to start or join the room's voice call
@@ -232,7 +232,7 @@ bun run dev:portless  # Web editor at https://open-pencil.localhost
 bun run tauri dev     # Desktop app (requires Rust)
 ```
 
-[CONTRIBUTING.md](CONTRIBUTING.md) covers setup, quality gates, pull requests, and commits. [AGENTS.md](AGENTS.md) maps the repository and links the guide inside each package. Desktop builds need [Rust](https://rustup.rs/) and the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/); run `bun run tauri build`.
+[CONTRIBUTING.md](CONTRIBUTING.md) covers setup, quality gates, pull requests, and commits. [AGENTS.md](AGENTS.md) maps the repository and links the guide inside each package. Desktop builds need [Rust](https://rustup.rs/) and the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/); run `bun run tauri build`. Set `VITE_OPENPENCIL_CLOUD=off` to build the web or desktop editor without OpenPencil Cloud.
 
 ### Tech stack
 
@@ -252,6 +252,6 @@ Thanks to [@sld0Ant](https://github.com/sld0Ant) (Anton Soldatov) for creating a
 
 ## License
 
-OpenPencil is licensed under the [MIT License](./LICENSE).
+OpenPencil is licensed under the [MIT License](./LICENSE). OpenPencil Cloud's server, relay, and administration in [`packages/cloud`](./packages/cloud), and the pages it serves for signing in and administration, are licensed under the [Apache License 2.0](./LICENSES/Apache-2.0.txt); the protocol editors use to talk to it, `packages/cloud/src/contract` and `packages/cloud/src/client`, stays MIT. [`REUSE.toml`](./REUSE.toml) lists which paths each license covers.
 
 Copyright (c) 2026 Danila Poyarkov and OpenPencil contributors.

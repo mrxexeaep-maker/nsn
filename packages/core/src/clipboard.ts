@@ -1,37 +1,37 @@
-import { embedClipboardImages, encodeFigmaClipboard } from '@open-pencil/fig/clipboard'
-import { randomInt } from '@open-pencil/scene-graph/random'
-export { parseFigmaClipboard, figmaNodesBounds } from '@open-pencil/fig/clipboard'
-import { placeSlotContent, type FigNodeChangeExportRuntime } from '@open-pencil/fig/node-change'
-import { initCodec } from '@open-pencil/kiwi/fig/codec'
-import type { GUID, NodeChange as KiwiNodeChange } from '@open-pencil/kiwi/fig/codec'
 import {
-  derivedAssetKey,
-  derivedAssetVersion,
-  ownsSlotContent,
-  type SceneGraph,
-  type SceneNode
-} from '@open-pencil/scene-graph'
+  embedClipboardImages,
+  encodeFigmaClipboard,
+  type FigmaClipboardAssetType
+} from '@open-pencil/fig/clipboard'
+import {
+  placeSlotContent,
+  type FigNodeChangeExportRuntime,
+  sceneNodeToKiwi,
+  makeDocumentNodeChange,
+  makeCanvasNodeChange
+} from '@open-pencil/fig/node-change'
+import type { GUID } from '@open-pencil/kiwi/fig'
+import { initCodec, type NodeChange as KiwiNodeChange } from '@open-pencil/kiwi/fig/codec'
+import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import { derivedAssetKey, derivedAssetVersion } from '@open-pencil/scene-graph/asset-keys'
 import { fractionalPosition } from '@open-pencil/scene-graph/order-keys'
+import { randomInt } from '@open-pencil/scene-graph/random'
+import { ownsSlotContent } from '@open-pencil/scene-graph/slots'
 
 import {
   collectComponentPropertyIds,
   firstUnclaimedLocalId,
   layerSourceGuids
-} from '#core/io/formats/fig/export-setup'
+} from '#core/io/formats/fig/export/setup'
 import {
   appendVariableNodeChanges,
   assignSharedStyleGuids,
   assignVariableGuids
-} from '#core/io/formats/fig/variable-export'
+} from '#core/io/formats/fig/export/variables'
 
 import { withFigExportRuntime } from './canvas/text/shape'
 import { prepareClipboardImport } from './clipboard/fig-import'
-import {
-  sceneNodeToKiwi,
-  makeDocumentNodeChange,
-  makeCanvasNodeChange,
-  buildFontDigestMap
-} from './kiwi/fig/node-change/serialize'
+import { buildFontDigestMap } from './kiwi/fig/node-change/serialize'
 import { cloneSceneGraphForFigExport } from './kiwi/fig/parse/transfer'
 
 export async function prefetchFigmaSchema(): Promise<void> {
@@ -100,18 +100,20 @@ function clipboardGraph(graph: SceneGraph): SceneGraph {
 
 export function buildFigmaClipboardHTML(
   nodes: SceneNode[],
-  graph: SceneGraph
+  graph: SceneGraph,
+  assetType: FigmaClipboardAssetType = 'UNKNOWN'
 ): Promise<string | null> {
   const written = clipboardGraph(graph)
   return withFigExportRuntime(written, undefined, (runtime) =>
-    writeFigmaClipboardHTML(nodes, written, runtime)
+    writeFigmaClipboardHTML(nodes, written, runtime, assetType)
   )
 }
 
 async function writeFigmaClipboardHTML(
   nodes: SceneNode[],
   graph: SceneGraph,
-  runtime: FigNodeChangeExportRuntime
+  runtime: FigNodeChangeExportRuntime,
+  assetType: FigmaClipboardAssetType
 ): Promise<string | null> {
   const fontDigestMap = await buildFontDigestMap(graph)
 
@@ -246,7 +248,7 @@ async function writeFigmaClipboardHTML(
     }
   }
   embedClipboardImages(nodeChanges, blobs, graph.images)
-  return encodeFigmaClipboard(nodeChanges, blobs, randomInt())
+  return encodeFigmaClipboard(nodeChanges, blobs, randomInt(), assetType)
 }
 
 export {

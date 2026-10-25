@@ -1,6 +1,6 @@
 import type { SceneNode } from '@open-pencil/scene-graph'
+import { weightToStyle } from '@open-pencil/scene-graph/font-style'
 
-import { weightToStyle } from '#core/text/fonts'
 import { measureTextWithOpenType } from '#core/text/opentype'
 
 export type TextMeasurer = (
@@ -42,6 +42,14 @@ export function getTextMeasurer(): TextMeasurer | null {
 
 export function setTextMeasurer(measurer: TextMeasurer | null): void {
   globalTextMeasurer = measurer
+}
+
+/** The size of `node`'s text: measured when a measurer is installed and can, estimated otherwise. */
+export function measureTextForLayout(
+  node: SceneNode,
+  maxWidth?: number
+): { width: number; height: number } {
+  return globalTextMeasurer?.(node, maxWidth) ?? estimateTextSize(node, maxWidth)
 }
 
 const installedMeasurers: TextMeasurer[] = []

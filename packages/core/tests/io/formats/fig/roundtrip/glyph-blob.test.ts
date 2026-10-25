@@ -1,15 +1,17 @@
-import { beforeAll, describe, expect, test } from 'bun:test'
+import { beforeAll, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import { expectDefined } from '#core-tests/helpers/assert'
 import { FIXTURES } from '#core-tests/helpers/fig/fixtures'
 import { corePackagePath } from '#core-tests/helpers/paths'
-import { HEAVY_TEST_TIMEOUT_MS } from '#core-tests/helpers/test-utils'
+import { heavy, HEAVY_TEST_TIMEOUT_MS } from '#core-tests/helpers/test-utils'
 
-import { exportFigFile, initCodec, parseFigFile, SceneGraph } from '@open-pencil/core'
+import { exportFigFile, parseFigFile } from '@open-pencil/core/io/formats/fig'
 import { fontManager } from '@open-pencil/core/text'
 import { parseFigBuffer } from '@open-pencil/fig'
+import { initCodec } from '@open-pencil/kiwi/fig/codec'
+import { SceneGraph } from '@open-pencil/scene-graph'
 
 const INTER_ASSETS = corePackagePath('assets')
 
@@ -44,7 +46,7 @@ function loadInterFonts() {
   }
 }
 
-describe('roundtrip: text glyph blobs', () => {
+heavy('roundtrip: text glyph blobs', () => {
   beforeAll(
     async () => {
       await initCodec()

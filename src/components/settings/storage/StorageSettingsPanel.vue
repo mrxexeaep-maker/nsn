@@ -7,8 +7,9 @@ import {
   useCredentialMessages,
   useSettingsMessages,
   useStorageMessages
-} from '@open-pencil/vue'
+} from '@open-pencil/vue/i18n'
 
+import { homeLocation } from '@/app/home/location'
 import { useNotificationMessages } from '@/app/i18n/notifications'
 import { useStorageSettingsFeedback } from '@/app/integrations/storage/settings/feedback'
 import { useStorageSettings } from '@/app/integrations/storage/settings/use'
@@ -19,7 +20,6 @@ import SettingsPage from '@/components/settings/layout/SettingsPage.vue'
 import SettingsSaveFeedback from '@/components/settings/layout/SettingsSaveFeedback.vue'
 import SettingsSection from '@/components/settings/layout/SettingsSection.vue'
 import ProviderSettingsField from '@/components/settings/provider/ProviderSettingsField.vue'
-import CloudWaitlistSection from '@/components/settings/storage/CloudWaitlistSection.vue'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 import AppInput from '@/components/ui/input/AppInput.vue'
@@ -50,7 +50,15 @@ const {
   saveResult,
   clearCredential
 } = connection
-useSettingsFormGuard({ dirty, busy, cancel }, editing)
+useSettingsFormGuard(
+  {
+    dirty,
+    busy,
+    cancel,
+    crumb: { parent: () => settings.value.storage, title: () => provider.value.label }
+  },
+  editing
+)
 
 function preferenceLabel(field: string) {
   if (field === 'endpoint') return storage.value.endpoint
@@ -83,6 +91,7 @@ async function save() {
 }
 async function openWorkspace() {
   settingsDialogOpen.value = false
+  homeLocation.value = { kind: 'storage' }
   await router.push('/storage')
 }
 async function testConnection() {
@@ -132,11 +141,8 @@ async function testConnection() {
             {{ settings.configureStorageHint }}
           </p>
         </SettingsSection>
-        <CloudWaitlistSection />
       </div>
-      <SettingsSection v-else>
-        <template #title>{{ settings.storage }}</template>
-        <template #description>{{ settings.saveChangesDescription }}</template>
+      <div v-else class="flex flex-col gap-3">
         <fieldset :disabled="busy" class="flex min-w-0 flex-col gap-4">
           <ProviderSettingsField
             v-for="field in provider.preferenceFields"
@@ -208,7 +214,7 @@ async function testConnection() {
           "
         />
         <SettingsSaveFeedback :error="error" :result="saveResult" />
-      </SettingsSection>
+      </div>
       <template v-if="editing" #footer>
         <AppButton :disabled="busy" @click="cancel">{{ common.cancel }}</AppButton>
         <AppButton

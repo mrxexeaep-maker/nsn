@@ -1,11 +1,13 @@
+import { sumBy } from 'es-toolkit'
+
 import type { Fill } from '@open-pencil/scene-graph'
 import { getWorldMatrix } from '@open-pencil/scene-graph/coordinate'
+import { computeImageHash } from '@open-pencil/scene-graph/images'
 import Matrix from '@open-pencil/scene-graph/matrix'
 
 import { TRANSPARENT } from '#core/constants'
 import { resolvePasteTarget } from '#core/editor/clipboard/paste/target'
 import type { EditorContext } from '#core/editor/types'
-import { computeImageHash } from '#core/figma-api'
 import {
   createSVGNodesFromImport,
   isSVGMarkup,
@@ -140,8 +142,7 @@ export function createClipboardAssetActions(
     const previousSelection = new Set(ctx.state.selectedIds)
     const parentId = resolvePasteTarget(ctx)
     const center = parentLocalPoint(parentId, cx, cy)
-    const totalWidth =
-      prepared.reduce((total, asset) => total + asset.width, 0) + ASSET_GAP * (prepared.length - 1)
+    const totalWidth = sumBy(prepared, (asset) => asset.width) + ASSET_GAP * (prepared.length - 1)
     const maxHeight = Math.max(...prepared.map((asset) => asset.height))
     let x = center.x - totalWidth / 2
     const y = center.y - maxHeight / 2
