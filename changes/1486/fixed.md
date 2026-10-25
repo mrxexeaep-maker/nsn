@@ -1,1 +1,1 @@
-- Text fields in Settings use the same fill as the selects beside them, and the **Advanced settings** chevron lines up with the fields.
+- In Settings, the model and provider fields, such as a model's name and API keys, use the same fill as the selects beside them, and the **Advanced settings** chevron lines up with the fields.
