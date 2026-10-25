@@ -44,6 +44,20 @@ test('draws every weight its variable font covers from the one file, in the same
   expect(await manager.loadFont('Fonts Test Variable', 'Bold Italic')).toBeNull()
 })
 
+test('an installed face of the style comes before a variable file loaded for another style', async () => {
+  const manager = offlineManager()
+  const family = 'Fonts Test Installed First'
+  const variable = await Bun.file(join(FIXTURES, 'fonts', 'InterVariable-Latin.ttf')).arrayBuffer()
+  const installed = await Bun.file(join(FIXTURES, 'fonts', 'InterRegular-Faces.ttf')).arrayBuffer()
+  manager.setHostFontLoader(async (name, style) =>
+    name === family && style === 'Regular' ? installed : null
+  )
+  manager.markLoaded(family, 'Light', variable)
+  expect(await manager.loadFont(family, 'Regular')).toBe(installed)
+  // A weight nothing installs draws from the variable file.
+  expect(await manager.loadFont(family, 'Bold')).toBe(variable)
+})
+
 test('a variable font shared with another weight still fetches the characters it lacks', async () => {
   const manager = new FontManager()
   manager.setOnlineFontProviders({ google: true })

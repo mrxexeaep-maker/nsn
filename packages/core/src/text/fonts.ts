@@ -360,19 +360,26 @@ export class FontManager {
   }
 
   async loadLocalFont(family: string, style = 'Regular'): Promise<ArrayBuffer | null> {
-    const cacheKey = `${family}|${style}`
-    const loaded = this.loadedFamilies.get(cacheKey)
+    const loaded = this.loadedFamilies.get(`${family}|${style}`)
     if (loaded) {
       this.registerFontInCanvasKit(family, loaded)
       return loaded
     }
+    return (
+      (await this.loadInstalledFont(family, style)) ?? (await this.loadBundledFont(family, style))
+    )
+  }
 
+  /** The face installed on this machine, from the host or the browser's local fonts. */
+  private async loadInstalledFont(family: string, style: string): Promise<ArrayBuffer | null> {
     const hostBuffer = await this.loadHostFont(family, style)
     if (hostBuffer) return this.registerAndCache(family, style, hostBuffer, 'local')
     const localBuffer = await this.findLocalFont(family, style)
-    if (localBuffer) return this.registerAndCache(family, style, localBuffer, 'local')
+    return localBuffer ? this.registerAndCache(family, style, localBuffer, 'local') : null
+  }
 
-    const bundledURL = BUNDLED_FONTS[cacheKey]
+  private async loadBundledFont(family: string, style: string): Promise<ArrayBuffer | null> {
+    const bundledURL = BUNDLED_FONTS[`${family}|${style}`]
     if (!bundledURL) return null
     try {
       const buffer = await this.fetchBundledFont(bundledURL)
@@ -436,11 +443,15 @@ export class FontManager {
       this.registerFontInCanvasKit(family, loaded)
       return this.withRemoteCoverage(family, style, loaded, characters, signal)
     }
+    // An installed face of the style comes first; otherwise a variable file the family already
+    // loaded draws it.
+    const installed = await this.loadInstalledFont(family, style)
+    if (installed) return installed
     const shared = this.sharedVariableFace(family, style)
     if (shared) return this.withRemoteCoverage(family, style, shared, characters, signal)
 
     return (
-      (await this.loadLocalFont(family, style)) ??
+      (await this.loadBundledFont(family, style)) ??
       (await this.loadCachedFont(family, style, characters)) ??
       (await this.loadRemoteFont(family, style, characters, signal))
     )
