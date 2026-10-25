@@ -182,9 +182,16 @@ export async function closeTab(tabId: string, unsaved?: 'save' | 'discard'): Pro
   else await closingTab.store.persistRecoveryNow()
   if (!tabsRef.value.includes(closingTab)) return
   if (choice !== 'discard' && closingTab.store.hasUnsavedChanges()) return
-  const wasActive = activeTabId.value === tabId
+  removeTab(closingTab)
+}
+
+/** Takes a tab out of the window and disposes its store, showing a neighbour or a new Home. */
+function removeTab(closingTab: Tab): void {
+  const idx = tabsRef.value.indexOf(closingTab)
+  if (idx === -1) return
+  const wasActive = activeTabId.value === closingTab.id
   disposeTabStore(closingTab.store)
-  tabsRef.value = tabsRef.value.filter((t) => t.id !== tabId)
+  tabsRef.value = tabsRef.value.filter((t) => t !== closingTab)
 
   if (tabsRef.value.length === 0) {
     createHomeTab()
@@ -232,18 +239,19 @@ function reusableTabStore(): OpeningTab {
 async function releaseOpeningTab(opening: OpeningTab): Promise<void> {
   const tab = getTabForStore(opening.store)
   if (!tab) return
-  if (opening.created) {
-    await closeTab(tab.id, 'discard')
-    return
-  }
-  if (!opening.fromHome) return
-  // Home comes back even when its recovery copy stays behind, which the next start offers again.
+  if (!opening.created && !opening.fromHome) return
+  // The tab goes, or Home comes back, even when the recovery copy stays behind, which the next
+  // start offers again; the open's own error is the one to report.
   await tab.store.discardRecovery().catch((error: unknown) => {
     console.warn(
       '[Tabs] Failed to discard the recovery copy of a document that failed to open',
       error
     )
   })
+  if (opening.created) {
+    removeTab(tab)
+    return
+  }
   // Tabs may have closed meanwhile, so the tab is found again, and only while it still holds this store.
   const tabIndex = tabsRef.value.findIndex(
     (candidate) => candidate.id === tab.id && candidate.store === tab.store
