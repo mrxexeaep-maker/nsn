@@ -70,7 +70,8 @@ function unrecognizedKeys(value: object, known: ReadonlySet<string>): string | n
  */
 function readColorString(method: string, input: string): RGBA {
   const parsed = parse(input.trim())
-  if (!parsed || !READABLE_MODES.has(parsed.mode)) {
+  // Figma refuses CSS `none` channels, which culori reads by leaving the channel out.
+  if (!parsed || !READABLE_MODES.has(parsed.mode) || /\bnone\b/i.test(input)) {
     throw new Error(`in ${method}: failed to parse color: ${input}`)
   }
   const color: CuloriColor = parsed.mode === 'lab' ? { ...parsed, mode: 'lab65' } : parsed

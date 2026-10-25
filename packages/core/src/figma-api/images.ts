@@ -105,6 +105,38 @@ function protocol(src: string): string | null {
 }
 
 /**
+ * The body of `response`, refused as too large once it passes `MAX_IMAGE_FETCH_BYTES`. It reads
+ * chunk by chunk and cancels there, so a body that declares no length, or a smaller one, cannot
+ * fill memory first.
+ */
+async function readBounded(response: Response): Promise<Uint8Array> {
+  if (Number(response.headers.get('content-length') ?? 0) > MAX_IMAGE_FETCH_BYTES) {
+    throw new Error('Image is too large')
+  }
+  const reader = response.body?.getReader()
+  if (!reader) return new Uint8Array()
+  const chunks: Uint8Array[] = []
+  let length = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    length += value.byteLength
+    if (length > MAX_IMAGE_FETCH_BYTES) {
+      await reader.cancel()
+      throw new Error('Image is too large')
+    }
+    chunks.push(value)
+  }
+  const data = new Uint8Array(length)
+  let offset = 0
+  for (const chunk of chunks) {
+    data.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return data
+}
+
+/**
  * The image at `src`, fetched and stored as `figma.createImageAsync` does. HTTP(S) URLs go
  * through the host's `fetch`; data URIs hold their bytes and are read here, since a desktop
  * proxy takes only HTTP(S). Figma's own server fetches the rest, so its messages name only the
@@ -130,11 +162,7 @@ export async function fetchImage(
     throw new Error(`Unable to fetch image: ${reason}`)
   })
   if (!response.ok) throw new Error(`Unable to fetch image. Response status: ${response.status}`)
-  if (Number(response.headers.get('content-length') ?? 0) > MAX_IMAGE_FETCH_BYTES) {
-    throw new Error('Image is too large')
-  }
-  const data = new Uint8Array(await response.arrayBuffer())
-  if (data.length > MAX_IMAGE_FETCH_BYTES) throw new Error('Image is too large')
+  const data = await readBounded(response)
   const problem = imageProblem(data)
   if (problem) throw new Error(problem)
   return figmaImage(graph, storeImage(graph, data))

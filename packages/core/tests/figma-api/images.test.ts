@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import { scriptResult } from '#core-tests/helpers/script'
 import { toUint8Array } from 'js-base64'
 
-import { FigmaAPI } from '@open-pencil/core/figma-api'
+import { FigmaAPI, MAX_IMAGE_FETCH_BYTES } from '@open-pencil/core/figma-api'
 import { SceneGraph } from '@open-pencil/scene-graph'
 
 // Expected values were recorded by running the same scripts in Figma, except where noted.
@@ -202,5 +202,29 @@ describe('figma.createImageAsync', () => {
       'https://example.com/page'
     ])
     expect(figma.graph.images.size).toBe(0)
+  })
+
+  test('stops reading a body that runs past the limit, whatever length it declares', async () => {
+    const chunk = new Uint8Array(1024 * 1024)
+    let sent = 0
+    let cancelled = false
+    const endless = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        sent += chunk.byteLength
+        controller.enqueue(chunk)
+      },
+      cancel() {
+        cancelled = true
+      }
+    })
+    const { figma } = withHostFetch(async () => new Response(endless))
+    const result = await scriptResult(
+      attempts({ endless: `figma.createImageAsync('https://example.com/endless')` }),
+      figma
+    )
+
+    expect(result).toEqual({ endless: 'Image is too large' })
+    expect(cancelled).toBe(true)
+    expect(sent).toBeLessThanOrEqual(MAX_IMAGE_FETCH_BYTES + 2 * chunk.byteLength)
   })
 })

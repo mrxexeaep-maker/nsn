@@ -120,6 +120,8 @@ describe('figma.util', () => {
         `return [
           attempt(() => toRGB(colors[0])),
           attempt(() => toRGBA(colors[1])),
+          attempt(() => toRGB('rgb(none 0 0)')),
+          attempt(() => toRGBA('rgb(255 0 0 / none)')),
           attempt(() => solidPaint(colors[2])),
           attempt(() => toRGB(colors[3])),
           attempt(() => toRGB({ r: 1, g: 0, b: 0, x: 1 })),
@@ -139,6 +141,8 @@ describe('figma.util', () => {
     ).toEqual([
       'in rgb: failed to parse color: not a color',
       'in rgba: failed to parse color: lch(50% 70 50)',
+      'in rgb: failed to parse color: rgb(none 0 0)',
+      'in rgba: failed to parse color: rgb(255 0 0 / none)',
       'in solidPaint: Property "color" failed validation: Too big: expected number to be <=1 at .r',
       'in rgb: Property "color" failed validation: Too big: expected number to be <=1 at .r\n' +
         'Too small: expected number to be >=0 at .g',
