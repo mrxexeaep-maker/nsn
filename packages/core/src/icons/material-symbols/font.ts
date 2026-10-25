@@ -5,6 +5,7 @@ import { parseSVGPath } from '@open-pencil/scene-graph/parse-path'
 
 import type { IconOption, IconPath } from '#core/icons/types'
 import { sfntFont } from '#core/text/font/woff2'
+import type { OutlineCommand } from '#core/text/opentype'
 
 /** Material Symbols' sets, each one of Google's three fonts. */
 export const MATERIAL_SYMBOLS_PREFIXES = [
@@ -34,17 +35,6 @@ export const MATERIAL_SYMBOLS_OPTIONS = [
   { key: 'GRAD', name: 'Grade', min: -50, max: 200, default: 0, step: 1 }
 ] as const satisfies readonly IconOption[]
 
-/** A command of a glyph's outline, as opentype.js gives it. */
-interface PathCommand {
-  type: string
-  x?: number
-  y?: number
-  x1?: number
-  y1?: number
-  x2?: number
-  y2?: number
-}
-
 interface LigatureSubtable {
   coverage?: { glyphs?: number[]; ranges?: { start: number; end: number; index: number }[] }
   ligatureSets?: { ligGlyph: number; components: number[] }[][]
@@ -62,7 +52,7 @@ export interface MaterialSymbolsFont {
         fontSize: number,
         options: { variation: Record<string, number> },
         font: MaterialSymbolsFont
-      ): { commands: PathCommand[] }
+      ): { commands: OutlineCommand[] }
     }
   }
   tables: { gsub?: { lookups: { subtables: LigatureSubtable[] }[] } }
@@ -161,7 +151,7 @@ const coordinate = (value: number | undefined) => Number((value ?? 0).toFixed(3)
  * opentype.js leaves the close out of a glyph it draws at variation axes, and an open contour
  * fills on its own rather than cutting the holes its direction cuts.
  */
-function closedPathData(commands: readonly PathCommand[]): string {
+function closedPathData(commands: readonly OutlineCommand[]): string {
   const parts: string[] = []
   let open = false
   for (const command of commands) {
