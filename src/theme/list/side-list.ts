@@ -1,10 +1,10 @@
 import { tv } from 'tailwind-variants'
 
-/** A side list of places, drawn like the Settings dialog's sections: headings, 28px rows with icons. */
+/** A side list of places, drawn like the Settings dialog's sections: groups split by rules, headings, 28px rows with icons. */
 export const sideList = tv({
   slots: {
-    root: 'flex h-full w-64 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-panel p-2',
-    group: 'flex flex-col gap-0.5',
+    root: 'flex h-full w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-panel',
+    group: 'flex flex-col gap-0.5 border-t border-border p-2 first:border-t-0',
     header: 'flex h-7 shrink-0 items-center justify-between pr-0.5 pl-2',
     title: 'text-[11px] font-semibold text-muted',
     actions: 'flex items-center gap-0.5',

@@ -66,7 +66,7 @@ const workspaceLocations = computed(() =>
 
 <template>
   <nav :class="ui.root()" :aria-label="t.homeLocations">
-    <div :class="ui.items()">
+    <div :class="ui.group()">
       <button
         type="button"
         :class="ui.item()"

@@ -13,7 +13,7 @@ export const portalLayout = tv({
     console: 'flex min-h-0 flex-1 max-md:flex-col',
     // Narrow screens turn the section list into one scrolling row above the page.
     nav: 'max-md:h-auto max-md:w-full max-md:flex-row max-md:overflow-x-auto max-md:border-r-0 max-md:border-b max-md:p-1',
-    navGroup: 'max-md:flex-row max-md:items-center',
+    navGroup: 'max-md:flex-row max-md:items-center max-md:border-t-0 max-md:p-0',
     navHeader: 'max-md:hidden',
     navItems: 'max-md:flex-row',
     navItem: 'max-md:w-auto max-md:shrink-0',
