@@ -83,6 +83,11 @@ describe('Span', () => {
     expect(warnings).toEqual([])
   })
 
+  test('leaves out a line height or letter spacing it cannot read', async () => {
+    const { node } = await renderText('<Text lineHeight="tall" letterSpacing="wide">a</Text>')
+    expect(node).toMatchObject({ lineHeight: null, letterSpacing: percentLength(0) })
+  })
+
   test('takes decoration details, auto lengths, and no fills', async () => {
     const { node, warnings } = await renderText(
       '<Text lineHeight={20} textDecoration="underline" textDecorationColor="#EE2222" textDecorationThickness={2}>a<Span lineHeight="auto" fills={[]} textDecorationStyle="wavy" textDecorationColor="currentColor" textDecorationThickness="auto" textUnderlineOffset={4} textDecorationSkipInk={false}>b</Span></Text>'

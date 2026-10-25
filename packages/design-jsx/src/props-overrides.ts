@@ -349,9 +349,11 @@ function applyTextStyleOverrides(props: Record<string, unknown>, o: Partial<Scen
     o.fills = [colorToFill(props.color)]
   }
 
-  if (props.lineHeight === AUTO) o.lineHeight = null
-  else if (props.lineHeight !== undefined) o.lineHeight = textLengthProp(props.lineHeight)
-  if (props.letterSpacing !== undefined) o.letterSpacing = textLengthProp(props.letterSpacing)
+  // A value it cannot read is left out, so the text keeps its own.
+  const lineHeight = props.lineHeight === AUTO ? null : textLengthProp(props.lineHeight)
+  if (lineHeight !== undefined) o.lineHeight = lineHeight
+  const letterSpacing = textLengthProp(props.letterSpacing)
+  if (letterSpacing) o.letterSpacing = letterSpacing
   const textDecoration = TEXT_DECORATION.parse(props.textDecoration)
   if (textDecoration) o.textDecoration = textDecoration
   applyTextDetailOverrides(props, o)
