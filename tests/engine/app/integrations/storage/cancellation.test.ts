@@ -1,9 +1,10 @@
-import { expect, spyOn, test } from 'bun:test'
+import { expect, jest, spyOn, test } from 'bun:test'
 
 import { createS3StorageAdapter } from '@/app/integrations/storage/s3/adapter'
 import { readDownloadStream } from '@/app/integrations/storage/s3/client'
 import { createStorageFetch, storageFetch } from '@/app/integrations/storage/s3/fetch'
 
+import { expectDefined } from '#tests/helpers/assert'
 import { fetchStub } from '#tests/helpers/fetch'
 
 test('mid-stream cancellation discards partial bytes and stops progress', async () => {
@@ -107,18 +108,24 @@ async function withFetch(response: Response, run: () => Promise<void>) {
 }
 
 test('a slow download that keeps arriving finishes however long it takes', async () => {
-  const download = trickle()
-  await withFetch(download.response, async () => {
-    const response = await createStorageFetch(200)('https://storage.example.com/document.fig')
-    const reading = response.arrayBuffer()
-    // Twice the stall time in all, each byte well within it.
-    for (let sent = 0; sent < 20; sent++) {
-      download.send()
-      await Bun.sleep(20)
-    }
-    download.end()
-    expect((await reading).byteLength).toBe(20)
-  })
+  jest.useFakeTimers()
+  try {
+    const download = trickle()
+    await withFetch(download.response, async () => {
+      const response = await createStorageFetch(100)('https://storage.example.com/document.fig')
+      const reader = expectDefined(response.body, 'download body').getReader()
+      // Five times the stall time in all, with most of it passing before each next byte.
+      for (let sent = 0; sent < 5; sent++) {
+        download.send()
+        expect((await reader.read()).value).toEqual(new Uint8Array([1]))
+        jest.advanceTimersByTime(90)
+      }
+      download.end()
+      expect((await reader.read()).done).toBe(true)
+    })
+  } finally {
+    jest.useRealTimers()
+  }
 })
 
 test('a download that stops arriving fails as timed out', async () => {
