@@ -45,6 +45,8 @@ Die Schriftauswahl unterstützt Suche, Vorschau, virtuelles Scrollen und das Ans
 - Chrome und Edge können Systemschriften im Browser verwenden.
 - Heruntergeladene Schriftschnitte werden lokal gespeichert.
 
+Zugriff auf Systemschriften, Online-Anbieter und heruntergeladene Schriften verwaltest du unter **Einstellungen › Schriften**; das Zahnrad neben der Schriftfamilie öffnet die Seite.
+
 ## Fehlende Schriften
 
 Kann eine Familie oder ein Schnitt nicht geladen werden, zeigt OpenPencil eine Warnung mit den verwendeten Ersatzschriften. Betroffene Ebenen können ausgewählt und die Schriften erneut geladen werden.
