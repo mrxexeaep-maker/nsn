@@ -72,8 +72,8 @@ export async function createWorkspace(name: string): Promise<void> {
 // Members
 
 type MembersTarget = { serverId: string; workspaceId: string }
-/** An invitation sent again: its new ID and the link that replaced the old one. */
-export type ResentInvitation = { invitationId: string; link: string }
+/** An invitation just sent and the link it carries. */
+export type SentInvitation = { invitationId: string; link: string }
 
 export const membersOpen = ref(false)
 const membersTarget = shallowRef<MembersTarget | null>(null)
@@ -81,10 +81,10 @@ export const workspaceMembers = shallowRef<WorkspaceMembers | null>(null)
 export const membersLoading = ref(false)
 export const membersBusy = ref(false)
 export const membersFailure = ref<WorkspaceFailure | null>(null)
-/** The link of the invitation just sent, to pass on when the server sends no email. */
-export const lastInvitationLink = ref<string | null>(null)
+/** The invitation just sent, whose link to pass on when the server sends no email. */
+export const lastInvitation = ref<SentInvitation | null>(null)
 /** The invitation last sent again and its new link, so its row can say so and offer the link. */
-export const lastResent = ref<ResentInvitation | null>(null)
+export const lastResent = ref<SentInvitation | null>(null)
 
 /** The workspace the dialog manages, as the server last listed it to this person. */
 export const membersWorkspace = computed(() => {
@@ -116,7 +116,7 @@ export async function openWorkspaceMembers(serverId: string, workspaceId: string
   membersTarget.value = { serverId, workspaceId }
   workspaceMembers.value = null
   membersFailure.value = null
-  lastInvitationLink.value = null
+  lastInvitation.value = null
   lastResent.value = null
   membersOpen.value = true
   membersLoading.value = true
@@ -151,7 +151,7 @@ async function change(
 export function inviteToWorkspace(email: string, role: WorkspaceRole): Promise<boolean> {
   return change(async ({ client, workspaceId }) => {
     const created = await client.inviteToWorkspace(workspaceId, { email, role })
-    lastInvitationLink.value = created.acceptanceURL
+    lastInvitation.value = { invitationId: created.invitation.id, link: created.acceptanceURL }
   })
 }
 
@@ -160,6 +160,8 @@ export function resendWorkspaceInvitation(invitationId: string): Promise<boolean
   return change(async ({ client, workspaceId }) => {
     const resent = await client.resendWorkspaceInvitation(workspaceId, invitationId)
     lastResent.value = { invitationId: resent.invitation.id, link: resent.acceptanceURL }
+    // Its earlier link no longer works, so the note under the invite form goes with it.
+    if (lastInvitation.value?.invitationId === invitationId) lastInvitation.value = null
   })
 }
 

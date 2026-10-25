@@ -28,6 +28,7 @@ const offset = ref(0)
 const {
   data: listing,
   error: loadError,
+  loading,
   reload
 } = usePortalLoad(
   () =>
@@ -39,8 +40,9 @@ const {
     }),
   null
 )
+// After a failed load the last list belongs to another search or filter, so none is shown.
 const people = computed(() =>
-  (listing.value?.users ?? []).map((user) =>
+  (loadError.value ? [] : (listing.value?.users ?? [])).map((user) =>
     portalPerson(user, portal.account.value?.user.userId, dates)
   )
 )
@@ -81,7 +83,7 @@ watch(listing, (current) => {
       :counts="counts"
       :offset="offset"
       :page-size="PAGE_SIZE"
-      :busy="action.busy.value"
+      :busy="action.busy.value || loading"
       @act="
         (person, kind, reason) => action.run(() => personAction(portal.api, person, kind, reason))
       "
