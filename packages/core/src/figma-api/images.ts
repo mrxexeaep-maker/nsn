@@ -1,7 +1,42 @@
 /// <reference types="@figma/plugin-typings" />
 
 import type { SceneGraph } from '@open-pencil/scene-graph'
-import { computeImageHash, imageSize } from '@open-pencil/scene-graph/images'
+import {
+  computeImageHash,
+  imageMimeType,
+  imageSize,
+  type ImageMimeType
+} from '@open-pencil/scene-graph/images'
+
+import { invalid, received } from './accessors/text/messages'
+
+/** How a host fetches the URLs `figma.createImageAsync` loads. */
+export type ImageFetch = (input: string, init?: RequestInit) => Promise<Response>
+
+/** The largest width or height Figma takes an image at. */
+const MAX_IMAGE_SIDE = 4096
+
+/** The most bytes `createImageAsync` reads from a response, well above any 4096 × 4096 image. */
+export const MAX_IMAGE_FETCH_BYTES = 64 * 1024 * 1024
+
+/**
+ * The bytes Figma needs before it takes an image: a PNG's header through its bit depth and color
+ * type, and a GIF's logical screen size. A JPEG needs its start-of-frame, which `imageSize` reads.
+ */
+const MIN_HEADER_BYTES: Partial<Record<ImageMimeType, number>> = {
+  'image/png': 26,
+  'image/gif': 10
+}
+
+/** Figma's complaint about `data` as an image, or null when it takes it. */
+function imageProblem(data: Uint8Array): string | null {
+  const type = imageMimeType(data)
+  const size = type === 'image/webp' ? null : imageSize(data)
+  if (!size || size.width === 0 || size.height === 0) return 'Image type is unsupported'
+  if (data.length < (MIN_HEADER_BYTES[type] ?? 0)) return 'Image type is unsupported'
+  if (size.width > MAX_IMAGE_SIDE || size.height > MAX_IMAGE_SIDE) return 'Image is too large'
+  return null
+}
 
 /** The document's image under `hash`, as Figma's `Image` gives it to a script. */
 function figmaImage(graph: SceneGraph, hash: string): Image {
@@ -22,24 +57,85 @@ function figmaImage(graph: SceneGraph, hash: string): Image {
 }
 
 /**
- * Stores a copy of encoded image bytes under their hash, as `figma.createImage` does, so a script
- * that reuses its array afterwards cannot change the stored image.
+ * Stores a copy of encoded image bytes under their hash and returns the hash, so a caller that
+ * reuses its array afterwards cannot change the stored image. Tools store formats Figma's API
+ * refuses, such as WebP, through this; scripts go through `createImage`.
  */
-export function storeImage(graph: SceneGraph, data: Uint8Array): Image {
+export function storeImage(graph: SceneGraph, data: Uint8Array): string {
   const stored = data.slice()
   const hash = computeImageHash(stored)
   graph.images.set(hash, stored)
-  return figmaImage(graph, hash)
+  return hash
 }
 
-/** The image at `src`, fetched and stored as `figma.createImageAsync` does. */
-export async function fetchImage(graph: SceneGraph, src: string): Promise<Image> {
-  const response = await fetch(src).catch((error: unknown) => {
-    const reason = error instanceof Error ? error.message : String(error)
-    throw new Error(`in createImageAsync: Could not load ${src}: ${reason}`)
-  })
-  if (!response.ok) {
-    throw new Error(`in createImageAsync: Could not load ${src}: HTTP ${response.status}`)
+/**
+ * The PNG, JPEG, or GIF in `data`, stored as `figma.createImage` stores it. Throws Figma's
+ * messages for anything else and for an image wider or taller than 4096 pixels.
+ */
+export function createImage(graph: SceneGraph, data: unknown): Image {
+  if (!(data instanceof Uint8Array)) {
+    const problem =
+      data === undefined
+        ? 'Required value missing'
+        : `Expected Uint8Array, received ${received(data)}`
+    throw invalid('createImage', problem, 'createImage')
   }
-  return storeImage(graph, new Uint8Array(await response.arrayBuffer()))
+  const problem = imageProblem(data)
+  if (problem) throw new Error(`in createImage: ${problem}`)
+  return figmaImage(graph, storeImage(graph, data))
+}
+
+/** The document's image under `hash`, as `figma.getImageByHash` gives it, or null. */
+export function imageByHash(graph: SceneGraph, hash: unknown): Image | null {
+  if (typeof hash !== 'string') {
+    const problem =
+      hash === undefined ? 'Required value missing' : `Expected string, received ${received(hash)}`
+    throw invalid('getImageByHash', problem, 'getImageByHash')
+  }
+  return graph.images.has(hash) ? figmaImage(graph, hash) : null
+}
+
+/** The protocol of `src` when it is an absolute URL, or null. */
+function protocol(src: string): string | null {
+  try {
+    return new URL(src).protocol
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The image at `src`, fetched and stored as `figma.createImageAsync` does. HTTP(S) URLs go
+ * through the host's `fetch`; data URIs hold their bytes and are read here, since a desktop
+ * proxy takes only HTTP(S). Figma's own server fetches the rest, so its messages name only the
+ * status.
+ */
+export async function fetchImage(
+  graph: SceneGraph,
+  src: unknown,
+  fetch: ImageFetch
+): Promise<Image> {
+  if (typeof src !== 'string') {
+    const problem =
+      src === undefined ? 'Required value missing' : `Expected string, received ${received(src)}`
+    throw invalid('createImageAsync', problem, 'createImageAsync')
+  }
+  const scheme = protocol(src)
+  if (scheme !== 'http:' && scheme !== 'https:' && scheme !== 'data:') {
+    throw new Error('createImageAsync requires an absolute URL (http:// or https://) or a data URI')
+  }
+  const load = scheme === 'data:' ? globalThis.fetch : fetch
+  const response = await load(src).catch((error: unknown) => {
+    const reason = error instanceof Error ? error.message : String(error)
+    throw new Error(`Unable to fetch image: ${reason}`)
+  })
+  if (!response.ok) throw new Error(`Unable to fetch image. Response status: ${response.status}`)
+  if (Number(response.headers.get('content-length') ?? 0) > MAX_IMAGE_FETCH_BYTES) {
+    throw new Error('Image is too large')
+  }
+  const data = new Uint8Array(await response.arrayBuffer())
+  if (data.length > MAX_IMAGE_FETCH_BYTES) throw new Error('Image is too large')
+  const problem = imageProblem(data)
+  if (problem) throw new Error(problem)
+  return figmaImage(graph, storeImage(graph, data))
 }

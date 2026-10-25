@@ -22,7 +22,7 @@ import { fontManager } from '#core/text/fonts'
 
 import { componentFromNode } from './components'
 import { flattenSceneNodes } from './flatten'
-import { fetchImage, storeImage } from './images'
+import * as images from './images'
 import type {
   FigmaBooleanOperationNode,
   FigmaComponentNode,
@@ -57,11 +57,18 @@ import { combineComponentsAsVariants } from './variants'
 
 const noop = () => undefined
 
+/** What a host passes to `FigmaAPI` beyond the document. */
+export interface FigmaAPIOptions {
+  /** Fetches the HTTP(S) URLs `figma.createImageAsync` loads; the global `fetch` by default. */
+  fetch?: images.ImageFetch
+}
+
 export { FigmaNodeProxy } from './proxy'
 export { getPageBackgrounds, setPageBackgrounds } from './page-backgrounds'
 export { flushPendingLayout } from './pending-layout'
 export type { FigmaEffect } from './effects'
 export type { ExportImageOptions } from './types'
+export { MAX_IMAGE_FETCH_BYTES, type ImageFetch } from './images'
 export {
   FigmaVariable,
   FigmaVariableCollection,
@@ -109,8 +116,12 @@ export class FigmaAPI implements NodeProxyHost {
   /** The document's variables and collections, as Figma's `figma.variables`. */
   readonly variables: FigmaVariablesAPI
 
-  constructor(graph: SceneGraph) {
+  /** How `createImageAsync` fetches HTTP(S) URLs; a host passes one that gets past CORS. */
+  readonly #fetch: images.ImageFetch
+
+  constructor(graph: SceneGraph, options: FigmaAPIOptions = {}) {
     this.graph = graph
+    this.#fetch = options.fetch ?? ((input, init) => fetch(input, init))
     this.variables = new FigmaVariablesAPI(graph)
     startPendingLayout(graph)
     const pages = graph.getPages()
@@ -495,12 +506,16 @@ export class FigmaAPI implements NodeProxyHost {
   }
 
   createImage(data: Uint8Array): Image {
-    return storeImage(this.graph, data)
+    return images.createImage(this.graph, data)
   }
 
-  /** Fetches the image at `src` and stores it as `createImage` does. */
+  getImageByHash(hash: string): Image | null {
+    return images.imageByHash(this.graph, hash)
+  }
+
+  /** Fetches the image at `src` through the host's `fetch` and stores it as `createImage` does. */
   createImageAsync(src: string): Promise<Image> {
-    return fetchImage(this.graph, src)
+    return images.fetchImage(this.graph, src, this.#fetch)
   }
 
   // --- Stubs ---
