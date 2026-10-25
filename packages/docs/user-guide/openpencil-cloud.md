@@ -31,7 +31,7 @@ The desktop app keeps its sign-in in the system credential store. In the browser
 
 A server's account pages have three parts:
 
-- **Profile** changes your name and shows your account ID, which an administrator may ask for. A picture comes from a linked Google or Apple account; without one, your initials stand in. **Change email** sends a link to the new address, and your email changes once you open it. The old address gets a note saying which address is taking over. If you signed in a while ago, the server asks for your password first.
+- **Profile** changes your name and shows your account ID, which an administrator may ask for. **Upload picture** takes a PNG, JPEG, WebP, or GIF image; drag and zoom it to choose what shows in the circle, and **Remove** goes back to your initials. Signing in with Google uses your Google picture until you upload one. The server keeps every picture itself, so pages never load them from Google or anywhere else. **Change email** sends a link to the new address, and your email changes once you open it. The old address gets a note saying which address is taking over. If you signed in a while ago, the server asks for your password first.
 - **Sign-in and security** links Google or Apple, changes your password, and sets up two-step sign-in with an authenticator app or passkeys. Recovery codes are shown once: copy or download them before you close the dialog.
 - **Sessions** lists every browser and desktop app signed in to your account, with when each was last active, and your recent sign-ins. Sign out any session you don't recognize, or all of them except the one you're using.
 
@@ -123,4 +123,3 @@ People who open a link without an account, where the server allows it, join unde
 When your workspace's plan includes AI and the server offers it, the AI assistant can use models through Cloud instead of a key of your own. In **Settings → AI**, add a model, choose **OpenPencil Cloud** as the provider, and pick the workspace whose plan pays for it; the models and their prices come from the server. **OpenPencil Cloud** is listed while you are signed in to the server Home shows.
 
 Each request uses the workspace's AI credits for the month. When they run out, the assistant says so and, if the server bills, offers **Manage plan**. Self-hosted servers run their own AI service with their own models and limits ([self-hosting guide](/reference/self-hosting-cloud#ai)).
-
