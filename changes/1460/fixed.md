@@ -3,3 +3,4 @@
 - A document opened on a slow connection waits for the canvas to load instead of failing with “The operation was timed out”.
 - Storage downloads that take longer than 20 seconds finish instead of failing; only a transfer that stops for 20 seconds fails.
 - The startup splash stops animating when the system asks for reduced motion.
+- A Cloud document that fails to open from Home shows one error instead of two.
