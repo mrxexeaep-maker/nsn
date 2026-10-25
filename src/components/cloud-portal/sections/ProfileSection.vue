@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fromUint8Array } from 'js-base64'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -14,6 +15,7 @@ import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 
 import PortalEmailDialog from '../account/PortalEmailDialog.vue'
 import PortalPasswordDialog from '../account/PortalPasswordDialog.vue'
+import PortalPictureDialog from '../account/PortalPictureDialog.vue'
 import PortalProfile from '../account/PortalProfile.vue'
 
 /** The query the email confirmation link comes back with. */
@@ -61,6 +63,30 @@ const rename = usePortalAction(async (name: string) => {
   notice.value = messages.value.nameSaved
 })
 
+const pictureFile = ref<File | null>(null)
+const pictureOpen = ref(false)
+
+function choosePicture(file: File) {
+  savePicture.clear()
+  pictureFile.value = file
+  pictureOpen.value = true
+}
+
+const savePicture = usePortalAction(async (picture: Blob) => {
+  notice.value = null
+  await portal.api.uploadPicture(fromUint8Array(new Uint8Array(await picture.arrayBuffer())))
+  pictureOpen.value = false
+  await Promise.all([loaded.reload(), portal.refreshAccount()])
+  notice.value = messages.value.pictureSaved
+})
+
+const removePicture = usePortalAction(async () => {
+  notice.value = null
+  await portal.api.removePicture()
+  await Promise.all([loaded.reload(), portal.refreshAccount()])
+  notice.value = messages.value.pictureRemoved
+})
+
 const emailOpen = ref(false)
 const passwordOpen = ref(false)
 /** The address waiting for a fresh sign-in before it can be asked for. */
@@ -104,10 +130,12 @@ const busy = computed(
   () =>
     loaded.loading.value ||
     rename.busy.value ||
+    savePicture.busy.value ||
+    removePicture.busy.value ||
     changeEmail.busy.value ||
     confirmPassword.busy.value
 )
-const error = computed(() => rename.error.value ?? loaded.error.value)
+const error = computed(() => rename.error.value ?? removePicture.error.value ?? loaded.error.value)
 
 function openEmail() {
   changeEmail.clear()
@@ -134,6 +162,15 @@ onMounted(async () => {
       :busy="busy"
       @rename="rename.run"
       @change-email="openEmail"
+      @choose-picture="choosePicture"
+      @remove-picture="removePicture.run()"
+    />
+    <PortalPictureDialog
+      v-model:open="pictureOpen"
+      :file="pictureFile"
+      :saving="savePicture.busy.value"
+      :error="savePicture.error.value"
+      @save="savePicture.run"
     />
     <PortalEmailDialog
       v-if="profile"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFileDialog } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 
 import { useCloudPortalMessages } from '@open-pencil/vue/i18n'
@@ -14,8 +15,8 @@ import { portalForm } from '@/theme/cloud-portal/form'
 
 /**
  * How a person appears on a Cloud server: their name, which they change here, their email, which
- * changes through a link sent to the new address, the picture a linked account gave them, and
- * the account ID an administrator asks for.
+ * changes through a link sent to the new address, their picture, and the account ID an
+ * administrator asks for.
  */
 const {
   profile,
@@ -33,7 +34,12 @@ const {
   emailChangeAvailable?: boolean
   busy?: boolean
 }>()
-const emit = defineEmits<{ rename: [name: string]; changeEmail: [] }>()
+const emit = defineEmits<{
+  rename: [name: string]
+  changeEmail: []
+  choosePicture: [file: File]
+  removePicture: []
+}>()
 
 const ui = portalForm()
 const messages = useCloudPortalMessages()
@@ -44,6 +50,15 @@ watch(
     name.value = next
   }
 )
+const { open: pickPicture, onChange: onPicture } = useFileDialog({
+  accept: 'image/png,image/jpeg,image/webp,image/gif',
+  multiple: false,
+  reset: true
+})
+onPicture((files) => {
+  const file = files?.[0]
+  if (file) emit('choosePicture', file)
+})
 const renamed = computed(() => {
   const value = name.value.trim()
   return value.length > 0 && value !== profile.name
@@ -103,9 +118,23 @@ const renamed = computed(() => {
         </SettingsRow>
         <SettingsRow
           :label="messages.picture"
-          :description="profile.image ? messages.pictureFromProvider : messages.pictureInitials"
+          :description="profile.image ? messages.pictureShown : messages.pictureInitials"
         >
-          <AccountAvatar :id="profile.id" :name="profile.name" :image="profile.image" size="md" />
+          <div class="flex items-center gap-2">
+            <AppButton
+              v-if="profile.image"
+              size="sm"
+              variant="ghost"
+              :disabled="busy"
+              @click="emit('removePicture')"
+            >
+              {{ messages.removePicture }}
+            </AppButton>
+            <AppButton size="sm" variant="outline" :disabled="busy" @click="pickPicture()">
+              {{ profile.image ? messages.changePicture : messages.uploadPicture }}
+            </AppButton>
+            <AccountAvatar :id="profile.id" :name="profile.name" :image="profile.image" size="md" />
+          </div>
         </SettingsRow>
       </SettingsGroup>
     </SettingsSection>
