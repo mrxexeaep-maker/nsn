@@ -143,6 +143,7 @@ export function createDefaultNode(
     hangingList: false,
     styleRuns: [],
     fontVariations: [],
+    opticalSizeFromFontSize: true,
     fontFeatures: [],
     horizontalConstraint: 'MIN',
     verticalConstraint: 'MIN',
