@@ -22,8 +22,8 @@ import {
   type NodeProxyInternals,
   type ProxyThis
 } from '#core/figma-api/accessor-utils'
-import { figmaPaintToFill, type FigmaPaint } from '#core/figma-api/accessors/visual'
 import { styleNameToWeight, type FigmaFontName } from '#core/figma-api/fonts'
+import { parseFigmaPaints, type FigmaPaint } from '#core/figma-api/paints'
 import {
   getRangeIndentation,
   getRangeListOptions,
@@ -189,9 +189,7 @@ function fillsFromPaints(method: string, value: unknown): CharacterStyleOverride
     const problem = paintProblem(paint, index)
     if (problem) throw invalid(method, problem)
   }
-  return (value as FigmaPaint[]).map((paint, index) =>
-    figmaPaintToFill(paint, index, method, 'value')
-  )
+  return parseFigmaPaints(value, method, 'value')
 }
 
 /**
@@ -229,7 +227,7 @@ function decorationColorFills(method: string, value: unknown): Fill[] {
     // A solid paint whose channels are out of range fails on them alone.
     const problem = solidPaintProblem(color as { color?: unknown; opacity?: unknown }, '.value')
     if (problem) throw invalid(method, problem, 'textDecorationColor')
-    return [figmaPaintToFill(color as FigmaPaint)]
+    return parseFigmaPaints([color], method, 'textDecorationColor')
   }
   const paintIssues =
     issues.length === 1
@@ -373,7 +371,7 @@ export interface TextRangeMethods {
   getRangeFontName: RangeGetter<FigmaFontName>
   setRangeFontName: RangeSetterMethod<FigmaFontName>
   getRangeFontWeight: RangeGetter<number>
-  getRangeFills: RangeGetter<Fill[]>
+  getRangeFills: RangeGetter<FigmaPaint[]>
   setRangeFills: RangeSetterMethod<FigmaPaint[]>
   getRangeLetterSpacing: RangeGetter<FigmaLetterSpacing>
   setRangeLetterSpacing: RangeSetterMethod<FigmaLetterSpacing>
