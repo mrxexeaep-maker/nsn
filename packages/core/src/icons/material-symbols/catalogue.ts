@@ -5,10 +5,12 @@ import {
 } from '#core/icons/material-symbols/font'
 
 /**
- * Google's Material Symbols repository, where each font's names sit beside it. jsDelivr serves it
- * to any page, which Google's own icon catalogue does not.
+ * Google's Material Symbols repository, where each font's names sit beside it, at a fixed commit so
+ * the names cannot move under a release. jsDelivr serves it to any page, which Google's own icon
+ * catalogue does not. Moving the commit forward lists the icons Google has added since.
  */
-const REPOSITORY = 'https://cdn.jsdelivr.net/gh/google/material-design-icons@master/variablefont'
+const REPOSITORY =
+  'https://cdn.jsdelivr.net/gh/google/material-design-icons@10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7/variablefont'
 
 /** A Material Symbols icon and the sets that draw it. */
 export interface MaterialSymbolsEntry {
