@@ -156,6 +156,7 @@ async function remove() {
             :aria-label="ai.modelName"
             :placeholder="modelDisplayName"
             size="sm"
+            tone="panel"
           />
         </ProviderSettingsField>
 

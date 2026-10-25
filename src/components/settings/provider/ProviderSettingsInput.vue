@@ -26,6 +26,7 @@ const emit = defineEmits<{ change: [] }>()
     :max="max"
     :step="step"
     size="sm"
+    tone="panel"
     @change="emit('change')"
   />
 </template>

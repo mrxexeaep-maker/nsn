@@ -94,27 +94,34 @@ function onOpenChange(open: boolean): void {
       :description="settings.description"
       :close-label="common.close"
     >
-      <!-- An open editor turns the title into the path back to where it was opened from. -->
+      <!-- An open editor turns the title into the path back to where it was opened from. On a
+           phone the section picker below already names the section, so the path starts at the
+           list; only the editor's own name gives way to a narrow window. -->
       <template v-if="crumb" #title>
         <span class="flex min-w-0 items-center gap-1.5" data-test-id="settings-breadcrumb">
           <button
+            v-if="!isMobile"
             type="button"
-            class="cursor-pointer rounded-sm text-muted hover:text-surface focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:outline-none"
+            class="shrink-0 cursor-pointer rounded-sm whitespace-nowrap text-muted hover:text-surface focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:outline-none"
             @click="navigation.back()"
           >
             {{ settings.title }}
           </button>
-          <icon-lucide-chevron-right class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+          <icon-lucide-chevron-right
+            v-if="!isMobile"
+            class="size-3.5 shrink-0 text-muted"
+            aria-hidden="true"
+          />
           <button
             type="button"
-            class="cursor-pointer rounded-sm text-muted hover:text-surface focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:outline-none"
+            class="shrink-0 cursor-pointer rounded-sm whitespace-nowrap text-muted hover:text-surface focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:outline-none"
             data-test-id="settings-editor-back"
             @click="navigation.back()"
           >
             {{ crumb.parent }}
           </button>
           <icon-lucide-chevron-right class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
-          <span class="truncate" aria-current="page">{{ crumb.title }}</span>
+          <span class="min-w-0 truncate" aria-current="page">{{ crumb.title }}</span>
         </span>
       </template>
     </AppDialogHeader>
