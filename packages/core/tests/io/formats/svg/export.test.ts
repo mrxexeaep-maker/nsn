@@ -264,7 +264,7 @@ describe('solid paint opacity exported to SVG', () => {
       }).id
     ])
     expect(svg).toContain(
-      '<text x="0" y="14" font-family="Inter" font-size="14" fill="#000000" fill-opacity="0.4"><tspan>A</tspan><tspan fill="#FF0000" fill-opacity="1">b</tspan></text>'
+      '<text x="0" y="14" font-family="Inter" font-size="14" fill="#000000" fill-opacity="0.4" xml:space="preserve"><tspan>A</tspan><tspan fill="#FF0000" fill-opacity="1">b</tspan></text>'
     )
   })
 
