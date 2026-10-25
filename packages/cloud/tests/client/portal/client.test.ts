@@ -44,6 +44,11 @@ describe('Cloud portal client', () => {
     await expect(forbidden.session()).rejects.toEqual(
       expect.objectContaining({ kind: 'authorization-required' })
     )
+    const refused = createCloudPortalClient({
+      baseURL: 'https://cloud.example.com',
+      fetch: async () => Response.json({ error: { code: 'forbidden' } }, { status: 403 })
+    })
+    await expect(refused.users({})).rejects.toMatchObject({ kind: 'authorization-required' })
     const domain = createCloudPortalClient({
       baseURL: 'https://cloud.example.com',
       fetch: async () => Response.json({ error: { code: 'last_admin_required' } }, { status: 400 })

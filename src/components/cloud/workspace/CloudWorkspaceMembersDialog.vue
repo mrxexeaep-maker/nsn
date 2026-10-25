@@ -8,6 +8,7 @@ import { useCloudMessages, useCommonMessages } from '@open-pencil/vue/i18n'
 import { useDateFormat } from '@/app/i18n/date'
 import AccountAvatar from '@/components/presence/AccountAvatar.vue'
 import AppButton from '@/components/ui/button/AppButton.vue'
+import IconButton from '@/components/ui/button/IconButton.vue'
 import AppConfirmationDialog from '@/components/ui/dialog/AppConfirmationDialog.vue'
 import AppDialogBody from '@/components/ui/dialog/AppDialogBody.vue'
 import AppDialogFooter from '@/components/ui/dialog/AppDialogFooter.vue'
@@ -42,7 +43,7 @@ const {
   busy = false,
   failure = null,
   invitationLink = null,
-  resentEmail = null
+  resent = null
 } = defineProps<{
   workspaceName: string
   /** The person administers the workspace. */
@@ -56,8 +57,8 @@ const {
   failure?: string | null
   /** The link of the invitation just sent, for when the server sends no email. */
   invitationLink?: string | null
-  /** The address an invitation was just sent to again. */
-  resentEmail?: string | null
+  /** The invitation just sent again, with the new link for when the server sends no email. */
+  resent?: { invitationId: string; link: string } | null
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
@@ -288,7 +289,7 @@ function invite() {
                 <template #leading><icon-lucide-search class="size-3.5" /></template>
               </AppInput>
               <p v-if="loading" :class="ui.note()" role="status">{{ t.membersLoading }}</p>
-              <p v-else-if="shownMembers.length === 0" :class="ui.note()">
+              <p v-else-if="search.trim() && shownMembers.length === 0" :class="ui.note()">
                 {{ t.noMembersMatch }}
               </p>
               <ul v-else :class="ui.list()">
@@ -328,9 +329,13 @@ function invite() {
                   <span :class="ui.personDetail()">{{ invitationDetail(invitation) }}</span>
                 </span>
                 <span :class="ui.role()">{{ roleLabels[invitation.role] }}</span>
-                <AppBadge v-if="resentEmail === invitation.email">{{
-                  t.invitationResent
-                }}</AppBadge>
+                <template v-if="resent?.invitationId === invitation.id">
+                  <AppBadge>{{ t.invitationResent }}</AppBadge>
+                  <IconButton :label="t.copyInvitationLink" @click="copy(resent.link)">
+                    <icon-lucide-check v-if="copied" class="size-3.5" />
+                    <icon-lucide-link v-else class="size-3.5" />
+                  </IconButton>
+                </template>
                 <AppButton
                   v-else
                   size="xs"

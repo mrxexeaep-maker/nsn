@@ -8,7 +8,7 @@ import CloudWorkspaceMembersDialog from './CloudWorkspaceMembersDialog.vue'
 type Args = {
   members: WorkspaceMembers
   canManage: boolean
-  resentEmail: string | null
+  resent: { invitationId: string; link: string } | null
   onResend: (invitationId: string) => void
 }
 
@@ -54,7 +54,7 @@ const members: WorkspaceMembers = {
 const meta = {
   title: 'App/Cloud/Workspace Members',
   tags: ['autodocs'],
-  args: { members, canManage: true, resentEmail: null, onResend: fn() },
+  args: { members, canManage: true, resent: null, onResend: fn() },
   render: (args) => ({
     components: { CloudWorkspaceMembersDialog },
     setup: () => ({ args }),
@@ -66,7 +66,7 @@ const meta = {
           self="user-ana"
           :can-manage="args.canManage"
           :members="args.members"
-          :resent-email="args.resentEmail"
+          :resent="args.resent"
           @resend="args.onResend"
         />
       </div>`
@@ -88,11 +88,17 @@ export const Invited: Story = {
 }
 
 export const InvitationSentAgain: Story = {
-  args: { resentEmail: 'chloe@agency.example' },
+  args: {
+    resent: {
+      invitationId: '6f1d3a52-1d4e-4c7b-9a1e-2f9b9c1a0d11',
+      link: 'https://cloud.studio.example/invitations/accept#token'
+    }
+  },
   play: async () => {
     const page = within(document.body)
     await userEvent.click(await page.findByRole('tab', { name: /Invited/ }))
     await expect(page.queryByRole('button', { name: 'Resend' })).toBeNull()
+    await expect(page.getByRole('button', { name: 'Copy invitation link' })).toBeVisible()
   }
 }
 

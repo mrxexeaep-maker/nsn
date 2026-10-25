@@ -8,7 +8,7 @@ import {
   deleteWorkspace,
   inviteToWorkspace,
   lastInvitationLink,
-  lastResentEmail,
+  lastResent,
   leaveWorkspace,
   membersBusy,
   membersFailure,
@@ -56,7 +56,7 @@ const failure = computed(() => {
     :busy="membersBusy"
     :failure="failure"
     :invitation-link="lastInvitationLink"
-    :resent-email="lastResentEmail"
+    :resent="lastResent"
     @rename="renameWorkspace"
     @invite="inviteToWorkspace"
     @revoke="revokeWorkspaceInvitation"

@@ -60,7 +60,15 @@ watch([search, filter], () => {
   void reload()
 })
 watch(offset, () => void reload())
-watch(listing, (current) => current && emit('total', current.counts.all))
+watch(listing, (current) => {
+  if (!current) return
+  emit('total', current.counts.all)
+  // A change that empties the last page, such as restoring its only person, steps back a page.
+  const total = current.counts[filter.value]
+  if (offset.value > 0 && offset.value >= total) {
+    offset.value = Math.max(0, Math.floor((total - 1) / PAGE_SIZE) * PAGE_SIZE)
+  }
+})
 </script>
 
 <template>
