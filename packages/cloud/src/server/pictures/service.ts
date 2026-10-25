@@ -14,6 +14,8 @@ const PICTURE_MAX_SIDE = 1024
 const PICTURE_VERSION_LENGTH = 16
 /** How long a linked account's picture may take to fetch before sign-in goes on without it. */
 const PROVIDER_PICTURE_TIMEOUT_MS = 5000
+/** The hosts linked accounts serve pictures from; Google is the only provider that sends one. */
+const PROVIDER_PICTURE_HOSTS = ['googleusercontent.com']
 const PICTURE_FORMATS: Readonly<Record<string, UserPictureFormat>> = { png: 'png', jpg: 'jpeg' }
 const userIdSchema = v.pipe(v.string(), v.uuid())
 
@@ -37,6 +39,16 @@ export function pictureFormat(bytes: Uint8Array): UserPictureFormat | null {
   } catch {
     return null
   }
+}
+
+/** Whether `url` is an HTTPS address on a host a linked account's picture comes from. */
+function providerPicture(url: URL): boolean {
+  return (
+    url.protocol === 'https:' &&
+    PROVIDER_PICTURE_HOSTS.some(
+      (host) => url.hostname === host || url.hostname.endsWith(`.${host}`)
+    )
+  )
 }
 
 /** Reads at most `limit` bytes of a response body, or null when it holds more. */
@@ -155,8 +167,9 @@ export function createUserPictures(database: Kysely<CloudDatabase>, options: Use
     async copyFromProvider(userId: string, image: string): Promise<void> {
       if (served(image)) return
       try {
-        if (new URL(image).protocol !== 'https:') throw new PictureInvalidError()
+        if (!providerPicture(new URL(image))) throw new PictureInvalidError()
         const response = await fetchPicture(image, {
+          redirect: 'error',
           signal: AbortSignal.timeout(PROVIDER_PICTURE_TIMEOUT_MS)
         })
         const bytes = response.ok ? await boundedBody(response, CLOUD_PICTURE_MAX_BYTES) : null

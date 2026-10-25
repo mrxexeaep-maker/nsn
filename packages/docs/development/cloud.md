@@ -216,11 +216,14 @@ Every action asks once more.
 
 Account pictures live in `user_picture`, one per account, and `user.image` holds the address the
 server serves them from, `/api/pictures/:userId/:version`, where the version is the start of the
-picture's SHA-256: a new picture is a new address, so the response may be cached for good. The
+picture's SHA-256: a new picture is a new address, but responses are cached for a day only, so
+one an administrator removes stops showing. The
 page crops and shrinks a picture to a 256-pixel JPEG; the server accepts PNG or JPEG of at most
 256 KB and 1024 pixels a side, reading the type and size from the bytes. A Google picture is
 fetched once a sign-in issues its session and kept the same way; one that cannot be fetched leaves
-initials, never a link to Google.
+initials, never a link to Google. The server fetches only from Google's picture host and follows no
+redirects, and only a provider's sign-in may write another address to `user.image`: Better Auth
+also takes one on email sign-up and user updates, and those are dropped.
 
 ## Portal
 

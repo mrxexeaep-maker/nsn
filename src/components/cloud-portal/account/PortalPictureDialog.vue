@@ -71,7 +71,13 @@ const placement = computed(() => {
 
 function loaded(event: Event) {
   if (!(event.target instanceof HTMLImageElement)) return
-  size.value = { width: event.target.naturalWidth, height: event.target.naturalHeight }
+  const { naturalWidth: width, naturalHeight: height } = event.target
+  // An image with no size of its own, such as an SVG without one, has nothing to crop.
+  if (width === 0 || height === 0) {
+    unreadable.value = true
+    return
+  }
+  size.value = { width, height }
   crop.value = centredCrop(size.value, FRAME)
 }
 
@@ -111,7 +117,11 @@ function nudge(event: KeyboardEvent) {
 
 async function save() {
   if (!image.value || !size.value) return
-  emit('save', await encodePicture(image.value, cropRegion(size.value, FRAME, crop.value)))
+  try {
+    emit('save', await encodePicture(image.value, cropRegion(size.value, FRAME, crop.value)))
+  } catch {
+    unreadable.value = true
+  }
 }
 </script>
 

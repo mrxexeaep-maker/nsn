@@ -133,13 +133,14 @@ export async function approveAccount(
 
 export async function createVerifiedCredentialAccount(
   fixture: Awaited<ReturnType<typeof createAccountAuthenticationFixture>>,
-  input: { email: string; name: string; password: string; approved: boolean }
+  input: { email: string; name: string; password: string; approved: boolean; image?: string }
 ): Promise<{ userId: string; sessionCookie: string }> {
   await fixture.app.fetch(
     accountAuthenticationRequest('/api/auth/sign-up/email', {
       name: input.name,
       email: input.email,
-      password: input.password
+      password: input.password,
+      image: input.image
     })
   )
   const user = await fixture.database

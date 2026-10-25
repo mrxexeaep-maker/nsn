@@ -62,7 +62,7 @@ describe('account pictures', () => {
       const served = await fixture.app.fetch(new Request(image))
       expect(served.status).toBe(200)
       expect(served.headers.get('content-type')).toBe('image/png')
-      expect(served.headers.get('cache-control')).toContain('immutable')
+      expect(served.headers.get('cache-control')).toBe('public, max-age=86400')
       expect(served.headers.get('x-content-type-options')).toBe('nosniff')
       expect(new Uint8Array(await served.arrayBuffer())).toEqual(picture)
 
@@ -161,10 +161,46 @@ describe('account pictures', () => {
       await setImage(GOOGLE_PICTURE)
       await failing.copyFromProvider(account.userId, GOOGLE_PICTURE)
       expect(await profileImage(fixture, account.sessionCookie)).toBeNull()
-      await setImage('http://pictures.example.com/plain.png')
-      await pictures.copyFromProvider(account.userId, 'http://pictures.example.com/plain.png')
-      expect(await profileImage(fixture, account.sessionCookie)).toBeNull()
+      for (const elsewhere of [
+        'http://lh3.googleusercontent.com/plain.png',
+        'https://pictures.example.com/picture.png',
+        'https://googleusercontent.com.example.com/picture.png'
+      ]) {
+        await setImage(elsewhere)
+        await pictures.copyFromProvider(account.userId, elsewhere)
+        expect(await profileImage(fixture, account.sessionCookie)).toBeNull()
+      }
       expect(requested).toHaveLength(1)
+    } finally {
+      await fixture.close()
+    }
+  })
+
+  test('takes a picture address only from a linked account', async () => {
+    const fixture = await createAccountAuthenticationFixture()
+    try {
+      const account = await createVerifiedCredentialAccount(fixture, {
+        email: 'address@example.com',
+        name: 'Address Person',
+        password: PASSWORD,
+        approved: true,
+        image: GOOGLE_PICTURE
+      })
+      expect(await profileImage(fixture, account.sessionCookie)).toBeNull()
+
+      const updated = await fixture.app.fetch(
+        accountAuthenticationRequest(
+          '/api/auth/update-user',
+          { name: 'Renamed Person', image: GOOGLE_PICTURE },
+          account.sessionCookie
+        )
+      )
+      expect(updated.status).toBe(200)
+      const profile = await fixture.app.fetch(
+        accountAuthenticationRequest('/api/account/profile', undefined, account.sessionCookie)
+      )
+      const { name, image } = (await responseJSON(profile, cloudProfileResponseSchema)).profile
+      expect({ name, image }).toEqual({ name: 'Renamed Person', image: null })
     } finally {
       await fixture.close()
     }
