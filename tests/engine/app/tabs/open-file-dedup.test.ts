@@ -10,6 +10,7 @@ import {
   closeTab,
   createHomeTab,
   createTab,
+  ensureHomeTab,
   getActiveStore,
   getTabsSnapshot,
   openFileInNewTab,
@@ -180,6 +181,16 @@ describe('openFileInNewTab deduplication', () => {
     expect(getTabsSnapshot()[0]?.id).toBe(home.id)
     await closeTab(home.id)
     expect(getTabsSnapshot().filter((tab) => tab.kind === 'home')).toEqual([home])
+  })
+
+  test('pins a missing Home without taking the front from the design there', async () => {
+    for (const home of getTabsSnapshot().filter((tab) => tab.kind === 'home')) {
+      await closeTab(home.id)
+    }
+    const design = createTab()
+    ensureHomeTab()
+    expect(getTabsSnapshot()[0]?.kind).toBe('home')
+    expect(getActiveStore()).toBe(design.store)
   })
 
   test('opens a file from Home in a tab of its own, leaving Home as it is', async () => {

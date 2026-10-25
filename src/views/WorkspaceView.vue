@@ -34,6 +34,7 @@ import { toast } from '@/app/shell/ui'
 import {
   activeTab,
   createHomeTab,
+  ensureHomeTab,
   createTab,
   getActiveStore,
   getTabsSnapshot,
@@ -81,6 +82,13 @@ const createdInitialTab = tabCount() === 0
 // something: recent files, or the workspaces of the Cloud server that serves the editor.
 const pinHome = !appRuntimeConfig.test && !route.meta.demo
 const showHomeFirst = route.path === '/' && pinHome && (recentFilesAvailable() || IS_CLOUD_SITE)
+// The view stays mounted from /demo to /, so Home is pinned once a route that has it is reached.
+watch(
+  () => !appRuntimeConfig.test && !route.meta.demo,
+  (pins) => {
+    if (pins) ensureHomeTab()
+  }
+)
 /**
  * A Cloud link's first tab is Home, beside which the document it opens gets its own tab; Home is
  * also where a link that fails or waits for a sign-in leaves the person, never an empty document.

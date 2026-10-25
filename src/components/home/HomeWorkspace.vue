@@ -154,7 +154,9 @@ const noSearchMatches = computed(
 async function openRecent(document: RecentDocument): Promise<void> {
   openError.value = null
   try {
-    await openRecentDocument(document, storageDocuments.value)
+    // Before the storage list first loads, an empty list would hide the revision to check.
+    const listed = storageWorkspace.lastRefreshedAt.value ? storageDocuments.value : undefined
+    await openRecentDocument(document, listed)
   } catch (error) {
     openError.value = error instanceof Error ? error.message : String(error)
   }

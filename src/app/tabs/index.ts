@@ -127,6 +127,14 @@ export function showNewTab(): void {
   createHomeTab()
 }
 
+/** Pins Home first when it is missing, leaving the tab in front where it is. */
+export function ensureHomeTab(): void {
+  if (tabsRef.value.some((tab) => tab.kind === 'home')) return
+  const front = activeTab.value
+  createHomeTab()
+  if (front) activateTab(front)
+}
+
 function activateTab(tab: Tab) {
   const previous = tabsRef.value.find((candidate) => candidate.id === activeTabId.value)
   previous?.store.setSnapGuides([])
