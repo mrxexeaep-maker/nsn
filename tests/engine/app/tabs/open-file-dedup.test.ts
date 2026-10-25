@@ -6,6 +6,8 @@ import { SceneGraph } from '@open-pencil/scene-graph'
 
 import { resolveBrowserFileURL } from '@/app/document/io/browser'
 import type { DocumentSourceIdentity } from '@/app/document/io/types'
+import { getRecoveryStore, resetRecoveryStoreForTests } from '@/app/document/recovery'
+import { createMemoryRecoveryStore } from '@/app/document/recovery/memory'
 import {
   closeTab,
   createHomeTab,
@@ -14,8 +16,10 @@ import {
   getTabsSnapshot,
   openFileInNewTab,
   showNewTab,
+  restoreRecoverySnapshot,
   tabCount,
-  withHomePinned
+  withHomePinned,
+  type Tab
 } from '@/app/tabs'
 import { fileIdentitiesMatch, findTabByFileIdentity } from '@/app/tabs/open/identity'
 
@@ -183,12 +187,35 @@ describe('openFileInNewTab deduplication', () => {
     expect(getTabsSnapshot().filter((tab) => tab.kind === 'home')).toEqual([home])
   })
 
-  test('pins Home first only when the tabs have none', () => {
+  test('pins Home first, moving it there or adding it when the tabs have none', () => {
     const design = createTab()
     const home = createHomeTab()
-    expect(withHomePinned([design], () => home)).toEqual([home, design])
+    const ids = (tabs: readonly Tab[]) => tabs.map((tab) => tab.id)
+    expect(ids(withHomePinned([design], () => home))).toEqual([home.id, design.id])
     const pinned = [home, design]
     expect(withHomePinned(pinned, () => createTab())).toBe(pinned)
+    expect(ids(withHomePinned([design, home], () => createTab()))).toEqual([home.id, design.id])
+  })
+
+  test('a failed recovery restore closes its tab and keeps the snapshot', async () => {
+    resetRecoveryStoreForTests(createMemoryRecoveryStore())
+    await getRecoveryStore().write({
+      id: 'broken',
+      documentName: 'Broken',
+      figBytes: new Uint8Array([1])
+    })
+    ;(figModule.readFigFile as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error('read failed')
+    )
+    const home = createHomeTab()
+    const count = tabCount()
+
+    await expect(restoreRecoverySnapshot('broken')).rejects.toThrow('read failed')
+
+    expect(tabCount()).toBe(count)
+    expect(getActiveStore()).toBe(home.store)
+    expect(await getRecoveryStore().read('broken')).not.toBeNull()
+    resetRecoveryStoreForTests()
   })
 
   test('opens a file from Home in a tab of its own, leaving Home as it is', async () => {

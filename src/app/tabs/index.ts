@@ -127,9 +127,11 @@ export function showNewTab(): void {
   createHomeTab()
 }
 
-/** `tabs` with a Home first: as they are when they have one, or with `home()` put in front. */
+/** `tabs` with Home first: as they are when it is, with their Home moved there, or `home()` added. */
 export function withHomePinned(tabs: readonly Tab[], home: () => Tab): readonly Tab[] {
-  return tabs.some((tab) => tab.kind === 'home') ? tabs : [home(), ...tabs]
+  if (tabs[0]?.kind === 'home') return tabs
+  const existing = tabs.find((tab) => tab.kind === 'home')
+  return existing ? [existing, ...tabs.filter((tab) => tab !== existing)] : [home(), ...tabs]
 }
 
 /** Pins Home first when it is missing, leaving the tab in front where it is. */
@@ -240,23 +242,31 @@ function reusableTabStore(): OpeningTab {
 
 /**
  * After a document failed to open, a tab opened for it closes and the tab in front before it, such
- * as Home, comes back; an empty design it reused stays.
+ * as Home, comes back; an empty design it reused stays. `keepRecovery` leaves the recovery copy,
+ * as a failed restore must: that copy is the work being restored.
  */
-async function releaseOpeningTab(opening: OpeningTab): Promise<void> {
+async function releaseOpeningTab(
+  opening: OpeningTab,
+  { keepRecovery = false }: { keepRecovery?: boolean } = {}
+): Promise<void> {
   if (!opening.created) return
   const tab = getTabForStore(opening.store)
   if (!tab) return
   // The tab goes even when the recovery copy stays behind, which the next start offers again;
   // the open's own error is the one to report.
-  await tab.store.discardRecovery().catch((error: unknown) => {
+  if (!keepRecovery) await discardFailedRecovery(tab.store)
+  const wasActive = activeTabId.value === tab.id
+  removeTab(tab)
+  if (wasActive && opening.from && tabsRef.value.includes(opening.from)) activateTab(opening.from)
+}
+
+async function discardFailedRecovery(store: EditorStore): Promise<void> {
+  await store.discardRecovery().catch((error: unknown) => {
     console.warn(
       '[Tabs] Failed to discard the recovery copy of a document that failed to open',
       error
     )
   })
-  const wasActive = activeTabId.value === tab.id
-  removeTab(tab)
-  if (wasActive && opening.from && tabsRef.value.includes(opening.from)) activateTab(opening.from)
 }
 
 async function readFigForTab(file: File, signal?: AbortSignal): Promise<SceneGraph> {
@@ -590,7 +600,8 @@ export async function restoreRecoverySnapshot(id: string): Promise<void> {
   const snapshot = await getRecoveryStore().read(id)
   if (!snapshot) throw new Error('Recovery snapshot is no longer available')
 
-  const { store } = reusableTabStore()
+  const opening = reusableTabStore()
+  const { store } = opening
   const load = store.preparationController.begin({
     kind: 'recovery-restore',
     subject: snapshot.documentName
@@ -617,6 +628,7 @@ export async function restoreRecoverySnapshot(id: string): Promise<void> {
     succeeded = true
   } catch (error) {
     failPreparation(load, 'decode-failed', error)
+    await releaseOpeningTab(opening, { keepRecovery: true })
     throw error
   } finally {
     if (succeeded) load.complete()
