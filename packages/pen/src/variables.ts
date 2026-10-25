@@ -25,6 +25,8 @@ export interface VarContext {
   byName: Map<string, Variable>
   resolveColor(ref: string): Color
   resolveNumber(ref: string): number
+  /** The number the variable holds, or nothing when it holds none. */
+  numberValue(ref: string): number | undefined
   resolveString(ref: string): string
   resolveBoolean(ref: string): boolean
   /** Merges a layer's theme over its parent's until the returned function is called. */
@@ -54,6 +56,18 @@ export function resolveNumber(value: PenNumber | undefined, ctx: VarContext, fal
   if (isVarRef(value)) return ctx.resolveNumber(value)
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : fallback
+}
+
+/** A number, or the value of the number variable it references; nothing where there is none. */
+export function resolveOptionalNumber(
+  value: PenNumber | undefined,
+  ctx: VarContext
+): number | undefined {
+  if (value === undefined) return undefined
+  if (typeof value === 'number') return value
+  if (isVarRef(value)) return ctx.numberValue(value)
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
 }
 
 /** A boolean, or the value of the variable it references. */
@@ -227,8 +241,11 @@ export function buildVarContext(graph: SceneGraph, doc: PenDocument): VarContext
       return typeof value === 'object' && 'r' in value ? value : { ...BLACK }
     },
     resolveNumber(ref) {
+      return this.numberValue(ref) ?? 0
+    },
+    numberValue(ref) {
       const value = resolve(ref)
-      return typeof value === 'number' ? value : 0
+      return typeof value === 'number' ? value : undefined
     },
     resolveString(ref) {
       const value = resolve(ref)

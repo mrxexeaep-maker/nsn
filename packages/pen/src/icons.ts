@@ -16,15 +16,10 @@ import type { Color } from '@open-pencil/scene-graph/primitives'
 import { iconName, iconOptions } from './assets'
 import type { Build } from './nodes'
 import type { PenNode } from './schema'
-import { resolveNumber, resolveString } from './variables'
+import { resolveOptionalNumber, resolveString } from './variables'
 
 /** Space between the icon components on their page. */
 const ICON_COMPONENT_GAP = 16
-
-/** The weight an icon sets, through the variable it names. */
-function iconWeight(pen: PenNode, { ctx }: Build): number | undefined {
-  return pen.weight === undefined ? undefined : resolveNumber(pen.weight, ctx)
-}
 
 /**
  * An icon draws its glyph in its fill colour, scaled to fit its box and centred, as pen.dev does;
@@ -41,7 +36,7 @@ export function drawIcon(node: SceneNode, pen: PenNode, build: Build): void {
   const size = Math.min(node.width, node.height)
   const name = library && icon ? iconName(library, icon) : null
   if (!library || !name || size <= 0) return
-  const options = iconOptions(library, iconWeight(pen, build))
+  const options = iconOptions(library, resolveOptionalNumber(pen.weight, ctx))
   if (!build.icons?.draw(graph, node.id, name, size, color, options)) return
   const dx = (node.width - size) / 2
   const dy = (node.height - size) / 2
@@ -71,7 +66,7 @@ function iconComponent(build: Build, pen: PenNode, width: number, height: number
   const { graph, ctx } = build
   const library = resolveString(pen.library, ctx) ?? ''
   const icon = resolveString(pen.icon, ctx) ?? ''
-  const options = iconOptions(library, iconWeight(pen, build))
+  const options = iconOptions(library, resolveOptionalNumber(pen.weight, ctx))
   const key = `${library}/${icon}/${width}x${height}${options ? `/${JSON.stringify(options)}` : ''}`
   const existing = build.iconComponents.get(key)
   if (existing) return existing

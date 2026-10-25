@@ -63,6 +63,28 @@ describe('penAssets', () => {
     })
   })
 
+  test('lists an icon whose weight variable holds no number at the default weight', () => {
+    const doc = parsePenDocument(
+      JSON.stringify({
+        version: '2.21',
+        children: [
+          { id: 'a', type: 'icon', library: 'lucide', icon: 'heart', weight: '$missing' },
+          {
+            id: 'b',
+            type: 'icon',
+            library: 'Material Symbols Rounded',
+            icon: 'home',
+            weight: '$missing'
+          }
+        ]
+      })
+    )
+    expect(penAssets(doc).icons).toEqual([
+      { name: 'lucide:heart' },
+      { name: 'material-symbols-rounded:home', options: { wght: 200 } }
+    ])
+  })
+
   test('lists every icon a variable names in any theme', () => {
     const doc = parsePenDocument(
       JSON.stringify({
@@ -205,9 +227,11 @@ describe('parsePenFile — icons', () => {
   })
 
   test('draws a Material Symbol from its set at the icon weight, 200 by default', () => {
+    // A variable that holds no weight leaves the default.
     for (const [weight, expected] of [
       [undefined, 200],
-      [650, 650]
+      [650, 650],
+      ['$missing', 200]
     ] as const) {
       const { calls } = drawn({ library: 'Material Symbols Rounded', icon: 'home', weight })
       expect(calls).toEqual([

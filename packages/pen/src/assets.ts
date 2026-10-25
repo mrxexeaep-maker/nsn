@@ -91,11 +91,18 @@ interface Found {
   weights: Set<number | undefined>
 }
 
-/** Every weight a field can take, through the variables it names. */
+/**
+ * Every weight a field can take, through the variables it names. A value that is no number, or a
+ * variable without one, leaves the weight unset, as drawing reads it.
+ */
 function possibleWeights(weight: PenOverride['weight'], doc: PenDocument): (number | undefined)[] {
   if (weight === undefined) return [undefined]
   if (typeof weight === 'number') return [weight]
-  return possibleValues(weight, doc).map(Number).filter(Number.isFinite)
+  const values = possibleValues(weight, doc).map((value) => {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+  })
+  return values.length > 0 ? values : [undefined]
 }
 
 function addIcons(
