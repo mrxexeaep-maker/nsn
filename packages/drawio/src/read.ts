@@ -91,10 +91,7 @@ function readCell({ cell, wrapper }: CellElements, id: string, parent: string): 
  * A model's cells. Its root is the one cell without a parent, and its layers are the cells under
  * the root that are neither shapes nor edges; draw.io names them `0` and `1` by default.
  */
-function readModel(
-  model: Element,
-  page: Pick<DrawioPage, 'id' | 'name'>
-): DrawioPage | null {
+function readModel(model: Element, page: Pick<DrawioPage, 'id' | 'name'>): DrawioPage | null {
   const root = childElements(model, 'root').at(0)
   if (!root) return null
   const read: { elements: CellElements; id: string; parent: string | null }[] = []
@@ -165,7 +162,11 @@ function readDiagram(
  */
 export function parseDrawioFile(source: string, budget = inflateBudget()): DrawioFile | null {
   const root = parseXML(source)
-  if (!root) return null
+  return root ? readDrawioRoot(root, budget) : null
+}
+
+/** The pages of a draw.io document from its parsed root, as `parseDrawioFile` reads them. */
+export function readDrawioRoot(root: Element, budget: InflateBudget): DrawioFile | null {
   if (root.localName === 'mxGraphModel') {
     const page = readModel(root, { id: 'page-1', name: 'Page 1' })
     return page ? { pages: [page], unreadable: [] } : null

@@ -6,7 +6,9 @@ const MODEL = `<mxGraphModel grid="1"><root>
   <mxCell id="0"/><mxCell id="1" parent="0"/>
   <mxCell id="notes" value="Notes" style="locked=1;" parent="0" visible="0"/>
   <mxCell id="a" value="A &amp; B" style="ellipse;fillColor=#fff2cc;" vertex="1" parent="1">
-    <mxGeometry x="40" y="60" width="120" height="60" as="geometry"/>
+    <mxGeometry x="40" y="60" width="120" height="60" as="geometry">
+      <Array as="points"><mxPoint x="10" y="20"/></Array>
+    </mxGeometry>
   </mxCell>
   <UserObject label="Linked" link="https://example.com" placeholders="1" id="b">
     <mxCell style="rounded=1;" vertex="1" parent="notes">
@@ -32,4 +34,12 @@ test('a written file reads back as the file it was written from', () => {
   // Saved uncompressed, as draw.io saves by default.
   expect(written).toContain('<mxGraphModel grid="1"><root><mxCell id="0"/>')
   expect(parseDrawioFile(written)).toEqual(file)
+})
+
+test('a file with pages it could not read is not written, since they would be lost', () => {
+  const file = parseDrawioFile(
+    `<mxfile><diagram id="p" name="Page">${MODEL}</diagram><diagram id="q" name="Broken">!</diagram></mxfile>`
+  )
+  if (!file) throw new Error('Fixture did not read')
+  expect(() => writeDrawioFile(file)).toThrow('Could not write the draw.io pages Broken')
 })

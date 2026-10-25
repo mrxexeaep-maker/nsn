@@ -37,7 +37,8 @@ const MODEL = `<mxGraphModel dx="1018" dy="616" grid="1" gridSize="10" backgroun
   </root>
 </mxGraphModel>`
 
-const page = (name: string, model = MODEL) => `<diagram id="${name}" name="${name}">${model}</diagram>`
+const page = (name: string, model = MODEL) =>
+  `<diagram id="${name}" name="${name}">${model}</diagram>`
 
 /** A page as draw.io compresses it: the model percent-encoded, raw-deflated, then Base64. */
 function compressed(model: string): string {
@@ -111,29 +112,19 @@ describe('reading a draw.io file', () => {
       MAX_INFLATED_BYTES / 4
     )}"/></root></mxGraphModel>`
     const packed = compressed(big)
-    const pages = Array.from({ length: 6 }, (_, i) => `<diagram id="p${i}" name="P${i}">${packed}</diagram>`)
+    const pages = Array.from(
+      { length: 6 },
+      (_, i) => `<diagram id="p${i}" name="P${i}">${packed}</diagram>`
+    )
     const file = parseDrawioFile(`<mxfile>${pages.join('')}</mxfile>`)
     expect(file?.pages.length).toBeLessThan(6)
     expect(file?.unreadable.length).toBeGreaterThan(0)
   })
 })
 
-/** A PNG holding only the chunk draw.io adds: its signature, a `tEXt` chunk, and `IEND`. */
-function pngWithText(keyword: string, text: string): Uint8Array {
-  const latin1 = (value: string) => Uint8Array.from(value, (c) => c.charCodeAt(0))
-  const chunk = (type: string, data: Uint8Array) => {
-    const out = new Uint8Array(12 + data.length)
-    new DataView(out.buffer).setUint32(0, data.length)
-    out.set(latin1(type), 4)
-    out.set(data, 8)
-    return out
-  }
-  const body = latin1(`${keyword}\0${encodeURIComponent(text)}`)
-  const parts = [
-    Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk('tEXt', body),
-    chunk('IEND', new Uint8Array())
-  ]
+const latin1 = (value: string) => Uint8Array.from(value, (c) => c.charCodeAt(0))
+
+function concat(parts: Uint8Array[]): Uint8Array {
   const bytes = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0))
   let offset = 0
   for (const part of parts) {
@@ -142,6 +133,33 @@ function pngWithText(keyword: string, text: string): Uint8Array {
   }
   return bytes
 }
+
+/** A PNG chunk: its length, type, data, and a CRC, which the reader does not check. */
+function chunk(type: string, data: Uint8Array): Uint8Array {
+  const out = new Uint8Array(12 + data.length)
+  new DataView(out.buffer).setUint32(0, data.length)
+  out.set(latin1(type), 4)
+  out.set(data, 8)
+  return out
+}
+
+/** A PNG holding only the given chunks between its signature and `IEND`. */
+function png(...chunks: Uint8Array[]): Uint8Array {
+  const signature = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+  return concat([signature, ...chunks, chunk('IEND', new Uint8Array())])
+}
+
+/** A PNG holding only the chunk draw.io adds: a `tEXt` chunk under `keyword`. */
+function pngWithText(keyword: string, text: string): Uint8Array {
+  return png(chunk('tEXt', latin1(`${keyword}\0${encodeURIComponent(text)}`)))
+}
+
+/** A zlib stream of `text`: a 2-byte header, then raw deflate, as PNG text chunks hold it. */
+function zlib(text: string): Uint8Array {
+  return concat([Uint8Array.from([0x78, 0xda]), deflateSync(latin1(text), { level: 9 })])
+}
+
+const EMBEDDED = encodeURIComponent(`<mxfile>${page('Embedded')}</mxfile>`)
 
 describe('reading the diagram a draw.io export embeds', () => {
   test('from a PNG’s text chunk', () => {
@@ -157,6 +175,32 @@ describe('reading the diagram a draw.io export embeds', () => {
       .replaceAll('<', '&lt;')
     const svg = `<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" content="${content}"><rect/></svg>`
     expect(readDrawioBytes(new TextEncoder().encode(svg))?.pages[0]?.name).toBe('Vector')
-    expect(readDrawioBytes(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"/>'))).toBeNull()
+    expect(
+      readDrawioBytes(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"/>'))
+    ).toBeNull()
+  })
+
+  test('from a PNG’s compressed and international text chunks', () => {
+    const zTXt = png(chunk('zTXt', concat([latin1('mxfile\0\0'), zlib(EMBEDDED)])))
+    expect(readDrawioBytes(zTXt)?.pages[0]?.name).toBe('Embedded')
+    // iTXt: keyword, compression flag and method, then empty language and translated keyword.
+    const packed = png(chunk('iTXt', concat([latin1('mxfile\0\x01\0\0\0'), zlib(EMBEDDED)])))
+    expect(readDrawioBytes(packed)?.pages[0]?.name).toBe('Embedded')
+    const plain = png(chunk('iTXt', latin1(`mxfile\0\0\0\0\0${EMBEDDED}`)))
+    expect(readDrawioBytes(plain)?.pages[0]?.name).toBe('Embedded')
+  })
+
+  test('says a damaged or cut short PNG cannot be read, rather than that it holds no diagram', () => {
+    const damaged = png(chunk('zTXt', latin1('mxfile\0\0not zlib')))
+    expect(() => readDrawioBytes(damaged)).toThrow(
+      'Could not read the draw.io diagram in this image'
+    )
+    const whole = pngWithText('mxfile', `<mxfile>${page('Embedded')}</mxfile>`)
+    expect(() => readDrawioBytes(whole.subarray(0, 40))).toThrow('cut short')
+  })
+
+  test('takes an SVG’s comments before its root in stride', () => {
+    const svg = `${'<!---->'.repeat(10_000)}x`
+    expect(readDrawioBytes(new TextEncoder().encode(svg))).toBeNull()
   })
 })

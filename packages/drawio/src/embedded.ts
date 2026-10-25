@@ -1,3 +1,5 @@
+import type { Element } from '@xmldom/xmldom'
+
 import { boundedInflate, percentDecoded, type InflateBudget } from './inflate'
 import { parseXML } from './xml'
 
@@ -51,7 +53,10 @@ function diagramInPNG(bytes: Uint8Array, budget: InflateBudget): string | null {
     const length = view.getUint32(offset)
     const type = latin1.decode(bytes.subarray(offset + 4, offset + 8))
     const start = offset + 8
-    if (start + length > bytes.length || type === 'IEND') return null
+    if (type === 'IEND') return null
+    if (start + length > bytes.length) {
+      throw new Error('Could not read the draw.io diagram in this image: it is cut short')
+    }
     if (type === 'tEXt' || type === 'zTXt' || type === 'iTXt') {
       let diagram: string | null
       try {
@@ -67,30 +72,21 @@ function diagramInPNG(bytes: Uint8Array, budget: InflateBudget): string | null {
   return null
 }
 
-/** The draw.io diagram an SVG export carries in its root's `content` attribute, or null. */
-function diagramInSVG(text: string): string | null {
-  const root = parseXML(text)
-  if (root?.localName !== 'svg') return null
-  const content = root.getAttribute('content')
-  return content?.includes('<mxfile') || content?.includes('<mxGraphModel') ? content : null
-}
-
 /**
- * The draw.io XML a file holds: the file itself for `.drawio` and `.dio`, or the diagram a PNG or
- * SVG export embeds. Null when a PNG or SVG embeds none.
+ * The root element of the draw.io XML a file holds: the file itself for `.drawio` and `.dio`, or
+ * the diagram a PNG export embeds in a text chunk or an SVG export in its root's `content`. Null
+ * when the file is not XML or an export embeds no diagram.
  */
-export function drawioSource(bytes: Uint8Array, budget: InflateBudget): string | null {
-  if (isPNG(bytes)) return diagramInPNG(bytes, budget)
-  const text = utf8.decode(bytes)
-  if (
-    /^\s*(?:<\?xml[^>]*>\s*)?(?:<!--[\s\S]*?-->\s*)*(?:<!DOCTYPE[^>]*>\s*)?<svg[\s>]/i.test(text)
-  ) {
-    return diagramInSVG(text)
-  }
-  return text
+export function drawioRoot(bytes: Uint8Array, budget: InflateBudget): Element | null {
+  const source = isPNG(bytes) ? diagramInPNG(bytes, budget) : utf8.decode(bytes)
+  const root = source === null ? null : parseXML(source)
+  if (root?.localName !== 'svg') return root
+  const content = root.getAttribute('content')
+  return content ? parseXML(content) : null
 }
 
 /** Whether a file name is draw.io's for an editable export, such as `flow.drawio.png`. */
 export function isDrawioExportFileName(fileName: string): boolean {
-  return /\.drawio\.(?:png|svg)$/i.test(fileName)
+  const name = fileName.toLowerCase()
+  return name.endsWith('.drawio.png') || name.endsWith('.drawio.svg')
 }

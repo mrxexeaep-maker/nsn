@@ -18,7 +18,7 @@ function point(document: Document, at: DrawioPoint, as?: string): Element {
   return element
 }
 
-function geometry(document: Document, cell: DrawioCell, value: DrawioGeometry): Element {
+function geometry(document: Document, value: DrawioGeometry): Element {
   const element = document.createElement('mxGeometry')
   setNumber(element, 'x', value.x)
   setNumber(element, 'y', value.y)
@@ -28,7 +28,7 @@ function geometry(document: Document, cell: DrawioCell, value: DrawioGeometry): 
   element.setAttribute('as', 'geometry')
   if (value.sourcePoint) element.appendChild(point(document, value.sourcePoint, 'sourcePoint'))
   if (value.targetPoint) element.appendChild(point(document, value.targetPoint, 'targetPoint'))
-  if (value.points.length > 0 && cell.kind === 'edge') {
+  if (value.points.length > 0) {
     const points = document.createElement('Array')
     points.setAttribute('as', 'points')
     for (const at of value.points) points.appendChild(point(document, at))
@@ -53,7 +53,7 @@ function cellElement(document: Document, cell: DrawioCell): Element {
   element.setAttribute('parent', cell.parent)
   if (cell.source) element.setAttribute('source', cell.source)
   if (cell.target) element.setAttribute('target', cell.target)
-  element.appendChild(geometry(document, cell, cell.geometry))
+  element.appendChild(geometry(document, cell.geometry))
   if (!wrapped) return element
   const wrapper = document.createElement('UserObject')
   wrapper.setAttribute('label', cell.value)
@@ -90,9 +90,13 @@ function pageElement(document: Document, page: DrawioPage): Element {
 
 /**
  * A draw.io file as XML draw.io opens: each page a `<diagram>` holding its model uncompressed,
- * as draw.io itself saves by default, so the file diffs and reads as text.
+ * as draw.io itself saves by default, so the file diffs and reads as text. A file with pages that
+ * could not be read is refused, since writing it would drop them.
  */
 export function writeDrawioFile(file: DrawioFile): string {
+  if (file.unreadable.length > 0) {
+    throw new Error(`Could not write the draw.io pages ${file.unreadable.join(', ')}`)
+  }
   const document = new DOMImplementation().createDocument(null, 'mxfile', null)
   const root = document.documentElement
   if (!root) throw new Error('Could not create a draw.io document')

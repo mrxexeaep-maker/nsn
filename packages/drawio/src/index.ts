@@ -1,7 +1,7 @@
-import { drawioSource } from './embedded'
+import { drawioRoot } from './embedded'
 import { inflateBudget } from './inflate'
 import type { DrawioFile } from './model'
-import { parseDrawioFile } from './read'
+import { readDrawioRoot } from './read'
 
 export { isDrawioExportFileName } from './embedded'
 export { MAX_INFLATED_BYTES } from './inflate'
@@ -25,6 +25,6 @@ export { writeDrawioFile } from './write'
  */
 export function readDrawioBytes(bytes: Uint8Array): DrawioFile | null {
   const budget = inflateBudget()
-  const source = drawioSource(bytes, budget)
-  return source === null ? null : parseDrawioFile(source, budget)
+  const root = drawioRoot(bytes, budget)
+  return root ? readDrawioRoot(root, budget) : null
 }
