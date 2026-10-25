@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
-import { pixelLength } from '@open-pencil/scene-graph/text'
+import { percentLength, pixelLength } from '@open-pencil/scene-graph/text'
 
 import { renderNodesToSVG, type SVGTextLine } from '#core/io/formats/svg'
 
@@ -432,4 +432,16 @@ describe('SVG text case', () => {
     expect(runs).toContain('>MIXED </tspan>')
     expect(runs).toContain('>case</tspan>')
   })
+})
+
+// A run that changes the size spaces its characters at its own size, as the canvas does.
+test('a larger run resolves the percent spacing it inherits at its own size', () => {
+  const svg = exportText({
+    text: 'ab',
+    fontSize: 20,
+    letterSpacing: percentLength(10),
+    styleRuns: [{ start: 1, length: 1, style: { fontSize: 40 } }]
+  })
+  expect(svg).toContain('letter-spacing="2"')
+  expect(svg).toContain('<tspan font-size="40" letter-spacing="4">b</tspan>')
 })

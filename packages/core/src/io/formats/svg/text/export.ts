@@ -19,16 +19,20 @@ function styleOverrideToTspanAttrs(
   style: CharacterStyleOverride,
   colorSpace: 'srgb' | 'display-p3',
   parentFillOpacity: number | undefined,
-  nodeFontSize: number
+  node: Pick<SceneNode, 'fontSize' | 'letterSpacing'>
 ): Record<string, string | number | undefined> {
   const attrs: Record<string, string | number | undefined> = {}
   if (style.fontFamily) attrs['font-family'] = style.fontFamily
   if (style.fontSize) attrs['font-size'] = style.fontSize
   if (style.fontWeight) attrs['font-weight'] = style.fontWeight
   if (style.italic) attrs['font-style'] = 'italic'
-  // A percent spacing follows the run's own font size.
-  const letterSpacing =
-    style.letterSpacing && textLengthPixels(style.letterSpacing, style.fontSize ?? nodeFontSize)
+  // A percent spacing follows the run's own font size, the layer's too where the run inherits it.
+  const inherited =
+    style.fontSize !== undefined && node.letterSpacing.unit === 'PERCENT'
+      ? node.letterSpacing
+      : undefined
+  const spacing = style.letterSpacing ?? inherited
+  const letterSpacing = spacing && textLengthPixels(spacing, style.fontSize ?? node.fontSize)
   if (letterSpacing) attrs['letter-spacing'] = round(letterSpacing)
   if (style.textDecoration === 'UNDERLINE') attrs['text-decoration'] = 'underline'
   if (style.textDecoration === 'STRIKETHROUGH') attrs['text-decoration'] = 'line-through'
@@ -150,7 +154,7 @@ export function renderTextNode(
     ...(fontAlias ? aliasedFontAttrs(textFontFace(node), fontAlias) : {})
   }
   const spanAttrs = (style: CharacterStyleOverride) => ({
-    ...styleOverrideToTspanAttrs(style, colorSpace, fillOpacity, node.fontSize),
+    ...styleOverrideToTspanAttrs(style, colorSpace, fillOpacity, node),
     ...(fontAlias ? aliasedFontAttrs(textFontFace(node, style), fontAlias) : {})
   })
 
