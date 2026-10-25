@@ -20,7 +20,7 @@ async function setup() {
     join(FIXTURES, 'fonts', 'MaterialSymbolsRounded-home-dark_mode.ttf')
   ).arrayBuffer()
   const requests: URL[] = []
-  const provider = createMaterialSymbolsProvider(async (input) => {
+  const google = async (input: string | URL | Request) => {
     const url = new URL(String(input))
     requests.push(url)
     if (url.pathname === '/css2')
@@ -31,7 +31,10 @@ async function setup() {
     )
     if (url.hostname === 'cdn.jsdelivr.net' && list?.[1]) return new Response(CODEPOINTS[list[1]])
     return new Response(null, { status: 404 })
-  })
+  }
+  const provider = createMaterialSymbolsProvider(
+    Object.assign(google, { preconnect: fetch.preconnect })
+  )
   return { provider, requests }
 }
 
