@@ -105,6 +105,11 @@ export function fontNameInputStyle(
   const settings = input.variationSettings ?? {}
   const tags = Object.keys(settings)
   const variation = fontManager.familyVariation(input.family)
+  if (tags.length > 0 && variation === undefined) {
+    throw new Error(
+      `in ${method}: Font family "${input.family}" is not loaded, so its variation axes are unknown. Call loadFontAsync first.`
+    )
+  }
   if (tags.length > 0 && variation === null) {
     throw new Error(
       `in ${method}: "${tags[0]}" is not a valid variation setting. Font "${input.family}" has no variation axes.`

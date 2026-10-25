@@ -79,7 +79,7 @@ describe('variable fonts in the plugin API', () => {
     expect(node.fontName).toMatchObject({ style: 'Bold', variationSettings: { wght: 700 } })
   })
 
-  test('rejects axes the family does not have, as Figma does', () => {
+  test('rejects axes the family does not have, as Figma does, and axes of a family not loaded', () => {
     const { node } = text()
     expect(() => {
       node.fontName = { family: VARIABLE, style: 'Regular', variationSettings: { slnt: -10 } }
@@ -91,6 +91,13 @@ describe('variable fonts in the plugin API', () => {
     }).toThrow(
       `in set_fontName: "wght" is not a valid variation setting. Font "${STATIC}" has no variation axes.`
     )
+    expect(() => {
+      node.fontName = {
+        family: 'Variations Unloaded',
+        style: 'Regular',
+        variationSettings: { wght: 700 }
+      }
+    }).toThrow('in set_fontName: Font family "Variations Unloaded" is not loaded')
   })
 
   test('reads an optical size that follows the font size as the style’s own', () => {
