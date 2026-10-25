@@ -132,6 +132,8 @@ const {
   hitTestStatusLabel
 } = useCanvas(canvasRef, store, {
   layer: 'overlays',
+  // The scene canvas reports a canvas that cannot start.
+  onFailed: () => undefined,
   get showRulers() {
     return appRuntimeConfig.showRulers && store.state.showRulers && paneView.value.play === null
   },
