@@ -14,7 +14,8 @@ import {
   getTabsSnapshot,
   openFileInNewTab,
   showNewTab,
-  tabCount
+  tabCount,
+  withHomePinned
 } from '@/app/tabs'
 import { fileIdentitiesMatch, findTabByFileIdentity } from '@/app/tabs/open/identity'
 
@@ -180,6 +181,14 @@ describe('openFileInNewTab deduplication', () => {
     expect(getTabsSnapshot()[0]?.id).toBe(home.id)
     await closeTab(home.id)
     expect(getTabsSnapshot().filter((tab) => tab.kind === 'home')).toEqual([home])
+  })
+
+  test('pins Home first only when the tabs have none', () => {
+    const design = createTab()
+    const home = createHomeTab()
+    expect(withHomePinned([design], () => home)).toEqual([home, design])
+    const pinned = [home, design]
+    expect(withHomePinned(pinned, () => createTab())).toBe(pinned)
   })
 
   test('opens a file from Home in a tab of its own, leaving Home as it is', async () => {

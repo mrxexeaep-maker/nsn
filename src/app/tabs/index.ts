@@ -127,12 +127,19 @@ export function showNewTab(): void {
   createHomeTab()
 }
 
+/** `tabs` with a Home first: as they are when they have one, or with `home()` put in front. */
+export function withHomePinned(tabs: readonly Tab[], home: () => Tab): readonly Tab[] {
+  return tabs.some((tab) => tab.kind === 'home') ? tabs : [home(), ...tabs]
+}
+
 /** Pins Home first when it is missing, leaving the tab in front where it is. */
 export function ensureHomeTab(): void {
-  if (tabsRef.value.some((tab) => tab.kind === 'home')) return
-  const front = activeTab.value
-  createHomeTab()
-  if (front) activateTab(front)
+  const pinned = withHomePinned(tabsRef.value, () => ({
+    id: generateTabId(),
+    store: createEditorStore(),
+    kind: 'home'
+  }))
+  if (pinned !== tabsRef.value) tabsRef.value = [...pinned]
 }
 
 function activateTab(tab: Tab) {
