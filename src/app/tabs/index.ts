@@ -211,22 +211,30 @@ function isDOMImportFile(file: File): boolean {
   return /\.(html?|xhtml)$/i.test(file.name)
 }
 
-/** A tab a document opens in: a new one, or an untouched empty design in front; never Home. */
-type OpeningTab = { store: EditorStore; created: boolean }
+/**
+ * A tab a document opens in: a new one, or an untouched empty design in front; never Home. `from`
+ * is the tab in front when the open began, which comes back to the front if the open fails.
+ */
+type OpeningTab = { store: EditorStore; created: boolean; from: Tab | undefined }
 
 function reusableTabStore(): OpeningTab {
   const current = activeTab.value
+  const source = current?.store.getSourceIdentity()
   const isUntouched =
     current?.kind === 'document' &&
     current.store.state.documentName === 'Untitled' &&
     !current.store.undo.canUndo &&
     current.store.getStorageBinding() === null &&
-    current.store.getSourceIdentity().path === null
-  if (current && isUntouched) return { store: current.store, created: false }
-  return { store: createTab().store, created: true }
+    source?.path === null &&
+    source.handle === null
+  if (current && isUntouched) return { store: current.store, created: false, from: current }
+  return { store: createTab().store, created: true, from: current }
 }
 
-/** After a document failed to open, a tab opened for it closes; an empty design it reused stays. */
+/**
+ * After a document failed to open, a tab opened for it closes and the tab in front before it, such
+ * as Home, comes back; an empty design it reused stays.
+ */
 async function releaseOpeningTab(opening: OpeningTab): Promise<void> {
   if (!opening.created) return
   const tab = getTabForStore(opening.store)
@@ -239,7 +247,9 @@ async function releaseOpeningTab(opening: OpeningTab): Promise<void> {
       error
     )
   })
+  const wasActive = activeTabId.value === tab.id
   removeTab(tab)
+  if (wasActive && opening.from && tabsRef.value.includes(opening.from)) activateTab(opening.from)
 }
 
 async function readFigForTab(file: File, signal?: AbortSignal): Promise<SceneGraph> {

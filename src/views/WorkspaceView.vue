@@ -109,6 +109,8 @@ function openFirstTab(): Tab {
   if (roomId) {
     if (joinRoomFromInput(roomId) && activeTab.value) return activeTab.value
     toast.error(collaboration.value.invalidRoomLink)
+    // A link that fails leaves the person on Home, not in an empty design.
+    if (pinHome) return createHomeTab()
   }
   return showHomeFirst || opensCloudLink ? createHomeTab() : createTab()
 }

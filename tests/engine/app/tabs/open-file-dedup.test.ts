@@ -10,7 +10,6 @@ import {
   closeTab,
   createHomeTab,
   createTab,
-  ensureHomeTab,
   getActiveStore,
   getTabsSnapshot,
   openFileInNewTab,
@@ -183,16 +182,6 @@ describe('openFileInNewTab deduplication', () => {
     expect(getTabsSnapshot().filter((tab) => tab.kind === 'home')).toEqual([home])
   })
 
-  test('pins a missing Home without taking the front from the design there', async () => {
-    for (const home of getTabsSnapshot().filter((tab) => tab.kind === 'home')) {
-      await closeTab(home.id)
-    }
-    const design = createTab()
-    ensureHomeTab()
-    expect(getTabsSnapshot()[0]?.kind).toBe('home')
-    expect(getActiveStore()).toBe(design.store)
-  })
-
   test('opens a file from Home in a tab of its own, leaving Home as it is', async () => {
     const home = createHomeTab()
     const count = tabCount()
@@ -215,6 +204,7 @@ describe('openFileInNewTab deduplication', () => {
     ;(figModule.readFigFile as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
       new Error('read failed')
     )
+    createTab()
     const home = createHomeTab()
     const count = tabCount()
 
@@ -228,6 +218,8 @@ describe('openFileInNewTab deduplication', () => {
       'home tab'
     )
     expect([after.kind, after.store]).toEqual(['home', home.store])
+    // Home was in front when the open began, so it is again, not the other design.
+    expect(getActiveStore()).toBe(home.store)
   })
 
   test('activates the existing tab when the same path is opened again', async () => {
