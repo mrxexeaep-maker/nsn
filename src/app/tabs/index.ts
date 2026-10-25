@@ -157,6 +157,13 @@ export function switchTab(tabId: string): boolean {
   return true
 }
 
+function disposeTabStore(store: EditorStore): void {
+  coverThumbnailListeners.get(store)?.()
+  coverThumbnailListeners.delete(store)
+  store.preparationController.dispose()
+  store.dispose()
+}
+
 /**
  * Close a tab, asking whether to save unsaved changes. Pass `unsaved` to decide without
  * asking, as automation must: nobody may be there to answer.
@@ -176,10 +183,7 @@ export async function closeTab(tabId: string, unsaved?: 'save' | 'discard'): Pro
   if (!tabsRef.value.includes(closingTab)) return
   if (choice !== 'discard' && closingTab.store.hasUnsavedChanges()) return
   const wasActive = activeTabId.value === tabId
-  coverThumbnailListeners.get(closingTab.store)?.()
-  coverThumbnailListeners.delete(closingTab.store)
-  closingTab.store.preparationController.dispose()
-  closingTab.store.dispose()
+  disposeTabStore(closingTab.store)
   tabsRef.value = tabsRef.value.filter((t) => t.id !== tabId)
 
   if (tabsRef.value.length === 0) {
@@ -221,17 +225,25 @@ function reusableTabStore(): OpeningTab {
   return { store: createTab().store, created: true, fromHome: false }
 }
 
-/** After a document failed to open: a tab opened for it closes, and Home is Home again. */
+/**
+ * After a document failed to open: a tab opened for it closes, and Home is Home again, with a
+ * fresh store, so nothing of the failed document stays for the next one opened there.
+ */
 async function releaseOpeningTab(opening: OpeningTab): Promise<void> {
   const tab = getTabForStore(opening.store)
   if (!tab) return
   if (opening.created) {
-    await closeTab(tab.id)
+    await closeTab(tab.id, 'discard')
     return
   }
   if (!opening.fromHome) return
   const tabIndex = tabsRef.value.findIndex((candidate) => candidate.id === tab.id)
-  if (tabIndex !== -1) tabsRef.value = tabsRef.value.with(tabIndex, { ...tab, kind: 'home' })
+  if (tabIndex === -1) return
+  await tab.store.discardRecovery()
+  const home: Tab = { ...tab, kind: 'home', store: createEditorStore() }
+  tabsRef.value = tabsRef.value.with(tabIndex, home)
+  if (activeTabId.value === tab.id) activateTab(home)
+  disposeTabStore(tab.store)
 }
 
 async function readFigForTab(file: File, signal?: AbortSignal): Promise<SceneGraph> {
