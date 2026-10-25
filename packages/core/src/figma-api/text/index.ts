@@ -41,7 +41,8 @@ export interface FigmaLetterSpacing {
 /** Figma's complaint about a length's `.value`, or null when it is a number. */
 function amountProblem(amount: unknown): string | null {
   if (amount === undefined) return 'Required value missing at .value'
-  return typeof amount === 'number'
+  // NaN is a number to typeof, but not to Figma's check.
+  return typeof amount === 'number' && !Number.isNaN(amount)
     ? null
     : `Expected number, received ${received(amount)} at .value`
 }

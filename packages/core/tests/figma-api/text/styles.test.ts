@@ -363,3 +363,23 @@ describe('character style ranges', () => {
     ).toThrow(color('Number must be greater than or equal to 0 at .value.color.r'))
   })
 })
+
+// A range's own solid draws at its colour's alpha times its opacity; the layer's draws at opacity.
+test('a range reads the alpha its own fills draw at, and the layer keeps its opacity', () => {
+  const graph = new SceneGraph()
+  const text = new FigmaAPI(graph).createText()
+  text.characters = 'ab'
+  const half = { r: 1, g: 0, b: 0, a: 0.5 }
+  graph.updateNode(text.id, {
+    fills: [{ type: 'SOLID', color: half, opacity: 0.5, visible: true }],
+    styleRuns: [
+      {
+        start: 1,
+        length: 1,
+        style: { fills: [{ type: 'SOLID', color: half, opacity: 0.5, visible: true }] }
+      }
+    ]
+  })
+  expect(text.getRangeFills(0, 1)).toMatchObject([{ opacity: 0.5, color: { r: 1, g: 0, b: 0 } }])
+  expect(text.getRangeFills(1, 2)).toMatchObject([{ opacity: 0.25, color: { r: 1, g: 0, b: 0 } }])
+})

@@ -68,6 +68,22 @@ function fontFeatureMap(style: CharacterStyle): Record<string, boolean> {
 
 type FieldContext = { node: SceneNode; style: CharacterStyle; paragraph: number }
 
+/**
+ * A character's fills as Figma reads them. Fills a range sets draw at the colour's alpha times the
+ * paint's opacity, so a solid reads that product as its opacity; the layer's own fills, which
+ * characters without fills of their own share, draw at their opacity alone.
+ */
+function rangeFills(node: SceneNode, style: CharacterStyle): FigmaPaint[] {
+  if (style.fills === node.fills) return style.fills.map((paint) => toFigmaPaint(paint))
+  return style.fills.map((paint) =>
+    toFigmaPaint(
+      paint.type === 'SOLID'
+        ? { ...paint, opacity: paint.opacity * paint.color.a, color: { ...paint.color, a: 1 } }
+        : paint
+    )
+  )
+}
+
 /** The decoration's own style reads null where the text is not underlined. */
 function whenUnderlined(read: (style: CharacterStyle) => unknown) {
   return ({ style }: FieldContext) => (underlined(style) ? read(style) : null)
@@ -108,7 +124,7 @@ const FIELD_READERS: Record<TextSegmentField, (context: FieldContext) => unknown
   textCase: ({ style }) => style.textCase,
   lineHeight: ({ style }) => (style.lineHeight ? { ...style.lineHeight } : { unit: 'AUTO' }),
   letterSpacing: ({ style }) => ({ ...style.letterSpacing }),
-  fills: ({ style }) => style.fills.map((paint) => toFigmaPaint(paint)),
+  fills: ({ node, style }) => rangeFills(node, style),
   textStyleId: ({ style }) => style.textStyleId ?? '',
   fillStyleId: ({ style }) => style.fillStyleId ?? '',
   listOptions: ({ node, paragraph }) => ({

@@ -63,6 +63,9 @@ describe('text units in the plugin API', () => {
     expect(set('letterSpacing', { unit: 'AUTO' })).toThrow(
       'in set_letterSpacing: Property "letterSpacing" failed validation: Required value missing at .value\nInvalid option: expected one of "PIXELS"|"PERCENT" at .unit'
     )
+    expect(set('lineHeight', { unit: 'PIXELS', value: Number.NaN })).toThrow(
+      'in set_lineHeight: Property "lineHeight" failed validation: Expected number, received nan at .value'
+    )
     expect(set('letterSpacing', { unit: 'RAW', value: 1 })).toThrow(
       'in set_letterSpacing: Property "letterSpacing" failed validation: Invalid option: expected one of "PIXELS"|"PERCENT" at .unit'
     )
