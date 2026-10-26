@@ -204,7 +204,7 @@ return <Frame name="Card" flex="col" mode={roomy} p={space.Base} />`
 
     const exported = sceneNodeToJSX(card.id, graph)
     // Derived aliases its own collection, so it and Spacing, which aliases it, stay references.
-    expect(exported).not.toContain('defineVars("Theme"')
+    expect(exported).not.toContain('defineVars(')
     expect(exported).toContain('rounded={designVar("Spacing")}')
     const [copy] = await renderJSX(graph, exported)
     expect(graph.getNode(copy.id)?.boundVariables).toEqual({

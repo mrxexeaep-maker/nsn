@@ -168,6 +168,133 @@ interface DefinedCollection {
   modes: Map<string, string>
 }
 
+/** The variable a value aliases, if it is an alias. */
+function aliasOf(value: VariableValue | undefined): string | undefined {
+  return typeof value === 'object' && 'aliasId' in value ? value.aliasId : undefined
+}
+
+/**
+ * Whether rendering finds `variable` again by its collection's name and its own, as definitions
+ * are found: a name another collection or variable shares stays a reference rather than redefine
+ * whichever comes first.
+ */
+function findsByName(graph: SceneGraph, variable: Variable): boolean {
+  const collection = graph.variableCollections.get(variable.collectionId)
+  if (!collection) return false
+  try {
+    return (
+      collectionNamed(graph, collection.name) === collection &&
+      resolveVariableId(graph, designVar(collection.name, variable.name)) === variable.id
+    )
+  } catch {
+    return false
+  }
+}
+
+/** The variables the layers bind that JSX can define, with every variable they alias. */
+function definableVariables(graph: SceneGraph, rootIds: readonly string[]): Set<string> {
+  const included = new Set<string>()
+  const include = (variableId: string) => {
+    const variable = graph.variables.get(variableId)
+    if (!variable || included.has(variableId) || !definable(variable)) return
+    if (!findsByName(graph, variable)) return
+    included.add(variableId)
+    for (const value of Object.values(variable.valuesByMode)) {
+      const target = aliasOf(value)
+      if (target) include(target)
+    }
+  }
+  for (const id of boundVariableIds(graph, rootIds)) include(id)
+  return included
+}
+
+/** The variables by collection, each in its collection's order, as the variables panel lists them. */
+function byCollectionOf(graph: SceneGraph, included: Set<string>): Map<string, Variable[]> {
+  const byCollection = new Map<string, Variable[]>()
+  for (const id of included) {
+    const variable = graph.variables.get(id)
+    if (variable)
+      byCollection.set(variable.collectionId, [
+        ...(byCollection.get(variable.collectionId) ?? []),
+        variable
+      ])
+  }
+  for (const [collectionId, variables] of byCollection) {
+    const listed = graph.variableCollections.get(collectionId)?.variableIds ?? []
+    variables.sort((a, b) => listed.indexOf(a.id) - listed.indexOf(b.id))
+  }
+  return byCollection
+}
+
+/** The collections in the order they are declared: after the ones their first mode aliases. */
+function declarationOrder(graph: SceneGraph, byCollection: Map<string, Variable[]>): string[] {
+  const order: string[] = []
+  const visiting = new Set<string>()
+  const visit = (collectionId: string) => {
+    if (order.includes(collectionId) || visiting.has(collectionId)) return
+    visiting.add(collectionId)
+    const collection = graph.variableCollections.get(collectionId)
+    for (const variable of byCollection.get(collectionId) ?? []) {
+      const target = collection && aliasOf(variable.valuesByMode[collection.defaultModeId])
+      const aliased = target ? graph.variables.get(target) : undefined
+      if (aliased) visit(aliased.collectionId)
+    }
+    order.push(collectionId)
+  }
+  for (const id of byCollection.keys()) visit(id)
+  return order
+}
+
+/**
+ * What an export declares: the variables it can define and still have its code run. A first-mode
+ * value can only name a collection declared before its own, so one that aliases its own
+ * collection, or a later one in a cycle, is written by reference, which keeps the alias; and a
+ * declared value may alias only a declared variable, so one that aliases a reference, in any mode,
+ * is written by reference too.
+ */
+function declaredVariables(graph: SceneGraph, rootIds: readonly string[]) {
+  const included = definableVariables(graph, rootIds)
+  let byCollection = byCollectionOf(graph, included)
+  const order = declarationOrder(graph, byCollection)
+  const declaredEarlier = (variable: Variable) => {
+    const collection = graph.variableCollections.get(variable.collectionId)
+    const target = collection && aliasOf(variable.valuesByMode[collection.defaultModeId])
+    const aliased = target && included.has(target) ? graph.variables.get(target) : undefined
+    return !aliased || order.indexOf(aliased.collectionId) < order.indexOf(variable.collectionId)
+  }
+  const aliasesDeclared = (variable: Variable) =>
+    Object.values(variable.valuesByMode).every((value) => {
+      const target = aliasOf(value)
+      return !target || included.has(target)
+    })
+  for (const variable of [...byCollection.values()].flat()) {
+    if (!declaredEarlier(variable)) included.delete(variable.id)
+  }
+  for (let dropped = 1; dropped > 0;) {
+    const unresolved = [...included].flatMap((id) => {
+      const variable = graph.variables.get(id)
+      return variable && !aliasesDeclared(variable) ? [id] : []
+    })
+    for (const id of unresolved) included.delete(id)
+    dropped = unresolved.length
+  }
+  // What is left is declared only if a layer still uses it, itself or through an alias.
+  const used = new Set<string>()
+  const use = (variableId: string) => {
+    const variable = graph.variables.get(variableId)
+    if (!variable || used.has(variableId) || !included.has(variableId)) return
+    used.add(variableId)
+    for (const value of Object.values(variable.valuesByMode)) {
+      const target = aliasOf(value)
+      if (target) use(target)
+    }
+  }
+  for (const id of boundVariableIds(graph, rootIds)) use(id)
+  for (const id of included) if (!used.has(id)) included.delete(id)
+  byCollection = byCollectionOf(graph, included)
+  return { included, byCollection, order }
+}
+
 /**
  * Writes the collections the layers use as `defineVars`, with a `defineMode` for each mode after
  * the first, so the JSX carries its tokens: only the variables it binds and those they alias.
@@ -176,107 +303,13 @@ interface DefinedCollection {
  */
 function definitionExport(graph: SceneGraph, rootIds: readonly string[]): VariableExport {
   const references = variableReferences(graph)
-  const variableIds = boundVariableIds(graph, rootIds)
-  const findsVariable = (collection: VariableCollection, variable: Variable) => {
-    try {
-      return resolveVariableId(graph, designVar(collection.name, variable.name)) === variable.id
-    } catch {
-      return false
-    }
-  }
-  const finds = (collection: VariableCollection) => {
-    try {
-      return collectionNamed(graph, collection.name) === collection
-    } catch {
-      return false
-    }
-  }
-  const included = new Set<string>()
-  const include = (variableId: string) => {
-    const variable = graph.variables.get(variableId)
-    if (!variable || included.has(variableId) || !definable(variable)) return
-    const collection = graph.variableCollections.get(variable.collectionId)
-    // Rendering finds a defined collection and its variables by name, so a name that is shared
-    // stays a reference rather than redefine whichever variable comes first.
-    if (!collection || !finds(collection) || !findsVariable(collection, variable)) return
-    included.add(variableId)
-    for (const value of Object.values(variable.valuesByMode)) {
-      if (typeof value === 'object' && 'aliasId' in value) include(value.aliasId)
-    }
-  }
-  for (const id of variableIds) include(id)
-
-  // A collection is declared after the ones its first mode aliases, as its values refer to them.
-  const byCollection = new Map<string, Variable[]>()
-  for (const id of included) {
-    const variable = graph.variables.get(id)
-    if (!variable) continue
-    byCollection.set(variable.collectionId, [
-      ...(byCollection.get(variable.collectionId) ?? []),
-      variable
-    ])
-  }
-  // Variables are written in their collection's order, as the variables panel lists them.
-  for (const [collectionId, variables] of byCollection) {
-    const listed = graph.variableCollections.get(collectionId)?.variableIds ?? []
-    variables.sort((a, b) => listed.indexOf(a.id) - listed.indexOf(b.id))
-  }
-  const order: string[] = []
-  const visiting = new Set<string>()
-  const visit = (collectionId: string) => {
-    if (order.includes(collectionId) || visiting.has(collectionId)) return
-    visiting.add(collectionId)
-    const collection = graph.variableCollections.get(collectionId)
-    for (const variable of byCollection.get(collectionId) ?? []) {
-      const value = collection && variable.valuesByMode[collection.defaultModeId]
-      if (typeof value === 'object' && 'aliasId' in value) {
-        const target = graph.variables.get(value.aliasId)
-        if (target) visit(target.collectionId)
-      }
-    }
-    order.push(collectionId)
-  }
-  for (const id of byCollection.keys()) visit(id)
-  // A first-mode value can only name a collection declared before its own; one that aliases its
-  // own collection, or a later one in a cycle, is written by reference, which keeps the alias.
-  for (const [index, collectionId] of order.entries()) {
-    const collection = graph.variableCollections.get(collectionId)
-    const kept = (byCollection.get(collectionId) ?? []).filter((variable) => {
-      const value = collection && variable.valuesByMode[collection.defaultModeId]
-      if (typeof value !== 'object' || !('aliasId' in value) || !included.has(value.aliasId))
-        return true
-      const target = graph.variables.get(value.aliasId)
-      if (!target || order.indexOf(target.collectionId) < index) return true
-      included.delete(variable.id)
-      return false
-    })
-    byCollection.set(collectionId, kept)
-  }
-  // A declared value may alias only a declared variable: one that aliases a variable written by
-  // reference, in any mode, is written by reference too, which a fresh document cannot resolve.
-  for (let pruned = true; pruned;) {
-    pruned = false
-    for (const [collectionId, variables] of byCollection) {
-      const kept = variables.filter((variable) => {
-        const aliasesDeclared = Object.values(variable.valuesByMode).every(
-          (value) =>
-            typeof value !== 'object' || !('aliasId' in value) || included.has(value.aliasId)
-        )
-        if (!aliasesDeclared) {
-          included.delete(variable.id)
-          pruned = true
-        }
-        return aliasesDeclared
-      })
-      byCollection.set(collectionId, kept)
-    }
-  }
+  const { included, byCollection, order } = declaredVariables(graph, rootIds)
 
   const taken = new Set(TAKEN)
   const defined = new Map<string, DefinedCollection>()
   for (const collectionId of order) {
     const collection = graph.variableCollections.get(collectionId)
-    if (!collection || byCollection.get(collectionId)?.length === 0) continue
+    if (!collection || !byCollection.get(collectionId)?.length) continue
     defined.set(collectionId, {
       collection,
       name: handleName(collection.name, taken, 'vars'),
