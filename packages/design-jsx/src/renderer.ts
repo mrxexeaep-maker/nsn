@@ -395,8 +395,8 @@ async function renderInstanceNode(
     graph.updateNode(instance.id, { instanceOverrides: instance.instanceOverrides })
     applyBindings(graph, instance.id, bindings)
     applyInstanceOverrides(graph, instance, tree.props.overrides)
-    assignNamedProperties(graph, instance, props)
-    assignComponentProperties(graph, instance, props.properties)
+    assignNamedProperties(graph, instance, props, componentIdNamed(graph))
+    assignComponentProperties(graph, instance, props.properties, componentIdNamed(graph))
     if (props.exposed === true) exposeInstance(graph, instance)
     return instance
   } catch (error) {

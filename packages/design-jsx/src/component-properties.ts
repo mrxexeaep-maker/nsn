@@ -121,7 +121,7 @@ export function bindProperties(
   source: Record<string, unknown>,
   type: SceneNode['type'],
   parentId: string,
-  componentId: (name: string) => string | undefined
+  componentId: ComponentLookup
 ): BoundProperties {
   if (source.properties !== undefined && type !== 'INSTANCE')
     throw new Error('Only instances accept properties; bind a field to property() instead')
@@ -186,18 +186,24 @@ function namedDefinition(
   return matches[0]
 }
 
+/** The ID of the component a name or ID names, as `<Instance of>` finds it. */
+export type ComponentLookup = (nameOrId: string) => string | undefined
+
 function assignValue(
   graph: SceneGraph,
   instance: SceneNode,
   definition: ComponentPropertyDefinition,
   key: string,
-  value: string
+  value: string,
+  componentId: ComponentLookup
 ): void {
   if (definition.type === 'VARIANT')
     throw new Error('Select a component-set variant when creating the instance')
   if (definition.type === 'BOOLEAN' && value !== 'true' && value !== 'false')
     throw new Error(`Expected true or false for component property: ${key}`)
-  if (!applyComponentPropertyValue(graph, instance.id, definition, value))
+  // A swap names its component as `of` does: by ID or by name.
+  const assigned = definition.type === 'INSTANCE_SWAP' ? (componentId(value) ?? value) : value
+  if (!applyComponentPropertyValue(graph, instance.id, definition, assigned))
     throw new Error(`Cannot assign component property: ${key}`)
 }
 
@@ -256,7 +262,8 @@ function assignExposedInstance(
   graph: SceneGraph,
   instance: SceneNode,
   name: string,
-  input: unknown
+  input: unknown,
+  componentId: ComponentLookup
 ): void {
   const nested = exposedInstanceNamed(graph, instance, name)
   if (!nested) throw new Error(`Unknown component property or exposed instance: ${name}`)
@@ -277,7 +284,7 @@ function assignExposedInstance(
     if (variantNames.has(key)) continue
     const definition = namedDefinition(definitions, key)
     if (!definition) throw new Error(`Unknown component property on ${name}: ${key}`)
-    assignValue(graph, nested, definition, key, String(value))
+    assignValue(graph, nested, definition, key, String(value), componentId)
   }
 }
 
@@ -289,7 +296,8 @@ function assignExposedInstance(
 export function assignNamedProperties(
   graph: SceneGraph,
   instance: SceneNode,
-  props: Record<string, unknown>
+  props: Record<string, unknown>,
+  componentId: ComponentLookup
 ): void {
   const definitions = componentPropertyDefinitions(graph, instance).filter(
     (definition) => definition.type !== 'VARIANT'
@@ -297,14 +305,14 @@ export function assignNamedProperties(
   for (const [key, value] of Object.entries(props)) {
     if (DESIGN_JSX_SUPPORTED_PROPERTIES.has(key)) continue
     if (isPlainObject(value) && exposedInstanceNamed(graph, instance, key)) {
-      assignExposedInstance(graph, instance, key, value)
+      assignExposedInstance(graph, instance, key, value, componentId)
       continue
     }
     const definition = namedDefinition(definitions, key)
     if (!definition) continue
     if (typeof value !== 'string' && typeof value !== 'boolean' && typeof value !== 'number')
       throw new Error(`Expected a string or boolean for component property: ${key}`)
-    assignValue(graph, instance, definition, key, String(value))
+    assignValue(graph, instance, definition, key, String(value), componentId)
   }
 }
 
@@ -315,24 +323,25 @@ export function assignNamedProperties(
 export function assignComponentProperties(
   graph: SceneGraph,
   instance: SceneNode,
-  input: unknown
+  input: unknown,
+  componentId: ComponentLookup
 ): void {
   if (input === undefined) return
   const assignments = parseScriptInput(
     'Invalid properties on <Instance>',
-    v.record(v.string(), v.union([v.string(), exposedValuesSchema])),
+    v.record(v.string(), v.union([assignedValueSchema, exposedValuesSchema])),
     input
   )
   const definitions = componentPropertyDefinitions(graph, instance)
   for (const [key, value] of Object.entries(assignments)) {
-    if (typeof value !== 'string') {
-      assignExposedInstance(graph, instance, key, value)
+    if (isPlainObject(value)) {
+      assignExposedInstance(graph, instance, key, value, componentId)
       continue
     }
     const definition =
       definitions.find((item) => item.id === key) ?? namedDefinition(definitions, key)
     if (!definition) throw new Error(`Unknown component property: ${key}`)
-    assignValue(graph, instance, definition, key, value)
+    assignValue(graph, instance, definition, key, String(value), componentId)
   }
 }
 

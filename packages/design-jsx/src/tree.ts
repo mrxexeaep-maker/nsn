@@ -259,5 +259,5 @@ export type InstanceProps = NodeProps & {
   /** Show the instance's own properties on instances of the component it is in, as Figma does. */
   exposed?: boolean
   /** Values by property ID or name, or an exposed nested instance's values by its name. */
-  properties?: Record<string, string | Record<string, string | boolean | number>>
+  properties?: Record<string, string | boolean | number | Record<string, string | boolean | number>>
 }

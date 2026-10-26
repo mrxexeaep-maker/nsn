@@ -20,7 +20,8 @@ test('only instances take property values; layers bind fields to property()', ()
   expectTypeOf<Parameters<typeof Text>[0]['properties']>().toEqualTypeOf<undefined>()
   expectTypeOf<Parameters<typeof Component>[0]['properties']>().toEqualTypeOf<undefined>()
   expectTypeOf<Parameters<typeof Instance>[0]['properties']>().toEqualTypeOf<
-    Record<string, string | Record<string, string | boolean | number>> | undefined
+    | Record<string, string | boolean | number | Record<string, string | boolean | number>>
+    | undefined
   >()
   expectTypeOf<Parameters<typeof Text>[0]['text']>().toEqualTypeOf<
     string | ComponentProperty<string> | undefined
@@ -75,7 +76,7 @@ test('assigns real text and visibility properties without resolving child names'
   const { graph, component } = await setup()
   const result = await renderTree(
     graph,
-    Instance({ of: component.id, properties: { Message: 'June’s review', Visible: 'false' } })
+    Instance({ of: component.id, properties: { Message: 'June’s review', Visible: false } })
   )
   const instance = getNodeOrThrow(graph, result.id)
   const children = graph.getChildren(instance.id)
@@ -152,9 +153,9 @@ test('an assignment of the wrong type names the prop and the property', async ()
   const { graph, component } = await setup()
   await expect(
     // A script can pass any value; the types only describe valid calls.
-    renderTree(graph, Instance({ of: component.id, properties: { Message: 42 } as never }))
+    renderTree(graph, Instance({ of: component.id, properties: { Message: null } as never }))
   ).rejects.toThrow(
-    'Invalid properties on <Instance>:\n× Invalid type: Expected (string | Object) but received 42\n  → at Message'
+    'Invalid properties on <Instance>:\n× Invalid type: Expected ((string | boolean | number) | Object) but received null\n  → at Message'
   )
 })
 
@@ -186,6 +187,8 @@ test('binds an instance swap through of, its default the component of names', as
   expect(getNodeOrThrow(graph, component.id).componentPropertyDefinitions).toMatchObject([
     { name: 'Slot', type: 'INSTANCE_SWAP', defaultValue: first.id }
   ])
+  const named = await renderTree(graph, Instance({ of: component.id, Slot: 'Second' }))
+  expect(graph.getChildren(named.id)[0].componentId).toBe(second.id)
   const result = await renderTree(graph, Instance({ of: component.id, Slot: second.id }))
   expect(graph.getChildren(result.id)[0].componentId).toBe(second.id)
   graph.syncInstances(component.id)
