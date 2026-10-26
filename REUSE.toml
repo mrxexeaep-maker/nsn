@@ -39,3 +39,11 @@ path = [
 precedence = "override"
 SPDX-FileCopyrightText = "2026 Danila Poyarkov and OpenPencil contributors"
 SPDX-License-Identifier = "MIT"
+
+# Mermaid's flowchart grammar and the parser generated from it, copied from a pinned Mermaid
+# release by tools/generate/mermaid-grammars.
+[[annotations]]
+path = "packages/mermaid/src/grammar/**"
+precedence = "override"
+SPDX-FileCopyrightText = "2014 - 2022 Knut Sveidqvist"
+SPDX-License-Identifier = "MIT"
