@@ -1,0 +1,2 @@
+- Design JSX defines variables: `defineVars` adds a collection to the file's variables table, `defineMode` adds a mode to it, and a variable used as a value makes an alias. Running the same JSX again updates them instead of adding copies.
+- Design JSX pins a layer's variable modes with `mode`, as the Appearance panel does, and exports them; `<Icon color>` takes a variable.

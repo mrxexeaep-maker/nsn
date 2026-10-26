@@ -1,0 +1,1 @@
+- Design JSX binds component properties with `property(name, default)` in a layer's `text`, `visible`, or an instance's `of`, creating them on the component; `propertyRefs` and `properties` on `<Component>` and `<ComponentSet>` are removed. `designVar` takes only a variable's name or ID, without a fallback value, and a missing variable is an error.
