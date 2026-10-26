@@ -16,6 +16,10 @@ describe('fallback scripts', () => {
     ])
   })
 
+  test('read 著 as Chinese, which Simplified writes too, not as Traditional only', () => {
+    expect(fontFallbackScriptForCharacter('著')).toBe('cjk-sc')
+  })
+
   test('are the ones a document loads fonts for', () => {
     const graph = new SceneGraph()
     const text = graph.createNode('TEXT', graph.getPages()[0].id, {
@@ -23,9 +27,6 @@ describe('fallback scripts', () => {
       fontFamily: 'Inter'
     })
     // A Traditional-only character draws in the Traditional Chinese fallback, so that one loads.
-    expect(collectGraphFontRequirements(graph, [text.id]).scripts).toEqual([
-      fontFallbackScriptForCharacter('萬')
-    ])
-    expect(fontFallbackScriptForCharacter('萬')).toBe('cjk-tc')
+    expect(collectGraphFontRequirements(graph, [text.id]).scripts).toEqual(['cjk-tc'])
   })
 })
