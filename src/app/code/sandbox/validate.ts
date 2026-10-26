@@ -95,14 +95,19 @@ function validateValue(
   validateRecord(value, limits, state, depth)
 }
 
+/** The roots a run returned, checked with the collections its `defineVars` calls wrote. */
 export function validateDesignJSXOutput(
   value: unknown,
-  limits: DesignJSXValidationLimits
+  limits: DesignJSXValidationLimits,
+  collections: unknown = []
 ): unknown[] {
   if (value === undefined) throw new Error('Design JSX must return an OpenPencil element.')
   const roots = Array.isArray(value) ? value : [value]
   if (roots.length === 0) throw new Error('Design JSX must return an OpenPencil element.')
+  if (!Array.isArray(collections))
+    throw new Error('Design JSX output must contain plain structured data only.')
   const state: ValidationState = { elements: 0, bytes: 0 }
   validateValue(roots, limits, state, 0)
+  validateValue(collections, limits, state, 0)
   return roots
 }

@@ -94,13 +94,11 @@ export function buildComponent(jsxString: string, warnings: string[] = []): Reac
     const angularGradient = __helpers.angularGradient
     const diamondGradient = __helpers.diamondGradient
     const ref = __helpers.ref
-    const __varSymbol = Symbol.for('open-pencil.variable')
-    const designVar = (def, value) => typeof def === 'string'
-      ? ({ [__varSymbol]: true, id: def, name: def, value })
-      : ({ [__varSymbol]: true, id: def.id, name: def.name ?? def.id ?? '', value: def.value })
-    const defineVars = (vars) => Object.fromEntries(
-      Object.entries(vars).map(([key, def]) => [key, designVar(def)])
-    )
+    const defineVars = __helpers.defineVars
+    const defineMode = __helpers.defineMode
+    const designVar = __helpers.designVar
+    const designMode = __helpers.designMode
+    const property = __helpers.property
   `
 
   const body = transformDesignJSXExpression(trimmed)

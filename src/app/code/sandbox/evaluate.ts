@@ -76,6 +76,7 @@ export async function evaluateDesignJSX(
         id?: string
         ok?: boolean
         value?: unknown
+        collections?: unknown
         error?: string
       }
       if (message.type === 'open-pencil-design-jsx-ready') {
@@ -97,8 +98,14 @@ export async function evaluateDesignJSX(
         return
       }
       try {
-        const roots = validateDesignJSXOutput(message.value, validationLimits)
-        finish({ ok: true, roots, lineOffset: program.lineOffset })
+        const collections = message.collections ?? []
+        const roots = validateDesignJSXOutput(message.value, validationLimits, collections)
+        finish({
+          ok: true,
+          roots,
+          collections: Array.isArray(collections) ? collections : [],
+          lineOffset: program.lineOffset
+        })
       } catch (error) {
         finish({ ok: false, error: error instanceof Error ? error.message : String(error) })
       }

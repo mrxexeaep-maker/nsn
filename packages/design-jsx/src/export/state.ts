@@ -54,6 +54,16 @@ function collectBindingProps(node: SceneNode, graph: SceneGraph, props: JSXProp[
   ])
 }
 
+/** The modes a layer pins, as `designMode` names them; one is written without a list. */
+function collectModeProps(node: SceneNode, graph: SceneGraph, props: JSXProp[]): void {
+  const modes = Object.entries(node.variableModes).flatMap(([collectionId, modeId]) => {
+    const collection = graph.variableCollections.get(collectionId)
+    const mode = collection?.modes.find((item) => item.modeId === modeId)
+    return collection && mode ? [helperCall('designMode', collection.name, mode.name)] : []
+  })
+  if (modes.length > 0) props.push(['mode', modes.length === 1 ? modes[0] : modes])
+}
+
 export function collectStateProps(
   node: SceneNode,
   ctx: ReturnType<typeof getNodeContext>,
@@ -65,5 +75,6 @@ export function collectStateProps(
   if (node.isMask) props.push(['mask', MASK_TYPE.print(node.maskType)])
   if (!node.visible) props.push(['visible', false])
   if (node.locked) props.push(['locked', true])
+  collectModeProps(node, graph, props)
   collectBindingProps(node, graph, props)
 }

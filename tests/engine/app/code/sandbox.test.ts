@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { isLayerRef } from '@open-pencil/design-jsx'
+import { isLayerRef, isMode, isVariable } from '@open-pencil/design-jsx'
 
 import { convertDesignJSXRoots } from '@/app/code/sandbox/convert'
 import {
@@ -117,5 +117,37 @@ describe('Design JSX sandbox output', () => {
     expect(connector.props.from).toBe(first.props.ref)
     expect(connector.props.to).toBe(second.props.ref)
     expect(first.props.ref).not.toBe(second.props.ref)
+  })
+
+  test('converts each written collection once, its modes able to alias its own variables', () => {
+    const variable = (name: string) => ({ __openPencilHelper: 'variable', args: [0, name] })
+    const collections = [
+      {
+        collection: 'Theme',
+        values: { Page: '#ffffff', Text: '#111111' },
+        options: { mode: 'Light' },
+        modes: [{ mode: 'Dark', values: { Page: '#111111', Text: variable('Page') } }]
+      }
+    ]
+    const roots = validateDesignJSXOutput(
+      [
+        frame({ fill: variable('Page'), mode: { __openPencilHelper: 'mode', args: [0, 'Dark'] } }),
+        frame({ fill: variable('Page') })
+      ],
+      limits,
+      collections
+    )
+    const [first, second] = convertDesignJSXRoots(roots, undefined, collections)
+    const page = first.props.fill
+    if (!isVariable(page) || !page.collection) throw new Error('Expected a defined variable')
+    expect(second.props.fill).toBe(page)
+    expect(isMode(first.props.mode) && first.props.mode.collection).toBe(page.collection)
+    expect(page.collection.modes).toEqual([
+      { name: 'Light', values: { Page: '#ffffff', Text: '#111111' } },
+      { name: 'Dark', values: { Page: '#111111', Text: page } }
+    ])
+    expect(() =>
+      convertDesignJSXRoots([frame({ fill: { __openPencilHelper: 'variable', args: [3, 'X'] } })])
+    ).toThrow('Unknown variable collection')
   })
 })

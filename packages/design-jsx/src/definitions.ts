@@ -183,8 +183,8 @@ export const DESIGN_JSX_SUPPORTED_PROPERTY_NAMES = [
   'component',
   'componentId',
   'properties',
-  'propertyRefs',
   'of',
+  'mode',
   // A Reka UI root's behaviour, by its own property names
   'modelValue',
   'open',
@@ -278,7 +278,10 @@ export const DESIGN_JSX_HELPERS: DesignJSXHelperDefinition[] = [
   'layerBlur',
   'backgroundBlur',
   'foregroundBlur',
-  'designVar',
   'defineVars',
+  'defineMode',
+  'designVar',
+  'designMode',
+  'property',
   'ref'
 ].map((name) => ({ name, description: `OpenPencil ${name} helper.` }))

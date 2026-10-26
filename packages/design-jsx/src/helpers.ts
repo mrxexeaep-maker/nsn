@@ -1,6 +1,7 @@
 import { difference } from 'es-toolkit/array'
 import { isPlainObject } from 'es-toolkit/predicate'
 
+import { property } from './component-properties'
 import {
   backgroundBlur,
   dropShadow,
@@ -22,6 +23,7 @@ import {
   type SolidPaintOptions
 } from './paints'
 import { ref } from './refs'
+import { defineMode, defineVars, designMode, designVar } from './variables'
 
 /** Every option a helper reads; `satisfies` keeps the list equal to the options type. */
 type OptionKeys<Options> = Record<keyof Options, true>
@@ -104,6 +106,11 @@ export function designJSXHelpers(warnings: string[]) {
     radialGradient: checked(warnings, 'radialGradient', radialGradient, GRADIENT_OPTIONS, 1),
     angularGradient: checked(warnings, 'angularGradient', angularGradient, GRADIENT_OPTIONS, 1),
     diamondGradient: checked(warnings, 'diamondGradient', diamondGradient, GRADIENT_OPTIONS, 1),
+    defineVars,
+    defineMode,
+    designVar,
+    designMode,
+    property,
     ref
   }
 }

@@ -1,7 +1,8 @@
 import type { Effect, Fill, SceneNode } from '@open-pencil/scene-graph'
 import type { Color } from '@open-pencil/scene-graph/primitives'
 
-import type { DesignVariable } from './vars'
+import type { ComponentProperty } from './component-properties'
+import type { DesignMode, DesignVariable } from './variables'
 
 export interface TreeNode {
   type: string
@@ -179,7 +180,7 @@ export type StyleProps = {
   weight?: number | 'bold' | 'medium' | 'normal'
   fontWeight?: number | 'bold' | 'medium' | 'normal'
   color?: PaintProp
-  text?: string
+  text?: string | ComponentProperty<string>
   characters?: string
   textAlign?: 'left' | 'center' | 'right' | 'justified'
   textAlignHorizontal?: 'LEFT' | 'CENTER' | 'RIGHT' | 'JUSTIFIED'
@@ -194,7 +195,9 @@ type NodeProps = StyleProps & {
   key?: string | number
   children?: unknown
   bind?: Record<string, unknown>
-  propertyRefs?: SceneNode['componentPropertyReferences']
+  visible?: boolean | ComponentProperty<boolean>
+  /** The modes the layer shows collections in, as the Appearance panel sets them. */
+  mode?: DesignMode | DesignMode[]
   [key: string]: unknown
 }
 
@@ -247,13 +250,11 @@ export type ParagraphProps = {
   children?: unknown
 }
 
-export type ComponentProps = NodeProps & {
-  properties?: SceneNode['componentPropertyDefinitions']
-}
+export type ComponentProps = BaseProps
 
 export type InstanceProps = NodeProps & {
   component?: string
   componentId?: string
-  of?: string
+  of?: string | ComponentProperty<string>
   properties?: SceneNode['componentPropertyAssignments']
 }

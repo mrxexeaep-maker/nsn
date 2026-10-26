@@ -50,5 +50,11 @@ export type DesignJSXHelperDescriptor = {
 }
 
 export type DesignJSXSandboxResult =
-  | { ok: true; roots: unknown[]; lineOffset: DesignJSXProgram['lineOffset'] }
+  | {
+      ok: true
+      roots: unknown[]
+      /** The collections the run's `defineVars` calls wrote, which its variables name by index. */
+      collections: unknown[]
+      lineOffset: DesignJSXProgram['lineOffset']
+    }
   | { ok: false; error: string }

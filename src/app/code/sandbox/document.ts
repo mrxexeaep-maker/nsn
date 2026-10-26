@@ -24,9 +24,24 @@ self.onmessage = ({ data }) => {
   const helper = (name) => (...args) => ({ __openPencilHelper: name, args })
   // Each ref() is numbered, so the layer it marks and the ends that refer to it share one handle.
   let refs = 0
+  // Each defineVars() collection is written once, with the modes defineMode() adds to it, and its
+  // variables and modes name it by number, so a mode can alias the collection's own variables.
+  const collections = []
+  const defineVars = (collection, values, options) => {
+    const index = collections.push({ collection, values, options: options ?? {}, modes: [] }) - 1
+    return Object.fromEntries(Object.keys(values).map((key) => [key, { __openPencilHelper: 'variable', args: [index, key] }]))
+  }
+  const defineMode = (vars, mode, values) => {
+    const index = Object.values(vars)[0]?.args?.[0]
+    const record = collections[index]
+    if (!record) throw new Error('defineMode() takes the variables defineVars() returned')
+    record.modes.push({ mode, values })
+    return { __openPencilHelper: 'mode', args: [index, mode] }
+  }
   const helperRuntime = (name) => {
     if (name === 'ref') return () => ({ __openPencilHelper: 'ref', args: [++refs] })
-    if (name === 'defineVars') return (vars) => Object.fromEntries(Object.entries(vars).map(([key, value]) => [key, { __openPencilHelper: 'designVar', args: [value] }]))
+    if (name === 'defineVars') return defineVars
+    if (name === 'defineMode') return defineMode
     return helper(name)
   }
   // A dotted element such as Button.Root is a member of its namespace, as JSX reads the tag.
@@ -88,8 +103,8 @@ self.onmessage = ({ data }) => {
     const argumentValues = [__h, __fragment, ...names.map((name) => tags[name]), ...helperNames.map((name) => helpers[name])]
     const run = new Function(...argumentNames, code)
     const value = run(...argumentValues)
-    validate(value)
-    self.postMessage({ id, ok: true, value })
+    validate(collections, 0, validate(value))
+    self.postMessage({ id, ok: true, value, collections })
   } catch (error) {
     self.postMessage({ id, ok: false, error: error instanceof Error ? error.message : String(error) })
   }

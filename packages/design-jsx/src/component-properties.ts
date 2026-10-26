@@ -16,66 +16,136 @@ import {
 import { DESIGN_JSX_SUPPORTED_PROPERTIES } from './definitions'
 import { parseScriptInput } from './schema'
 
-const definitionSchema = v.object({
-  id: v.string(),
-  name: v.string(),
-  type: v.picklist(['VARIANT', 'TEXT', 'BOOLEAN', 'INSTANCE_SWAP']),
-  defaultValue: v.string(),
-  variantOptions: v.optional(v.array(v.string())),
-  preferredValues: v.optional(v.array(v.string()))
-}) satisfies v.GenericSchema<ComponentPropertyDefinition>
-const referenceSchema = v.object({
-  propertyId: v.string(),
-  field: v.picklist(['VISIBLE', 'TEXT', 'INSTANCE_SWAP'])
-}) satisfies v.GenericSchema<ComponentPropertyReference>
+const PROPERTY_SYMBOL = Symbol.for('open-pencil.component-property')
 
-/** Accept the native graph contracts, without introducing a second property model. */
-export function componentMetadata(
-  props: Record<string, unknown>,
-  type: SceneNode['type'],
-  definitions?: readonly ComponentPropertyDefinition[]
-): Partial<SceneNode> {
-  const result: Partial<SceneNode> = {}
-  if (props.properties !== undefined && type !== 'INSTANCE') {
-    if (type !== 'COMPONENT' && type !== 'COMPONENT_SET')
-      throw new Error('Only components, component sets, and instances accept properties')
-    const definitions = parseScriptInput(
-      'Invalid properties',
-      v.array(definitionSchema),
-      props.properties
-    )
-    if (new Set(definitions.map((definition) => definition.id)).size !== definitions.length)
-      throw new Error('Duplicate component property IDs')
-    const variantNames = definitions
-      .filter((item) => item.type === 'VARIANT')
-      .map((item) => item.name)
-    if (new Set(variantNames).size !== variantNames.length)
-      throw new Error('Duplicate variant property names')
-    result.componentPropertyDefinitions = definitions
+/**
+ * A component property, by its name in the component that holds it. Where it is placed picks
+ * its type: `text` on a text layer makes a TEXT property, `visible` a BOOLEAN one, and `of` on an
+ * instance an INSTANCE_SWAP one, whose default is the component that `of` names.
+ */
+export interface ComponentProperty<T extends string | boolean = string | boolean> {
+  readonly [PROPERTY_SYMBOL]: true
+  readonly name: string
+  readonly defaultValue: T
+}
+
+export function isComponentProperty(value: unknown): value is ComponentProperty {
+  return typeof value === 'object' && value !== null && PROPERTY_SYMBOL in value
+}
+
+/**
+ * Bind a field to a property of the component it is drawn in, created on first use: on the
+ * component set, for a variant, as Figma keeps them, or else on the component.
+ */
+export function property<T extends string | boolean>(
+  name: string,
+  defaultValue: T
+): ComponentProperty<T> {
+  return Object.freeze({ [PROPERTY_SYMBOL]: true as const, name, defaultValue })
+}
+
+/** The prop each property type binds, and the field it binds there. */
+const BOUND_PROPS = {
+  text: { type: 'TEXT', field: 'TEXT', node: 'TEXT' },
+  visible: { type: 'BOOLEAN', field: 'VISIBLE', node: undefined },
+  of: { type: 'INSTANCE_SWAP', field: 'INSTANCE_SWAP', node: 'INSTANCE' }
+} as const satisfies Record<
+  string,
+  {
+    type: ComponentPropertyDefinition['type']
+    field: ComponentPropertyReference['field']
+    node: SceneNode['type'] | undefined
   }
-  if (props.propertyRefs !== undefined) {
-    const references = parseScriptInput(
-      'Invalid propertyRefs',
-      v.array(referenceSchema),
-      props.propertyRefs
-    )
-    for (const reference of references) {
-      if (reference.field === 'TEXT' && type !== 'TEXT')
-        throw new Error('TEXT properties require a text node')
-      if (reference.field === 'INSTANCE_SWAP' && type !== 'INSTANCE')
-        throw new Error('INSTANCE_SWAP properties require an instance')
-      if (definitions) {
-        const definition = definitions.find((item) => item.id === reference.propertyId)
-        if (!definition)
-          throw new Error(`Unknown component property reference: ${reference.propertyId}`)
-        const expectedField = definition.type === 'BOOLEAN' ? 'VISIBLE' : definition.type
-        if (reference.field !== expectedField)
-          throw new Error(`Component property ${definition.id} cannot bind ${reference.field}`)
-      }
+>
+
+/** The component, or the set it is a variant of, that holds properties for layers under `parentId`. */
+function propertyOwner(graph: SceneGraph, parentId: string): SceneNode {
+  let node = graph.getNode(parentId)
+  while (node) {
+    if (node.type === 'INSTANCE') throw new Error('property() cannot be used inside an instance')
+    if (node.type === 'COMPONENT_SET') return node
+    if (node.type === 'COMPONENT') {
+      const set = node.parentId ? graph.getNode(node.parentId) : undefined
+      return set?.type === 'COMPONENT_SET' ? set : node
     }
-    result.componentPropertyReferences = references
+    node = node.parentId ? graph.getNode(node.parentId) : undefined
   }
-  return result
+  throw new Error('property() must be inside a <Component> or <ComponentSet>')
+}
+
+/** The ID of the property with this name on `owner`, added if it has none. */
+function ensureDefinition(
+  graph: SceneGraph,
+  owner: SceneNode,
+  name: string,
+  type: ComponentPropertyDefinition['type'],
+  defaultValue: string
+): string {
+  const existing = owner.componentPropertyDefinitions.find((item) => item.name === name)
+  if (existing) {
+    if (existing.type !== type)
+      throw new Error(`Component property ${name} is ${existing.type}, not ${type}`)
+    if (existing.defaultValue !== defaultValue)
+      throw new Error(
+        `Component property ${name} has two defaults: ${existing.defaultValue} and ${defaultValue}`
+      )
+    return existing.id
+  }
+  const id = createComponentPropertyId()
+  graph.updateNode(owner.id, {
+    componentPropertyDefinitions: [
+      ...owner.componentPropertyDefinitions,
+      { id, name, type, defaultValue }
+    ]
+  })
+  return id
+}
+
+export interface BoundProperties {
+  /** The props, with each property in place of its default. */
+  props: Record<string, unknown>
+  references: ComponentPropertyReference[]
+}
+
+/**
+ * Bind the fields a layer's props place a `property()` in, creating the properties on its
+ * component; `componentId` gives the ID a swap's default component has.
+ */
+export function bindProperties(
+  graph: SceneGraph,
+  source: Record<string, unknown>,
+  type: SceneNode['type'],
+  parentId: string,
+  componentId: (name: string) => string | undefined
+): BoundProperties {
+  if (source.properties !== undefined && type !== 'INSTANCE')
+    throw new Error('Only instances accept properties; bind a field to property() instead')
+  const props = { ...source }
+  const references: ComponentPropertyReference[] = []
+  for (const [key, value] of Object.entries(source)) {
+    if (!isComponentProperty(value)) continue
+    if (!Object.hasOwn(BOUND_PROPS, key))
+      throw new Error(`property() binds text, visible, or of, not ${key}`)
+    const bound = BOUND_PROPS[key as keyof typeof BOUND_PROPS]
+    if (bound.node && bound.node !== type)
+      throw new Error(
+        `property() in ${key} needs ${bound.node === 'TEXT' ? '<Text>' : '<Instance>'}`
+      )
+    const expected = bound.type === 'BOOLEAN' ? 'boolean' : 'string'
+    if (typeof value.defaultValue !== expected)
+      throw new Error(`Component property ${value.name} in ${key} takes a ${expected} default`)
+    let defaultValue = String(value.defaultValue)
+    if (bound.type === 'INSTANCE_SWAP') {
+      const id = componentId(defaultValue)
+      if (!id) throw new Error(`<Instance> component not found: ${defaultValue}`)
+      defaultValue = id
+    }
+    const owner = propertyOwner(graph, parentId)
+    const propertyId = ensureDefinition(graph, owner, value.name, bound.type, defaultValue)
+    references.push({ propertyId, field: bound.field })
+    props[key] = value.defaultValue
+  }
+  return { props, references }
 }
 
 /** Match the nearest component scope, including definitions inherited from its set. */

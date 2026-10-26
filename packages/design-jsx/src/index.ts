@@ -82,7 +82,19 @@ export {
   type SolidPaintOptions
 } from './paints'
 
-export { defineVars, designVar, isVariable, type DesignVariable, type VarDef } from './vars'
+export {
+  defineMode,
+  defineVars,
+  designMode,
+  designVar,
+  isMode,
+  isVariable,
+  isVariableInput,
+  type DesignMode,
+  type DesignVariable,
+  type VariableInput
+} from './variables'
+export { isComponentProperty, property, type ComponentProperty } from './component-properties'
 export { isLayerRef, ref, type LayerRef } from './refs'
 
 export { createElement } from './mini-react'
