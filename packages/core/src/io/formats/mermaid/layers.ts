@@ -241,11 +241,14 @@ export async function addFlowchart(
   const before = new Set(graph.getNode(parentId)?.childIds)
   const builder = new FlowchartBuilder(graph, parentId, chart)
   const addedSoFar = () => (graph.getNode(parentId)?.childIds ?? []).filter((id) => !before.has(id))
+  // Known before the first wait, so a layer someone else adds meanwhile is never taken for ours.
+  let created: string[] | null = null
   try {
     builder.sections()
     for (const node of chart.nodes) builder.shape(node)
     for (const edge of chart.edges) builder.connector(edge)
     const added = addedSoFar()
+    created = added
     // Shapes grow to their labels, and connector labels take their size, before the layout reads
     // them, measured in the fonts they are drawn in.
     await prepareGraphFonts(graph, added)
@@ -290,7 +293,7 @@ export async function addFlowchart(
     return { ids: added, layers: builder.layers, connectors: builder.connectors }
   } catch (error) {
     // A flowchart that fails to lay out leaves nothing half-built behind.
-    for (const id of addedSoFar().toReversed()) graph.deleteNode(id)
+    for (const id of (created ?? addedSoFar()).toReversed()) graph.deleteNode(id)
     throw error
   }
 }
