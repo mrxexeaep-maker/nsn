@@ -196,3 +196,17 @@ test('a collection name several collections share is an error, not the first of 
     )
   }
 })
+
+test('a sticky note pins its mode and reads its values in it, as any layer does', async () => {
+  const graph = new SceneGraph()
+  const [board] = await renderJSX(
+    graph,
+    `const fade = defineVars('Fade', { Note: 1 }, { mode: 'Light' })
+const dark = defineMode(fade, 'Dark', { Note: 0.5 })
+return <Frame name="Board" w={400} h={400}><Sticky mode={dark} opacity={fade.Note}>Hi</Sticky></Frame>`
+  )
+  const [sticky] = graph.getChildren(board.id)
+  const fade = collectionNamed(graph, 'Fade')
+  expect(sticky.variableModes).toEqual({ [fade.id]: fade.modes[1].modeId })
+  expect(sticky.opacity).toBe(0.5)
+})

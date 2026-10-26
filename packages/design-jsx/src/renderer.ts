@@ -171,13 +171,14 @@ function renderOwnLayerElement(
   parentId: string,
   element: OwnLayerRenderer
 ): SceneNode {
-  const { props, bindings } = preparePropsForRender(graph, tree.props, false, {
-    parentId,
-    modes: undefined
-  })
+  const modes = variableModes(graph, tree.props.mode)
+  const { props, bindings } = preparePropsForRender(graph, tree.props, false, { parentId, modes })
   const parentLayout = graph.getNode(parentId)?.layoutMode ?? 'NONE'
   const layer = omitBy(
-    propsToOverrides(readElementProps(element.layer, props), false, parentLayout),
+    {
+      ...propsToOverrides(readElementProps(element.layer, props), false, parentLayout),
+      ...(modes && { variableModes: modes })
+    },
     (value) => value === undefined
   )
   const node = element.render(graph, { ...tree, props }, parentId, layer)
