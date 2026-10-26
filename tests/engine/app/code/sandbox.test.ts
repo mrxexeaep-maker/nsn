@@ -204,6 +204,11 @@ return __h(Frame, { fill: t.Page, mode: dark }, __h(Button.Root, null), 'Hi', fa
         }
       ]
     })
+    expect(run('none', 'const frame = __h(Frame, null)')).toEqual({
+      id: 'none',
+      ok: false,
+      error: 'Design JSX must return an OpenPencil element.'
+    })
     expect(run('date', 'return __h(Frame, { when: new Date(0) })')).toEqual({
       id: 'date',
       ok: false,
@@ -214,5 +219,6 @@ return __h(Frame, { fill: t.Page, mode: dark }, __h(Button.Root, null), 'Hi', fa
   test('refuses a frame script that would close its own script element', () => {
     expect(sandboxDocument('run()')).toContain('<script>run()</script>')
     expect(() => sandboxDocument('"</script><script>alert(1)"')).toThrow('cannot be inlined')
+    expect(() => sandboxDocument('"</SCRIPT><script>alert(1)"')).toThrow('cannot be inlined')
   })
 })
