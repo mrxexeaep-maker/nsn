@@ -63,20 +63,34 @@ async function withHappyDOM<T>(draw: (parse: SVGPageParser) => Promise<T>): Prom
   const { Window } = (await import(/* @vite-ignore */ HAPPY_DOM)) as typeof HappyDOM
   const dom = new Window()
   const scope: SVG2PDFGlobals = globalThis
-  const previous: SVG2PDFGlobals = {}
-  for (const name of SVG2PDF_GLOBALS) if (name in scope) previous[name] = scope[name]
-  Object.assign(scope, {
+  // Descriptors, so a global a host defines as an accessor comes back as one.
+  const previous = SVG2PDF_GLOBALS.map(
+    (name) => [name, Object.getOwnPropertyDescriptor(globalThis, name)] as const
+  )
+  const installed: Required<SVG2PDFGlobals> = {
     document: dom.document,
     CSSStyleSheet: dom.CSSStyleSheet,
     CSSStyleRule: dom.CSSStyleRule
-  })
+  }
   try {
+    for (const name of SVG2PDF_GLOBALS) {
+      Object.defineProperty(globalThis, name, {
+        value: installed[name],
+        configurable: true,
+        writable: true
+      })
+    }
     return await draw(parseSVGPage(new dom.DOMParser()))
   } finally {
-    delete scope.document
-    delete scope.CSSStyleSheet
-    delete scope.CSSStyleRule
-    Object.assign(scope, previous)
-    await dom.happyDOM.close()
+    try {
+      delete scope.document
+      delete scope.CSSStyleSheet
+      delete scope.CSSStyleRule
+      for (const [name, descriptor] of previous) {
+        if (descriptor) Object.defineProperty(globalThis, name, descriptor)
+      }
+    } finally {
+      await dom.happyDOM.close()
+    }
   }
 }
