@@ -1,29 +1,34 @@
+diff --git a/node_modules/unifont/.bun-tag-a5b98d6e55d80f89 b/.bun-tag-a5b98d6e55d80f89
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/dist/index.mjs b/dist/index.mjs
-index 4025303a697d83850dee843310084bfec0398426..055cf9cda89675b5af557c22e6e06f6f5c8146ee 100644
+index 4025303a697d83850dee843310084bfec0398426..9d9799a740eab946de9023ab8dda3a5d9e1e6042 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
-@@ -770,7 +770,19 @@ var fontsource_default = defineFontProvider("fontsource", async (_options, ctx)
+@@ -770,7 +770,21 @@ var fontsource_default = defineFontProvider("fontsource", async (_options, ctx)
  		const detailUrl = `${BASE_URL}/fonts/${font.id}`;
  		const fontDetail = await ctx.fetch(detailUrl).then((res) => res.json());
  		const fontFaceData = [];
 -		for (const subset of subsets) for (const style of styles) for (const { weight, variable } of weights) {
 +		// CJK subsets have no file of their own: Fontsource splits them into numbered shards, each
-+		// with its own unicode-range, as its stylesheets do.
++		// with its own unicode-range, as its stylesheets do. The shards are listed once, however
++		// many such subsets are asked for.
 +		const shards = Object.keys(fontDetail.unicodeRange).filter((key) => /^\[\d+\]$/.test(key));
-+		const files = subsets.flatMap((subset) => fontDetail.unicodeRange[subset] || shards.length === 0 ? [{
++		const sharded = shards.length > 0 ? subsets.find((subset) => !fontDetail.unicodeRange[subset]) : void 0;
++		const files = [...subsets.filter((subset) => fontDetail.unicodeRange[subset] || shards.length === 0).map((subset) => ({
 +			subset,
 +			file: subset,
 +			range: subset
-+		}] : shards.map((range) => ({
-+			subset,
++		})), ...sharded ? shards.map((range) => ({
++			subset: sharded,
 +			file: range.slice(1, -1),
 +			range
-+		})));
++		})) : []];
 +		for (const { subset, file, range } of files) for (const style of styles) for (const { weight, variable } of weights) {
  			if (variable) {
  				try {
  					const variableAxes = await getVariableAxes(ctx, font);
-@@ -780,10 +792,10 @@ var fontsource_default = defineFontProvider("fontsource", async (_options, ctx)
+@@ -780,10 +794,10 @@ var fontsource_default = defineFontProvider("fontsource", async (_options, ctx)
  							style,
  							weight: [Number(variableAxes.axes.wght.min), Number(variableAxes.axes.wght.max)],
  							src: [{
@@ -36,7 +41,7 @@ index 4025303a697d83850dee843310084bfec0398426..055cf9cda89675b5af557c22e6e06f6f
  							meta: { subset }
  						});
  					}
-@@ -792,7 +804,7 @@ var fontsource_default = defineFontProvider("fontsource", async (_options, ctx)
+@@ -792,7 +806,7 @@ var fontsource_default = defineFontProvider("fontsource", async (_options, ctx)
  				}
  				continue;
  			}
@@ -45,7 +50,7 @@ index 4025303a697d83850dee843310084bfec0398426..055cf9cda89675b5af557c22e6e06f6f
  			fontFaceData.push({
  				style,
  				weight,
-@@ -800,7 +812,7 @@ var fontsource_default = defineFontProvider("fontsource", async (_options, ctx)
+@@ -800,7 +814,7 @@ var fontsource_default = defineFontProvider("fontsource", async (_options, ctx)
  					url,
  					format
  				})),
