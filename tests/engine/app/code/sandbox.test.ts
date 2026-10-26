@@ -139,7 +139,8 @@ describe('Design JSX sandbox output', () => {
     )
     const [first, second] = convertDesignJSXRoots(roots, undefined, collections)
     const page = first.props.fill
-    if (!isVariable(page) || !page.collection) throw new Error('Expected a defined variable')
+    if (!isVariable(page) || typeof page.collection !== 'object')
+      throw new Error('Expected a defined variable')
     expect(second.props.fill).toBe(page)
     expect(isMode(first.props.mode) && first.props.mode.collection).toBe(page.collection)
     expect(page.collection.modes).toEqual([

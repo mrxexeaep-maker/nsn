@@ -106,7 +106,8 @@ function definedType(
   visiting.add(key)
   const value = definition.modes[0].values[name]
   if (!isVariable(value)) return literalType(value)
-  if (value.collection) return definedType(graph, value.collection, value.name, visiting)
+  if (typeof value.collection === 'object')
+    return definedType(graph, value.collection, value.name, visiting)
   const target = graph.variables.get(requireVariableId(graph, value))
   if (!target) throw new Error(`Unknown variable: ${value.name}`)
   return target.type
@@ -165,20 +166,33 @@ export function applyVariableDefinitions(graph: SceneGraph, tree: TreeNode): voi
 /** The ID of the variable a handle refers to: by collection and name, or by ID or name. */
 export function resolveVariableId(graph: SceneGraph, variable: DesignVariable): string | undefined {
   if (variable.collection) {
-    const collection = collectionNamed(graph, variable.collection.name)
+    const name =
+      typeof variable.collection === 'string' ? variable.collection : variable.collection.name
+    const collection = collectionNamed(graph, name)
     return collection && variableNamed(graph, collection, variable.name)?.id
   }
   if (graph.variables.has(variable.name)) return variable.name
-  for (const candidate of graph.variables.values()) {
-    if (candidate.name === variable.name) return candidate.id
+  const matches = [...graph.variables.values()].filter((item) => item.name === variable.name)
+  if (matches.length > 1) {
+    const [first] = matches
+    const collection = graph.variableCollections.get(first.collectionId)?.name ?? ''
+    throw new Error(
+      `Variable name ${variable.name} is in more than one collection; name one, as in designVar('${collection}', '${variable.name}')`
+    )
   }
-  return undefined
+  return matches[0]?.id
 }
 
 export function requireVariableId(graph: SceneGraph, variable: DesignVariable): string {
   const id = resolveVariableId(graph, variable)
-  if (!id) throw new Error(`Unknown variable: ${variable.name}`)
-  return id
+  if (id) return id
+  const collection =
+    typeof variable.collection === 'object' ? variable.collection.name : variable.collection
+  throw new Error(
+    collection
+      ? `Unknown variable ${variable.name} in ${collection}`
+      : `Unknown variable: ${variable.name}`
+  )
 }
 
 /** The collection and mode IDs a layer's `mode` prop pins, by their names. */

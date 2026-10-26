@@ -22,13 +22,13 @@ export interface CollectionDefinition {
 
 /**
  * A variable a field binds to. `defineVars` gives one its collection, which a render creates or
- * updates; `designVar` names a variable the document already has.
+ * updates; `designVar` names a variable the document already has, and may name its collection.
  */
 export interface DesignVariable {
   readonly [VAR_SYMBOL]: true
-  /** The variable's name, or for `designVar`, its name or ID. */
+  /** The variable's name, or for `designVar` without a collection, its name or ID. */
   readonly name: string
-  readonly collection?: CollectionDefinition
+  readonly collection?: CollectionDefinition | string
 }
 
 /**
@@ -57,9 +57,18 @@ export function isVariableInput(value: unknown): value is VariableInput {
   return isPlainObject(value) && ['r', 'g', 'b', 'a'].every((key) => typeof value[key] === 'number')
 }
 
-/** A variable the document already has, by its name or ID. */
-export function designVar(idOrName: string): DesignVariable {
-  return Object.freeze({ [VAR_SYMBOL]: true as const, name: idOrName })
+/**
+ * A variable the document already has: by its name or ID, or by the names of its collection and
+ * itself, as `designMode` names a mode, for a name more than one collection has.
+ */
+export function designVar(idOrName: string): DesignVariable
+export function designVar(collection: string, name: string): DesignVariable
+export function designVar(first: string, second?: string): DesignVariable {
+  return Object.freeze(
+    second === undefined
+      ? { [VAR_SYMBOL]: true as const, name: first }
+      : { [VAR_SYMBOL]: true as const, name: second, collection: first }
+  )
 }
 
 /**
@@ -93,7 +102,8 @@ export function defineMode(
   values: Record<string, VariableInput>
 ): DesignMode {
   const definition = Object.values(vars)[0]?.collection
-  if (!definition) throw new Error('defineMode() takes the variables defineVars() returned')
+  if (!definition || typeof definition === 'string')
+    throw new Error('defineMode() takes the variables defineVars() returned')
   if (definition.modes.some((mode) => mode.name === name))
     throw new Error(`Collection ${definition.name} already has a mode named ${name}`)
   const known = definition.modes[0].values

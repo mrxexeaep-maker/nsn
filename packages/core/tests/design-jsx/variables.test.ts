@@ -155,3 +155,31 @@ test('a variable whose value cannot be resolved is an error, not a dropped paint
     ).rejects.toThrow(`Cannot resolve color variable ${name} for color`)
   }
 })
+
+test('designVar names a variable by collection when several collections share its name', async () => {
+  const graph = new SceneGraph()
+  await renderJSX(graph, THEME)
+  await renderJSX(graph, `const d = defineVars('Density', { Page: 8 }); return <Frame p={d.Page} />`)
+  await expect(renderJSX(graph, `<Frame bg={designVar('Page')} />`)).rejects.toThrow(
+    "Variable name Page is in more than one collection; name one, as in designVar('Theme', 'Page')"
+  )
+  await expect(renderJSX(graph, `<Frame bg={designVar('Theme', 'Missing')} />`)).rejects.toThrow(
+    'Unknown variable Missing in Theme'
+  )
+  const [frame] = await renderJSX(
+    graph,
+    `<Frame bg={designVar('Theme', 'Page')} p={designVar('Density', 'Page')} />`
+  )
+  const node = graph.getNode(frame.id)
+  const id = (collection: string) => {
+    const owner = collectionNamed(graph, collection)
+    return owner.variableIds.find((item) => graph.variables.get(item)?.name === 'Page')
+  }
+  expect(node?.boundVariables['fills/0/color']).toBe(id('Theme'))
+  expect(node?.boundVariables.paddingTop).toBe(id('Density'))
+  const exported = sceneNodeToJSX(frame.id, graph)
+  expect(exported).toContain('designVar("Theme", "Page")')
+  expect(exported).toContain('designVar("Density", "Page")')
+  const [copy] = await renderJSX(graph, exported)
+  expect(graph.getNode(copy.id)?.boundVariables).toEqual(node?.boundVariables)
+})
