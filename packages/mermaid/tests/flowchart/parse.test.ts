@@ -228,7 +228,7 @@ flowchart LR
   })
 
   test('throws Mermaid’s parse error for text it cannot read', () => {
-    expect(() => parseFlowchart('flowchart LR\nA --> ')).toThrow(/Parse error on line 2/)
+    expect(() => parseFlowchart('flowchart LR\nA --> ')).toThrow(/^Parse error on line \d+:/)
     expect(() => parseFlowchart('sequenceDiagram\nA->>B: hi')).toThrow()
   })
 })

@@ -15,7 +15,7 @@ export default defineConfig({
     moduleSideEffects: false
   },
   deps: {
-    neverBundle: ['entities', 'valibot', 'yaml', /^node:/],
+    neverBundle: ['entities', 'parse5', 'valibot', 'yaml', /^node:/],
     onlyBundle: false
   },
   outputOptions: {

@@ -19,7 +19,7 @@ export function newestRelease(lsRemote: string): { tag: string; commit: string }
   const commits = new Map<string, string>()
   for (const line of lsRemote.split('\n')) {
     const [sha, ref] = line.split('\t')
-    if (!sha || !ref?.startsWith('refs/tags/')) continue
+    if (!sha || !ref.startsWith('refs/tags/')) continue
     const name = ref.slice('refs/tags/'.length)
     if (name.endsWith('^{}')) commits.set(name.slice(0, -3), sha)
     else if (!commits.has(name)) commits.set(name, sha)

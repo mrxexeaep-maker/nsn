@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 
-import { newestRelease, releaseVersion } from '#mermaid-grammars/releases'
+import { newestRelease, releaseVersion } from '#mermaid-sources/releases'
 
 test('reads only mermaid@x.y.z tags as releases', () => {
   expect(releaseVersion('mermaid@12.2.0')).toEqual([12, 2, 0])

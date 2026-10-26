@@ -1,5 +1,5 @@
-import flowParser from '../grammar/flow.js'
 import { prepareSource } from '../source'
+import flowParser from '../upstream/flow.js'
 import { FlowchartBuilder } from './builder'
 import type { Flowchart } from './model'
 

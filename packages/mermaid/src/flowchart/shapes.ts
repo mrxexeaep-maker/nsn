@@ -1,7 +1,7 @@
 /**
  * Mermaid's flowchart shapes by their short names, with the other names `@{ shape: … }` accepts
  * for each, from `rendering-util/rendering-elements/shapes.ts` in the pinned Mermaid release
- * (MIT, Copyright (c) 2014 - 2022 Knut Sveidqvist). `bun run generate:mermaid-grammars --check`
+ * (MIT, Copyright (c) 2014 - 2022 Knut Sveidqvist). `bun run generate:mermaid-sources --check`
  * reports when a newer release changes that file.
  */
 const SHAPE_NAMES = {
