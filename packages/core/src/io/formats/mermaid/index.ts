@@ -3,7 +3,7 @@ import { SceneGraph } from '@open-pencil/scene-graph'
 
 import { addFlowchart } from './layers'
 
-export { addFlowchart, type FlowchartLayers, type FlowchartPlacement } from './layers'
+export { addFlowchart, type FlowchartLayers } from './layers'
 
 /**
  * A Mermaid flowchart as a FigJam board: one page named after the chart's title, with the chart's

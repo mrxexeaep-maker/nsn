@@ -3,7 +3,7 @@ import type { ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs/lib/elk-api'
 import type { ConnectorSide } from '@open-pencil/scene-graph/connectors'
 import type { Rect, Size, Vector } from '@open-pencil/scene-graph/primitives'
 
-import { layoutWithElk } from './elk/engine'
+import { layoutWithElk } from './elk'
 
 /** The way a diagram flows: top to bottom, bottom to top, left to right, or right to left. */
 export type DiagramDirection = 'TB' | 'BT' | 'LR' | 'RL'

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { expectDefined } from '#core-tests/helpers/assert'
 
-import { layoutDiagram, type DiagramInput } from '#core/diagram/layout'
+import { layoutDiagram, type DiagramInput } from '#core/layout/diagram'
 
 const node = (id: string, group?: string) => ({ id, width: 120, height: 50, group })
 

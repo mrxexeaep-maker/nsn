@@ -8,27 +8,19 @@ import type {
 } from '@open-pencil/mermaid'
 import type { Fill, SceneGraph, SceneNode, Stroke, StrokeCap } from '@open-pencil/scene-graph'
 import {
-  boundEndpoint,
   connectorSublayers,
   createConnector,
-  CONNECTOR_LABEL_PADDING,
-  elbowControlPoints,
-  freeEndpoint,
-  layoutConnector,
-  type ConnectorPiece
+  freeEndpoint
 } from '@open-pencil/scene-graph/connectors'
 import { BLACK } from '@open-pencil/scene-graph/constants'
 import { createShapeWithText } from '@open-pencil/scene-graph/generated'
-import type { Color, Rect, Vector } from '@open-pencil/scene-graph/primitives'
+import type { Color } from '@open-pencil/scene-graph/primitives'
 
-import {
-  layoutDiagram,
-  type DiagramEdge,
-  type DiagramLayout,
-  type DiagramRoute
-} from '#core/diagram/layout'
 import { newLayerDefaults } from '#core/editor/shapes/defaults'
 import { layoutAuthoredNodes } from '#core/layout'
+import { layoutDiagram, type DiagramInput } from '#core/layout/diagram'
+import { applyDiagramLayout, type DiagramPlacement } from '#core/layout/diagram/apply'
+import { connectorLabelSize } from '#core/layout/diagram/routes'
 import { shapeWithTextWidthFor } from '#core/layout/shape-with-text'
 import { prepareGraphFonts } from '#core/text/prepare'
 
@@ -222,91 +214,7 @@ class FlowchartBuilder {
     }
     this.connectors.set(edge.id, connector.id)
   }
-
-  /** The size each edge's label takes along it, measured once the labels are laid out. */
-  labelSize(edge: FlowEdge): DiagramEdge['label'] {
-    const connectorId = this.connectors.get(edge.id)
-    const connector = connectorId ? this.graph.getNode(connectorId) : undefined
-    const label = connector ? connectorSublayers(this.graph, connector)?.label : undefined
-    if (!label?.text) return undefined
-    return {
-      width: label.width + 2 * CONNECTOR_LABEL_PADDING,
-      height: label.height + 2 * CONNECTOR_LABEL_PADDING
-    }
-  }
-
-  /** Moves each layer to where the layout put it, in its parent's axes. */
-  place(layout: DiagramLayout, placement: FlowchartPlacement) {
-    const boxes = new Map<string, Rect>([...layout.groups, ...layout.nodes])
-    const all = [...boxes.values()]
-    const minX = Math.min(...all.map((box) => box.x))
-    const minY = Math.min(...all.map((box) => box.y))
-    const width = Math.max(...all.map((box) => box.x + box.width)) - minX
-    const height = Math.max(...all.map((box) => box.y + box.height)) - minY
-    const origin =
-      'center' in placement
-        ? { x: placement.center.x - width / 2, y: placement.center.y - height / 2 }
-        : placement.topLeft
-    const at = (id: string): Vector | null => {
-      const box = boxes.get(id)
-      if (!box) return null
-      const outer = this.enclosing.get(id)
-      const outerBox = outer ? boxes.get(outer) : undefined
-      return outerBox
-        ? { x: box.x - outerBox.x, y: box.y - outerBox.y }
-        : { x: box.x - minX + origin.x, y: box.y - minY + origin.y }
-    }
-    for (const [id, layerId] of this.layers) {
-      const position = at(id)
-      const box = boxes.get(id)
-      if (!position || !box) continue
-      // A section takes the size the layout gave it; a shape keeps its own.
-      if (layout.groups.has(id)) {
-        this.graph.updateNode(layerId, { ...position, width: box.width, height: box.height })
-      } else {
-        this.graph.updateNode(layerId, position)
-      }
-    }
-    return { x: origin.x - minX, y: origin.y - minY }
-  }
-
-  /** Joins a connector to the layers its edge links, along the route the layout gave it. */
-  route(edge: FlowEdge, route: DiagramRoute | undefined, shift: Vector) {
-    const { graph } = this
-    const connectorId = this.connectors.get(edge.id)
-    const start = this.layers.get(edge.from)
-    const end = this.layers.get(edge.to)
-    if (!connectorId || !start || !end) return
-    graph.updateNode(connectorId, {
-      connectorStart: boundEndpoint(start, route?.startSide ?? 'AUTO'),
-      connectorEnd: boundEndpoint(end, route?.endSide ?? 'AUTO')
-    })
-    const placed = graph.getNode(connectorId)
-    if (!placed) return
-    layoutConnector(graph, placed)
-    const laid = graph.getNode(connectorId)
-    if (!route || !laid) return
-    // The route's bends become the elbow's dragged segments, in the connector's own axes.
-    const points = route.points.map((point) => ({ x: point.x + shift.x, y: point.y + shift.y }))
-    const pieces: ConnectorPiece[] = points.slice(1).map((to, index) => ({
-      from: points[index] ?? to,
-      to,
-      handleFrom: { x: 0, y: 0 },
-      handleTo: { x: 0, y: 0 }
-    }))
-    graph.updateNode(connectorId, {
-      connectorControlPoints: elbowControlPoints(pieces).map((control) => ({
-        ...control,
-        position: { x: control.position.x - laid.x, y: control.position.y - laid.y }
-      }))
-    })
-    const controlled = graph.getNode(connectorId)
-    if (controlled) layoutConnector(graph, controlled)
-  }
 }
-
-/** Where a flowchart goes in its parent: by its top-left corner or its centre. */
-export type FlowchartPlacement = { topLeft: Vector } | { center: Vector }
 
 /** What a flowchart became. */
 export interface FlowchartLayers {
@@ -328,7 +236,7 @@ export async function addFlowchart(
   graph: SceneGraph,
   parentId: string,
   chart: Flowchart,
-  placement: FlowchartPlacement = { topLeft: { x: 0, y: 0 } }
+  placement: DiagramPlacement = { topLeft: { x: 0, y: 0 } }
 ): Promise<FlowchartLayers> {
   const before = new Set(graph.getNode(parentId)?.childIds)
   const builder = new FlowchartBuilder(graph, parentId, chart)
@@ -347,7 +255,11 @@ export async function addFlowchart(
     const node = layer ? graph.getNode(layer) : undefined
     return { width: node?.width ?? MIN_SHAPE_WIDTH, height: node?.height ?? SHAPE_HEIGHT }
   }
-  const layout = await layoutDiagram({
+  const labelSize = (edgeId: string) => {
+    const connectorId = builder.connectors.get(edgeId)
+    return (connectorId && connectorLabelSize(graph, connectorId)) || undefined
+  }
+  const input: DiagramInput = {
     direction: chart.direction,
     nodes: chart.nodes.map((node) => ({
       id: node.id,
@@ -362,10 +274,16 @@ export async function addFlowchart(
       id: edge.id,
       from: edge.from,
       to: edge.to,
-      label: builder.labelSize(edge)
+      label: labelSize(edge.id)
     }))
-  })
-  const shift = builder.place(layout, placement)
-  for (const edge of chart.edges) builder.route(edge, layout.edges.get(edge.id), shift)
+  }
+  const layout = await layoutDiagram(input)
+  applyDiagramLayout(
+    graph,
+    input,
+    layout,
+    { boxes: builder.layers, connectors: builder.connectors },
+    placement
+  )
   return { ids: added, layers: builder.layers, connectors: builder.connectors }
 }
