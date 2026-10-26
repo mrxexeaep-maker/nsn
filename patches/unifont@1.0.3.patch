@@ -1,0 +1,56 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 4025303a697d83850dee843310084bfec0398426..055cf9cda89675b5af557c22e6e06f6f5c8146ee 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -770,7 +770,19 @@ var fontsource_default = defineFontProvider("fontsource", async (_options, ctx)
+ 		const detailUrl = `${BASE_URL}/fonts/${font.id}`;
+ 		const fontDetail = await ctx.fetch(detailUrl).then((res) => res.json());
+ 		const fontFaceData = [];
+-		for (const subset of subsets) for (const style of styles) for (const { weight, variable } of weights) {
++		// CJK subsets have no file of their own: Fontsource splits them into numbered shards, each
++		// with its own unicode-range, as its stylesheets do.
++		const shards = Object.keys(fontDetail.unicodeRange).filter((key) => /^\[\d+\]$/.test(key));
++		const files = subsets.flatMap((subset) => fontDetail.unicodeRange[subset] || shards.length === 0 ? [{
++			subset,
++			file: subset,
++			range: subset
++		}] : shards.map((range) => ({
++			subset,
++			file: range.slice(1, -1),
++			range
++		})));
++		for (const { subset, file, range } of files) for (const style of styles) for (const { weight, variable } of weights) {
+ 			if (variable) {
+ 				try {
+ 					const variableAxes = await getVariableAxes(ctx, font);
+@@ -780,10 +792,10 @@ var fontsource_default = defineFontProvider("fontsource", async (_options, ctx)
+ 							style,
+ 							weight: [Number(variableAxes.axes.wght.min), Number(variableAxes.axes.wght.max)],
+ 							src: [{
+-								url: `https://cdn.jsdelivr.net/fontsource/fonts/${font.id}:vf@latest/${subset}-${axisSlug}-${style}.woff2`,
++								url: `https://cdn.jsdelivr.net/fontsource/fonts/${font.id}:vf@latest/${file}-${axisSlug}-${style}.woff2`,
+ 								format: "woff2"
+ 							}],
+-							unicodeRange: fontDetail.unicodeRange[subset]?.split(","),
++							unicodeRange: fontDetail.unicodeRange[range]?.split(","),
+ 							meta: { subset }
+ 						});
+ 					}
+@@ -792,7 +804,7 @@ var fontsource_default = defineFontProvider("fontsource", async (_options, ctx)
+ 				}
+ 				continue;
+ 			}
+-			const variantUrl = fontDetail.variants[weight][style][subset].url;
++			const variantUrl = fontDetail.variants[weight][style][file].url;
+ 			fontFaceData.push({
+ 				style,
+ 				weight,
+@@ -800,7 +812,7 @@ var fontsource_default = defineFontProvider("fontsource", async (_options, ctx)
+ 					url,
+ 					format
+ 				})),
+-				unicodeRange: fontDetail.unicodeRange[subset]?.split(","),
++				unicodeRange: fontDetail.unicodeRange[range]?.split(","),
+ 				meta: { subset }
+ 			});
+ 		}
