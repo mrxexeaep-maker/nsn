@@ -1,4 +1,4 @@
-import type { DesignJSXValidationLimits } from '@/app/code/sandbox/types'
+import type { DesignJSXHelperDescriptor, DesignJSXValidationLimits } from '@/app/code/sandbox/types'
 import { validateStructuredData } from '@/app/code/sandbox/validate'
 
 /** What the host asks the sandbox to run. */
@@ -21,7 +21,6 @@ type Element = {
   children: unknown[]
   source?: number
 }
-type Helper = { __openPencilHelper: string; args: unknown[] }
 type CollectionRecord = {
   collection: unknown
   values: Record<string, unknown>
@@ -51,7 +50,10 @@ function createElement(
 }
 
 function helper(name: string) {
-  return (...args: unknown[]): Helper => ({ __openPencilHelper: name, args })
+  return (...args: unknown[]): DesignJSXHelperDescriptor => ({
+    __openPencilHelper: name,
+    args
+  })
 }
 
 /**
@@ -67,10 +69,17 @@ function helperRuntime() {
   const defineVars = (collection: unknown, values: Record<string, unknown>, options?: unknown) => {
     const index = collections.push({ collection, values, options: options ?? {}, modes: [] }) - 1
     return Object.fromEntries(
-      Object.keys(values).map((key): [string, Helper] => [key, helper('variable')(index, key)])
+      Object.keys(values).map((key): [string, DesignJSXHelperDescriptor] => [
+        key,
+        helper('variable')(index, key)
+      ])
     )
   }
-  const defineMode = (vars: Record<string, Helper>, mode: unknown, values: unknown) => {
+  const defineMode = (
+    vars: Record<string, DesignJSXHelperDescriptor>,
+    mode: unknown,
+    values: unknown
+  ) => {
     const index = Object.values(vars)[0]?.args[0]
     const record = typeof index === 'number' ? collections[index] : undefined
     if (!record) throw new Error('defineMode() takes the variables defineVars() returned')
