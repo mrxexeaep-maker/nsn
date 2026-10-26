@@ -3,7 +3,7 @@ import type { CloudServerConfig } from '#cloud/server/config'
 import type { CloudDatabase } from '#cloud/server/db'
 import { createUserPictures, providerPictures } from '#cloud/server/pictures'
 import { passkey } from '@better-auth/passkey'
-import { APIError, betterAuth, type BetterAuthOptions } from 'better-auth'
+import { APIError, betterAuth } from 'better-auth'
 import { getMigrations } from 'better-auth/db/migration'
 import {
   admin,
@@ -13,75 +13,17 @@ import {
   haveIBeenPwned,
   twoFactor
 } from 'better-auth/plugins'
-import { importPKCS8, SignJWT } from 'jose'
 import type { Kysely } from 'kysely'
 
 import { accountActivity, createSignInActivity } from './activity'
 import type { CloudAuthAdapter } from './adapter'
 import type { AuthenticationEmailService } from './email'
-import { AUTH_BASE_PATH, AUTH_ENDPOINTS, authRequestPath } from './endpoints'
+import { AUTH_BASE_PATH, CORE_AUTH_PATHS, authRequestPath } from './endpoints'
 import { createMFAAssuranceService } from './mfa-assurance'
+import { APPLE_AUDIENCE, socialProviders } from './social-providers'
 
-const APPLE_AUDIENCE = 'https://appleid.apple.com'
-const APPLE_SECRET_LIFETIME_SECONDS = 180 * 24 * 60 * 60
 const BETTER_AUTH_SCHEMA_VERSION = '1.7.7+mfa.1'
 const ACCOUNT_SECURITY_FRESH_AGE_SECONDS = 10 * 60
-
-async function generateAppleClientSecret(config: CloudServerConfig): Promise<string> {
-  if (
-    !config.appleClientId ||
-    !config.appleTeamId ||
-    !config.appleKeyId ||
-    !config.applePrivateKey
-  ) {
-    throw new Error('Apple authentication is not configured')
-  }
-  const privateKey = await importPKCS8(config.applePrivateKey.replaceAll('\\n', '\n'), 'ES256')
-  const issuedAt = Math.floor(Date.now() / 1000)
-  return new SignJWT({})
-    .setProtectedHeader({ alg: 'ES256', kid: config.appleKeyId })
-    .setIssuer(config.appleTeamId)
-    .setSubject(config.appleClientId)
-    .setAudience(APPLE_AUDIENCE)
-    .setIssuedAt(issuedAt)
-    .setExpirationTime(issuedAt + APPLE_SECRET_LIFETIME_SECONDS)
-    .sign(privateKey)
-}
-
-function socialProviders(config: CloudServerConfig): BetterAuthOptions['socialProviders'] {
-  const providers: BetterAuthOptions['socialProviders'] = {}
-  if (config.googleClientId && config.googleClientSecret) {
-    providers.google = {
-      clientId: config.googleClientId,
-      clientSecret: config.googleClientSecret
-    }
-  }
-  if (config.appleClientId) {
-    providers.apple = async () => {
-      const provider: {
-        clientId: string
-        clientSecret: string
-        appBundleIdentifier?: string
-      } = {
-        clientId: config.appleClientId ?? '',
-        clientSecret: await generateAppleClientSecret(config)
-      }
-      if (config.appleAppBundleIdentifier) {
-        provider.appBundleIdentifier = config.appleAppBundleIdentifier
-      }
-      return provider
-    }
-  }
-  return providers
-}
-
-/** The second factor a request proves, by the endpoint it is for; other requests prove none. */
-function assuranceMethod(path: string): 'totp' | 'recovery-code' | 'passkey' | null {
-  if (path === authRequestPath(AUTH_ENDPOINTS.verifyTOTP)) return 'totp'
-  if (path === authRequestPath(AUTH_ENDPOINTS.verifyBackupCode)) return 'recovery-code'
-  if (path === authRequestPath(AUTH_ENDPOINTS.verifyPasskeyAuthentication)) return 'passkey'
-  return null
-}
 
 async function recordResponseAssurance(
   response: Response,
@@ -107,11 +49,12 @@ async function verifySecondFactor(
   assurance: ReturnType<typeof createMFAAssuranceService>,
   headers: Headers,
   code: string,
-  method: 'totp' | 'recovery-code'
+  method: 'totp' | 'recovery-code',
+  /** The two-step plugin's endpoint that checks this kind of code. */
+  endpoint: { path: string }
 ): Promise<Response> {
-  const endpoint = method === 'totp' ? AUTH_ENDPOINTS.verifyTOTP : AUTH_ENDPOINTS.verifyBackupCode
   const response = await auth.handler(
-    new Request(new URL(authRequestPath(endpoint), config.publicURL), {
+    new Request(new URL(authRequestPath(endpoint.path), config.publicURL), {
       method: 'POST',
       headers: new Headers({
         ...Object.fromEntries(headers),
@@ -146,6 +89,26 @@ export function createBetterAuthAdapter(
   const activity = createSignInActivity(database, authenticationEmail)
   // A new address is confirmed through a link sent to it, so changing one needs email delivery.
   const emailChangeAvailable = Boolean(config.emailPasswordEnabled && authenticationEmail)
+  // The plugins are built first, so the options below name their endpoints by the paths they declare.
+  const twoStep = twoFactor({
+    issuer: 'OpenPencil Cloud',
+    trustDeviceMaxAge: config.mfaTrustedDeviceDays * 24 * 60 * 60,
+    allowPasswordless: true,
+    totpOptions: { disable: !config.totpEnabled, allowPasswordless: true },
+    backupCodeOptions: {
+      disable: !config.totpEnabled || !config.recoveryCodesEnabled,
+      storeBackupCodes: 'encrypted'
+    }
+  })
+  const passkeys = passkey({
+    rpID: new URL(config.publicURL).hostname,
+    rpName: config.passkeyRPName,
+    origin: new URL(config.publicURL).origin
+  })
+  const devices = deviceAuthorization({
+    verificationUri: new URL('/auth/device', config.publicURL).href,
+    validateClient: (clientId) => clientId.startsWith('openpencil-desktop:')
+  })
   const administration = admin()
   const auth = betterAuth({
     appName: 'OpenPencil Cloud',
@@ -156,8 +119,8 @@ export function createBetterAuthAdapter(
     // through its account routes; the server still calls them itself.
     disabledPaths: [
       ...Object.values(administration.endpoints).map((endpoint) => endpoint.path),
-      AUTH_ENDPOINTS.deletePasskey,
-      AUTH_ENDPOINTS.disableTwoFactor
+      passkeys.endpoints.deletePasskey.path,
+      twoStep.endpoints.disableTwoFactor.path
     ],
     secret: config.authSecret,
     database: {
@@ -191,14 +154,14 @@ export function createBetterAuthAdapter(
       window: 60,
       max: 100,
       customRules: {
-        [AUTH_ENDPOINTS.deviceCode]: { window: 60, max: 10 },
-        [AUTH_ENDPOINTS.deviceToken]: { window: 60, max: 60 },
-        [AUTH_ENDPOINTS.deviceApprove]: { window: 60, max: 10 },
-        [AUTH_ENDPOINTS.deviceDeny]: { window: 60, max: 10 },
-        [AUTH_ENDPOINTS.signInEmail]: { window: 10, max: 3 },
-        [AUTH_ENDPOINTS.signUpEmail]: { window: 10, max: 3 },
-        [AUTH_ENDPOINTS.requestPasswordReset]: { window: 60, max: 3 },
-        [AUTH_ENDPOINTS.sendVerificationEmail]: { window: 60, max: 3 }
+        [devices.endpoints.deviceCode.path]: { window: 60, max: 10 },
+        [devices.endpoints.deviceToken.path]: { window: 60, max: 60 },
+        [devices.endpoints.deviceApprove.path]: { window: 60, max: 10 },
+        [devices.endpoints.deviceDeny.path]: { window: 60, max: 10 },
+        [CORE_AUTH_PATHS.signInEmail]: { window: 10, max: 3 },
+        [CORE_AUTH_PATHS.signUpEmail]: { window: 10, max: 3 },
+        [CORE_AUTH_PATHS.requestPasswordReset]: { window: 60, max: 3 },
+        [CORE_AUTH_PATHS.sendVerificationEmail]: { window: 60, max: 3 }
       }
     },
     emailAndPassword: config.emailPasswordEnabled
@@ -289,38 +252,26 @@ export function createBetterAuthAdapter(
               secretKey: config.captchaSecretKey,
               allowedHostnames: config.captchaAllowedHostnames,
               endpoints: [
-                AUTH_ENDPOINTS.signUpEmail,
-                AUTH_ENDPOINTS.signInEmail,
-                AUTH_ENDPOINTS.requestPasswordReset
+                CORE_AUTH_PATHS.signUpEmail,
+                CORE_AUTH_PATHS.signInEmail,
+                CORE_AUTH_PATHS.requestPasswordReset
               ]
             })
           ]
         : []),
       ...(config.compromisedPasswordCheck ? [haveIBeenPwned()] : []),
-      twoFactor({
-        issuer: 'OpenPencil Cloud',
-        trustDeviceMaxAge: config.mfaTrustedDeviceDays * 24 * 60 * 60,
-        allowPasswordless: true,
-        totpOptions: { disable: !config.totpEnabled, allowPasswordless: true },
-        backupCodeOptions: {
-          disable: !config.totpEnabled || !config.recoveryCodesEnabled,
-          storeBackupCodes: 'encrypted'
-        }
-      }),
-      passkey({
-        rpID: new URL(config.publicURL).hostname,
-        rpName: config.passkeyRPName,
-        origin: new URL(config.publicURL).origin
-      }),
+      twoStep,
+      passkeys,
       administration,
       // Device authorization returns opaque database session tokens, not signed cookies.
       bearer(),
-      deviceAuthorization({
-        verificationUri: new URL('/auth/device', config.publicURL).href,
-        validateClient: (clientId) => clientId.startsWith('openpencil-desktop:')
-      }),
+      devices,
       // After two-step sign-in's own hooks, so a sign-in waiting for its second step is skipped.
-      accountActivity(activity, (user) => notifyTwoStep(user, 'passkey-added')),
+      accountActivity(
+        activity,
+        { twoStep: twoStep.endpoints, passkeys: passkeys.endpoints, devices: devices.endpoints },
+        (user) => notifyTwoStep(user, 'passkey-added')
+      ),
       providerPictures(createUserPictures(database, { publicURL: config.publicURL }))
     ],
     socialProviders: socialProviders(config),
@@ -380,24 +331,66 @@ export function createBetterAuthAdapter(
     })
   }
 
+  /** The signed-in person while their account may use the server, which awaiting approval it may not. */
+  async function resolveSession(headers: Headers) {
+    const identity = await resolveIdentity(headers)
+    if (!identity) return null
+    if (config.enrollmentMode === 'approval' && !(await enrollment.isApproved(identity.email))) {
+      return null
+    }
+    return identity
+  }
+
+  /**
+   * The endpoints that read or change an account, which only an account that may use the server
+   * reaches; one awaiting approval still signs in and out. Better Auth checks the session inside
+   * most of these endpoints rather than declaring it, so they are listed by their own objects.
+   */
+  const activeAccountPaths = new Set(
+    [
+      auth.api.generatePasskeyRegistrationOptions,
+      auth.api.listPasskeys,
+      auth.api.updatePasskey,
+      auth.api.verifyPasskeyRegistration,
+      auth.api.enableTwoFactor,
+      auth.api.generateBackupCodes,
+      auth.api.getTOTPURI,
+      auth.api.accountInfo,
+      auth.api.changeEmail,
+      auth.api.changePassword,
+      auth.api.deleteUser,
+      auth.api.getAccessToken,
+      auth.api.linkSocialAccount,
+      auth.api.listUserAccounts,
+      auth.api.listSessions,
+      auth.api.refreshToken,
+      auth.api.revokeOtherSessions,
+      auth.api.revokeSession,
+      auth.api.revokeSessions,
+      auth.api.unlinkAccount
+    ].map((endpoint) => authRequestPath(endpoint.path))
+  )
+  /** The second factor a request proves, by the endpoint it is for. */
+  const assuranceMethods = new Map<string, 'totp' | 'recovery-code' | 'passkey'>([
+    [authRequestPath(twoStep.endpoints.verifyTOTP.path), 'totp'],
+    [authRequestPath(twoStep.endpoints.verifyBackupCode.path), 'recovery-code'],
+    [authRequestPath(passkeys.endpoints.verifyPasskeyAuthentication.path), 'passkey']
+  ])
+
   return {
     handler: async (request) => {
       const path = new URL(request.url).pathname
+      if (activeAccountPaths.has(path) && !(await resolveSession(request.headers))) {
+        return Response.json({ error: { code: 'unauthorized' } }, { status: 401 })
+      }
       const response = await auth.handler(request)
-      const method = assuranceMethod(path)
+      const method = assuranceMethods.get(path)
       if (response.ok && method)
         await recordResponseAssurance(response, method, database, assurance)
       return response
     },
     resolveIdentity,
-    async resolveSession(headers) {
-      const identity = await resolveIdentity(headers)
-      if (!identity) return null
-      if (config.enrollmentMode === 'approval' && !(await enrollment.isApproved(identity.email))) {
-        return null
-      }
-      return identity
-    },
+    resolveSession,
     async listAuthenticationMethods(headers) {
       const accounts = await auth.api.listUserAccounts({ headers })
       return accounts.map((account) => ({
@@ -480,7 +473,8 @@ export function createBetterAuthAdapter(
         assurance,
         headers,
         code,
-        'totp'
+        'totp',
+        twoStep.endpoints.verifyTOTP
       )
       // The first code from a new authenticator is what turns it on.
       if (before && !('twoFactorEnabled' in before.user && before.user.twoFactorEnabled === true)) {
@@ -489,7 +483,16 @@ export function createBetterAuthAdapter(
       return response
     },
     async verifyRecoveryCode(headers, code) {
-      return verifySecondFactor(auth, config, database, assurance, headers, code, 'recovery-code')
+      return verifySecondFactor(
+        auth,
+        config,
+        database,
+        assurance,
+        headers,
+        code,
+        'recovery-code',
+        twoStep.endpoints.verifyBackupCode
+      )
     },
     async generateRecoveryCodes(headers, password) {
       return (await auth.api.generateBackupCodes({ headers, body: { password } })).backupCodes

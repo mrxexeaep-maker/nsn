@@ -22,8 +22,6 @@ import {
 } from '#cloud/server/api'
 import {
   AUTH_BASE_PATH,
-  AUTH_ENDPOINTS,
-  authRequestPath,
   createAuthenticationEmailService,
   createCloudIdentityResolver,
   createCloudSessionResolver,
@@ -96,32 +94,6 @@ type CloudEnvironment = CloudAPIEnvironment
 function discoveryFromServices(services: CloudServices): CloudDiscovery {
   return cloudDiscoveryFromConfig(services.config)
 }
-
-/** The Better Auth endpoints that change or read an account, which only an active one may use. */
-const ACTIVE_ACCOUNT_AUTH_PATHS = new Set(
-  [
-    AUTH_ENDPOINTS.generatePasskeyRegistrationOptions,
-    AUTH_ENDPOINTS.listPasskeys,
-    AUTH_ENDPOINTS.updatePasskey,
-    AUTH_ENDPOINTS.verifyPasskeyRegistration,
-    AUTH_ENDPOINTS.enableTwoFactor,
-    AUTH_ENDPOINTS.generateBackupCodes,
-    AUTH_ENDPOINTS.getTOTPURI,
-    AUTH_ENDPOINTS.accountInfo,
-    AUTH_ENDPOINTS.changeEmail,
-    AUTH_ENDPOINTS.changePassword,
-    AUTH_ENDPOINTS.deleteUser,
-    AUTH_ENDPOINTS.getAccessToken,
-    AUTH_ENDPOINTS.linkSocialAccount,
-    AUTH_ENDPOINTS.listUserAccounts,
-    AUTH_ENDPOINTS.listSessions,
-    AUTH_ENDPOINTS.refreshToken,
-    AUTH_ENDPOINTS.revokeOtherSessions,
-    AUTH_ENDPOINTS.revokeSession,
-    AUTH_ENDPOINTS.revokeSessions,
-    AUTH_ENDPOINTS.unlinkAccount
-  ].map(authRequestPath)
-)
 
 export function shouldPreventIndexing(path: string, policy: 'allow' | 'deny'): boolean {
   return (
@@ -385,15 +357,7 @@ export function createCloudApp(services: CloudServices) {
     .get(CLOUD_AI_JWKS_PATH, async (context) =>
       aiTokens ? context.json(aiTokens.jwks()) : context.notFound()
     )
-    .on(['GET', 'POST'], `${AUTH_BASE_PATH}/*`, async (context) => {
-      if (
-        ACTIVE_ACCOUNT_AUTH_PATHS.has(context.req.path) &&
-        !(await resolveSession(context.req.raw))
-      ) {
-        return context.json({ error: { code: 'unauthorized' as const } }, 401)
-      }
-      return services.auth.handler(context.req.raw)
-    })
+    .on(['GET', 'POST'], `${AUTH_BASE_PATH}/*`, (context) => services.auth.handler(context.req.raw))
     .route('/', accountRoutes)
     .route('/', createPictureRoutes(pictures))
     .use('/api/shares/:shareId/collaboration-ticket', publicCollaborationLimiter)

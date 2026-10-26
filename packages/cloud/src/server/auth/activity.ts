@@ -6,36 +6,50 @@ import { createAuthMiddleware, isAPIError } from 'better-auth/api'
 import type { Kysely } from 'kysely'
 
 import type { AuthenticationEmailService } from './email'
-import { AUTH_ENDPOINTS, isAuthEndpoint, type AuthEndpointPath } from './endpoints'
+import { CORE_AUTH_PATHS, isAuthEndpoint } from './endpoints'
 import { describeUserAgent } from './user-agent'
 
 /** The newest sign-ins an account's history shows. */
 const SIGN_IN_HISTORY_LIMIT = 50
 
+type Endpoint = { path: string }
+
+/** The plugin endpoints that sign someone in, as the server's plugins declare them. */
+export type SignInPluginEndpoints = {
+  twoStep: { verifyTOTP: Endpoint; verifyBackupCode: Endpoint }
+  passkeys: { verifyPasskeyAuthentication: Endpoint; verifyPasskeyRegistration: Endpoint }
+  devices: { deviceToken: Endpoint }
+}
+
 /** The Better Auth endpoints that sign someone in, and the method each one is. */
-const ENDPOINT_METHODS: readonly [AuthEndpointPath, CloudSignInMethod][] = [
-  [AUTH_ENDPOINTS.signInEmail, 'password'],
-  [AUTH_ENDPOINTS.verifyPasskeyAuthentication, 'passkey'],
-  [AUTH_ENDPOINTS.verifyTOTP, 'two-step'],
-  [AUTH_ENDPOINTS.verifyBackupCode, 'two-step'],
-  [AUTH_ENDPOINTS.verifyEmail, 'email-link'],
-  [AUTH_ENDPOINTS.deviceToken, 'desktop']
-]
+export type SignInEndpoints = readonly (readonly [path: string, method: CloudSignInMethod])[]
+
+/** The sign-in endpoints of the core and of the server's plugins, from their own paths. */
+export function signInEndpoints(plugins: SignInPluginEndpoints): SignInEndpoints {
+  return [
+    [CORE_AUTH_PATHS.signInEmail, 'password'],
+    [plugins.passkeys.verifyPasskeyAuthentication.path, 'passkey'],
+    [plugins.twoStep.verifyTOTP.path, 'two-step'],
+    [plugins.twoStep.verifyBackupCode.path, 'two-step'],
+    [CORE_AUTH_PATHS.verifyEmail, 'email-link'],
+    [plugins.devices.deviceToken.path, 'desktop']
+  ]
+}
 
 /**
  * How an endpoint signed someone in, or null when it signs nobody in, such as one that refreshes
  * a session. A provider's callback names the provider, as Better Auth's own `lastLoginMethod`
  * reads it.
  */
-export function signInMethod(endpoint: {
-  path?: string
-  params?: Record<string, string | undefined>
-}): CloudSignInMethod | null {
-  if (isAuthEndpoint(endpoint.path, AUTH_ENDPOINTS.callbackOAuth)) {
+export function signInMethod(
+  endpoint: { path?: string; params?: Record<string, string | undefined> },
+  methods: SignInEndpoints
+): CloudSignInMethod | null {
+  if (isAuthEndpoint(endpoint.path, CORE_AUTH_PATHS.callbackOAuth)) {
     const provider = endpoint.params?.id
     return provider === 'google' || provider === 'apple' ? provider : 'other'
   }
-  return ENDPOINT_METHODS.find(([path]) => isAuthEndpoint(endpoint.path, path))?.[1] ?? null
+  return methods.find(([path]) => isAuthEndpoint(endpoint.path, path))?.[1] ?? null
 }
 
 /**
@@ -169,23 +183,25 @@ export type SignInActivity = ReturnType<typeof createSignInActivity>
  */
 export function accountActivity(
   activity: SignInActivity,
+  plugins: SignInPluginEndpoints,
   onPasskeyAdded: (user: { id: string; email: string; name: string }) => Promise<void>
 ): BetterAuthPlugin {
+  const methods = signInEndpoints(plugins)
   return {
     id: 'openpencil-account-activity',
     hooks: {
       after: [
         {
-          matcher: (context) => signInMethod(context) !== null,
+          matcher: (context) => signInMethod(context, methods) !== null,
           handler: createAuthMiddleware(async (context) => {
             const issued = context.context.newSession
-            const method = signInMethod(context)
+            const method = signInMethod(context, methods)
             if (issued && method) await activity.record(issued, method)
           })
         },
         {
           matcher: (context) =>
-            isAuthEndpoint(context.path, AUTH_ENDPOINTS.verifyPasskeyRegistration),
+            isAuthEndpoint(context.path, plugins.passkeys.verifyPasskeyRegistration.path),
           handler: createAuthMiddleware(async (context) => {
             const user = context.context.session?.user
             if (user && !isAPIError(context.context.returned)) await onPasskeyAdded(user)

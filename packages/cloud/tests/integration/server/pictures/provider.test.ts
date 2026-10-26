@@ -85,11 +85,11 @@ describe('provider picture and upload', () => {
   test('an upload made while the provider picture is fetched stays', async () => {
     const runtime = await createCloudTestDatabase()
     try {
-      const { id: userId } = await runtime.database
+      const userId = crypto.randomUUID()
+      await runtime.database
         .insertInto('user')
-        .values({ name: 'Racer', email: 'racer@example.com', emailVerified: true })
-        .returning('id')
-        .executeTakeFirstOrThrow()
+        .values({ id: userId, name: 'Racer', email: 'racer@example.com', emailVerified: true })
+        .execute()
       let answer: (response: Response) => void = () => undefined
       const pictures = createUserPictures(runtime.database, {
         publicURL: PUBLIC_URL,

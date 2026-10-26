@@ -1,6 +1,4 @@
-import type { passkey } from '@better-auth/passkey'
 import type * as BetterAuthEndpoints from 'better-auth/api'
-import type { deviceAuthorization, twoFactor } from 'better-auth/plugins'
 
 /** Where Better Auth answers under the Cloud server. */
 export const AUTH_BASE_PATH = '/api/auth'
@@ -11,111 +9,37 @@ type PathOf<Endpoint> = Endpoint extends { path: infer Path extends string }
   : Endpoint extends (...args: never) => { path: infer Path extends string }
     ? Path
     : never
-type Paths<Endpoints, Names extends keyof Endpoints> = {
-  readonly [Name in Names]: PathOf<Endpoints[Name]>
+type CorePaths<Names extends keyof typeof BetterAuthEndpoints> = {
+  readonly [Name in Names]: PathOf<(typeof BetterAuthEndpoints)[Name]>
 }
 
-type CoreEndpoints = typeof BetterAuthEndpoints
-type TwoFactorEndpoints = ReturnType<typeof twoFactor>['endpoints']
-type PasskeyEndpoints = ReturnType<typeof passkey>['endpoints']
-type DeviceEndpoints = ReturnType<typeof deviceAuthorization>['endpoints']
-
-type AuthEndpoints = Paths<
-  CoreEndpoints,
-  | 'accountInfo'
+/**
+ * The core endpoints whose paths Better Auth's own options need before it is built: rate limits,
+ * captcha, and the hooks that record sign-ins. Plugin endpoints come from the plugin objects and
+ * the rest from `auth.api`; these few are written out, and the type check holds each to the path
+ * the library declares, so a renamed endpoint fails to compile.
+ */
+export const CORE_AUTH_PATHS: CorePaths<
   | 'callbackOAuth'
-  | 'changeEmail'
-  | 'changePassword'
-  | 'deleteUser'
-  | 'getAccessToken'
-  | 'linkSocialAccount'
-  | 'listSessions'
-  | 'listUserAccounts'
-  | 'refreshToken'
   | 'requestPasswordReset'
-  | 'revokeOtherSessions'
-  | 'revokeSession'
-  | 'revokeSessions'
   | 'sendVerificationEmail'
   | 'signInEmail'
-  | 'signInSocial'
   | 'signUpEmail'
-  | 'unlinkAccount'
-  | 'updateUser'
   | 'verifyEmail'
-> &
-  Paths<
-    TwoFactorEndpoints,
-    | 'disableTwoFactor'
-    | 'enableTwoFactor'
-    | 'generateBackupCodes'
-    | 'getTOTPURI'
-    | 'verifyBackupCode'
-    | 'verifyTOTP'
-  > &
-  Paths<
-    PasskeyEndpoints,
-    | 'deletePasskey'
-    | 'generatePasskeyRegistrationOptions'
-    | 'listPasskeys'
-    | 'updatePasskey'
-    | 'verifyPasskeyAuthentication'
-    | 'verifyPasskeyRegistration'
-  > &
-  Paths<DeviceEndpoints, 'deviceApprove' | 'deviceCode' | 'deviceDeny' | 'deviceToken'>
-
-/**
- * The Better Auth endpoints Cloud acts on, by name. Each path must be the one the library declares
- * for that endpoint, so a renamed or removed endpoint fails the type check instead of silently no
- * longer matching.
- */
-export const AUTH_ENDPOINTS: AuthEndpoints = {
-  accountInfo: '/account-info',
+> = {
   callbackOAuth: '/callback/:id',
-  changeEmail: '/change-email',
-  changePassword: '/change-password',
-  deleteUser: '/delete-user',
-  getAccessToken: '/get-access-token',
-  linkSocialAccount: '/link-social',
-  listSessions: '/list-sessions',
-  listUserAccounts: '/list-accounts',
-  refreshToken: '/refresh-token',
   requestPasswordReset: '/request-password-reset',
-  revokeOtherSessions: '/revoke-other-sessions',
-  revokeSession: '/revoke-session',
-  revokeSessions: '/revoke-sessions',
   sendVerificationEmail: '/send-verification-email',
   signInEmail: '/sign-in/email',
-  signInSocial: '/sign-in/social',
   signUpEmail: '/sign-up/email',
-  unlinkAccount: '/unlink-account',
-  updateUser: '/update-user',
-  verifyEmail: '/verify-email',
-  disableTwoFactor: '/two-factor/disable',
-  enableTwoFactor: '/two-factor/enable',
-  generateBackupCodes: '/two-factor/generate-backup-codes',
-  getTOTPURI: '/two-factor/get-totp-uri',
-  verifyBackupCode: '/two-factor/verify-backup-code',
-  verifyTOTP: '/two-factor/verify-totp',
-  deletePasskey: '/passkey/delete-passkey',
-  generatePasskeyRegistrationOptions: '/passkey/generate-register-options',
-  listPasskeys: '/passkey/list-user-passkeys',
-  updatePasskey: '/passkey/update-passkey',
-  verifyPasskeyAuthentication: '/passkey/verify-authentication',
-  verifyPasskeyRegistration: '/passkey/verify-registration',
-  deviceApprove: '/device/approve',
-  deviceCode: '/device/code',
-  deviceDeny: '/device/deny',
-  deviceToken: '/device/token'
+  verifyEmail: '/verify-email'
 }
 
-export type AuthEndpointPath = AuthEndpoints[keyof AuthEndpoints]
-
 /**
- * Whether `path`, as a hook context or request has it, is `endpoint`'s. Hooks see the declared
- * pattern or the concrete path, so a `:param` segment matches any one segment.
+ * Whether `path`, as a hook context or request has it, is the endpoint at `endpoint`. Hooks see the
+ * declared pattern or the concrete path, so a `:param` segment matches any one segment.
  */
-export function isAuthEndpoint(path: string | undefined, endpoint: AuthEndpointPath): boolean {
+export function isAuthEndpoint(path: string | undefined, endpoint: string): boolean {
   if (!path) return false
   const actual = path.split('/')
   const expected = endpoint.split('/')
@@ -127,7 +51,7 @@ export function isAuthEndpoint(path: string | undefined, endpoint: AuthEndpointP
   )
 }
 
-/** The path a request for `endpoint` arrives at on the Cloud server. */
-export function authRequestPath(endpoint: AuthEndpointPath): string {
+/** The path a request for the endpoint at `endpoint` arrives at on the Cloud server. */
+export function authRequestPath(endpoint: string): string {
   return `${AUTH_BASE_PATH}${endpoint}`
 }
