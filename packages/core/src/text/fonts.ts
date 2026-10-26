@@ -75,6 +75,12 @@ export type BundledFontLocator = (file: string) => string
 
 const defaultBundledFontLocator: BundledFontLocator = (file) => `/${file}`
 
+/** `load`'s answer once HarfBuzz has loaded too, the two loading side by side. */
+async function withHarfBuzz<T>(load: Promise<T>): Promise<T> {
+  const [answer] = await Promise.all([load, loadHarfBuzz()])
+  return answer
+}
+
 export class FontManager {
   private loadedFamilies = new Map<string, ArrayBuffer>()
   private loadedFamilySources = new Map<string, FontLoadedSource>()
@@ -272,12 +278,15 @@ export class FontManager {
     return this.webFonts.enabledProviders()
   }
 
-  async loadCachedFont(
+  loadCachedFont(family: string, style = 'Regular', characters = ''): Promise<ArrayBuffer | null> {
+    return withHarfBuzz(this.restoreCachedFont(family, style, characters))
+  }
+
+  private async restoreCachedFont(
     family: string,
     style = 'Regular',
     characters = ''
   ): Promise<ArrayBuffer | null> {
-    await loadHarfBuzz()
     const cached = await this.readDownloadedFont(family, style, characters)
     if (!cached) return null
     const key = `${family}|${style}`
@@ -371,8 +380,14 @@ export class FontManager {
     return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
   }
 
-  async loadLocalFont(family: string, style = 'Regular'): Promise<ArrayBuffer | null> {
-    await loadHarfBuzz()
+  loadLocalFont(family: string, style = 'Regular'): Promise<ArrayBuffer | null> {
+    return withHarfBuzz(this.findLocalOrBundledFont(family, style))
+  }
+
+  private async findLocalOrBundledFont(
+    family: string,
+    style = 'Regular'
+  ): Promise<ArrayBuffer | null> {
     const loaded = this.loadedFamilies.get(`${family}|${style}`)
     if (loaded) {
       this.registerFontInCanvasKit(family, loaded)
@@ -403,13 +418,21 @@ export class FontManager {
     }
   }
 
-  async loadRemoteFont(
+  loadRemoteFont(
     family: string,
     style = 'Regular',
     characters = '',
     signal?: AbortSignal
   ): Promise<ArrayBuffer | null> {
-    await loadHarfBuzz()
+    return withHarfBuzz(this.downloadFont(family, style, characters, signal))
+  }
+
+  private async downloadFont(
+    family: string,
+    style = 'Regular',
+    characters = '',
+    signal?: AbortSignal
+  ): Promise<ArrayBuffer | null> {
     signal?.throwIfAborted()
     if (typeof fetch === 'undefined') return null
     const coverage = this.remoteCoverage.get(`${family}|${style}`)
@@ -445,13 +468,21 @@ export class FontManager {
     }
   }
 
-  async loadFont(
+  loadFont(
     family: string,
     style = 'Regular',
     characters = '',
     signal?: AbortSignal
   ): Promise<ArrayBuffer | null> {
-    await loadHarfBuzz()
+    return withHarfBuzz(this.findFont(family, style, characters, signal))
+  }
+
+  private async findFont(
+    family: string,
+    style = 'Regular',
+    characters = '',
+    signal?: AbortSignal
+  ): Promise<ArrayBuffer | null> {
     signal?.throwIfAborted()
     const loaded = this.loadedData(family, style)
     if (loaded) {
@@ -653,12 +684,19 @@ export class FontManager {
     return this.arabicFallbackPromise
   }
 
-  async ensureFallbackPack(
+  ensureFallbackPack(
     scripts: FontFallbackScript[] = ['cjk', 'arabic'],
     characters = '',
     signal?: AbortSignal
   ): Promise<Partial<Record<FontFallbackScript, string[]>>> {
-    await loadHarfBuzz()
+    return withHarfBuzz(this.loadFallbackPack(scripts, characters, signal))
+  }
+
+  private async loadFallbackPack(
+    scripts: FontFallbackScript[] = ['cjk', 'arabic'],
+    characters = '',
+    signal?: AbortSignal
+  ): Promise<Partial<Record<FontFallbackScript, string[]>>> {
     signal?.throwIfAborted()
     const result: Partial<Record<FontFallbackScript, string[]>> = {}
     await Promise.all(

@@ -47,6 +47,9 @@ export interface HarfBuzzFont {
   font: HarfBuzzModule.Font
   bytes: ArrayBuffer
   glyphCount: number
+  /** Glyph IDs by code point and default advances by glyph ID, read once each. */
+  glyphIds: Map<number, number>
+  advances: Map<number, number>
 }
 
 /** A font file read by HarfBuzz, or `null` when HarfBuzz is not loaded or the file has no glyphs. */
@@ -56,7 +59,15 @@ export function harfBuzzFont(bytes: ArrayBuffer): HarfBuzzFont | null {
   const glyphCount = maxp && maxp.byteLength >= 6 ? maxp.getUint16(4) : 0
   if (!hb || glyphCount === 0) return null
   const face = new hb.Face(new hb.Blob(bytes))
-  return { hb, face, font: new hb.Font(face), bytes, glyphCount }
+  return {
+    hb,
+    face,
+    font: new hb.Font(face),
+    bytes,
+    glyphCount,
+    glyphIds: new Map(),
+    advances: new Map()
+  }
 }
 
 /** HarfBuzz's font drawing the instance at `variations`. */
@@ -70,6 +81,54 @@ export function variedFont(
   return font
 }
 
+/** Where an outline is collected, and how font units map to it. */
+interface OutlineTarget {
+  commands: OutlineCommand[]
+  scale: number
+  baseline: number
+}
+
+let outlineDrawing: HarfBuzzModule.DrawFuncs | null = null
+
+/**
+ * The draw callbacks that collect an outline into its target. HarfBuzz registers each callback in
+ * the WebAssembly function table, so one set serves every glyph.
+ */
+function outlineDrawFuncs(hb: HarfBuzz): HarfBuzzModule.DrawFuncs {
+  if (outlineDrawing) return outlineDrawing
+  const target = (data: unknown) => data as OutlineTarget
+  const x = (data: OutlineTarget, value: number) => value * data.scale
+  const y = (data: OutlineTarget, value: number) => data.baseline - value * data.scale
+  const draw = new hb.DrawFuncs()
+  draw.setMoveToFunc((px, py, data) => {
+    const t = target(data)
+    t.commands.push({ type: 'M', x: x(t, px), y: y(t, py) })
+  })
+  draw.setLineToFunc((px, py, data) => {
+    const t = target(data)
+    t.commands.push({ type: 'L', x: x(t, px), y: y(t, py) })
+  })
+  draw.setQuadraticToFunc((cx, cy, px, py, data) => {
+    const t = target(data)
+    t.commands.push({ type: 'Q', x1: x(t, cx), y1: y(t, cy), x: x(t, px), y: y(t, py) })
+  })
+  draw.setCubicToFunc((c1x, c1y, c2x, c2y, px, py, data) => {
+    const t = target(data)
+    t.commands.push({
+      type: 'C',
+      x1: x(t, c1x),
+      y1: y(t, c1y),
+      x2: x(t, c2x),
+      y2: y(t, c2y),
+      x: x(t, px),
+      y: y(t, py)
+    })
+  })
+  draw.setClosePathFunc((data) => target(data).commands.push({ type: 'Z' }))
+  outlineDrawing = draw
+  return draw
+}
+
 /**
  * The outline of `glyphId`, scaled from font units to `fontSize` with y running down from the
  * baseline at `baseline`.
@@ -81,20 +140,7 @@ export function glyphCommands(
   fontSize: number,
   baseline = 0
 ): OutlineCommand[] {
-  const scale = fontSize / parsed.face.upem
-  const x = (value: number) => value * scale
-  const y = (value: number) => baseline - value * scale
-  const commands: OutlineCommand[] = []
-  const draw = new parsed.hb.DrawFuncs()
-  draw.setMoveToFunc((px, py) => commands.push({ type: 'M', x: x(px), y: y(py) }))
-  draw.setLineToFunc((px, py) => commands.push({ type: 'L', x: x(px), y: y(py) }))
-  draw.setQuadraticToFunc((cx, cy, px, py) =>
-    commands.push({ type: 'Q', x1: x(cx), y1: y(cy), x: x(px), y: y(py) })
-  )
-  draw.setCubicToFunc((c1x, c1y, c2x, c2y, px, py) =>
-    commands.push({ type: 'C', x1: x(c1x), y1: y(c1y), x2: x(c2x), y2: y(c2y), x: x(px), y: y(py) })
-  )
-  draw.setClosePathFunc(() => commands.push({ type: 'Z' }))
-  font.drawGlyph(glyphId, draw)
-  return commands
+  const target: OutlineTarget = { commands: [], scale: fontSize / parsed.face.upem, baseline }
+  font.drawGlyph(glyphId, outlineDrawFuncs(parsed.hb), target)
+  return target.commands
 }

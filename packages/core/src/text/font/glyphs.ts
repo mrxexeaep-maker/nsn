@@ -45,12 +45,28 @@ function getParsedFont(family: string, style: string): HarfBuzzFont | null {
 /** The glyph the font maps a character to, 0 (`.notdef`) when it has none. */
 export function glyphIndex(parsed: HarfBuzzFont, character: string): number {
   const codePoint = character.codePointAt(0)
-  return codePoint === undefined ? 0 : (parsed.font.glyph(codePoint) ?? 0)
+  if (codePoint === undefined) return 0
+  let glyph = parsed.glyphIds.get(codePoint)
+  if (glyph === undefined) {
+    glyph = parsed.font.glyph(codePoint) ?? 0
+    parsed.glyphIds.set(codePoint, glyph)
+  }
+  return glyph
+}
+
+/** A glyph's advance in the font's default instance, in font units. */
+function glyphAdvanceUnits(parsed: HarfBuzzFont, glyphId: number): number {
+  let advance = parsed.advances.get(glyphId)
+  if (advance === undefined) {
+    advance = parsed.font.glyphHAdvance(glyphId)
+    parsed.advances.set(glyphId, advance)
+  }
+  return advance
 }
 
 /** A glyph's advance in the font's default instance, at `fontSize`. */
 function glyphAdvanceWidth(parsed: HarfBuzzFont, glyphId: number, fontSize: number): number {
-  return (parsed.font.glyphHAdvance(glyphId) * fontSize) / parsed.face.upem
+  return (glyphAdvanceUnits(parsed, glyphId) * fontSize) / parsed.face.upem
 }
 
 /**
@@ -95,11 +111,9 @@ export function measureTextWithFont(
   const { ascender, descender, lineGap } = lineMetrics(parsed)
   const lineH = lineHeight ?? Math.ceil((ascender - descender + lineGap) * scale)
 
-  const singleLineWidth = Array.from(text).reduce(
-    (width, character) =>
-      width + glyphAdvanceWidth(parsed, glyphIndex(parsed, character), fontSize),
-    0
-  )
+  let units = 0
+  for (const character of text) units += glyphAdvanceUnits(parsed, glyphIndex(parsed, character))
+  const singleLineWidth = units * scale
 
   if (maxWidth && maxWidth > 0 && singleLineWidth > maxWidth) {
     const lines = Math.ceil(singleLineWidth / maxWidth)
