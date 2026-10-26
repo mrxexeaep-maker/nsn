@@ -6,7 +6,8 @@ import { viteBuildTarget } from '../src/app/shell/support/baseline'
 import { createOpenPencilAliases } from './aliases.ts'
 
 const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url))
-const SCRIPT_QUERY = '?script'
+/** `?script` among an id's query, which Vite extends, as with `?t=…&script` after a hot update. */
+const SCRIPT_QUERY = /[?&]script(?:&|$)/
 
 /**
  * `import source from './entry.ts?script'`: the module and everything it imports bundled into
@@ -22,9 +23,9 @@ export function inlineScriptPlugin(): Plugin {
       minify = config.command === 'build'
     },
     load: {
-      filter: { id: /\?script$/ },
+      filter: { id: SCRIPT_QUERY },
       async handler(id) {
-        const entry = id.slice(0, -SCRIPT_QUERY.length)
+        const entry = id.slice(0, id.indexOf('?'))
         const output = await build({
           configFile: false,
           root: REPO_ROOT,
