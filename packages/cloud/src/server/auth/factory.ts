@@ -19,6 +19,7 @@ import type { Kysely } from 'kysely'
 import { accountActivity, createSignInActivity } from './activity'
 import type { CloudAuthAdapter } from './adapter'
 import type { AuthenticationEmailService } from './email'
+import { AUTH_BASE_PATH, AUTH_ENDPOINTS, authRequestPath } from './endpoints'
 import { createMFAAssuranceService } from './mfa-assurance'
 
 const APPLE_AUDIENCE = 'https://appleid.apple.com'
@@ -74,10 +75,11 @@ function socialProviders(config: CloudServerConfig): BetterAuthOptions['socialPr
   return providers
 }
 
+/** The second factor a request proves, by the endpoint it is for; other requests prove none. */
 function assuranceMethod(path: string): 'totp' | 'recovery-code' | 'passkey' | null {
-  if (path === '/api/auth/two-factor/verify-totp') return 'totp'
-  if (path === '/api/auth/two-factor/verify-backup-code') return 'recovery-code'
-  if (path === '/api/auth/passkey/verify-authentication') return 'passkey'
+  if (path === authRequestPath(AUTH_ENDPOINTS.verifyTOTP)) return 'totp'
+  if (path === authRequestPath(AUTH_ENDPOINTS.verifyBackupCode)) return 'recovery-code'
+  if (path === authRequestPath(AUTH_ENDPOINTS.verifyPasskeyAuthentication)) return 'passkey'
   return null
 }
 
@@ -107,9 +109,9 @@ async function verifySecondFactor(
   code: string,
   method: 'totp' | 'recovery-code'
 ): Promise<Response> {
-  const path = method === 'totp' ? 'verify-totp' : 'verify-backup-code'
+  const endpoint = method === 'totp' ? AUTH_ENDPOINTS.verifyTOTP : AUTH_ENDPOINTS.verifyBackupCode
   const response = await auth.handler(
-    new Request(new URL(`/api/auth/two-factor/${path}`, config.publicURL), {
+    new Request(new URL(authRequestPath(endpoint), config.publicURL), {
       method: 'POST',
       headers: new Headers({
         ...Object.fromEntries(headers),
@@ -144,10 +146,19 @@ export function createBetterAuthAdapter(
   const activity = createSignInActivity(database, authenticationEmail)
   // A new address is confirmed through a link sent to it, so changing one needs email delivery.
   const emailChangeAvailable = Boolean(config.emailPasswordEnabled && authenticationEmail)
+  const administration = admin()
   const auth = betterAuth({
     appName: 'OpenPencil Cloud',
     baseURL: config.publicURL,
-    basePath: '/api/auth',
+    basePath: AUTH_BASE_PATH,
+    // Clients never reach Better Auth's own administration, which `/api/admin` replaces with MFA,
+    // origin, last-administrator, and audit checks, nor the two endpoints Cloud's policy manages
+    // through its account routes; the server still calls them itself.
+    disabledPaths: [
+      ...Object.values(administration.endpoints).map((endpoint) => endpoint.path),
+      AUTH_ENDPOINTS.deletePasskey,
+      AUTH_ENDPOINTS.disableTwoFactor
+    ],
     secret: config.authSecret,
     database: {
       db: database,
@@ -180,14 +191,14 @@ export function createBetterAuthAdapter(
       window: 60,
       max: 100,
       customRules: {
-        '/device/code': { window: 60, max: 10 },
-        '/device/token': { window: 60, max: 60 },
-        '/device/approve': { window: 60, max: 10 },
-        '/device/deny': { window: 60, max: 10 },
-        '/sign-in/email': { window: 10, max: 3 },
-        '/sign-up/email': { window: 10, max: 3 },
-        '/request-password-reset': { window: 60, max: 3 },
-        '/send-verification-email': { window: 60, max: 3 }
+        [AUTH_ENDPOINTS.deviceCode]: { window: 60, max: 10 },
+        [AUTH_ENDPOINTS.deviceToken]: { window: 60, max: 60 },
+        [AUTH_ENDPOINTS.deviceApprove]: { window: 60, max: 10 },
+        [AUTH_ENDPOINTS.deviceDeny]: { window: 60, max: 10 },
+        [AUTH_ENDPOINTS.signInEmail]: { window: 10, max: 3 },
+        [AUTH_ENDPOINTS.signUpEmail]: { window: 10, max: 3 },
+        [AUTH_ENDPOINTS.requestPasswordReset]: { window: 60, max: 3 },
+        [AUTH_ENDPOINTS.sendVerificationEmail]: { window: 60, max: 3 }
       }
     },
     emailAndPassword: config.emailPasswordEnabled
@@ -277,7 +288,11 @@ export function createBetterAuthAdapter(
               provider: config.captchaProvider,
               secretKey: config.captchaSecretKey,
               allowedHostnames: config.captchaAllowedHostnames,
-              endpoints: ['/sign-up/email', '/sign-in/email', '/request-password-reset']
+              endpoints: [
+                AUTH_ENDPOINTS.signUpEmail,
+                AUTH_ENDPOINTS.signInEmail,
+                AUTH_ENDPOINTS.requestPasswordReset
+              ]
             })
           ]
         : []),
@@ -297,7 +312,7 @@ export function createBetterAuthAdapter(
         rpName: config.passkeyRPName,
         origin: new URL(config.publicURL).origin
       }),
-      admin(),
+      administration,
       // Device authorization returns opaque database session tokens, not signed cookies.
       bearer(),
       deviceAuthorization({
@@ -368,11 +383,6 @@ export function createBetterAuthAdapter(
   return {
     handler: async (request) => {
       const path = new URL(request.url).pathname
-      // Administration goes through `/api/admin`, which adds MFA, origin, last-admin, and audit
-      // checks; Better Auth's own admin endpoints would skip all of them.
-      if (path === '/api/auth/admin' || path.startsWith('/api/auth/admin/')) {
-        return Response.json({ error: { code: 'forbidden' } }, { status: 403 })
-      }
       const response = await auth.handler(request)
       const method = assuranceMethod(path)
       if (response.ok && method)

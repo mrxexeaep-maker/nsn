@@ -21,6 +21,9 @@ import {
   type CloudAPIEnvironment
 } from '#cloud/server/api'
 import {
+  AUTH_BASE_PATH,
+  AUTH_ENDPOINTS,
+  authRequestPath,
   createAuthenticationEmailService,
   createCloudIdentityResolver,
   createCloudSessionResolver,
@@ -53,7 +56,8 @@ import {
 import {
   CLOUD_RATE_LIMITS,
   createActorRateLimiter,
-  createTrustedIPRateLimiter
+  createTrustedIPRateLimiter,
+  routeHasOwnBudget
 } from '#cloud/server/rate-limit'
 import { createDocumentSharingService } from '#cloud/server/sharing'
 import { createWorkspaceMemberService, createWorkspaceService } from '#cloud/server/workspaces'
@@ -93,35 +97,31 @@ function discoveryFromServices(services: CloudServices): CloudDiscovery {
   return cloudDiscoveryFromConfig(services.config)
 }
 
-const POLICY_MANAGED_AUTH_PATHS = new Set([
-  '/api/auth/passkey/delete-passkey',
-  '/api/auth/two-factor/disable'
-])
-
-const ACTIVE_ACCOUNT_AUTH_PATHS = new Set([
-  '/api/auth/passkey/delete-passkey',
-  '/api/auth/passkey/generate-register-options',
-  '/api/auth/passkey/list-user-passkeys',
-  '/api/auth/passkey/update-passkey',
-  '/api/auth/passkey/verify-registration',
-  '/api/auth/two-factor/disable',
-  '/api/auth/two-factor/enable',
-  '/api/auth/two-factor/generate-backup-codes',
-  '/api/auth/two-factor/get-totp-uri',
-  '/api/auth/account-info',
-  '/api/auth/change-email',
-  '/api/auth/change-password',
-  '/api/auth/delete-user',
-  '/api/auth/get-access-token',
-  '/api/auth/link-social',
-  '/api/auth/list-accounts',
-  '/api/auth/list-sessions',
-  '/api/auth/refresh-token',
-  '/api/auth/revoke-other-sessions',
-  '/api/auth/revoke-session',
-  '/api/auth/revoke-sessions',
-  '/api/auth/unlink-account'
-])
+/** The Better Auth endpoints that change or read an account, which only an active one may use. */
+const ACTIVE_ACCOUNT_AUTH_PATHS = new Set(
+  [
+    AUTH_ENDPOINTS.generatePasskeyRegistrationOptions,
+    AUTH_ENDPOINTS.listPasskeys,
+    AUTH_ENDPOINTS.updatePasskey,
+    AUTH_ENDPOINTS.verifyPasskeyRegistration,
+    AUTH_ENDPOINTS.enableTwoFactor,
+    AUTH_ENDPOINTS.generateBackupCodes,
+    AUTH_ENDPOINTS.getTOTPURI,
+    AUTH_ENDPOINTS.accountInfo,
+    AUTH_ENDPOINTS.changeEmail,
+    AUTH_ENDPOINTS.changePassword,
+    AUTH_ENDPOINTS.deleteUser,
+    AUTH_ENDPOINTS.getAccessToken,
+    AUTH_ENDPOINTS.linkSocialAccount,
+    AUTH_ENDPOINTS.listUserAccounts,
+    AUTH_ENDPOINTS.listSessions,
+    AUTH_ENDPOINTS.refreshToken,
+    AUTH_ENDPOINTS.revokeOtherSessions,
+    AUTH_ENDPOINTS.revokeSession,
+    AUTH_ENDPOINTS.revokeSessions,
+    AUTH_ENDPOINTS.unlinkAccount
+  ].map(authRequestPath)
+)
 
 export function shouldPreventIndexing(path: string, policy: 'allow' | 'deny'): boolean {
   return (
@@ -274,7 +274,7 @@ export function createCloudApp(services: CloudServices) {
     {
       resource: (context) => context.req.path,
       // Guests refresh collaboration tickets on their own budget, `publicCollaborationLimiter`.
-      skip: (context) => context.req.path.endsWith('/collaboration-ticket')
+      skip: routeHasOwnBudget
     }
   )
   const publicCollaborationLimiter = createTrustedIPRateLimiter(
@@ -283,19 +283,15 @@ export function createCloudApp(services: CloudServices) {
     CLOUD_RATE_LIMITS.collaborationTicket,
     { trustedHeaders: services.config.authTrustedIPHeaders },
     (context) => context.json({ error: { code: 'not_found' as const } }, 404),
-    { resource: (context) => context.req.path }
+    { resource: (context) => context.req.path, route: true }
   )
   const authenticatedMutationLimiter = createActorRateLimiter(
     services.database,
     services.config.authSecret,
     CLOUD_RATE_LIMITS.authenticatedMutation,
-    (context) =>
-      context.req.method === 'GET' ||
-      context.req.path.endsWith('/collaboration-ticket') ||
-      context.req.path === '/api/ai/token' ||
-      context.req.path.endsWith('/invitations') ||
-      context.req.path.endsWith('/uploads') ||
-      /^\/api\/workspaces(?:\/[^/]+\/documents)?$/.test(context.req.path)
+    // Reads are free, and a route with a budget of its own, such as creating documents, counts
+    // against that instead.
+    (context) => context.req.method === 'GET' || routeHasOwnBudget(context)
   )
 
   const accountRoutes = createAccountRoutes({
@@ -389,10 +385,7 @@ export function createCloudApp(services: CloudServices) {
     .get(CLOUD_AI_JWKS_PATH, async (context) =>
       aiTokens ? context.json(aiTokens.jwks()) : context.notFound()
     )
-    .on(['GET', 'POST'], '/api/auth/*', async (context) => {
-      if (POLICY_MANAGED_AUTH_PATHS.has(context.req.path)) {
-        return context.json({ error: { code: 'forbidden' as const } }, 403)
-      }
+    .on(['GET', 'POST'], `${AUTH_BASE_PATH}/*`, async (context) => {
       if (
         ACTIVE_ACCOUNT_AUTH_PATHS.has(context.req.path) &&
         !(await resolveSession(context.req.raw))

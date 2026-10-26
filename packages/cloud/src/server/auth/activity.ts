@@ -6,20 +6,21 @@ import { createAuthMiddleware, isAPIError } from 'better-auth/api'
 import type { Kysely } from 'kysely'
 
 import type { AuthenticationEmailService } from './email'
+import { AUTH_ENDPOINTS, isAuthEndpoint, type AuthEndpointPath } from './endpoints'
 import { describeUserAgent } from './user-agent'
 
 /** The newest sign-ins an account's history shows. */
 const SIGN_IN_HISTORY_LIMIT = 50
 
 /** The Better Auth endpoints that sign someone in, and the method each one is. */
-const ENDPOINT_METHODS: Record<string, CloudSignInMethod> = {
-  '/sign-in/email': 'password',
-  '/passkey/verify-authentication': 'passkey',
-  '/two-factor/verify-totp': 'two-step',
-  '/two-factor/verify-backup-code': 'two-step',
-  '/verify-email': 'email-link',
-  '/device/token': 'desktop'
-}
+const ENDPOINT_METHODS: readonly [AuthEndpointPath, CloudSignInMethod][] = [
+  [AUTH_ENDPOINTS.signInEmail, 'password'],
+  [AUTH_ENDPOINTS.verifyPasskeyAuthentication, 'passkey'],
+  [AUTH_ENDPOINTS.verifyTOTP, 'two-step'],
+  [AUTH_ENDPOINTS.verifyBackupCode, 'two-step'],
+  [AUTH_ENDPOINTS.verifyEmail, 'email-link'],
+  [AUTH_ENDPOINTS.deviceToken, 'desktop']
+]
 
 /**
  * How an endpoint signed someone in, or null when it signs nobody in, such as one that refreshes
@@ -30,12 +31,11 @@ export function signInMethod(endpoint: {
   path?: string
   params?: Record<string, string | undefined>
 }): CloudSignInMethod | null {
-  const path = endpoint.path ?? ''
-  if (path.startsWith('/callback/')) {
+  if (isAuthEndpoint(endpoint.path, AUTH_ENDPOINTS.callbackOAuth)) {
     const provider = endpoint.params?.id
     return provider === 'google' || provider === 'apple' ? provider : 'other'
   }
-  return ENDPOINT_METHODS[path] ?? null
+  return ENDPOINT_METHODS.find(([path]) => isAuthEndpoint(endpoint.path, path))?.[1] ?? null
 }
 
 /**
@@ -184,7 +184,8 @@ export function accountActivity(
           })
         },
         {
-          matcher: (context) => context.path === '/passkey/verify-registration',
+          matcher: (context) =>
+            isAuthEndpoint(context.path, AUTH_ENDPOINTS.verifyPasskeyRegistration),
           handler: createAuthMiddleware(async (context) => {
             const user = context.context.session?.user
             if (user && !isAPIError(context.context.returned)) await onPasskeyAdded(user)
