@@ -1,4 +1,5 @@
-import { basename } from 'node:path'
+import { readdirSync } from 'node:fs'
+import { basename, dirname, join } from 'node:path'
 
 import { build, type Plugin, type ResolvedConfig } from 'vite'
 
@@ -79,15 +80,32 @@ function placeSplash(html: string, page: string): string | null {
 export function bootSplashPlugin({ entry, pages }: BootSplashOptions): Plugin {
   let config: ResolvedConfig | undefined
   let compiled: Promise<Compiled> | null = null
+  // The sources of the last build that worked, kept through one that failed, so fixing the
+  // failing edit rebuilds; before any build has worked, the splash's own folder.
+  let sources: readonly string[] = []
   const current = () => {
     if (!config) throw new Error('The boot splash plugin ran before Vite resolved its config')
-    compiled ??= compile(config, entry)
+    compiled ??= compile(config, entry).then(
+      (result) => {
+        sources = result.sources
+        return result
+      },
+      (error: unknown) => {
+        compiled = null
+        throw error
+      }
+    )
     return compiled
   }
-  const changed = async (file: string) => {
-    if (!compiled || !(await compiled).sources.includes(file)) return false
-    compiled = null
-    return true
+  // What to watch now: the last working build's sources, or every file in the splash's folder.
+  const watched = () =>
+    sources.length > 0
+      ? sources
+      : readdirSync(dirname(entry)).map((name) => join(dirname(entry), name))
+  const changed = (file: string) => {
+    const source = sources.length > 0 ? sources.includes(file) : file.startsWith(dirname(entry))
+    if (source) compiled = null
+    return source
   }
   return {
     name: 'open-pencil-boot-splash',
@@ -96,16 +114,20 @@ export function bootSplashPlugin({ entry, pages }: BootSplashOptions): Plugin {
     },
     // `vite build --watch` rebuilds the pages when a source of the splash changes.
     async buildStart() {
+      for (const source of watched()) this.addWatchFile(source)
       for (const source of (await current()).sources) this.addWatchFile(source)
     },
-    async watchChange(id) {
-      await changed(id)
+    watchChange(id) {
+      changed(id)
     },
     // The dev server reloads the page instead, since the splash only draws on a fresh load.
     configureServer(server) {
-      void current().then(({ sources }) => server.watcher.add(sources))
+      server.watcher.add(watched())
+      current()
+        .then((result) => server.watcher.add(result.sources))
+        .catch((error: unknown) => server.config.logger.error(`Boot splash: ${String(error)}`))
       server.watcher.on('change', (file) => {
-        void changed(file).then((reload) => reload && server.ws.send({ type: 'full-reload' }))
+        if (changed(file)) server.ws.send({ type: 'full-reload' })
       })
     },
     transformIndexHtml: {
