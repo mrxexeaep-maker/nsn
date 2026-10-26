@@ -174,6 +174,7 @@ export function fontVerticalMetricsSync(
   return { ascent: ascender / parsed.face.upem, descent: -descender / parsed.face.upem }
 }
 
+/** A shaped glyph: its outline relative to the pen at `x`, where shaping placed it, and its advance. */
 export interface GlyphOutlineMetrics {
   commands: OutlineCommand[]
   x: number
@@ -212,9 +213,12 @@ export function getGlyphOutlineMetricsSync(
   parsed.hb.shape(parsed.font, buffer)
   let pen = 0
   return buffer.getGlyphInfosAndPositions().map((glyph) => {
+    // Shaping moves some glyphs off the pen, such as marks onto their base letter.
+    const offsetX = (glyph.xOffset ?? 0) * scale
+    const offsetY = (glyph.yOffset ?? 0) * scale
     const metrics = {
-      commands: glyphCommands(parsed, parsed.font, glyph.codepoint, fontSize),
-      x: pen + (glyph.xOffset ?? 0) * scale,
+      commands: glyphCommands(parsed, parsed.font, glyph.codepoint, fontSize, -offsetY, offsetX),
+      x: pen,
       advance: (glyph.xAdvance ?? 0) * scale
     }
     pen += metrics.advance

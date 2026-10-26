@@ -85,6 +85,7 @@ export function variedFont(
 interface OutlineTarget {
   commands: OutlineCommand[]
   scale: number
+  originX: number
   baseline: number
 }
 
@@ -97,7 +98,7 @@ let outlineDrawing: HarfBuzzModule.DrawFuncs | null = null
 function outlineDrawFuncs(hb: HarfBuzz): HarfBuzzModule.DrawFuncs {
   if (outlineDrawing) return outlineDrawing
   const target = (data: unknown) => data as OutlineTarget
-  const x = (data: OutlineTarget, value: number) => value * data.scale
+  const x = (data: OutlineTarget, value: number) => data.originX + value * data.scale
   const y = (data: OutlineTarget, value: number) => data.baseline - value * data.scale
   const draw = new hb.DrawFuncs()
   draw.setMoveToFunc((px, py, data) => {
@@ -131,16 +132,22 @@ function outlineDrawFuncs(hb: HarfBuzz): HarfBuzzModule.DrawFuncs {
 
 /**
  * The outline of `glyphId`, scaled from font units to `fontSize` with y running down from the
- * baseline at `baseline`.
+ * baseline at `baseline`, and its origin at `originX`.
  */
 export function glyphCommands(
   parsed: HarfBuzzFont,
   font: HarfBuzzModule.Font,
   glyphId: number,
   fontSize: number,
-  baseline = 0
+  baseline = 0,
+  originX = 0
 ): OutlineCommand[] {
-  const target: OutlineTarget = { commands: [], scale: fontSize / parsed.face.upem, baseline }
+  const target: OutlineTarget = {
+    commands: [],
+    scale: fontSize / parsed.face.upem,
+    originX,
+    baseline
+  }
   font.drawGlyph(glyphId, outlineDrawFuncs(parsed.hb), target)
   return target.commands
 }
