@@ -98,6 +98,21 @@ describe('Design JSX sandbox output', () => {
     expect(() => validateDesignJSXOutput(frame(), tiny)).toThrow('too large')
   })
 
+  test('converts every helper the renderer gives JSX, and nothing else', () => {
+    const [frameWithShader] = convertDesignJSXRoots(
+      validateDesignJSXOutput(
+        frame({ fill: { __openPencilHelper: 'shader', args: [[{ type: 'Aurora', props: {} }]] } }),
+        limits
+      )
+    )
+    expect(frameWithShader.props.fill).toMatchObject({
+      shader: { components: [{ type: 'Aurora' }] }
+    })
+    expect(() =>
+      convertDesignJSXRoots([frame({ fill: { __openPencilHelper: 'isVariableInput', args: [] } })])
+    ).toThrow('Unknown Design JSX helper "isVariableInput"')
+  })
+
   test('rejects unknown helper descriptors during trusted conversion', () => {
     for (const helperName of ['unknown', 'toString', 'constructor', 'valueOf']) {
       const roots = validateDesignJSXOutput(

@@ -2,24 +2,11 @@ import { mapValues } from 'es-toolkit'
 import * as v from 'valibot'
 
 import {
-  angularGradient,
-  backgroundBlur,
   defineMode,
   defineVars,
-  designMode,
-  designVar,
-  diamondGradient,
-  dropShadow,
-  foregroundBlur,
-  gradient,
-  innerShadow,
+  designJSXHelpers,
   isVariableInput,
-  layerBlur,
-  linearGradient,
-  radialGradient,
-  property,
   ref as layerRef,
-  solid,
   type DesignMode,
   type DesignVariable,
   type LayerRef,
@@ -29,25 +16,8 @@ import {
 
 import type { DesignJSXHelperDescriptor } from '@/app/code/sandbox/types'
 
-const HELPERS = {
-  solid,
-  gradient,
-  linearGradient,
-  radialGradient,
-  angularGradient,
-  diamondGradient,
-  dropShadow,
-  innerShadow,
-  isVariableInput,
-  layerBlur,
-  backgroundBlur,
-  foregroundBlur,
-  designVar,
-  designMode,
-  property
-}
-
-type HelperName = keyof typeof HELPERS
+/** The helpers a run's descriptors call, as the string renderer gives them to JSX. */
+const HELPERS: Record<string, (...args: never[]) => unknown> = designJSXHelpers([])
 
 type PlainRecord = { [key: string]: unknown }
 
@@ -157,12 +127,9 @@ function convertValue(value: unknown, handles: Handles): unknown {
       if (!mode) throw new Error('Unknown variable mode.')
       return mode
     }
-    const helper = Object.hasOwn(HELPERS, helperName)
-      ? (HELPERS[helperName as HelperName] as (...args: unknown[]) => unknown)
-      : undefined
-    if (typeof helper !== 'function') {
+    if (!Object.hasOwn(HELPERS, helperName))
       throw new TypeError(`Unknown Design JSX helper "${helperName}".`)
-    }
+    const helper = HELPERS[helperName] as (...args: unknown[]) => unknown
     return helper(...value.args.map((arg) => convertValue(arg, handles)))
   }
   if (Array.isArray(value)) return value.map((item) => convertValue(item, handles))

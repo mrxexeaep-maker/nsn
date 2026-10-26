@@ -265,24 +265,3 @@ export const DESIGN_JSX_PROPERTIES: DesignJSXPropertyDefinition[] =
     name,
     description: `OpenPencil ${name} property.`
   }))
-
-export const DESIGN_JSX_HELPERS: DesignJSXHelperDefinition[] = [
-  'solid',
-  'gradient',
-  'linearGradient',
-  'radialGradient',
-  'angularGradient',
-  'diamondGradient',
-  'shader',
-  'dropShadow',
-  'innerShadow',
-  'layerBlur',
-  'backgroundBlur',
-  'foregroundBlur',
-  'defineVars',
-  'defineMode',
-  'designVar',
-  'designMode',
-  'property',
-  'ref'
-].map((name) => ({ name, description: `OpenPencil ${name} helper.` }))
