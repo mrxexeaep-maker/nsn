@@ -79,16 +79,18 @@ export function usePortalList<Filter extends string, Row extends RowData>(option
   const pagination = ref<PaginationState>({ pageIndex: 0, pageSize: PORTAL_PAGE_SIZE })
   const offset = computed(() => pagination.value.pageIndex * pagination.value.pageSize)
 
-  const list = usePortalLoad(
-    () =>
-      options.load({
-        search: search.value.trim() || undefined,
-        filter: filter.value,
-        limit: pagination.value.pageSize,
-        offset: offset.value
-      }),
-    null
-  )
+  // Each page keeps the offset it was asked for, so the range describes the rows on screen, not
+  // a page still on its way.
+  const list = usePortalLoad(async () => {
+    const request = {
+      search: search.value.trim() || undefined,
+      filter: filter.value,
+      limit: pagination.value.pageSize,
+      offset: offset.value
+    }
+    return { ...(await options.load(request)), offset: request.offset }
+  }, null)
+  const shownOffset = computed(() => list.data.value?.offset ?? 0)
   // After a failed load the last page belongs to another search or filter, so none is shown.
   const rows = computed(() => (list.error.value ? [] : (list.data.value?.rows ?? [])))
   const total = computed(() => list.data.value?.total ?? 0)
@@ -135,8 +137,8 @@ export function usePortalList<Filter extends string, Row extends RowData>(option
     /** Which rows the page shows, such as “51–100 of 230”. */
     range: computed(() =>
       messages.value.pageRange({
-        from: Math.min(offset.value + 1, total.value),
-        to: Math.min(offset.value + rows.value.length, total.value),
+        from: Math.min(shownOffset.value + 1, total.value),
+        to: Math.min(shownOffset.value + rows.value.length, total.value),
         total: total.value
       })
     )

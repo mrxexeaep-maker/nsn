@@ -27,8 +27,9 @@ const placeholders = skeleton()
 </script>
 
 <template>
-  <div data-slot="table" :class="cls.root" :aria-busy="loading ? true : undefined">
-    <!-- The placeholders and the bar are for the eye; this says it to assistive technology. -->
+  <div data-slot="table" :class="cls.root">
+    <!-- The placeholders and the bar are for the eye; this says it to assistive technology, from
+         outside the busy table so it is announced when loading starts. -->
     <span v-if="loadingLabel" role="status" class="sr-only">{{ loading ? loadingLabel : '' }}</span>
     <div
       v-if="loading === 'refresh'"
@@ -38,7 +39,7 @@ const placeholders = skeleton()
       <AppProgress :amount="{}" :ui="{ track: 'h-0.5 rounded-none bg-transparent' }" />
     </div>
     <div :class="cls.scroller">
-      <table :class="cls.table" :aria-label="label">
+      <table :class="cls.table" :aria-label="label" :aria-busy="loading ? true : undefined">
         <slot />
       </table>
     </div>
