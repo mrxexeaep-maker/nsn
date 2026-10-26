@@ -152,6 +152,9 @@ export const cloudPortalMessageDefaults = {
   savePicture: 'Save picture',
   pictureSaved: 'Picture saved',
   pictureRemoved: 'Picture removed',
+  removePictureHeading: 'Remove your picture?',
+  removePictureDescription: 'Your initials show in its place until you upload another picture.',
+  removePictureConfirm: 'Remove picture',
   pictureUnreadable:
     'This file isn’t a picture the page can open. Choose a PNG, JPEG, WebP, or GIF image.',
   save: 'Save',

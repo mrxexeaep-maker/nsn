@@ -13,6 +13,7 @@ import { portalURL } from '@/app/cloud-portal/navigation'
 import { usePortalAction, usePortalLoad } from '@/app/cloud-portal/state'
 import { portalToast } from '@/app/cloud-portal/toast'
 import { useDateFormat } from '@/app/i18n/date'
+import AppConfirmationDialog from '@/components/ui/dialog/AppConfirmationDialog.vue'
 import AppAlert from '@/components/ui/feedback/AppAlert.vue'
 
 import PortalFieldDialog from '../account/PortalFieldDialog.vue'
@@ -106,6 +107,7 @@ const savePicture = usePortalAction(async (picture: Blob) => {
   portalToast.info(messages.value.pictureSaved)
 })
 
+const removeOpen = ref(false)
 const removePicture = usePortalAction(async () => {
   await portal.api.removePicture()
   await Promise.all([loaded.reload(), portal.refreshAccount()])
@@ -191,7 +193,17 @@ onMounted(async () => {
       @change-name="openName"
       @change-email="openEmail"
       @choose-picture="choosePicture"
-      @remove-picture="removePicture.run()"
+      @remove-picture="removeOpen = true"
+    />
+    <AppConfirmationDialog
+      v-model:open="removeOpen"
+      tone="danger"
+      :heading="messages.removePictureHeading"
+      :description="messages.removePictureDescription"
+      :cancel-label="messages.cancel"
+      :confirm-label="messages.removePictureConfirm"
+      :confirm-loading="removePicture.busy.value"
+      @confirm="removePicture.run()"
     />
     <PortalPictureDialog
       v-model:open="pictureOpen"
