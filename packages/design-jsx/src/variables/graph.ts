@@ -52,11 +52,12 @@ function collectDefinitions(
   }
 }
 
+/** The one collection with this name; a name several collections share is an error. */
 function collectionNamed(graph: SceneGraph, name: string): VariableCollection | undefined {
-  for (const collection of graph.variableCollections.values()) {
-    if (collection.name === name) return collection
-  }
-  return undefined
+  const matches = [...graph.variableCollections.values()].filter((item) => item.name === name)
+  if (matches.length > 1)
+    throw new Error(`More than one variable collection is named ${name}; rename one to use it`)
+  return matches[0]
 }
 
 function variableNamed(

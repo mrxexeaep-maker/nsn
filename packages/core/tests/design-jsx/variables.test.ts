@@ -183,3 +183,16 @@ test('designVar names a variable by collection when several collections share it
   const [copy] = await renderJSX(graph, exported)
   expect(graph.getNode(copy.id)?.boundVariables).toEqual(node?.boundVariables)
 })
+
+test('a collection name several collections share is an error, not the first of them', async () => {
+  const graph = new SceneGraph()
+  for (const _ of [0, 1]) graph.createVariable('Ink', 'COLOR', graph.createCollection('Twin').id)
+  for (const jsx of [
+    `<Frame bg={designVar('Twin', 'Ink')} />`,
+    `<Frame mode={designMode('Twin', 'Mode 1')} />`
+  ]) {
+    await expect(renderJSX(graph, jsx)).rejects.toThrow(
+      'More than one variable collection is named Twin; rename one to use it'
+    )
+  }
+})
