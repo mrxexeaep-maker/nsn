@@ -219,22 +219,33 @@ export function vectorNetworkToSVGPaths(
   network: VectorNetwork,
   decimals: number | null = 2
 ): string[] {
-  const { vertices, segments, regions } = network
+  const { vertices, regions } = network
 
   if (regions.length === 0) {
     const path = unfilledSegmentsToPath(network, decimals)
     return path ? [path] : []
   }
-  const paths = regions.map((region) =>
-    region.loops.map((loop) => traceOrderedSegments(loop, segments, vertices, decimals)).join('')
-  )
+  const paths = regionSVGPaths(network, decimals)
   // Segments no region encloses, such as an icon's open strokes beside its filled shapes,
   // draw as open paths after the regions.
-  const enclosed = new Set(regions.flatMap((region) => region.loops.flat()))
-  const open = segments.filter((_, index) => !enclosed.has(index))
+  const open = looseSegments(network)
   const loose =
     open.length > 0 && unfilledSegmentsToPath({ vertices, segments: open, regions: [] }, decimals)
   return loose ? [...paths, loose] : paths
+}
+
+/** Each region of a vector network as path data, its loops traced in turn. */
+export function regionSVGPaths(network: VectorNetwork, decimals: number | null = 2): string[] {
+  const { vertices, segments, regions } = network
+  return regions.map((region) =>
+    region.loops.map((loop) => traceOrderedSegments(loop, segments, vertices, decimals)).join('')
+  )
+}
+
+/** The segments of a vector network that no region encloses. */
+export function looseSegments({ segments, regions }: VectorNetwork): VectorNetwork['segments'] {
+  const enclosed = new Set(regions.flatMap((region) => region.loops.flat()))
+  return segments.filter((_, index) => !enclosed.has(index))
 }
 
 /** The outline of a polygon or star whose corners are rounded, as path data. */

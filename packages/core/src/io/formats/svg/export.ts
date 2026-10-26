@@ -18,14 +18,15 @@ import {
 import {
   round,
   geometryBlobToSVGPath,
-  vectorNetworkToSVGPaths,
   makePolygonPoints,
   roundedPolygonPath,
   hasRadius,
   roundedRectPath,
   arcPath,
   shapeWithTextDetailsPath,
-  shapeWithTextOutlinePath
+  shapeWithTextOutlinePath,
+  regionSVGPaths,
+  looseSegments
 } from './paths'
 
 export {
@@ -46,14 +47,20 @@ import type { SVGTextLayout } from './text/lines'
 
 // --- Node rendering ---
 
-/** A vector network's paths: an open one as the canvas strokes it, regions as they are traced. */
+/**
+ * A vector network's paths: its regions as they are traced, and its open segments as the canvas
+ * strokes them, rounded and pulled back under their heads.
+ */
 function networkElements(
   node: SceneNode,
   network: VectorNetwork,
   common: Record<string, string | number | undefined>
 ): SVGNode[] {
-  if (network.regions.length === 0) return openPathElements(node, network, common)
-  return vectorNetworkToSVGPaths(network).map((d) => svg('path', { d, ...common }))
+  const regions = regionSVGPaths(network).map((d) => svg('path', { d, ...common }))
+  const segments = looseSegments(network)
+  if (segments.length === 0) return regions
+  const open = { vertices: network.vertices, segments, regions: [] }
+  return [...regions, ...openPathElements(node, open, common)]
 }
 
 function vectorShapeElements(

@@ -84,4 +84,36 @@ describe('arrow heads exported to SVG', () => {
     expect(shaft(corner(0))).not.toContain('C')
     expect(corner(16).match(/<path d="M[^"]+Z" fill="#000000"/g)).toHaveLength(2)
   })
+
+  test('a loose segment beside a filled region stops short of its head too', () => {
+    const straight = { x: 0, y: 0 }
+    const segment = (start: number, end: number) => ({
+      start,
+      end,
+      tangentStart: straight,
+      tangentEnd: straight
+    })
+    const svg = exported((graph, page) =>
+      graph.createNode('VECTOR', page, {
+        width: 300,
+        height: 40,
+        strokes: [black(3, 'TRIANGLE_FILLED')],
+        vectorNetwork: {
+          vertices: [
+            { x: 0, y: 0 },
+            { x: 40, y: 0 },
+            { x: 20, y: 40 },
+            { x: 100, y: 20 },
+            { x: 300, y: 20 }
+          ],
+          segments: [segment(0, 1), segment(1, 2), segment(2, 0), segment(3, 4)],
+          regions: [{ windingRule: 'NONZERO', loops: [[0, 1, 2]] }]
+        }
+      })
+    )
+    // The loose line runs from 100 to 300 and ends inside the heads at either end.
+    const [, from, to] = expectDefined(/<path d="M([\d.]+) 20L([\d.]+) 20"/.exec(svg))
+    expect(Number(from)).toBeGreaterThan(100)
+    expect(Number(to)).toBeLessThan(300)
+  })
 })
