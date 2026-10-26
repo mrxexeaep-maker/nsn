@@ -3,11 +3,12 @@ import type { FontVariation } from '@open-pencil/scene-graph'
 import { fontManager } from '#core/text/fonts'
 
 import {
+  fontInstance,
   glyphCommands,
   harfBuzzFont,
   isHarfBuzzLoaded,
   loadHarfBuzz,
-  variedFont,
+  shapeText,
   type HarfBuzzFont,
   type OutlineCommand
 } from './harfbuzz'
@@ -80,20 +81,28 @@ export function hasGlyphOutlines(family: string, style: string): boolean {
   return getParsedFont(family, style) !== null
 }
 
-/** The line metrics the font's `hhea` and `OS/2` tables declare, in font units. */
-function lineMetrics(parsed: HarfBuzzFont): {
+interface LineMetrics {
   ascender: number
   descender: number
   lineGap: number
-} {
+}
+
+const lineMetricsCache = new WeakMap<HarfBuzzFont, LineMetrics>()
+
+/** The line metrics the font's `hhea` and `OS/2` tables declare, in font units, read once. */
+function lineMetrics(parsed: HarfBuzzFont): LineMetrics {
+  const cached = lineMetricsCache.get(parsed)
+  if (cached) return cached
   const hhea = fontTableView(parsed.bytes, 'hhea')
   const os2 = fontTableView(parsed.bytes, 'OS/2')
   const hasHhea = hhea !== null && hhea.byteLength >= 8
-  return {
+  const metrics = {
     ascender: hasHhea ? hhea.getInt16(4) : 0,
     descender: hasHhea ? hhea.getInt16(6) : 0,
     lineGap: os2 && os2.byteLength >= 74 ? os2.getInt16(72) : 0
   }
+  lineMetricsCache.set(parsed, metrics)
+  return metrics
 }
 
 export function measureTextWithFont(
@@ -207,18 +216,15 @@ export function getGlyphOutlineMetricsSync(
   const parsed = getParsedFont(family, style)
   if (!parsed) return null
   const scale = fontSize / parsed.face.upem
-  const buffer = new parsed.hb.Buffer()
-  buffer.addText(text)
-  buffer.guessSegmentProperties()
-  parsed.hb.shape(parsed.font, buffer)
+  const instance = fontInstance(parsed, [])
   let pen = 0
-  return buffer.getGlyphInfosAndPositions().map((glyph) => {
+  return shapeText(parsed, text).map((glyph) => {
     // Shaping moves some glyphs off the pen, such as marks onto their base letter.
     const offsetX = (glyph.xOffset ?? 0) * scale
     // y runs down; subtracting keeps an unmoved glyph's baseline 0 rather than -0.
     const baseline = 0 - (glyph.yOffset ?? 0) * scale
     const metrics = {
-      commands: glyphCommands(parsed, parsed.font, glyph.codepoint, fontSize, baseline, offsetX),
+      commands: glyphCommands(parsed, instance, glyph.codepoint, fontSize, baseline, offsetX),
       x: pen,
       advance: (glyph.xAdvance ?? 0) * scale
     }
@@ -247,12 +253,12 @@ export function glyphOutlineSourceSync(
 ): GlyphOutlineSource | null {
   const parsed = getParsedFont(family, style)
   if (!parsed) return null
-  const font = variedFont(parsed, variations)
+  const instance = fontInstance(parsed, variations)
   return {
     covers: (text) => Array.from(text).every((char) => glyphIndex(parsed, char) !== 0),
     glyphOf: (character) => glyphIndex(parsed, character),
     outline: (glyphId, fontSize) =>
-      glyphId < parsed.glyphCount ? glyphCommands(parsed, font, glyphId, fontSize) : null
+      glyphId < parsed.glyphCount ? glyphCommands(parsed, instance, glyphId, fontSize) : null
   }
 }
 
@@ -280,7 +286,7 @@ export async function probeGlyphOutlineCommands(
   const parsed = harfBuzzFont(bytes)
   if (!parsed) return null
   const outlines = Array.from(text, (character) =>
-    glyphCommands(parsed, parsed.font, glyphIndex(parsed, character), fontSize)
+    glyphCommands(parsed, fontInstance(parsed, []), glyphIndex(parsed, character), fontSize)
   )
   const first = outlines.find((commands) => commands.length > 0) ?? []
 

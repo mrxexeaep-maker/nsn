@@ -2,6 +2,8 @@ import type * as HarfBuzzModule from 'harfbuzzjs'
 
 import type { FontVariation } from '@open-pencil/scene-graph'
 
+import { ResourceCache } from '#core/cache/resource'
+
 import { fontTableView } from './variation'
 
 export interface OutlineCommand {
@@ -40,6 +42,12 @@ export function loadHarfBuzz(): Promise<HarfBuzz | null> {
   return harfBuzzLoading
 }
 
+/** A font drawing one instance of a font file, and the number its outlines are cached under. */
+export interface HarfBuzzInstance {
+  font: HarfBuzzModule.Font
+  id: number
+}
+
 /** A font file as HarfBuzz reads it: its face, and the font drawing its default instance. */
 export interface HarfBuzzFont {
   hb: HarfBuzz
@@ -50,7 +58,21 @@ export interface HarfBuzzFont {
   /** Glyph IDs by code point and default advances by glyph ID, read once each. */
   glyphIds: Map<number, number>
   advances: Map<number, number>
+  /** The instances text has been drawn at, by their axis values; '' is the default. */
+  instances: ResourceCache<string, HarfBuzzInstance>
 }
+
+/** How many instances of one file keep their font and outlines, such as each optical size. */
+const INSTANCES_PER_FONT = 16
+/**
+ * Outlines drawn by any instance, in font units with y running up, so a glyph is drawn once
+ * whatever size it is asked for. Weighed by commands: 100,000 are about 7.5 MB of CJK outlines.
+ */
+const outlineCache = new ResourceCache<number, readonly OutlineCommand[]>({
+  maxWeight: 100_000,
+  weight: (commands) => commands.length + 1
+})
+let nextInstanceId = 0
 
 /** A font file read by HarfBuzz, or `null` when HarfBuzz is not loaded or the file has no glyphs. */
 export function harfBuzzFont(bytes: ArrayBuffer): HarfBuzzFont | null {
@@ -66,88 +88,114 @@ export function harfBuzzFont(bytes: ArrayBuffer): HarfBuzzFont | null {
     bytes,
     glyphCount,
     glyphIds: new Map(),
-    advances: new Map()
+    advances: new Map(),
+    instances: new ResourceCache({ maxEntries: INSTANCES_PER_FONT })
   }
 }
 
-/** HarfBuzz's font drawing the instance at `variations`. */
-export function variedFont(
+/** The instance of the file at `variations`, drawn by the default font when none are set. */
+export function fontInstance(
   parsed: HarfBuzzFont,
   variations: readonly FontVariation[]
-): HarfBuzzModule.Font {
-  if (variations.length === 0) return parsed.font
-  const font = new parsed.hb.Font(parsed.face)
-  font.setVariations(variations.map(({ axis, value }) => new parsed.hb.Variation(axis, value)))
-  return font
-}
-
-/** Where an outline is collected, and how font units map to it. */
-interface OutlineTarget {
-  commands: OutlineCommand[]
-  scale: number
-  originX: number
-  baseline: number
+): HarfBuzzInstance {
+  const key = variations.map(({ axis, value }) => `${axis}=${value}`).join(',')
+  const cached = parsed.instances.get(key)
+  if (cached) return cached
+  let font = parsed.font
+  if (variations.length > 0) {
+    font = new parsed.hb.Font(parsed.face)
+    font.setVariations(variations.map(({ axis, value }) => new parsed.hb.Variation(axis, value)))
+  }
+  // Glyph IDs are 16-bit, so an instance's outlines take the keys from its id times 65536.
+  const instance = { font, id: nextInstanceId++ * 65536 }
+  parsed.instances.set(key, instance)
+  return instance
 }
 
 let outlineDrawing: HarfBuzzModule.DrawFuncs | null = null
 
 /**
- * The draw callbacks that collect an outline into its target. HarfBuzz registers each callback in
- * the WebAssembly function table, so one set serves every glyph.
+ * The draw callbacks that collect an outline, in font units, into the array passed as draw data.
+ * HarfBuzz registers each callback in the WebAssembly function table, so one set serves every
+ * glyph.
  */
 function outlineDrawFuncs(hb: HarfBuzz): HarfBuzzModule.DrawFuncs {
   if (outlineDrawing) return outlineDrawing
-  const target = (data: unknown) => data as OutlineTarget
-  const x = (data: OutlineTarget, value: number) => data.originX + value * data.scale
-  const y = (data: OutlineTarget, value: number) => data.baseline - value * data.scale
+  const commands = (data: unknown) => data as OutlineCommand[]
   const draw = new hb.DrawFuncs()
-  draw.setMoveToFunc((px, py, data) => {
-    const t = target(data)
-    t.commands.push({ type: 'M', x: x(t, px), y: y(t, py) })
-  })
-  draw.setLineToFunc((px, py, data) => {
-    const t = target(data)
-    t.commands.push({ type: 'L', x: x(t, px), y: y(t, py) })
-  })
-  draw.setQuadraticToFunc((cx, cy, px, py, data) => {
-    const t = target(data)
-    t.commands.push({ type: 'Q', x1: x(t, cx), y1: y(t, cy), x: x(t, px), y: y(t, py) })
-  })
-  draw.setCubicToFunc((c1x, c1y, c2x, c2y, px, py, data) => {
-    const t = target(data)
-    t.commands.push({
-      type: 'C',
-      x1: x(t, c1x),
-      y1: y(t, c1y),
-      x2: x(t, c2x),
-      y2: y(t, c2y),
-      x: x(t, px),
-      y: y(t, py)
-    })
-  })
-  draw.setClosePathFunc((data) => target(data).commands.push({ type: 'Z' }))
+  draw.setMoveToFunc((x, y, data) => commands(data).push({ type: 'M', x, y }))
+  draw.setLineToFunc((x, y, data) => commands(data).push({ type: 'L', x, y }))
+  draw.setQuadraticToFunc((x1, y1, x, y, data) => commands(data).push({ type: 'Q', x1, y1, x, y }))
+  draw.setCubicToFunc((x1, y1, x2, y2, x, y, data) =>
+    commands(data).push({ type: 'C', x1, y1, x2, y2, x, y })
+  )
+  draw.setClosePathFunc((data) => commands(data).push({ type: 'Z' }))
   outlineDrawing = draw
   return draw
 }
 
 /**
- * The outline of `glyphId`, scaled from font units to `fontSize` with y running down from the
- * baseline at `baseline`, and its origin at `originX`.
+ * The outline of `glyphId` in `instance`, scaled from font units to `fontSize` with y running down
+ * from the baseline at `baseline`, and its origin at `originX`.
  */
 export function glyphCommands(
   parsed: HarfBuzzFont,
-  font: HarfBuzzModule.Font,
+  instance: HarfBuzzInstance,
   glyphId: number,
   fontSize: number,
   baseline = 0,
   originX = 0
 ): OutlineCommand[] {
-  const target: OutlineTarget = {
-    commands: [],
-    scale: fontSize / parsed.face.upem,
-    originX,
-    baseline
+  let outline = outlineCache.get(instance.id + glyphId)
+  if (!outline) {
+    const drawn: OutlineCommand[] = []
+    instance.font.drawGlyph(glyphId, outlineDrawFuncs(parsed.hb), drawn)
+    outlineCache.set(instance.id + glyphId, drawn)
+    outline = drawn
   }
-  font.drawGlyph(glyphId, outlineDrawFuncs(parsed.hb), target)
-  return target.commands
+  const scale = fontSize / parsed.face.upem
+  const x = (value: number) => originX + value * scale
+  const y = (value: number) => baseline - value * scale
+  return outline.map((command) => {
+    switch (command.type) {
+      case 'M':
+      case 'L':
+        return { type: command.type, x: x(command.x ?? 0), y: y(command.y ?? 0) }
+      case 'Q':
+        return {
+          type: 'Q',
+          x1: x(command.x1 ?? 0),
+          y1: y(command.y1 ?? 0),
+          x: x(command.x ?? 0),
+          y: y(command.y ?? 0)
+        }
+      case 'C':
+        return {
+          type: 'C',
+          x1: x(command.x1 ?? 0),
+          y1: y(command.y1 ?? 0),
+          x2: x(command.x2 ?? 0),
+          y2: y(command.y2 ?? 0),
+          x: x(command.x ?? 0),
+          y: y(command.y ?? 0)
+        }
+      default:
+        return { type: command.type }
+    }
+  })
+}
+
+let shapingBuffer: HarfBuzzModule.Buffer | null = null
+
+/** The glyphs HarfBuzz shapes `text` into with the font's default instance, and their positions. */
+export function shapeText(
+  parsed: HarfBuzzFont,
+  text: string
+): ReturnType<HarfBuzzModule.Buffer['getGlyphInfosAndPositions']> {
+  shapingBuffer ??= new parsed.hb.Buffer()
+  shapingBuffer.reset()
+  shapingBuffer.addText(text)
+  shapingBuffer.guessSegmentProperties()
+  parsed.hb.shape(parsed.font, shapingBuffer)
+  return shapingBuffer.getGlyphInfosAndPositions()
 }

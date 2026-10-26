@@ -3,10 +3,11 @@ import { parseSVGPath } from '@open-pencil/scene-graph/parse-path'
 
 import type { IconOption, IconPath } from '#core/icons/types'
 import {
+  fontInstance,
   glyphCommands,
   harfBuzzFont,
   loadHarfBuzz,
-  variedFont,
+  shapeText,
   type HarfBuzzFont,
   type OutlineCommand
 } from '#core/text/font/harfbuzz'
@@ -85,11 +86,7 @@ export async function fetchMaterialSymbolsFont(
 
 /** The glyph a Material Symbols name draws: the ligature its letters form. */
 export function materialSymbolsGlyph(font: MaterialSymbolsFont, name: string): number | null {
-  const buffer = new font.hb.Buffer()
-  buffer.addText(name)
-  buffer.guessSegmentProperties()
-  font.hb.shape(font.font, buffer)
-  const glyphs = buffer.getGlyphInfos()
+  const glyphs = shapeText(font, name)
   return glyphs.length === 1 && Array.from(name).length > 1 ? glyphs[0].codepoint : null
 }
 
@@ -104,7 +101,7 @@ export function materialSymbolsPathData(
   axes: Record<string, number>
 ): string {
   const variations = Object.entries(axes).map(([axis, value]) => ({ axis, value }))
-  return pathData(glyphCommands(font, variedFont(font, variations), glyph, size, size))
+  return pathData(glyphCommands(font, fontInstance(font, variations), glyph, size, size))
 }
 
 const coordinate = (value: number | undefined) => Number((value ?? 0).toFixed(3))
