@@ -20,6 +20,7 @@ import {
   freeEndpoint,
   layoutConnector
 } from '@open-pencil/scene-graph/connectors'
+import { getAxisAlignedBoundsInParent } from '@open-pencil/scene-graph/coordinate'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
 
 import { readLabel } from './label'
@@ -189,11 +190,14 @@ function endpointOf(
     }
     const { points } = edge.geometry
     const toward = end === 'source' ? points.at(0) : points.at(-1)
-    // Both share the edge's parent's axes when the layer is a sibling of the edge.
-    const facing =
-      toward && node.parentId === layerOf(edge.parent)
-        ? sideFacing(node, toward, lineType === 'CURVED')
-        : null
+    // The point is in the edge's parent's axes, so the layer's box is taken there too, for a
+    // layer nested deeper than the edge as much as for a sibling.
+    const edgeParentId = layerOf(edge.parent)
+    const box =
+      node.parentId === edgeParentId || !edgeParentId
+        ? node
+        : getAxisAlignedBoundsInParent([node], edgeParentId, graph)
+    const facing = toward ? sideFacing(box, toward, lineType === 'CURVED') : null
     return boundEndpoint(node.id, lineType === 'STRAIGHT' ? 'CENTER' : (facing ?? 'AUTO'))
   }
   const point = end === 'source' ? edge.geometry.sourcePoint : edge.geometry.targetPoint
