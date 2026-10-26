@@ -57,10 +57,8 @@ function networkElements(
   common: Record<string, string | number | undefined>
 ): SVGNode[] {
   const regions = regionSVGPaths(network).map((d) => svg('path', { d, ...common }))
-  const segments = looseSegments(network)
-  if (segments.length === 0) return regions
-  const open = { vertices: network.vertices, segments, regions: [] }
-  return [...regions, ...openPathElements(node, open, common)]
+  if (looseSegments(network).length === 0) return regions
+  return [...regions, ...openPathElements(node, network, common, looseSegments)]
 }
 
 function vectorShapeElements(

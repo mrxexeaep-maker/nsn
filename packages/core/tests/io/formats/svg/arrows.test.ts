@@ -116,4 +116,35 @@ describe('arrow heads exported to SVG', () => {
     expect(Number(from)).toBeGreaterThan(100)
     expect(Number(to)).toBeLessThan(300)
   })
+
+  test('a loose segment leaving a filled region keeps its join and stops short of its head', () => {
+    const straight = { x: 0, y: 0 }
+    const segment = (start: number, end: number) => ({
+      start,
+      end,
+      tangentStart: straight,
+      tangentEnd: straight
+    })
+    const svg = exported((graph, page) =>
+      graph.createNode('VECTOR', page, {
+        width: 300,
+        height: 40,
+        strokes: [black(3, 'TRIANGLE_FILLED')],
+        vectorNetwork: {
+          vertices: [
+            { x: 0, y: 0 },
+            { x: 40, y: 20 },
+            { x: 0, y: 40 },
+            { x: 300, y: 20 }
+          ],
+          segments: [segment(0, 1), segment(1, 2), segment(2, 0), segment(1, 3)],
+          regions: [{ windingRule: 'NONZERO', loops: [[0, 1, 2]] }]
+        }
+      })
+    )
+    // The line leaves the triangle's tip at 40 untrimmed, and ends inside its one head.
+    const [, to] = expectDefined(/<path d="M40 20L([\d.]+) 20"/.exec(svg))
+    expect(Number(to)).toBeLessThan(300)
+    expect(svg.match(/<path d="M[^"]+Z" fill="#000000"/g)).toHaveLength(1)
+  })
 })

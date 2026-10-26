@@ -19,14 +19,21 @@ import { round, svgPathSink } from './paths'
 
 type Attrs = Record<string, string | number | undefined>
 
+/** Which of a network's segments to draw: all of them, or those no region encloses. */
+type SegmentsOf = (network: VectorNetwork) => VectorNetwork['segments']
+
+const allSegments: SegmentsOf = (network) => network.segments
+
 /**
- * An open vector network's path as the canvas strokes it: open corners rounded by the layer's
+ * Open segments of a vector network as the canvas strokes them: corners rounded by the layer's
  * corner radius, and, under `stroke`, the line pulled back from each triangle or equilateral head.
+ * The whole network is trimmed before `segmentsOf` picks from it, so only its own open ends are.
  */
 function openStrokePath(
   node: Pick<SceneNode, 'cornerRadius' | 'strokeCap'>,
   network: VectorNetwork,
-  stroke: { weight: number; cap?: StrokeCap; align: string } | undefined
+  stroke: { weight: number; cap?: StrokeCap; align: string } | undefined,
+  segmentsOf: SegmentsOf
 ): string {
   const cap = stroke?.cap ?? node.strokeCap
   const trimmed =
@@ -34,7 +41,8 @@ function openStrokePath(
       ? trimArrowShafts(network, cap, stroke.weight)
       : network
   const parts: string[] = []
-  addOpenSegmentsToPath(svgPathSink(parts), trimmed.segments, trimmed.vertices, node.cornerRadius)
+  const segments = segmentsOf(trimmed)
+  addOpenSegmentsToPath(svgPathSink(parts), segments, trimmed.vertices, node.cornerRadius)
   return parts.join('')
 }
 
@@ -49,17 +57,18 @@ const NO_STROKE = {
 }
 
 /**
- * An open path as the canvas draws it: corners rounded, and the line pulled back under its heads,
- * with any fill kept to the whole path.
+ * A network's open segments, chosen by `segmentsOf`, as the canvas draws them: corners rounded, and
+ * the line pulled back under its heads, with any fill kept to the whole path.
  */
 export function openPathElements(
   node: Pick<SceneNode, 'cornerRadius' | 'strokeCap' | 'strokes'>,
   network: VectorNetwork,
-  common: Attrs
+  common: Attrs,
+  segmentsOf: SegmentsOf = allSegments
 ): SVGNode[] {
   const stroke = node.strokes.find((item) => item.visible)
-  const d = openStrokePath(node, network, stroke)
-  const whole = openStrokePath(node, network, undefined)
+  const d = openStrokePath(node, network, stroke, segmentsOf)
+  const whole = openStrokePath(node, network, undefined, segmentsOf)
   if (d === whole) return [svg('path', { d, ...common })]
   const shaft = svg('path', { d, ...common, fill: 'none' })
   if (common.fill === 'none') return [shaft]
