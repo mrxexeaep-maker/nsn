@@ -184,6 +184,7 @@ export const DESIGN_JSX_SUPPORTED_PROPERTY_NAMES = [
   'componentId',
   'properties',
   'of',
+  'exposed',
   'mode',
   // A Reka UI root's behaviour, by its own property names
   'modelValue',

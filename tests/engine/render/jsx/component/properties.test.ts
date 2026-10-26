@@ -11,7 +11,6 @@ import {
   property,
   type ComponentProperty
 } from '@open-pencil/design-jsx'
-import type { SceneNode } from '@open-pencil/scene-graph'
 
 import { getNodeOrThrow } from '#tests/helpers/assert'
 import { makeSceneGraph } from '#tests/helpers/scene'
@@ -21,7 +20,7 @@ test('only instances take property values; layers bind fields to property()', ()
   expectTypeOf<Parameters<typeof Text>[0]['properties']>().toEqualTypeOf<undefined>()
   expectTypeOf<Parameters<typeof Component>[0]['properties']>().toEqualTypeOf<undefined>()
   expectTypeOf<Parameters<typeof Instance>[0]['properties']>().toEqualTypeOf<
-    SceneNode['componentPropertyAssignments'] | undefined
+    Record<string, string | Record<string, string | boolean | number>> | undefined
   >()
   expectTypeOf<Parameters<typeof Text>[0]['text']>().toEqualTypeOf<
     string | ComponentProperty<string> | undefined
@@ -155,7 +154,7 @@ test('an assignment of the wrong type names the prop and the property', async ()
     // A script can pass any value; the types only describe valid calls.
     renderTree(graph, Instance({ of: component.id, properties: { Message: 42 } as never }))
   ).rejects.toThrow(
-    'Invalid properties on <Instance>:\n× Invalid type: Expected string but received 42\n  → at Message'
+    'Invalid properties on <Instance>:\n× Invalid type: Expected (string | Object) but received 42\n  → at Message'
   )
 })
 
@@ -215,4 +214,74 @@ test('elements other than instances reject properties before rendering', async (
       'Only instances accept properties'
     )
   }
+})
+
+/** A Button set with a Label property, and a Card that exposes the Button it holds. */
+async function exposedSetup() {
+  const graph = makeSceneGraph()
+  const button = await renderTree(
+    graph,
+    ComponentSet({
+      name: 'Button',
+      children: ['Primary', 'Secondary'].map((variant) =>
+        Component({
+          name: `Variant=${variant}`,
+          children: Text({ text: property('Label', 'OK') })
+        })
+      )
+    })
+  )
+  const card = await renderTree(
+    graph,
+    Component({
+      name: 'Card',
+      children: [
+        Text({ text: property('Title', 'Hello') }),
+        Instance({ name: 'Action', of: 'Button', exposed: true })
+      ]
+    })
+  )
+  return { graph, button, card }
+}
+
+test('an exposed instance takes its own properties and variant from the outer instance', async () => {
+  const { graph, button, card } = await exposedSetup()
+  expect(graph.getChildren(card.id)[1].isExposedInstance).toBe(true)
+  for (const tree of [
+    Instance({ of: 'Card', Title: 'Welcome', Action: { Label: 'Save', Variant: 'Secondary' } }),
+    Instance({
+      of: 'Card',
+      properties: { Title: 'Welcome', Action: { Label: 'Save', Variant: 'Secondary' } }
+    })
+  ]) {
+    const result = await renderTree(graph, tree)
+    const [title, action] = graph.getChildren(result.id)
+    expect(title.text).toBe('Welcome')
+    expect(action.componentId).toBe(graph.getChildren(button.id)[1].id)
+    expect(graph.getChildren(action.id)[0].text).toBe('Save')
+    graph.syncInstances(card.id)
+    const [, synced] = graph.getChildren(result.id)
+    expect(synced.componentId).toBe(graph.getChildren(button.id)[1].id)
+    expect(graph.getChildren(synced.id)[0].text).toBe('Save')
+  }
+})
+
+test('exposing follows Figma’s rules, and unknown exposed values are errors', async () => {
+  const { graph } = await exposedSetup()
+  await expect(renderTree(graph, Instance({ of: 'Button', exposed: true }))).rejects.toThrow(
+    'exposed needs an <Instance> in a component'
+  )
+  const plain = await renderTree(graph, Component({ name: 'Plain', w: 10, h: 10 }))
+  await expect(
+    renderTree(graph, Component({ children: Instance({ of: plain.id, exposed: true }) }))
+  ).rejects.toThrow('Plain has no properties or exposed instances to expose')
+  await expect(
+    renderTree(graph, Instance({ of: 'Card', Action: { Missing: 'x' } }))
+  ).rejects.toThrow('Unknown component property on Action: Missing')
+  await expect(
+    renderTree(graph, Instance({ of: 'Card', Action: { Variant: 'Ghost' } }))
+  ).rejects.toThrow('Action has no variant Variant=Ghost')
+  await expect(
+    renderTree(graph, Instance({ of: 'Card', properties: { Other: { Label: 'x' } } }))
+  ).rejects.toThrow('Unknown component property or exposed instance: Other')
 })

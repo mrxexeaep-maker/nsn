@@ -10,7 +10,8 @@ import {
   assignComponentProperties,
   assignNamedProperties,
   bindProperties,
-  componentPropertyScope,
+  componentPropNames as namesOnInstance,
+  exposeInstance,
   inferComponentSetProperties
 } from './component-properties'
 import { CONNECTOR_ELEMENT, resolveConnectorEnds } from './connectors'
@@ -335,11 +336,13 @@ function resolveComponent(
   return named?.type === 'COMPONENT_SET' ? findVariantInSet(graph, named, props) : named
 }
 
-/** The component properties an element sets by name, such as `State` or `Title`. */
+/**
+ * The names an element sets on its component by prop: properties such as `State` or `Title`, and
+ * exposed instances.
+ */
 export function componentPropNames(graph: SceneGraph, props: Record<string, unknown>): string[] {
   const component = resolveComponent(graph, props)
-  if (!component) return []
-  return (componentPropertyScope(graph, component.id) ?? []).map((definition) => definition.name)
+  return component ? namesOnInstance(graph, component) : []
 }
 
 async function renderInstanceNode(
@@ -390,6 +393,7 @@ async function renderInstanceNode(
     applyInstanceOverrides(graph, instance, tree.props.overrides)
     assignNamedProperties(graph, instance, props)
     assignComponentProperties(graph, instance, props.properties)
+    if (props.exposed === true) exposeInstance(graph, instance)
     return instance
   } catch (error) {
     graph.deleteNode(instance.id)

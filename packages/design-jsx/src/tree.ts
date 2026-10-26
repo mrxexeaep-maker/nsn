@@ -1,4 +1,4 @@
-import type { Effect, Fill, SceneNode } from '@open-pencil/scene-graph'
+import type { Effect, Fill } from '@open-pencil/scene-graph'
 import type { Color } from '@open-pencil/scene-graph/primitives'
 
 import type { ComponentProperty } from './component-properties'
@@ -256,5 +256,8 @@ export type InstanceProps = NodeProps & {
   component?: string
   componentId?: string
   of?: string | ComponentProperty<string>
-  properties?: SceneNode['componentPropertyAssignments']
+  /** Show the instance's own properties on instances of the component it is in, as Figma does. */
+  exposed?: boolean
+  /** Values by property ID or name, or an exposed nested instance's values by its name. */
+  properties?: Record<string, string | Record<string, string | boolean | number>>
 }
