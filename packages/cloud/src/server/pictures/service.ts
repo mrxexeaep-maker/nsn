@@ -166,6 +166,13 @@ export function createUserPictures(database: Kysely<CloudDatabase>, options: Use
      */
     async copyFromProvider(userId: string, image: string): Promise<void> {
       if (served(image)) return
+      // A picture the account already shows from this server, uploaded or kept before, stays.
+      const current = await database
+        .selectFrom('user')
+        .select('image')
+        .where('id', '=', userId)
+        .executeTakeFirst()
+      if (current?.image && served(current.image)) return
       try {
         if (!providerPicture(new URL(image))) throw new PictureInvalidError()
         const response = await fetchPicture(image, {
