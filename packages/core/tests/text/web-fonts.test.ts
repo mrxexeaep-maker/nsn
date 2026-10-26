@@ -96,6 +96,14 @@ describe('web fonts', () => {
     expect(downloads.toSorted()).toEqual(['1-wght-normal.woff2', 'latin-wght-normal.woff2'])
   })
 
+  test('downloads only the default file of a split family for characters no file holds', async () => {
+    const family = 'Web Font Test Shards Uncovered'
+    const { resolver, downloads } = await fontsourceResolver(family)
+    // 語 asks for the Japanese shards, but the ones served stop short of it.
+    await resolver.fetchFont([family], 'Regular', '語')
+    expect(downloads).toEqual(['latin-wght-normal.woff2'])
+  })
+
   test('loads a font served as WOFF2 as the TrueType font it holds', async () => {
     const family = 'Web Font Test WOFF2'
     const { resolver } = await googleResolver([{ family, axes: [] }])

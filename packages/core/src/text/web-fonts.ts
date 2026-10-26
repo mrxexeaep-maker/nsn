@@ -127,16 +127,18 @@ function inUnicodeRange(range: readonly string[], codePoint: number): boolean {
 /**
  * The faces to download for `characters`: those whose `unicode-range` holds one of them, as a
  * browser picks the files of a split family. A CJK family comes in a hundred or more such shards.
- * Without characters, or when no range holds one, every face.
+ * Without characters, every face; when no range holds one, such as an emoji asked of a text
+ * family, only the first face, the provider's default subset, so the family still loads.
  */
 function facesForCharacters(result: ResolveFontResult, characters: string): FontFaceData[] {
   const codePoints = Array.from(characters, (character) => character.codePointAt(0) ?? 0)
+  if (codePoints.length === 0) return result.fonts
   const covering = result.fonts.filter(
     (face) =>
       !face.unicodeRange ||
       codePoints.some((codePoint) => inUnicodeRange(face.unicodeRange ?? [], codePoint))
   )
-  return codePoints.length > 0 && covering.length > 0 ? covering : result.fonts
+  return covering.length > 0 ? covering : result.fonts.slice(0, 1)
 }
 
 function resolvedRemoteFaces(
