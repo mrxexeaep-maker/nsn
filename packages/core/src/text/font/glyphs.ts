@@ -215,9 +215,10 @@ export function getGlyphOutlineMetricsSync(
   return buffer.getGlyphInfosAndPositions().map((glyph) => {
     // Shaping moves some glyphs off the pen, such as marks onto their base letter.
     const offsetX = (glyph.xOffset ?? 0) * scale
-    const offsetY = (glyph.yOffset ?? 0) * scale
+    // y runs down; subtracting keeps an unmoved glyph's baseline 0 rather than -0.
+    const baseline = 0 - (glyph.yOffset ?? 0) * scale
     const metrics = {
-      commands: glyphCommands(parsed, parsed.font, glyph.codepoint, fontSize, -offsetY, offsetX),
+      commands: glyphCommands(parsed, parsed.font, glyph.codepoint, fontSize, baseline, offsetX),
       x: pen,
       advance: (glyph.xAdvance ?? 0) * scale
     }
