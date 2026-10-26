@@ -40,8 +40,11 @@ const PUBLISH_CONFIG_FIELDS = new Set(['access', 'provenance', 'registry'])
 const LICENSE_FILE = 'LICENSE'
 /** The repository's MIT text, for a package under its own license that is MIT in part. */
 const MIT_LICENSE_FILE = 'LICENSE-MIT'
-/** `MIT` as a whole SPDX identifier in a license expression, not a prefix of `MIT-0`. */
-const MIT_IDENTIFIER = /(?:^|[\s(])MIT(?:$|[\s)])/
+/**
+ * `MIT` or `MIT+` as a whole SPDX identifier in a license expression, in any case as SPDX allows,
+ * and not the start of another identifier such as `MIT-0`.
+ */
+const MIT_IDENTIFIER = /(?:^|[\s(])MIT\+?(?:$|[\s)])/i
 
 export function publishPackageJSON(source: PackageManifest, coreVersion: string): PackageManifest {
   if (source.publishConfig) {

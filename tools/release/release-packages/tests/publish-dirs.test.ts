@@ -134,25 +134,29 @@ describe('preparePublishDirectories', () => {
     })
   }, 30_000)
 
-  test('ships the repository’s MIT text beside a package’s own license when it is MIT in part', async () => {
-    const root = await fixtureRoot({ license: 'Apache-2.0 AND MIT' })
-    await writeFile(join(root, 'packages/example/LICENSE'), 'apache license\n')
-    const outRoot = join(root, '.publish')
+  test.each(['Apache-2.0 AND MIT', '(mit AND Apache-2.0)', 'Apache-2.0 OR MIT+'])(
+    'ships the repository’s MIT text beside a package’s own license when it is MIT in part: %s',
+    async (license) => {
+      const root = await fixtureRoot({ license })
+      await writeFile(join(root, 'packages/example/LICENSE'), 'apache license\n')
+      const outRoot = join(root, '.publish')
 
-    await preparePublishDirectories({
-      coreVersion: '0.13.2',
-      outRoot,
-      packages: await discoverPublishPackages(root),
-      root
-    })
+      await preparePublishDirectories({
+        coreVersion: '0.13.2',
+        outRoot,
+        packages: await discoverPublishPackages(root),
+        root
+      })
 
-    expect(await readFile(join(outRoot, 'example/LICENSE'), 'utf8')).toBe('apache license\n')
-    expect(await readFile(join(outRoot, 'example/LICENSE-MIT'), 'utf8')).toBe('root license\n')
-    // Packed from the prepared directory, as releases are, both license texts ship.
-    expect(await npmPackFileList(join(outRoot, 'example'))).toEqual(
-      expect.arrayContaining(['LICENSE', 'LICENSE-MIT'])
-    )
-  }, 30_000)
+      expect(await readFile(join(outRoot, 'example/LICENSE'), 'utf8')).toBe('apache license\n')
+      expect(await readFile(join(outRoot, 'example/LICENSE-MIT'), 'utf8')).toBe('root license\n')
+      // Packed from the prepared directory, as releases are, both license texts ship.
+      expect(await npmPackFileList(join(outRoot, 'example'))).toEqual(
+        expect.arrayContaining(['LICENSE', 'LICENSE-MIT'])
+      )
+    },
+    30_000
+  )
 
   test('ships no MIT text beside a license that only resembles it, such as MIT-0', async () => {
     const root = await fixtureRoot({ license: 'MIT-0' })
