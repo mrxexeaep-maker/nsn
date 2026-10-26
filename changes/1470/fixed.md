@@ -1,0 +1,1 @@
+- Updating library components keeps the overrides of their instances, a nested instance swapped to another component included.
