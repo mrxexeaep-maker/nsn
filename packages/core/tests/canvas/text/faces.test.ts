@@ -173,12 +173,13 @@ describe('text faces', () => {
     const fontProvider = ck.TypefaceFontProvider.Make()
     fontManager.attachProvider(ck, fontProvider)
     const fontFamily = 'Faces Test Shards'
+    const CJK_SHARD = 'https://fonts.gstatic.com/s/test/shards-cjk.ttf'
     const files = {
       'https://fonts.gstatic.com/s/test/shards-latin.ttf': {
         range: 'U+0000-00FF',
         data: await fixtureFont('InterVariable-Latin.ttf')
       },
-      'https://fonts.gstatic.com/s/test/shards-cjk.ttf': {
+      [CJK_SHARD]: {
         range: 'U+4E00-9FFF',
         data: await fixtureFont('NotoSansSC-Regular.ttf')
       }
@@ -205,6 +206,12 @@ describe('text faces', () => {
     try {
       await fontManager.loadFont(fontFamily, 'Regular', 'Faces 中文')
       expect(missingGlyphs(ck, fontProvider, fontFamily, 'Faces 中文')).toBe(0)
+      // And paints them as the CJK file does on its own.
+      await fontManager.markLoaded('Faces Test Han', 'Regular', files[CJK_SHARD].data)
+      const paint = (family: string, text: string) =>
+        drawn(ck, fontProvider, { fontFamily: family, text, fontWeight: 400, italic: false })
+      expect(paint(fontFamily, '中文')).toEqual(paint('Faces Test Han', '中文'))
+      expect(paint(fontFamily, '中文')).not.toEqual(paint(fontFamily, ' '))
     } finally {
       fontManager.setWebFontFetch(null)
       fontManager.setOnlineFontProviders(

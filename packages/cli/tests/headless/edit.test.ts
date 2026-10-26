@@ -32,6 +32,9 @@ test('sizes the text an edit writes in the fonts its characters load after it', 
     if (!node) throw new Error('Expected the text')
     const measured = getTextMeasurer()?.(node)
     if (!measured) throw new Error('Expected the text measured in its font')
+    // Each Han character is one em wide in the font, so three at 40 px are 120 px; a stand-in
+    // measures them otherwise.
+    expect(node.width).toBe(120)
     expect(node.width).toBe(measured.width)
     expect(node.height).toBe(measured.height)
   } finally {
