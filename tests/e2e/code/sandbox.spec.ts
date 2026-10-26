@@ -42,6 +42,7 @@ test('evaluates JSX into plain inert data', async ({ page }) => {
         source: 1
       }
     ],
+    collections: [],
     lineOffset: 0
   })
 })
@@ -76,6 +77,7 @@ return <Card title="Hello" visible />`
         source: 3
       }
     ],
+    collections: [],
     lineOffset: 0
   })
 })
@@ -144,6 +146,7 @@ test('supports multiple roots through fragments', async ({ page }) => {
       { type: 'rectangle', props: { name: 'One' }, children: [], source: 1 },
       { type: 'ellipse', props: { name: 'Two' }, children: [], source: 1 }
     ],
+    collections: [],
     lineOffset: 0
   })
 })
