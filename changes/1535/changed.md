@@ -1,0 +1,1 @@
+- JSX export, in the Code panel, `get_jsx`, and the CLI, starts with the `defineVars` and `defineMode` for the variables its layers use, so the code makes the same tokens in another file, and writes each bound value through its prop, as in `bg={theme.Surface}` and `p={density.Pad}`, instead of a literal beside a `bind` entry; a bound line height no longer exports as `undefined%`.
