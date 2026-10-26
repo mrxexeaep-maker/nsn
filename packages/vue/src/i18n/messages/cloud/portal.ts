@@ -143,11 +143,8 @@ export const cloudPortalMessageDefaults = {
 
   detailsSection: 'Details',
   detailsSectionDescription: 'People see your name and picture beside your edits and comments.',
-  picture: 'Picture',
-  pictureShown: 'People see it beside your name',
-  pictureInitials: 'Your initials, until you upload a picture',
   uploadPicture: 'Upload picture',
-  changePicture: 'Change',
+  changePicture: 'Change picture',
   removePicture: 'Remove',
   pictureTitle: 'Your picture',
   pictureDescription: 'Drag the picture and zoom to choose what shows in the circle.',
@@ -159,6 +156,8 @@ export const cloudPortalMessageDefaults = {
     'This file isn’t a picture the page can open. Choose a PNG, JPEG, WebP, or GIF image.',
   save: 'Save',
   nameSaved: 'Name saved',
+  changeName: 'Change name',
+  changeNameTitle: 'Change your name',
   changeEmail: 'Change email',
   changeEmailTitle: 'Change your email',
   changeEmailDescription: params(
