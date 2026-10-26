@@ -166,6 +166,21 @@ describe('draw.io edges', () => {
     expect(points.at(0)?.[0]).toBeGreaterThan(520)
   })
 
+  test('curved through a point off a corner leave and enter where draw.io ends them', async () => {
+    // Beyond both shapes' right sides but further below B and above C than across.
+    const graph = await read(
+      file(
+        shapes +
+          `<mxCell id="e" style="curved=1;" edge="1" parent="1" source="b" target="c"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="600" y="190"/></Array></mxGeometry></mxCell>`
+      )
+    )
+    const connector = expectDefined(onPage(graph).find((node) => node.type === 'CONNECTOR'))
+    expect([connector.connectorStart?.magnet, connector.connectorEnd?.magnet]).toEqual([
+      'BOTTOM',
+      'TOP'
+    ])
+  })
+
   test('take the labels draw.io keeps along them, where it keeps them', async () => {
     const graph = await read(
       file(
