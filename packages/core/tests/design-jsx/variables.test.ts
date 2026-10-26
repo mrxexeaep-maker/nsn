@@ -276,3 +276,25 @@ return <Frame name="Board" w={400} h={400}><Sticky mode={dark} opacity={fade.Not
   expect(sticky.variableModes).toEqual({ [fade.id]: fade.modes[1].modeId })
   expect(sticky.opacity).toBe(0.5)
 })
+
+test('a reference export writes is one rendering resolves back to the same variable', async () => {
+  const graph = new SceneGraph()
+  const collection = graph.createCollection('Ink')
+  graph.addVariable({
+    id: 'x',
+    name: 'Other',
+    type: 'COLOR',
+    collectionId: collection.id,
+    valuesByMode: { [collection.defaultModeId]: { r: 0, g: 0, b: 0, a: 1 } },
+    description: '',
+    hiddenFromPublishing: false
+  })
+  // Named as the other variable's ID, which `designVar('x')` finds first.
+  const named = graph.createVariable('x', 'COLOR', collection.id, { r: 1, g: 0, b: 0, a: 1 })
+  const [frame] = await renderJSX(graph, '<Frame bg="#FFFFFF" />')
+  graph.bindVariable(frame.id, 'fills/0/color', named.id)
+  const references = selectionToJSXWithLayers([frame.id], graph, { declarations: false }).code
+  expect(references).toContain('bg={designVar("Ink", "x")}')
+  const [copy] = await renderJSX(graph, references)
+  expect(graph.getNode(copy.id)?.boundVariables['fills/0/color']).toBe(named.id)
+})

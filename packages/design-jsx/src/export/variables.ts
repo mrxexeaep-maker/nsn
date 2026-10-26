@@ -11,9 +11,10 @@ import type {
 import { modesDefaultFirst } from '@open-pencil/scene-graph/variables'
 
 import { layersUnder } from '../connectors'
-import { DESIGN_JSX_HELPERS } from '../definitions'
 import { DESIGN_JSX_ELEMENTS } from '../elements'
-import { DEFAULT_MODE_NAME } from '../variables'
+import { DESIGN_JSX_HELPERS } from '../helpers'
+import { DEFAULT_MODE_NAME, designMode, designVar, type DesignVariable } from '../variables'
+import { collectionNamed, resolveVariableId, variableModes } from '../variables/graph'
 import { formatColor } from './helpers'
 import { helperCall, Reference, valueSyntax, type JSXValue } from './value'
 
@@ -30,27 +31,40 @@ export interface VariableExport {
  * them: by name when it is unique, then by collection and name, and by ID otherwise.
  */
 export function variableReferences(graph: SceneGraph): VariableExport {
-  const collections = [...graph.variableCollections.values()]
-  const variables = [...graph.variables.values()]
+  // A reference is written only when rendering would resolve it back to the same variable.
+  const finds = (handle: DesignVariable, variableId: string) => {
+    try {
+      return resolveVariableId(graph, handle) === variableId
+    } catch {
+      return false
+    }
+  }
+  // A collection name several collections share names none of them; its ID still does.
+  const findsMode = (collection: string, mode: string, collectionId: string, modeId: string) => {
+    try {
+      return variableModes(graph, designMode(collection, mode))?.[collectionId] === modeId
+    } catch {
+      return false
+    }
+  }
   return {
     variable(variableId) {
       const variable = graph.variables.get(variableId)
       if (!variable) return variableId
-      const sameName = variables.filter((item) => item.name === variable.name)
-      if (sameName.length === 1) return helperCall('designVar', variable.name)
+      if (finds(designVar(variable.name), variableId)) return helperCall('designVar', variable.name)
       const collection = graph.variableCollections.get(variable.collectionId)
-      const unique =
-        collection &&
-        collections.filter((item) => item.name === collection.name).length === 1 &&
-        sameName.filter((item) => item.collectionId === variable.collectionId).length === 1
-      return unique ? helperCall('designVar', collection.name, variable.name) : variableId
+      return collection && finds(designVar(collection.name, variable.name), variableId)
+        ? helperCall('designVar', collection.name, variable.name)
+        : variableId
     },
     mode(collectionId, modeId) {
       const collection = graph.variableCollections.get(collectionId)
       const mode = collection?.modes.find((item) => item.modeId === modeId)
       if (!collection || !mode) return modeId
-      const unique = collections.filter((item) => item.name === collection.name).length === 1
-      return helperCall('designMode', unique ? collection.name : collection.id, mode.name)
+      const named = [collection.name, collectionId].find((name) =>
+        findsMode(name, mode.name, collectionId, modeId)
+      )
+      return named ? helperCall('designMode', named, mode.name) : modeId
     },
     declarations: () => ''
   }
@@ -107,13 +121,20 @@ interface DefinedCollection {
 function definitionExport(graph: SceneGraph, rootIds: readonly string[]): VariableExport {
   const references = variableReferences(graph)
   const variableIds = boundVariableIds(graph, rootIds)
-  const collectionNames = [...graph.variableCollections.values()].map((item) => item.name)
+  const finds = (collection: VariableCollection) => {
+    try {
+      return collectionNamed(graph, collection.name) === collection
+    } catch {
+      return false
+    }
+  }
   const included = new Set<string>()
   const include = (variableId: string) => {
     const variable = graph.variables.get(variableId)
     if (!variable || included.has(variableId) || !definable(variable)) return
     const collection = graph.variableCollections.get(variable.collectionId)
-    if (!collection || collectionNames.filter((name) => name === collection.name).length > 1) return
+    // Rendering finds a defined collection by name, so one whose name is shared stays a reference.
+    if (!collection || !finds(collection)) return
     included.add(variableId)
     for (const value of Object.values(variable.valuesByMode)) {
       if (typeof value === 'object' && 'aliasId' in value) include(value.aliasId)
