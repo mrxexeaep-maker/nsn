@@ -8,6 +8,7 @@ import type {
 } from '@open-pencil/scene-graph'
 import { polygonVertices } from '@open-pencil/scene-graph/geometry'
 import { outlineSVGPath, polygonOutline } from '@open-pencil/scene-graph/polygon'
+import { shapeWithTextGeometry } from '@open-pencil/scene-graph/shape-with-text'
 
 import { traceSmoothRect, type SmoothCornerSink } from '#core/canvas/paths/smooth-corners'
 import { nodeHasRadius } from '#core/canvas/shapes'
@@ -384,4 +385,28 @@ export function nodeOutlinePath(node: OutlineNode): string | null {
     default:
       return null
   }
+}
+
+/** A FigJam shape's outline in its own box as path data, with its corner radius. */
+export function shapeWithTextOutlinePath(
+  node: Pick<SceneNode, 'shapeWithTextType' | 'width' | 'height' | 'cornerRadius'>
+): string {
+  const { outline } = shapeWithTextGeometry(
+    node.shapeWithTextType,
+    node.width,
+    node.height,
+    node.cornerRadius
+  )
+  return outlineSVGPath(outline, (value) => round(value))
+}
+
+/**
+ * A FigJam shape's stroke-only inner lines, such as a database's front rim, as path data; null for
+ * a shape without any.
+ */
+export function shapeWithTextDetailsPath(
+  node: Pick<SceneNode, 'shapeWithTextType' | 'width' | 'height'>
+): string | null {
+  const { details } = shapeWithTextGeometry(node.shapeWithTextType, node.width, node.height)
+  return details.length > 0 ? outlineSVGPath(details, (value) => round(value)) : null
 }
