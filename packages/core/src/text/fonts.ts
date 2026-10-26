@@ -29,6 +29,7 @@ import {
 
 import { fontFallbackEntry } from '#core/text/fallbacks'
 import type { FontFallbackScript } from '#core/text/fallbacks'
+import { loadHarfBuzz } from '#core/text/font/harfbuzz'
 import { UnsupportedFontFormatError } from '#core/text/font/sources'
 import type {
   DownloadedFontCache,
@@ -276,6 +277,7 @@ export class FontManager {
     style = 'Regular',
     characters = ''
   ): Promise<ArrayBuffer | null> {
+    await loadHarfBuzz()
     const cached = await this.readDownloadedFont(family, style, characters)
     if (!cached) return null
     const key = `${family}|${style}`
@@ -370,6 +372,7 @@ export class FontManager {
   }
 
   async loadLocalFont(family: string, style = 'Regular'): Promise<ArrayBuffer | null> {
+    await loadHarfBuzz()
     const loaded = this.loadedFamilies.get(`${family}|${style}`)
     if (loaded) {
       this.registerFontInCanvasKit(family, loaded)
@@ -406,6 +409,7 @@ export class FontManager {
     characters = '',
     signal?: AbortSignal
   ): Promise<ArrayBuffer | null> {
+    await loadHarfBuzz()
     signal?.throwIfAborted()
     if (typeof fetch === 'undefined') return null
     const coverage = this.remoteCoverage.get(`${family}|${style}`)
@@ -447,6 +451,7 @@ export class FontManager {
     characters = '',
     signal?: AbortSignal
   ): Promise<ArrayBuffer | null> {
+    await loadHarfBuzz()
     signal?.throwIfAborted()
     const loaded = this.loadedData(family, style)
     if (loaded) {
@@ -511,13 +516,15 @@ export class FontManager {
     await this.loadFont(family, weightToStyle(weight))
   }
 
-  markLoaded(
+  /** Registers a font the caller already has, resolving once its outlines can be read. */
+  async markLoaded(
     family: string,
     style: string,
     data: ArrayBuffer,
     source: FontLoadedSource = 'registered'
-  ): void {
+  ): Promise<void> {
     this.registerAndCache(family, style, data, source)
+    await loadHarfBuzz()
   }
 
   loadedFontSource(family: string, style: string): FontLoadedSource | null {
@@ -651,6 +658,7 @@ export class FontManager {
     characters = '',
     signal?: AbortSignal
   ): Promise<Partial<Record<FontFallbackScript, string[]>>> {
+    await loadHarfBuzz()
     signal?.throwIfAborted()
     const result: Partial<Record<FontFallbackScript, string[]>> = {}
     await Promise.all(
