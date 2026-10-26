@@ -80,3 +80,37 @@ describe('provider pictures', () => {
     }
   })
 })
+
+describe('provider picture and upload', () => {
+  test('an upload made while the provider picture is fetched stays', async () => {
+    const runtime = await createCloudTestDatabase()
+    try {
+      const { id: userId } = await runtime.database
+        .insertInto('user')
+        .values({ name: 'Racer', email: 'racer@example.com', emailVerified: true })
+        .returning('id')
+        .executeTakeFirstOrThrow()
+      let answer: (response: Response) => void = () => undefined
+      const pictures = createUserPictures(runtime.database, {
+        publicURL: PUBLIC_URL,
+        fetch: () =>
+          new Promise<Response>((resolve) => {
+            answer = resolve
+          })
+      })
+      const copying = pictures.copyFromProvider(userId, GOOGLE_PICTURE)
+      // The person uploads a picture while Google's is still on its way.
+      const uploaded = await pictures.upload(userId, pngHeader(256, 256))
+      answer(new Response(pngHeader(96, 96)))
+      await copying
+      const { image } = await runtime.database
+        .selectFrom('user')
+        .select('image')
+        .where('id', '=', userId)
+        .executeTakeFirstOrThrow()
+      expect(image).toBe(uploaded)
+    } finally {
+      await runtime.close()
+    }
+  })
+})

@@ -109,7 +109,16 @@ export function createUserPictures(database: Kysely<CloudDatabase>, options: Use
     const checksum = bytesToHex(sha256(bytes))
     const image = address(userId, checksum)
     const createdAt = new Date()
-    await database.transaction().execute(async (transaction) => {
+    return database.transaction().execute(async (transaction) => {
+      // Saves lock the account first, so an upload and a provider's picture take turns, and a
+      // provider's picture never replaces one the account came to show while it was fetched.
+      const current = await transaction
+        .selectFrom('user')
+        .select('image')
+        .where('id', '=', userId)
+        .forUpdate()
+        .executeTakeFirst()
+      if (source === 'provider' && current?.image && served(current.image)) return current.image
       await transaction
         .insertInto('userPicture')
         .values({ userId, bytes, format, checksum, source, createdAt })
@@ -122,8 +131,8 @@ export function createUserPictures(database: Kysely<CloudDatabase>, options: Use
         .set({ image, updatedAt: createdAt })
         .where('id', '=', userId)
         .execute()
+      return image
     })
-    return image
   }
 
   async function remove(userId: string): Promise<void> {
