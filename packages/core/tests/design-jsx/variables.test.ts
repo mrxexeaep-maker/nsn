@@ -163,6 +163,31 @@ return <Frame name="Card" w={100} h={100} bg={theme.Page} rounded={theme.Radius}
     expect(sceneNodeToJSX(text.id, graph)).toContain('bind={{ text: designVar("Label") }}')
   })
 
+  test('writes an alias to its own collection by reference, and names no handle a reserved word', async () => {
+    const graph = new SceneGraph()
+    const [card] = await renderJSX(
+      graph,
+      `const space = defineVars('Space', { Base: 4 }, { mode: 'Default' })
+const roomy = defineMode(space, 'Roomy', { Base: 8 })
+return <Frame name="Card" flex="col" mode={roomy} p={space.Base} />`
+    )
+    const collection = collectionNamed(graph, 'Space')
+    const base = expectDefined(graph.variables.get(collection.variableIds[0]))
+    const gap = graph.createVariable('Gap', 'FLOAT', collection.id, { aliasId: base.id })
+    graph.bindVariable(card.id, 'itemSpacing', gap.id)
+    graph.updateNode(card.id, {
+      variableModes: { [collection.id]: collection.modes[0].modeId }
+    })
+    graph.renameMode(collection.id, collection.modes[1].modeId, 'Default')
+    graph.renameMode(collection.id, collection.modes[0].modeId, 'Roomy')
+    const exported = sceneNodeToJSX(card.id, graph)
+    expect(exported).toContain('gap={designVar("Gap")}')
+    expect(exported).not.toMatch(/const default\b/)
+    // The code runs: no handle is read before it is declared.
+    const [copy] = await renderJSX(graph, exported)
+    expect(graph.getNode(copy.id)?.boundVariables.itemSpacing).toBe(gap.id)
+  })
+
   test('writes a padding bound on every side as p, and a partly bound one in bind', async () => {
     const graph = new SceneGraph()
     const space = 'const s = defineVars("Space", { M: 8, L: 16 })'

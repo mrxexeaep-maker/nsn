@@ -88,7 +88,63 @@ function definable(variable: Variable): boolean {
   )
 }
 
+/** Words JavaScript reserves, which no `const` may be named, as a mode named Default would be. */
+const RESERVED_WORDS = [
+  'await',
+  'break',
+  'case',
+  'catch',
+  'class',
+  'const',
+  'continue',
+  'debugger',
+  'default',
+  'delete',
+  'do',
+  'else',
+  'enum',
+  'export',
+  'extends',
+  'false',
+  'finally',
+  'for',
+  'function',
+  'if',
+  'implements',
+  'import',
+  'in',
+  'instanceof',
+  'interface',
+  'let',
+  'new',
+  'null',
+  'package',
+  'private',
+  'protected',
+  'public',
+  'return',
+  'static',
+  'super',
+  'switch',
+  'this',
+  'throw',
+  'true',
+  'try',
+  'typeof',
+  'var',
+  'void',
+  'while',
+  'with',
+  'yield',
+  'arguments',
+  'eval',
+  'undefined',
+  'NaN',
+  'Infinity'
+]
+
 const TAKEN = new Set([
+  ...RESERVED_WORDS,
   ...DESIGN_JSX_ELEMENTS.map((element) => element.name),
   ...DESIGN_JSX_HELPERS.map((helper) => helper.name),
   'svg',
@@ -173,12 +229,27 @@ function definitionExport(graph: SceneGraph, rootIds: readonly string[]): Variab
     order.push(collectionId)
   }
   for (const id of byCollection.keys()) visit(id)
+  // A first-mode value can only name a collection declared before its own; one that aliases its
+  // own collection, or a later one in a cycle, is written by reference, which keeps the alias.
+  for (const [index, collectionId] of order.entries()) {
+    const collection = graph.variableCollections.get(collectionId)
+    const kept = (byCollection.get(collectionId) ?? []).filter((variable) => {
+      const value = collection && variable.valuesByMode[collection.defaultModeId]
+      if (typeof value !== 'object' || !('aliasId' in value) || !included.has(value.aliasId))
+        return true
+      const target = graph.variables.get(value.aliasId)
+      if (!target || order.indexOf(target.collectionId) < index) return true
+      included.delete(variable.id)
+      return false
+    })
+    byCollection.set(collectionId, kept)
+  }
 
   const taken = new Set(TAKEN)
   const defined = new Map<string, DefinedCollection>()
   for (const collectionId of order) {
     const collection = graph.variableCollections.get(collectionId)
-    if (!collection) continue
+    if (!collection || byCollection.get(collectionId)?.length === 0) continue
     defined.set(collectionId, {
       collection,
       name: handleName(collection.name, taken, 'vars'),
