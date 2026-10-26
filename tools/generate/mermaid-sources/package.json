@@ -13,6 +13,7 @@
     "typescript": "~5.8.3"
   },
   "devDependencies": {
-    "@open-pencil/package-artifacts-tools": "workspace:*"
+    "@open-pencil/package-artifacts-tools": "workspace:*",
+    "valibot": "^1.5.0"
   }
 }

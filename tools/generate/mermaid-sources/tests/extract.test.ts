@@ -5,7 +5,7 @@ import { extractDeclarations, hasImports } from '#mermaid-sources/extract'
 const MODULE = `import { other } from './other'
 
 /** Says hello. */
-const hello = (name: string) => \`hello \${name}\`
+const hello = (name: string) => 'hello ' + name
 
 export const goodbye = function (name: string): string {
   return 'goodbye ' + name
@@ -16,7 +16,7 @@ function helper() {}
 
 test('copies declarations as written, with their comments, exported', () => {
   expect(extractDeclarations(MODULE, 'm.ts', ['hello', 'goodbye', 'helper'])).toEqual([
-    '/** Says hello. */\nexport const hello = (name: string) => `hello ${name}`',
+    "/** Says hello. */\nexport const hello = (name: string) => 'hello ' + name",
     "export const goodbye = function (name: string): string {\n  return 'goodbye ' + name\n}",
     'export function helper() {}'
   ])

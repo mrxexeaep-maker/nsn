@@ -823,6 +823,7 @@
       },
       "devDependencies": {
         "@open-pencil/package-artifacts-tools": "workspace:*",
+        "valibot": "^1.5.0",
       },
     },
     "tools/generate/tauri-menu": {

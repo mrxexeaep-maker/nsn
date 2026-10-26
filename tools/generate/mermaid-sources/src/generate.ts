@@ -11,6 +11,7 @@ import { join } from 'node:path'
 
 import { resolveWorkspaceRoot } from '@open-pencil/package-artifacts-tools'
 
+import { checksums, CHECKSUMS_FILE } from './checksums'
 import { extractDeclarations, hasImports } from './extract'
 import { parserModule } from './jison'
 import { latestRelease } from './releases'
@@ -100,23 +101,19 @@ if (process.argv.includes('--check')) {
   process.exit(changed ? 1 : 0)
 }
 
-const dir = join(root, UPSTREAM_DIR)
 const texts = await upstream(MERMAID_RELEASE.commit)
-await Bun.write(join(dir, 'MERMAID-LICENSE.txt'), await download('LICENSE'))
+const files = new Map<string, string>([['MERMAID-LICENSE.txt', await download('LICENSE')]])
 for (const grammar of GRAMMARS) {
   const source = texts.get(`${grammar.parser}.jison`) ?? ''
-  await Bun.write(join(dir, `${grammar.parser}.jison`), source)
-  await Bun.write(join(dir, `${grammar.parser}.js`), parserModule(grammar, source))
+  files.set(`${grammar.parser}.jison`, source)
+  files.set(`${grammar.parser}.js`, parserModule(grammar, source))
 }
 for (const module of COPIED_MODULES) {
   const source = texts.get(module.file) ?? ''
-  await Bun.write(
-    join(dir, module.file),
-    `${COPIED_HEADER}${provenance([module.source], 'Copied')}\n${source}`
-  )
+  files.set(module.file, `${COPIED_HEADER}${provenance([module.source], 'Copied')}\n${source}`)
 }
-await Bun.write(
-  join(dir, EXTRACTED_MODULE.file),
+files.set(
+  EXTRACTED_MODULE.file,
   [
     COPIED_HEADER +
       provenance(
@@ -129,4 +126,6 @@ await Bun.write(
     ''
   ].join('\n')
 )
+for (const [file, content] of files) await Bun.write(join(root, UPSTREAM_DIR, file), content)
+await Bun.write(join(root, CHECKSUMS_FILE), `${JSON.stringify(checksums(files), null, 2)}\n`)
 console.log(`Mermaid sources written from ${MERMAID_RELEASE.tag}`)
