@@ -166,7 +166,7 @@ Połączenia, wyzwalacze, działania, animacje, nakładki, przewijanie, przepły
 | Zapis | ✅ | Okna systemowe, File System Access API i pobieranie w Safari |
 | Schowek Figmy | ✅ | Kopiowanie i wklejanie binarnego Kiwi |
 | Import Sketch | 🔲 | Brak odczytu `.sketch` |
-| Obrazy, SVG i PDF | ✅ | PNG, JPG, WEBP, SVG i PDF; PDF osadza czcionki tekstu |
+| Obrazy, SVG i PDF | ✅ | PNG, JPG, WEBP, SVG i PDF; PDF osadza czcionki tekstu, gdy ich pliki da się osadzić |
 | Historia wersji | 🔲 | Brak przeglądania i przywracania |
 | Kopiowanie zasobów | ✅ | Tekst, SVG, PNG, JSX i schowek Figmy |
 

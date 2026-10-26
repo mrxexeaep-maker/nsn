@@ -197,7 +197,7 @@ Feature-by-feature comparison of Figma Design capabilities with Open Pencil's cu
 | Figma clipboard (paste) | ✅ | Decode Kiwi binary from Figma clipboard |
 | Figma clipboard (copy) | ✅ | Encode Kiwi binary that Figma can read |
 | Sketch file import | 🔲 | .sketch file parsing |
-| Image/SVG/PDF export | ✅ | PNG, JPG, WEBP, SVG, and PDF; PDF embeds the fonts its text uses |
+| Image/SVG/PDF export | ✅ | PNG, JPG, WEBP, SVG, and PDF; PDF embeds the fonts its text uses where their files can be embedded |
 | Version history | 🔲 | Browse and restore previous versions |
 | Copy assets between tools | ✅ | Figma clipboard (Kiwi binary), Copy as text/SVG/PNG/JSX |
 

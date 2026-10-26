@@ -183,7 +183,7 @@ Conexiones, activadores, acciones, animaciones, transiciones, superposiciones, d
 | Pegar desde Figma | ✅ | Decodifica el binario Kiwi del portapapeles |
 | Copiar a Figma | ✅ | Genera binario Kiwi legible por Figma |
 | Importar Sketch | 🔲 | No hay analizador `.sketch` |
-| Exportar imagen/SVG/PDF | ✅ | PNG, JPG, WEBP, SVG y PDF; el PDF incrusta las fuentes de su texto |
+| Exportar imagen/SVG/PDF | ✅ | PNG, JPG, WEBP, SVG y PDF; el PDF incrusta las fuentes de su texto cuando sus archivos se pueden incrustar |
 | Historial de versiones | 🔲 | No consulta ni restaura versiones anteriores |
 | Recursos entre herramientas | ✅ | Portapapeles de Figma y copiar como texto/SVG/PNG/JSX |
 
