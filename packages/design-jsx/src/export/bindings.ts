@@ -2,54 +2,43 @@ import { isEqual } from 'es-toolkit'
 
 import type { SceneNode } from '@open-pencil/scene-graph'
 
+import {
+  PADDING_FIELDS,
+  paintProps,
+  scalarProps,
+  type BindingContext,
+  type BoundProp
+} from '../variables/props'
 import type { JSXProp, JSXValue } from './value'
 import type { VariableExport } from './variables'
 
-/**
- * The prop each bound field is written through, as rendering binds it back. `add` writes the prop
- * when the export left it out, such as a gap of 0; sizes are not added, as a fixed size would
- * replace Hug or Fill.
- */
-const FIELD_PROPS: Record<string, { prop: string; add: boolean; text?: boolean }> = {
-  width: { prop: 'w', add: false },
-  height: { prop: 'h', add: false },
-  itemSpacing: { prop: 'gap', add: true },
-  gridColumnGap: { prop: 'columnGap', add: true },
-  gridRowGap: { prop: 'rowGap', add: true },
-  cornerRadius: { prop: 'rounded', add: true },
-  topLeftRadius: { prop: 'roundedTL', add: true },
-  topRightRadius: { prop: 'roundedTR', add: true },
-  bottomLeftRadius: { prop: 'roundedBL', add: true },
-  bottomRightRadius: { prop: 'roundedBR', add: true },
-  strokeWeight: { prop: 'strokeWidth', add: true },
-  opacity: { prop: 'opacity', add: true },
-  fontSize: { prop: 'size', add: true, text: true },
-  lineHeight: { prop: 'lineHeight', add: true, text: true },
-  letterSpacing: { prop: 'letterSpacing', add: true, text: true }
+/** Sizes are not added when the export left them out, as a fixed size would replace Hug or Fill. */
+const NOT_ADDED = new Set(['width', 'height'])
+
+function bindingContext(node: SceneNode): BindingContext {
+  return {
+    text: node.type === 'TEXT',
+    grid: node.layoutMode === 'GRID',
+    wrap: node.layoutWrap === 'WRAP'
+  }
 }
 
-const PADDING_FIELDS = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft']
-const PADDING_PROPS = new Set(['p', 'px', 'py', 'pt', 'pr', 'pb', 'pl'])
-
-/** The prop a field is written through on `node`, or none, when only `bind` can set it. */
+/**
+ * The prop `field` is written through on `node`: one the export printed that sets that field
+ * alone, or else the last number prop that does, as rendering reads it, or none, when only
+ * `bind` can set it. A paint prop is printed only for a single solid paint, which a colour
+ * variable can stand for.
+ */
 function fieldProp(node: SceneNode, field: string, props: JSXProp[]) {
-  if (field === 'fills/0/color') {
-    // Only a single solid paint is written as a colour, which a variable can stand for.
-    const prop = node.type === 'TEXT' ? 'color' : 'bg'
-    return props.some(([name]) => name === prop) ? { prop, add: false } : undefined
-  }
-  if (field === 'strokes/0/color')
-    return props.some(([name]) => name === 'stroke') ? { prop: 'stroke', add: false } : undefined
-  if (field === 'counterAxisSpacing')
-    return node.layoutWrap === 'WRAP' ? { prop: 'rowGap', add: true } : undefined
-  const entry = Object.hasOwn(FIELD_PROPS, field) ? FIELD_PROPS[field] : undefined
-  if (entry?.text && node.type !== 'TEXT') return undefined
-  if (
-    (field === 'itemSpacing' || field === 'counterAxisSpacing') &&
-    node.gridTemplateColumns.length
+  const context = bindingContext(node)
+  const sets = ({ fields }: BoundProp) => fields.length === 1 && fields[0] === field
+  const scalar = scalarProps(context).filter(sets)
+  const printed = [...scalar, ...paintProps(context).filter(sets)].find(({ prop }) =>
+    props.some(([name]) => name === prop)
   )
-    return undefined
-  return entry
+  if (printed) return { prop: printed.prop, add: false }
+  const last = scalar.at(-1)
+  return last && !NOT_ADDED.has(field) ? { prop: last.prop, add: true } : undefined
 }
 
 function setProp(props: JSXProp[], name: string, value: JSXValue, add: boolean): boolean {
@@ -77,8 +66,13 @@ function writePadding(
       : node[field as 'paddingTop']
   })
   if (sides.every((side) => typeof side === 'number')) return
+  const paddingProps = new Set(
+    scalarProps(bindingContext(node))
+      .filter(({ fields }) => fields.every((field) => PADDING_FIELDS.includes(field)))
+      .map(({ prop }) => prop)
+  )
   for (let index = props.length - 1; index >= 0; index--) {
-    if (PADDING_PROPS.has(props[index][0])) props.splice(index, 1)
+    if (paddingProps.has(props[index][0])) props.splice(index, 1)
   }
   const [top, right, bottom, left] = sides
   if ([right, bottom, left].every((side) => isEqual(side, top))) props.push(['p', top])
