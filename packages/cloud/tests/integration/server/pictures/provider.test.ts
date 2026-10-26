@@ -91,15 +91,21 @@ describe('provider picture and upload', () => {
         .values({ id: userId, name: 'Racer', email: 'racer@example.com', emailVerified: true })
         .execute()
       let answer: (response: Response) => void = () => undefined
+      let fetching: () => void = () => undefined
+      const fetchStarted = new Promise<void>((resolve) => {
+        fetching = resolve
+      })
       const pictures = createUserPictures(runtime.database, {
         publicURL: PUBLIC_URL,
         fetch: () =>
           new Promise<Response>((resolve) => {
             answer = resolve
+            fetching()
           })
       })
       const copying = pictures.copyFromProvider(userId, GOOGLE_PICTURE)
-      // The person uploads a picture while Google's is still on its way.
+      // The person uploads a picture once Google's is on its way, past the check before the fetch.
+      await fetchStarted
       const uploaded = await pictures.upload(userId, pngHeader(256, 256))
       answer(new Response(pngHeader(96, 96)))
       await copying

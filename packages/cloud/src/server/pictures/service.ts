@@ -137,6 +137,13 @@ export function createUserPictures(database: Kysely<CloudDatabase>, options: Use
 
   async function remove(userId: string): Promise<void> {
     await database.transaction().execute(async (transaction) => {
+      // The account first, in the same order saves lock, so the two never wait on each other.
+      await transaction
+        .selectFrom('user')
+        .select('id')
+        .where('id', '=', userId)
+        .forUpdate()
+        .execute()
       await transaction.deleteFrom('userPicture').where('userId', '=', userId).execute()
       await transaction
         .updateTable('user')
