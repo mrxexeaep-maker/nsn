@@ -240,50 +240,57 @@ export async function addFlowchart(
 ): Promise<FlowchartLayers> {
   const before = new Set(graph.getNode(parentId)?.childIds)
   const builder = new FlowchartBuilder(graph, parentId, chart)
-  builder.sections()
-  for (const node of chart.nodes) builder.shape(node)
-  for (const edge of chart.edges) builder.connector(edge)
-  const added = (graph.getNode(parentId)?.childIds ?? []).filter((id) => !before.has(id))
-  // Shapes grow to their labels, and connector labels take their size, before the layout reads
-  // them, measured in the fonts they are drawn in.
-  await prepareGraphFonts(graph, added)
-  for (const node of chart.nodes) builder.fitWidth(node)
-  layoutAuthoredNodes(graph, added)
-  const enclosing = enclosingSubgraphs(chart)
-  const size = (id: string) => {
-    const layer = builder.layers.get(id)
-    const node = layer ? graph.getNode(layer) : undefined
-    return { width: node?.width ?? MIN_SHAPE_WIDTH, height: node?.height ?? SHAPE_HEIGHT }
+  const addedSoFar = () => (graph.getNode(parentId)?.childIds ?? []).filter((id) => !before.has(id))
+  try {
+    builder.sections()
+    for (const node of chart.nodes) builder.shape(node)
+    for (const edge of chart.edges) builder.connector(edge)
+    const added = addedSoFar()
+    // Shapes grow to their labels, and connector labels take their size, before the layout reads
+    // them, measured in the fonts they are drawn in.
+    await prepareGraphFonts(graph, added)
+    for (const node of chart.nodes) builder.fitWidth(node)
+    layoutAuthoredNodes(graph, added)
+    const enclosing = enclosingSubgraphs(chart)
+    const size = (id: string) => {
+      const layer = builder.layers.get(id)
+      const node = layer ? graph.getNode(layer) : undefined
+      return { width: node?.width ?? MIN_SHAPE_WIDTH, height: node?.height ?? SHAPE_HEIGHT }
+    }
+    const labelSize = (edgeId: string) => {
+      const connectorId = builder.connectors.get(edgeId)
+      return (connectorId && connectorLabelSize(graph, connectorId)) || undefined
+    }
+    const input: DiagramInput = {
+      direction: chart.direction,
+      nodes: chart.nodes.map((node) => ({
+        id: node.id,
+        ...size(node.id),
+        group: enclosing.get(node.id)
+      })),
+      groups: chart.subgraphs.map((subgraph) => ({
+        id: subgraph.id,
+        group: enclosing.get(subgraph.id)
+      })),
+      edges: chart.edges.map((edge) => ({
+        id: edge.id,
+        from: edge.from,
+        to: edge.to,
+        label: labelSize(edge.id)
+      }))
+    }
+    const layout = await layoutDiagram(input)
+    applyDiagramLayout(
+      graph,
+      input,
+      layout,
+      { boxes: builder.layers, connectors: builder.connectors },
+      placement
+    )
+    return { ids: added, layers: builder.layers, connectors: builder.connectors }
+  } catch (error) {
+    // A flowchart that fails to lay out leaves nothing half-built behind.
+    for (const id of addedSoFar().toReversed()) graph.deleteNode(id)
+    throw error
   }
-  const labelSize = (edgeId: string) => {
-    const connectorId = builder.connectors.get(edgeId)
-    return (connectorId && connectorLabelSize(graph, connectorId)) || undefined
-  }
-  const input: DiagramInput = {
-    direction: chart.direction,
-    nodes: chart.nodes.map((node) => ({
-      id: node.id,
-      ...size(node.id),
-      group: enclosing.get(node.id)
-    })),
-    groups: chart.subgraphs.map((subgraph) => ({
-      id: subgraph.id,
-      group: enclosing.get(subgraph.id)
-    })),
-    edges: chart.edges.map((edge) => ({
-      id: edge.id,
-      from: edge.from,
-      to: edge.to,
-      label: labelSize(edge.id)
-    }))
-  }
-  const layout = await layoutDiagram(input)
-  applyDiagramLayout(
-    graph,
-    input,
-    layout,
-    { boxes: builder.layers, connectors: builder.connectors },
-    placement
-  )
-  return { ids: added, layers: builder.layers, connectors: builder.connectors }
 }

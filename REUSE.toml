@@ -43,7 +43,11 @@ SPDX-License-Identifier = "MIT"
 # Mermaid's flowchart grammar and the parser generated from it, copied from a pinned Mermaid
 # release by tools/generate/mermaid-grammars.
 [[annotations]]
-path = "packages/mermaid/src/grammar/**"
+path = [
+  "packages/mermaid/src/grammar/flow.jison",
+  "packages/mermaid/src/grammar/flow.js",
+  "packages/mermaid/src/grammar/MERMAID-LICENSE.txt",
+]
 precedence = "override"
 SPDX-FileCopyrightText = "2014 - 2022 Knut Sveidqvist"
 SPDX-License-Identifier = "MIT"
