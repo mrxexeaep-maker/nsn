@@ -27,6 +27,14 @@ interface SVG2PDFGlobals {
 
 const SVG2PDF_GLOBALS = ['document', 'CSSStyleSheet', 'CSSStyleRule'] as const
 
+type SVG2PDFGlobal = (typeof SVG2PDF_GLOBALS)[number]
+
+function removeGlobal(scope: SVG2PDFGlobals, name: SVG2PDFGlobal): void {
+  if (name === 'document') delete scope.document
+  else if (name === 'CSSStyleSheet') delete scope.CSSStyleSheet
+  else delete scope.CSSStyleRule
+}
+
 /**
  * Kept out of the browser bundle: a browser has a DOM of its own, and happy-dom is only loaded
  * where there is none.
@@ -63,34 +71,31 @@ async function withHappyDOM<T>(draw: (parse: SVGPageParser) => Promise<T>): Prom
   const { Window } = (await import(/* @vite-ignore */ HAPPY_DOM)) as typeof HappyDOM
   const dom = new Window()
   const scope: SVG2PDFGlobals = globalThis
-  // Descriptors, so a global a host defines as an accessor comes back as one.
-  const previous = SVG2PDF_GLOBALS.map(
-    (name) => [name, Object.getOwnPropertyDescriptor(globalThis, name)] as const
-  )
-  const installed: Required<SVG2PDFGlobals> = {
+  const values: Required<SVG2PDFGlobals> = {
     document: dom.document,
     CSSStyleSheet: dom.CSSStyleSheet,
     CSSStyleRule: dom.CSSStyleRule
   }
+  // Each global replaced, with its descriptor before, so an accessor a host defines comes back as
+  // one and a global that could not be replaced is left as it was.
+  const replaced: Array<[SVG2PDFGlobal, PropertyDescriptor | undefined]> = []
   try {
     for (const name of SVG2PDF_GLOBALS) {
+      const previous = Object.getOwnPropertyDescriptor(globalThis, name)
       Object.defineProperty(globalThis, name, {
-        value: installed[name],
+        value: values[name],
         configurable: true,
         writable: true
       })
+      replaced.push([name, previous])
     }
     return await draw(parseSVGPage(new dom.DOMParser()))
   } finally {
-    try {
-      delete scope.document
-      delete scope.CSSStyleSheet
-      delete scope.CSSStyleRule
-      for (const [name, descriptor] of previous) {
-        if (descriptor) Object.defineProperty(globalThis, name, descriptor)
-      }
-    } finally {
-      await dom.happyDOM.close()
+    // What is replaced is configurable, so putting it back does not throw.
+    for (const [name, previous] of replaced) {
+      if (previous) Object.defineProperty(globalThis, name, previous)
+      else removeGlobal(scope, name)
     }
+    await dom.happyDOM.close()
   }
 }
