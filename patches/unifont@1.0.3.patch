@@ -1,8 +1,8 @@
 diff --git a/dist/index.mjs b/dist/index.mjs
-index 4025303a697d83850dee843310084bfec0398426..e44766bafb3f02a1f6d0b2d2a9fbe3037f0b8ec6 100644
+index 4025303a697d83850dee843310084bfec0398426..a54bcafc4d0c8b186e796549f09d33b30aadde79 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
-@@ -770,22 +770,38 @@ var fontsource_default = defineFontProvider("fontsource", async (_options, ctx)
+@@ -770,22 +770,32 @@ var fontsource_default = defineFontProvider("fontsource", async (_options, ctx)
  		const detailUrl = `${BASE_URL}/fonts/${font.id}`;
  		const fontDetail = await ctx.fetch(detailUrl).then((res) => res.json());
  		const fontFaceData = [];
@@ -16,7 +16,6 @@ index 4025303a697d83850dee843310084bfec0398426..e44766bafb3f02a1f6d0b2d2a9fbe303
 +			file: range.slice(1, -1),
 +			range
 +		}));
-+		const listed = /* @__PURE__ */ new Set();
  		for (const subset of subsets) for (const style of styles) for (const { weight, variable } of weights) {
  			if (variable) {
  				try {
@@ -33,11 +32,7 @@ index 4025303a697d83850dee843310084bfec0398426..e44766bafb3f02a1f6d0b2d2a9fbe303
 -							unicodeRange: fontDetail.unicodeRange[subset]?.split(","),
 -							meta: { subset }
 -						});
-+						for (const { file, range } of variableFiles(subset)) {
-+							// Every CJK subset of a family shares its shards, so each is listed once.
-+							if (listed.has(`${range}-${style}`)) continue;
-+							listed.add(`${range}-${style}`);
-+							fontFaceData.push({
++						for (const { file, range } of variableFiles(subset)) fontFaceData.push({
 +								style,
 +								weight: [Number(variableAxes.axes.wght.min), Number(variableAxes.axes.wght.max)],
 +								src: [{
@@ -47,7 +42,6 @@ index 4025303a697d83850dee843310084bfec0398426..e44766bafb3f02a1f6d0b2d2a9fbe303
 +								unicodeRange: fontDetail.unicodeRange[range]?.split(","),
 +								meta: { subset }
 +							});
-+						}
  					}
  				} catch {
  					console.error(`Could not download variable axes metadata for \`${font.family}\` from \`fontsource\`. \`unifont\` will not be able to inject variable axes for ${font.family}.`);
