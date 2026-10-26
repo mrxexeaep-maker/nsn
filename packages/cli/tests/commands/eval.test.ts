@@ -7,7 +7,10 @@ import { inflateRawSync } from 'node:zlib'
 import { CLI_ENTRY, FIXTURES } from '#cli-tests/helpers/paths'
 import * as v from 'valibot'
 
+import { getTextMeasurer } from '@open-pencil/core/layout'
 import type { Size } from '@open-pencil/scene-graph/primitives'
+
+import { loadDocument, measureDocumentText } from '#cli/headless'
 
 setDefaultTimeout(60_000)
 
@@ -43,6 +46,49 @@ function figThumbnailSize(fig: Buffer): Size {
 }
 
 describe('eval CLI', () => {
+  test('measures the text a script edits in the font the document sets for it', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'open-pencil-eval-fonts-'))
+    const source = join(dir, 'tag.pen')
+    const output = join(dir, 'tag.fig')
+    // Inter at 600 is not among the faces the measurer starts with.
+    await Bun.write(
+      source,
+      JSON.stringify({
+        version: '2.21',
+        children: [
+          {
+            id: 'tag',
+            type: 'frame',
+            layout: 'horizontal',
+            padding: [4, 10],
+            children: [
+              {
+                id: 'label',
+                type: 'text',
+                content: '1 lote',
+                fontFamily: 'Inter',
+                fontSize: 12,
+                fontWeight: '600',
+                fill: '#111111'
+              }
+            ]
+          }
+        ]
+      })
+    )
+    const script = `figma.root.findOne((node) => node.type === 'TEXT').characters = '1 lote propuesto'`
+    expect((await cli(['eval', source, '--stdin', '-o', output], script)).exitCode).toBe(0)
+
+    const graph = await loadDocument(output)
+    const label = [...graph.getAllNodes()].find((node) => node.type === 'TEXT')
+    if (!label) throw new Error('Expected the label')
+    await measureDocumentText(graph)
+    const measured = getTextMeasurer()?.(label)
+    if (!measured) throw new Error('Expected the label measured in its font')
+    expect(label.width).toBeCloseTo(measured.width, 0)
+    expect(label.height).toBeCloseTo(measured.height, 0)
+  })
+
   test('measures the text a script writes, its line breaks and wrapping included', async () => {
     const script = `
       await figma.loadFontAsync({ family: 'Inter', style: 'Regular' })
