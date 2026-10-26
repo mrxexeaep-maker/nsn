@@ -45,7 +45,62 @@ async function googleResolver(families: Family[], icons: string[] = []) {
   return { resolver, requests }
 }
 
+/**
+ * A resolver whose Fontsource serves `family` as Fontsource serves a CJK family: a Latin file, and
+ * its Japanese subset in numbered unicode-range shards with no file of the subset's own. It records
+ * the font files downloaded.
+ */
+async function fontsourceResolver(family: string) {
+  const woff2 = await Bun.file(join(FIXTURES, 'fonts', 'InterVariable-Faces.woff2')).arrayBuffer()
+  const id = family.toLowerCase().replaceAll(' ', '-')
+  const file = (name: string) => `https://cdn.jsdelivr.net/fontsource/fonts/${id}@latest/${name}.woff2`
+  const downloads: string[] = []
+  const resolver = new WebFontResolver()
+  resolver.setEnabled({ fontsource: true })
+  resolver.setRemoteFetch(async (input) => {
+    const url = String(input)
+    if (url === 'https://api.fontsource.org/v1/fonts')
+      return Response.json([
+        {
+          id,
+          family,
+          subsets: ['japanese', 'latin'],
+          weights: [400],
+          styles: ['normal'],
+          defSubset: 'latin',
+          variable: false,
+          category: 'sans-serif'
+        }
+      ])
+    if (url === `https://api.fontsource.org/v1/fonts/${id}`)
+      return Response.json({
+        unicodeRange: { '[0]': 'U+4e00-4fff', '[1]': 'U+3000-30ff', latin: 'U+0000-00ff' },
+        variants: {
+          '400': {
+            normal: Object.fromEntries(
+              ['0', '1', 'latin'].map((name) => [name, { url: { woff2: file(name) } }])
+            )
+          }
+        }
+      })
+    if (url.startsWith('https://cdn.jsdelivr.net/')) {
+      downloads.push(url.slice(url.lastIndexOf('/') + 1))
+      return new Response(woff2.slice(0))
+    }
+    return new Response(null, { status: 404 })
+  })
+  return { resolver, downloads }
+}
+
 describe('web fonts', () => {
+  test('downloads the files of a split family that hold the characters asked for', async () => {
+    const family = 'Web Font Test Shards'
+    const { resolver, downloads } = await fontsourceResolver(family)
+    // ボ is in the second Japanese shard; A in the Latin file.
+    await resolver.fetchFont([family], 'Regular', 'Aボ')
+    expect(downloads.toSorted()).toEqual(['1.woff2', 'latin.woff2'])
+  })
+
   test('loads a font served as WOFF2 as the TrueType font it holds', async () => {
     const family = 'Web Font Test WOFF2'
     const { resolver } = await googleResolver([{ family, axes: [] }])
