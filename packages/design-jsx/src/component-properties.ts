@@ -296,9 +296,8 @@ export function assignNamedProperties(
   )
   for (const [key, value] of Object.entries(props)) {
     if (DESIGN_JSX_SUPPORTED_PROPERTIES.has(key)) continue
-    if (isPlainObject(value)) {
-      if (exposedInstanceNamed(graph, instance, key))
-        assignExposedInstance(graph, instance, key, value)
+    if (isPlainObject(value) && exposedInstanceNamed(graph, instance, key)) {
+      assignExposedInstance(graph, instance, key, value)
       continue
     }
     const definition = namedDefinition(definitions, key)

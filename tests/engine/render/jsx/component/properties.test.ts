@@ -284,4 +284,7 @@ test('exposing follows Figma’s rules, and unknown exposed values are errors', 
   await expect(
     renderTree(graph, Instance({ of: 'Card', properties: { Other: { Label: 'x' } } }))
   ).rejects.toThrow('Unknown component property or exposed instance: Other')
+  await expect(renderTree(graph, Instance({ of: 'Card', Title: { Label: 'x' } }))).rejects.toThrow(
+    'Expected a string or boolean for component property: Title'
+  )
 })

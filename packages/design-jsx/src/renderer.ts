@@ -232,8 +232,10 @@ function placeArtwork<Artwork>(
   const overrides: Partial<SceneNode> = {}
   if (props.label) overrides.name = props.label as string
   applyIconSize(props, overrides, parentLayout, size)
+  const modes = variableModes(graph, props.mode)
+  if (modes) overrides.variableModes = modes
   const variableId = isVariable(props.color) ? requireVariableId(graph, props.color) : undefined
-  const resolved = variableId && resolveForLayer(graph, variableId, parentId, undefined)
+  const resolved = variableId && resolveForLayer(graph, variableId, parentId, modes)
   const color =
     typeof resolved === 'object'
       ? resolved

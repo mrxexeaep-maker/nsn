@@ -4,7 +4,12 @@ import { writeRecord } from '#core/editor/history/document-change'
 import type { EditorContext } from '#core/editor/types'
 import { computeAllLayouts } from '#core/layout'
 
-/** A page's layers, page first, and the document's variables, which the layers bind. */
+/**
+ * A page's layers, page first, and the document's variables, which the layers bind. Restoring
+ * puts both back as they were: the layers of that page, and every variable and collection, as
+ * undo of an edit that defined variables needs. Snapshots stay whole so coalesced undo entries,
+ * which keep the first inverse and the last forward, still restore a consistent state.
+ */
 export interface PageSnapshot {
   nodes: Map<string, SceneNode>
   variables: Map<string, Variable>

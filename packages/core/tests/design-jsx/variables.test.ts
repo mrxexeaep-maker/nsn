@@ -118,3 +118,33 @@ test('export writes the modes a layer pins, and renders back into the same ones'
   const [copy] = await renderJSX(graph, exported)
   expect(graph.getNode(copy.id)?.variableModes).toEqual(graph.getNode(card.id)?.variableModes)
 })
+
+test('artwork drawn in a variable binds its paths and resolves in its own mode', async () => {
+  const graph = new SceneGraph()
+  const [svg] = await renderJSX(
+    graph,
+    `const ink = defineVars('Ink', { Line: '#000000' }, { mode: 'Light' })
+const dark = defineMode(ink, 'Dark', { Line: '#FFFFFF' })
+return <svg mode={dark} color={ink.Line} w={10} h={10} body="<path d='M0 0h10v10H0z' fill='currentColor'/>" />`
+  )
+  const ink = collectionNamed(graph, 'Ink')
+  const line = ink.variableIds[0]
+  const node = graph.getNode(svg.id)
+  expect(node?.variableModes).toEqual({ [ink.id]: ink.modes[1].modeId })
+  const paths = graph.getChildren(svg.id).flatMap((child) => [child, ...graph.getChildren(child.id)])
+  const painted = paths.find((child) => child.fills[0]?.type === 'SOLID')
+  expect(painted?.boundVariables['fills/0/color']).toBe(line)
+  expect(painted?.fills[0]?.color).toMatchObject({ r: 1, g: 1, b: 1 })
+})
+
+test('a variable whose value cannot be resolved is an error, not a dropped paint', async () => {
+  const graph = new SceneGraph()
+  const collection = graph.createCollection('Loop')
+  const a = graph.createVariable('A', 'COLOR', collection.id)
+  const b = graph.createVariable('B', 'COLOR', collection.id)
+  a.valuesByMode[collection.defaultModeId] = { aliasId: b.id }
+  b.valuesByMode[collection.defaultModeId] = { aliasId: a.id }
+  await expect(renderJSX(graph, `<Frame bg={designVar('A')} />`)).rejects.toThrow(
+    'Cannot resolve variable A for bg'
+  )
+})

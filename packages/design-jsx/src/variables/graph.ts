@@ -190,7 +190,10 @@ export function variableModes(graph: SceneGraph, value: unknown): VariableModeMa
     if (!isMode(mode)) throw new Error('mode takes defineMode() or designMode() modes')
     const name = typeof mode.collection === 'string' ? mode.collection : mode.collection.name
     const collection = collectionNamed(graph, name)
-    if (!collection) throw new Error(`Unknown variable collection: ${name}`)
+    if (!collection)
+      throw new Error(
+        `Unknown variable collection: ${name}. A defineVars() collection is added once a layer binds one of its variables`
+      )
     const modeId = collection.modes.find((item) => item.name === mode.name)?.modeId
     if (!modeId) throw new Error(`Collection ${name} has no mode named ${mode.name}`)
     result[collection.id] = modeId
@@ -240,5 +243,6 @@ export function bindVariableProp(
   const variableId = requireVariableId(graph, value)
   bindings[field] = variableId
   const resolved = resolveForLayer(graph, variableId, layer.parentId, layer.modes)
-  if (resolved !== undefined) target[key] = resolved
+  if (resolved === undefined) throw new Error(`Cannot resolve variable ${value.name} for ${key}`)
+  target[key] = resolved
 }
