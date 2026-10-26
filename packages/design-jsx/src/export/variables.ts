@@ -177,6 +177,13 @@ interface DefinedCollection {
 function definitionExport(graph: SceneGraph, rootIds: readonly string[]): VariableExport {
   const references = variableReferences(graph)
   const variableIds = boundVariableIds(graph, rootIds)
+  const findsVariable = (collection: VariableCollection, variable: Variable) => {
+    try {
+      return resolveVariableId(graph, designVar(collection.name, variable.name)) === variable.id
+    } catch {
+      return false
+    }
+  }
   const finds = (collection: VariableCollection) => {
     try {
       return collectionNamed(graph, collection.name) === collection
@@ -189,8 +196,9 @@ function definitionExport(graph: SceneGraph, rootIds: readonly string[]): Variab
     const variable = graph.variables.get(variableId)
     if (!variable || included.has(variableId) || !definable(variable)) return
     const collection = graph.variableCollections.get(variable.collectionId)
-    // Rendering finds a defined collection by name, so one whose name is shared stays a reference.
-    if (!collection || !finds(collection)) return
+    // Rendering finds a defined collection and its variables by name, so a name that is shared
+    // stays a reference rather than redefine whichever variable comes first.
+    if (!collection || !finds(collection) || !findsVariable(collection, variable)) return
     included.add(variableId)
     for (const value of Object.values(variable.valuesByMode)) {
       if (typeof value === 'object' && 'aliasId' in value) include(value.aliasId)
@@ -243,6 +251,25 @@ function definitionExport(graph: SceneGraph, rootIds: readonly string[]): Variab
       return false
     })
     byCollection.set(collectionId, kept)
+  }
+  // A declared value may alias only a declared variable: one that aliases a variable written by
+  // reference, in any mode, is written by reference too, which a fresh document cannot resolve.
+  for (let pruned = true; pruned;) {
+    pruned = false
+    for (const [collectionId, variables] of byCollection) {
+      const kept = variables.filter((variable) => {
+        const aliasesDeclared = Object.values(variable.valuesByMode).every(
+          (value) =>
+            typeof value !== 'object' || !('aliasId' in value) || included.has(value.aliasId)
+        )
+        if (!aliasesDeclared) {
+          included.delete(variable.id)
+          pruned = true
+        }
+        return aliasesDeclared
+      })
+      byCollection.set(collectionId, kept)
+    }
   }
 
   const taken = new Set(TAKEN)

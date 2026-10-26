@@ -188,6 +188,32 @@ return <Frame name="Card" flex="col" mode={roomy} p={space.Base} />`
     expect(graph.getNode(copy.id)?.boundVariables.itemSpacing).toBe(gap.id)
   })
 
+  test('declares no variable whose name its collection shares, nor one that aliases it', async () => {
+    const graph = new SceneGraph()
+    const space = graph.createCollection('Space')
+    const first = graph.createVariable('Pad', 'FLOAT', space.id, 4)
+    const second = graph.createVariable('Pad', 'FLOAT', space.id, 8)
+    const palette = graph.createCollection('Palette')
+    const base = graph.createVariable('Base', 'FLOAT', palette.id, 2)
+    const derived = graph.createVariable('Derived', 'FLOAT', palette.id, { aliasId: base.id })
+    const theme = graph.createCollection('Theme')
+    const spacing = graph.createVariable('Spacing', 'FLOAT', theme.id, { aliasId: derived.id })
+    const [card] = await renderJSX(graph, '<Frame name="Card" flex="col" w={10} h={10} />')
+    graph.bindVariable(card.id, 'itemSpacing', second.id)
+    graph.bindVariable(card.id, 'cornerRadius', spacing.id)
+
+    const exported = sceneNodeToJSX(card.id, graph)
+    // Derived aliases its own collection, so it and Spacing, which aliases it, stay references.
+    expect(exported).not.toContain('defineVars("Theme"')
+    expect(exported).toContain('rounded={designVar("Spacing")}')
+    const [copy] = await renderJSX(graph, exported)
+    expect(graph.getNode(copy.id)?.boundVariables).toEqual({
+      itemSpacing: second.id,
+      cornerRadius: spacing.id
+    })
+    expect(first.valuesByMode[space.defaultModeId]).toBe(4)
+  })
+
   test('writes a padding bound on every side as p, and a partly bound one in bind', async () => {
     const graph = new SceneGraph()
     const space = 'const s = defineVars("Space", { M: 8, L: 16 })'
