@@ -42,24 +42,17 @@ jobs:
           persist-credentials: false
 
       # vX.Y.Z is tagged X.Y.Z, X.Y, and latest; a prerelease only its version and next.
-      - name: Choose image tags
-        id: tags
-        run: |
-          image=ghcr.io/open-pencil/cloud
-          if [ "$PUBLISH" != true ]; then
-            echo "tags=$image:pr" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if ! printf '%s' "$RELEASE_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$'; then
-            echo "::error::$RELEASE_TAG is not a release tag"
-            exit 1
-          fi
-          version=${RELEASE_TAG#v}
-          case "$version" in
-            *-*) tags="$image:$version,$image:next" ;;
-            *) tags="$image:$version,$image:${version%.*},$image:latest" ;;
-          esac
-          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+      - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302
+        id: meta
+        with:
+          images: ghcr.io/open-pencil/cloud
+          tags: |
+            type=semver,pattern={{version}},value=${{ env.RELEASE_TAG }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_TAG }}
+            type=raw,value=next,enable=${{ contains(env.RELEASE_TAG, '-') }}
+            type=ref,event=pr
+          labels: |
+            org.opencontainers.image.licenses=Apache-2.0 AND MIT
 
       - uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
         if: env.PUBLISH == 'true'
@@ -77,10 +70,8 @@ jobs:
           file: packages/cloud/deploy/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: ${{ env.PUBLISH == 'true' }}
-          tags: ${{ steps.tags.outputs.tags }}
-          labels: |
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.licenses=Apache-2.0 AND MIT
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           provenance: mode=max
           sbom: true
           cache-from: type=gha,scope=cloud-image
