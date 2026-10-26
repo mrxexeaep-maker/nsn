@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import { isLayerRef, isMode, isVariable } from '@open-pencil/design-jsx'
 
 import { convertDesignJSXRoots } from '@/app/code/sandbox/convert'
+import { sandboxDocument } from '@/app/code/sandbox/document'
 import {
   DESIGN_JSX_MAX_ARRAY_LENGTH,
   DESIGN_JSX_MAX_DEPTH,
@@ -13,6 +14,7 @@ import {
   resolveDesignJSXValidationLimits
 } from '@/app/code/sandbox/types'
 import { validateDesignJSXOutput } from '@/app/code/sandbox/validate'
+import { runDesignJSX } from '@/app/code/sandbox/worker/run'
 
 const limits = resolveDesignJSXValidationLimits({})
 
@@ -150,5 +152,52 @@ describe('Design JSX sandbox output', () => {
     expect(() =>
       convertDesignJSXRoots([frame({ fill: { __openPencilHelper: 'variable', args: [3, 'X'] } })])
     ).toThrow('Unknown variable collection')
+  })
+
+  test('evaluates Design JSX into plain data in the worker', () => {
+    const run = (id: string, code: string) =>
+      runDesignJSX({
+        id,
+        code,
+        elements: { Frame: 'frame', 'Button.Root': 'Button.Root' },
+        helpers: ['solid', 'ref', 'defineVars', 'defineMode'],
+        limits
+      })
+    expect(
+      run(
+        'theme',
+        `const t = defineVars('Theme', { Page: '#fff' }); const dark = defineMode(t, 'Dark', {})
+return __h(Frame, { fill: t.Page, mode: dark }, __h(Button.Root, null), 'Hi', false)`
+      )
+    ).toEqual({
+      id: 'theme',
+      ok: true,
+      value: {
+        type: 'frame',
+        props: {
+          fill: { __openPencilHelper: 'variable', args: [0, 'Page'] },
+          mode: { __openPencilHelper: 'mode', args: [0, 'Dark'] }
+        },
+        children: [{ type: 'Button.Root', props: {}, children: [] }, 'Hi']
+      },
+      collections: [
+        {
+          collection: 'Theme',
+          values: { Page: '#fff' },
+          options: {},
+          modes: [{ mode: 'Dark', values: {} }]
+        }
+      ]
+    })
+    expect(run('date', 'return __h(Frame, { when: new Date(0) })')).toEqual({
+      id: 'date',
+      ok: false,
+      error: 'Design JSX output must contain plain structured data only.'
+    })
+  })
+
+  test('refuses a frame script that would close its own script element', () => {
+    expect(sandboxDocument('run()')).toContain('<script>run()</script>')
+    expect(() => sandboxDocument('"</script><script>alert(1)"')).toThrow('cannot be inlined')
   })
 })

@@ -7,6 +7,7 @@ import {
 } from '@open-pencil/design-jsx'
 
 import { sandboxDocument } from '@/app/code/sandbox/document'
+import frameScript from '@/app/code/sandbox/frame.ts?script'
 import {
   DESIGN_JSX_DEFAULT_READY_TIMEOUT_MS,
   DESIGN_JSX_DEFAULT_TIMEOUT_MS,
@@ -16,6 +17,7 @@ import {
   type DesignJSXSandboxResult
 } from '@/app/code/sandbox/types'
 import { validateDesignJSXOutput } from '@/app/code/sandbox/validate'
+import type { SandboxRunRequest } from '@/app/code/sandbox/worker/run'
 
 function sourceByteLength(source: string): number {
   return new TextEncoder().encode(source).byteLength
@@ -44,13 +46,7 @@ export async function evaluateDesignJSX(
   const iframe = document.createElement('iframe')
   iframe.hidden = true
   iframe.setAttribute('sandbox', 'allow-scripts')
-  iframe.srcdoc = sandboxDocument({
-    elements: Object.fromEntries(
-      DESIGN_JSX_ELEMENTS.map(({ name, runtimeType }) => [name, runtimeType])
-    ),
-    helpers: DESIGN_JSX_HELPERS.map(({ name }) => name),
-    limits: validationLimits
-  })
+  iframe.srcdoc = sandboxDocument(frameScript)
   document.body.append(iframe)
 
   return new Promise((resolve) => {
@@ -86,10 +82,16 @@ export async function evaluateDesignJSX(
           () => finish({ ok: false, error: 'Design JSX execution timed out.' }),
           timeoutMs
         )
-        iframe.contentWindow?.postMessage(
-          { type: 'open-pencil-design-jsx-run', id, code: program.code },
-          '*'
-        )
+        const request: SandboxRunRequest = {
+          id,
+          code: program.code,
+          elements: Object.fromEntries(
+            DESIGN_JSX_ELEMENTS.map(({ name, runtimeType }) => [name, runtimeType])
+          ),
+          helpers: DESIGN_JSX_HELPERS.map(({ name }) => name),
+          limits: validationLimits
+        }
+        iframe.contentWindow?.postMessage({ type: 'open-pencil-design-jsx-run', ...request }, '*')
         return
       }
       if (message.type !== 'open-pencil-design-jsx-result' || message.id !== id) return

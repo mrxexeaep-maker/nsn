@@ -2,7 +2,7 @@ import type { DesignJSXValidationLimits } from '@/app/code/sandbox/types'
 
 const BLOCKED_KEYS = new Set(['__proto__', 'prototype', 'constructor'])
 
-type ValidationState = {
+export type ValidationState = {
   elements: number
   bytes: number
 }
@@ -95,6 +95,16 @@ function validateValue(
   validateRecord(value, limits, state, depth)
 }
 
+/** Check that `value` is plain structured data within `limits`, counting it toward `state`. */
+export function validateStructuredData(
+  value: unknown,
+  limits: DesignJSXValidationLimits,
+  state: ValidationState = { elements: 0, bytes: 0 }
+): ValidationState {
+  validateValue(value, limits, state, 0)
+  return state
+}
+
 /** The roots a run returned, checked with the collections its `defineVars` calls wrote. */
 export function validateDesignJSXOutput(
   value: unknown,
@@ -106,8 +116,6 @@ export function validateDesignJSXOutput(
   if (roots.length === 0) throw new Error('Design JSX must return an OpenPencil element.')
   if (!Array.isArray(collections))
     throw new Error('Design JSX output must contain plain structured data only.')
-  const state: ValidationState = { elements: 0, bytes: 0 }
-  validateValue(roots, limits, state, 0)
-  validateValue(collections, limits, state, 0)
+  validateStructuredData(collections, limits, validateStructuredData(roots, limits))
   return roots
 }
