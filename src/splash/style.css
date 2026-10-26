@@ -30,9 +30,15 @@ body {
   color: rgb(var(--loader-fg));
   background: var(--loader-bg);
 }
-#boot-splash img {
+/* The splash follows the page's mount element and covers it until the app draws something there. */
+#app:not(:empty) ~ #boot-splash {
+  display: none;
+}
+#boot-splash::before {
+  content: '';
   width: 40px;
   height: 40px;
+  background: url('/brand/app-icon.svg') center / contain no-repeat;
 }
 #boot-splash .bar {
   position: absolute;

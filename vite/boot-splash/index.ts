@@ -3,15 +3,6 @@ import { basename, dirname, join } from 'node:path'
 
 import { build, type Plugin, type ResolvedConfig } from 'vite'
 
-/** Marks the element a page mounts into; the splash goes inside it, and mounting replaces it. */
-const ATTRIBUTE = 'data-boot-splash'
-const MARKED = new RegExp(`<(\\w+)([^>]*?)\\s${ATTRIBUTE}(?:="")?([^>]*)>([\\s\\S]*?)</\\1>`, 'g')
-
-const MARKUP = `<div id="boot-splash" role="status" aria-label="Loading">
-        <img src="/brand/app-icon.svg" width="40" height="40" alt="" />
-        <div class="bar"></div>
-      </div>`
-
 type Compiled = {
   script: string
   style: string
@@ -23,8 +14,8 @@ export type BootSplashOptions = {
   /** The script that starts the page in its theme; it imports the splash's stylesheet. */
   entry: string
   /**
-   * The app's pages, by file name, each of which must mark where the splash goes. Other pages
-   * Vite builds with this config, such as Storybook's, are left as they are.
+   * The app's pages, by file name, that draw the splash. Other pages Vite builds with this
+   * config, such as Storybook's, are left as they are.
    */
   pages: readonly string[]
 }
@@ -61,21 +52,10 @@ async function compile(config: ResolvedConfig, entry: string): Promise<Compiled>
   return { script, style: String(style.source).trim(), sources: chunk.moduleIds }
 }
 
-/** The page with its marked mount element holding the splash, or null when it marks none. */
-function placeSplash(html: string, page: string): string | null {
-  const marked = [...html.matchAll(MARKED)]
-  if (marked.length === 0) return null
-  if (marked.length > 1) throw new Error(`${page} marks ${marked.length} elements ${ATTRIBUTE}`)
-  const [element, tag, before, after, content] = marked[0]
-  if (content.trim()) throw new Error(`${page} marks a non-empty <${tag}> ${ATTRIBUTE}`)
-  return html.replace(element, `<${tag}${before}${after}>\n      ${MARKUP}\n    </${tag}>`)
-}
-
 /**
- * Draws one boot splash on each of the app's pages: each marks the element it mounts into with
- * `data-boot-splash`, and gets the splash inside it, its stylesheet, and the script that starts
- * the page in its theme, all inlined so they show before anything loads. Both are built by Vite
- * from `entry`, minified and lowered to the app's browser targets.
+ * Draws one boot splash on each of the app's pages, with its stylesheet and the script that starts
+ * the page in its theme, all inlined so they show before anything loads. The stylesheet and script
+ * are built by Vite from `entry`, minified and lowered to the app's browser targets.
  */
 export function bootSplashPlugin({ entry, pages }: BootSplashOptions): Plugin {
   let config: ResolvedConfig | undefined
@@ -131,20 +111,20 @@ export function bootSplashPlugin({ entry, pages }: BootSplashOptions): Plugin {
       })
     },
     transformIndexHtml: {
-      order: 'pre',
       async handler(html, { filename }) {
-        const page = basename(filename)
-        if (!pages.includes(page)) return html
-        const placed = placeSplash(html, page)
-        if (placed === null) throw new Error(`${page} marks no element ${ATTRIBUTE}`)
+        if (!pages.includes(basename(filename))) return html
         const { script, style } = await current()
-        return {
-          html: placed,
-          tags: [
-            { tag: 'style', children: style, injectTo: 'head' },
-            { tag: 'script', children: script, injectTo: 'head' }
-          ]
-        }
+        return [
+          { tag: 'style', children: style, injectTo: 'head' },
+          { tag: 'script', children: script, injectTo: 'head' },
+          // After the page's mount element, so the stylesheet hides it once the app draws there.
+          {
+            tag: 'div',
+            attrs: { id: 'boot-splash', role: 'status', 'aria-label': 'Loading' },
+            children: [{ tag: 'div', attrs: { class: 'bar' } }],
+            injectTo: 'body'
+          }
+        ]
       }
     }
   }
