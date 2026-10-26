@@ -147,4 +147,11 @@ test('a variable whose value cannot be resolved is an error, not a dropped paint
   await expect(renderJSX(graph, `<Frame bg={designVar('A')} />`)).rejects.toThrow(
     'Cannot resolve variable A for bg'
   )
+  const size = graph.createCollection('Size')
+  graph.createVariable('Gap', 'FLOAT', size.id, 4)
+  for (const name of ['A', 'Gap']) {
+    await expect(
+      renderJSX(graph, `<svg color={designVar('${name}')} body="<path d='M0 0h1v1H0z'/>" />`)
+    ).rejects.toThrow(`Cannot resolve color variable ${name} for color`)
+  }
 })

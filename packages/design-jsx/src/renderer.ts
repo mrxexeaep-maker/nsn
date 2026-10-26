@@ -236,6 +236,8 @@ function placeArtwork<Artwork>(
   if (modes) overrides.variableModes = modes
   const variableId = isVariable(props.color) ? requireVariableId(graph, props.color) : undefined
   const resolved = variableId && resolveForLayer(graph, variableId, parentId, modes)
+  if (isVariable(props.color) && typeof resolved !== 'object')
+    throw new Error(`Cannot resolve color variable ${props.color.name} for color`)
   const color =
     typeof resolved === 'object'
       ? resolved
