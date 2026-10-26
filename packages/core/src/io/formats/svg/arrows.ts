@@ -12,26 +12,12 @@ import {
 } from '@open-pencil/scene-graph/arrow-caps'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
 
-import { addOpenSegmentsToPath, type PathSink } from '#core/vector/path-helpers'
+import { addOpenSegmentsToPath } from '#core/vector/path-helpers'
 
 import { svg, type SVGNode } from './node'
-import { round } from './paths'
+import { round, svgPathSink } from './paths'
 
 type Attrs = Record<string, string | number | undefined>
-
-/** Path data written through the same commands the canvas builds its paths from. */
-function pathData(build: (sink: PathSink) => void): string {
-  const parts: string[] = []
-  const point = (x: number, y: number) => `${round(x)} ${round(y)}`
-  build({
-    moveTo: (x, y) => parts.push(`M${point(x, y)}`),
-    lineTo: (x, y) => parts.push(`L${point(x, y)}`),
-    cubicTo: (x1, y1, x2, y2, x, y) =>
-      parts.push(`C${point(x1, y1)} ${point(x2, y2)} ${point(x, y)}`),
-    close: () => parts.push('Z')
-  })
-  return parts.join('')
-}
 
 /**
  * An open vector network's path as the canvas strokes it: open corners rounded by the layer's
@@ -47,9 +33,9 @@ function openStrokePath(
     stroke?.align === 'CENTER' && hasTrimmedShaft(network, cap)
       ? trimArrowShafts(network, cap, stroke.weight)
       : network
-  return pathData((sink) =>
-    addOpenSegmentsToPath(sink, trimmed.segments, trimmed.vertices, node.cornerRadius)
-  )
+  const parts: string[] = []
+  addOpenSegmentsToPath(svgPathSink(parts), trimmed.segments, trimmed.vertices, node.cornerRadius)
+  return parts.join('')
 }
 
 /** Stroke attributes cleared, for a fill drawn apart from its stroke. */

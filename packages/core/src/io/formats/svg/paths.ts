@@ -12,6 +12,7 @@ import { shapeWithTextGeometry } from '@open-pencil/scene-graph/shape-with-text'
 
 import { traceSmoothRect, type SmoothCornerSink } from '#core/canvas/paths/smooth-corners'
 import { nodeHasRadius } from '#core/canvas/shapes'
+import type { PathSink } from '#core/vector/path-helpers'
 
 const CMD_CLOSE = 0
 const CMD_MOVE_TO = 1
@@ -337,20 +338,28 @@ export function arcPath(node: Pick<SceneNode, 'width' | 'height' | 'arcData'>): 
   return parts.join('')
 }
 
+/** Path commands written as SVG path data into `parts`, as the canvas would build a path. */
+export function svgPathSink(parts: string[]): PathSink {
+  const point = (x: number, y: number) => `${round(x)} ${round(y)}`
+  return {
+    moveTo: (x, y) => parts.push(`M${point(x, y)}`),
+    lineTo: (x, y) => parts.push(`L${point(x, y)}`),
+    cubicTo: (x1, y1, x2, y2, x, y) =>
+      parts.push(`C${point(x1, y1)} ${point(x2, y2)} ${point(x, y)}`),
+    close: () => parts.push('Z')
+  }
+}
+
 /** A rectangle with smoothed corners as path data, traced as the canvas draws it. */
 function smoothRectPath(node: RectOutlineNode & Pick<SceneNode, 'cornerSmoothing'>): string {
   const parts: string[] = []
   const point = (x: number, y: number) => `${round(x)} ${round(y)}`
   const sink: SmoothCornerSink = {
-    moveTo: (x, y) => parts.push(`M${point(x, y)}`),
-    lineTo: (x, y) => parts.push(`L${point(x, y)}`),
-    cubicTo: (x1, y1, x2, y2, x, y) =>
-      parts.push(`C${point(x1, y1)} ${point(x2, y2)} ${point(x, y)}`),
+    ...svgPathSink(parts),
     arcToRotated: (rx, ry, rotation, useSmallArc, isCCW, x, y) =>
       parts.push(
         `A${round(rx)} ${round(ry)} ${rotation} ${useSmallArc ? 0 : 1} ${isCCW ? 0 : 1} ${point(x, y)}`
-      ),
-    close: () => parts.push('Z')
+      )
   }
   const box = { left: 0, top: 0, right: node.width, bottom: node.height }
   return traceSmoothRect(sink, node, box) ? parts.join('') : roundedRectPath(node)
