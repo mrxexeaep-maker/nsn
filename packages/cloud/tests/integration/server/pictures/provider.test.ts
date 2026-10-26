@@ -2,7 +2,11 @@ import { describe, expect, test } from 'bun:test'
 
 import { createCloudTestDatabase } from '#cloud-tests/helpers/database'
 import { pngHeader } from '#cloud-tests/helpers/pictures'
-import { createUserPictures, providerPictures } from '#cloud/server/pictures'
+import {
+  createUserPictures,
+  providerPictures,
+  type UserPictureService
+} from '#cloud/server/pictures'
 import { betterAuth } from 'better-auth'
 import { UnsecuredJWT } from 'jose'
 
@@ -81,42 +85,61 @@ describe('provider pictures', () => {
   })
 })
 
-describe('provider picture and upload', () => {
-  test('an upload made while the provider picture is fetched stays', async () => {
-    const runtime = await createCloudTestDatabase()
-    try {
-      const userId = crypto.randomUUID()
-      await runtime.database
-        .insertInto('user')
-        .values({ id: userId, name: 'Racer', email: 'racer@example.com', emailVerified: true })
-        .execute()
-      let answer: (response: Response) => void = () => undefined
-      let fetching: () => void = () => undefined
-      const fetchStarted = new Promise<void>((resolve) => {
-        fetching = resolve
-      })
-      const pictures = createUserPictures(runtime.database, {
-        publicURL: PUBLIC_URL,
-        fetch: () =>
-          new Promise<Response>((resolve) => {
-            answer = resolve
-            fetching()
-          })
-      })
-      const copying = pictures.copyFromProvider(userId, GOOGLE_PICTURE)
-      // The person uploads a picture once Google's is on its way, past the check before the fetch.
-      await fetchStarted
-      const uploaded = await pictures.upload(userId, pngHeader(256, 256))
-      answer(new Response(pngHeader(96, 96)))
-      await copying
-      const { image } = await runtime.database
-        .selectFrom('user')
-        .select('image')
-        .where('id', '=', userId)
-        .executeTakeFirstOrThrow()
-      expect(image).toBe(uploaded)
-    } finally {
-      await runtime.close()
-    }
+/**
+ * A copy of the Google picture held mid-fetch: `during` runs once the fetch has begun, past the
+ * check before it, and the picture then arrives. Returns what the account shows afterwards.
+ */
+async function copyWhile<Result>(
+  image: string | null,
+  during: (pictures: UserPictureService, userId: string) => Promise<Result>
+) {
+  const runtime = await createCloudTestDatabase()
+  try {
+    const userId = crypto.randomUUID()
+    await runtime.database
+      .insertInto('user')
+      .values({ id: userId, name: 'Racer', email: 'racer@example.com', emailVerified: true, image })
+      .execute()
+    let answer: (response: Response) => void = () => undefined
+    let fetching: () => void = () => undefined
+    const fetchStarted = new Promise<void>((resolve) => {
+      fetching = resolve
+    })
+    const pictures = createUserPictures(runtime.database, {
+      publicURL: PUBLIC_URL,
+      fetch: () =>
+        new Promise<Response>((resolve) => {
+          answer = resolve
+          fetching()
+        })
+    })
+    const copying = pictures.copyFromProvider(userId, GOOGLE_PICTURE)
+    await fetchStarted
+    const result = await during(pictures, userId)
+    answer(new Response(pngHeader(96, 96)))
+    await copying
+    const { image: shown } = await runtime.database
+      .selectFrom('user')
+      .select('image')
+      .where('id', '=', userId)
+      .executeTakeFirstOrThrow()
+    return { result, shown }
+  } finally {
+    await runtime.close()
+  }
+}
+
+describe('a provider picture fetched meanwhile', () => {
+  test('does not replace an upload', async () => {
+    const { result, shown } = await copyWhile(null, (pictures, userId) =>
+      pictures.upload(userId, pngHeader(256, 256))
+    )
+    expect(shown).toBe(result)
+  })
+
+  test('does not undo a removal', async () => {
+    // An account from before the server kept pictures shows Google's address until it signs in.
+    const { shown } = await copyWhile(GOOGLE_PICTURE, (pictures, userId) => pictures.remove(userId))
+    expect(shown).toBeNull()
   })
 })

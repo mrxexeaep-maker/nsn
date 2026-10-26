@@ -94,36 +94,47 @@ export function createUserPictures(database: Kysely<CloudDatabase>, options: Use
     return `${origin}${PICTURE_PATH}/${userId}/${checksum.slice(0, PICTURE_VERSION_LENGTH)}`
   }
 
+  /** The address `bytes` are served from as the account's picture. */
+  function pictureAddress(userId: string, bytes: Uint8Array): string {
+    return address(userId, bytesToHex(sha256(bytes)))
+  }
+
   /** Whether `image` is a picture this server serves, rather than another service's. */
   function served(image: string): boolean {
     return image.startsWith(`${origin}${PICTURE_PATH}/`)
   }
 
+  /**
+   * Keeps `bytes` as the account's picture. A provider's picture is kept only while the account
+   * still shows `shown`, what it showed before the picture was fetched, so an upload or a removal
+   * made meanwhile stands. Returns whether the picture was kept.
+   */
   async function save(
     userId: string,
     bytes: Uint8Array,
-    source: 'upload' | 'provider'
-  ): Promise<string> {
+    source: { from: 'upload' } | { from: 'provider'; shown: string | null }
+  ): Promise<boolean> {
     const format = pictureFormat(bytes)
     if (!format) throw new PictureInvalidError()
     const checksum = bytesToHex(sha256(bytes))
-    const image = address(userId, checksum)
+    const image = pictureAddress(userId, bytes)
     const createdAt = new Date()
     return database.transaction().execute(async (transaction) => {
-      // Saves lock the account first, so an upload and a provider's picture take turns, and a
-      // provider's picture never replaces one the account came to show while it was fetched.
+      // Saves and removals lock the account first, so they take turns.
       const current = await transaction
         .selectFrom('user')
         .select('image')
         .where('id', '=', userId)
         .forUpdate()
         .executeTakeFirst()
-      if (source === 'provider' && current?.image && served(current.image)) return current.image
+      if (source.from === 'provider' && (current?.image ?? null) !== source.shown) return false
       await transaction
         .insertInto('userPicture')
-        .values({ userId, bytes, format, checksum, source, createdAt })
+        .values({ userId, bytes, format, checksum, source: source.from, createdAt })
         .onConflict((conflict) =>
-          conflict.column('userId').doUpdateSet({ bytes, format, checksum, source, createdAt })
+          conflict
+            .column('userId')
+            .doUpdateSet({ bytes, format, checksum, source: source.from, createdAt })
         )
         .execute()
       await transaction
@@ -131,7 +142,7 @@ export function createUserPictures(database: Kysely<CloudDatabase>, options: Use
         .set({ image, updatedAt: createdAt })
         .where('id', '=', userId)
         .execute()
-      return image
+      return true
     })
   }
 
@@ -157,8 +168,9 @@ export function createUserPictures(database: Kysely<CloudDatabase>, options: Use
     served,
 
     /** Keeps a picture the account's owner uploaded and shows it from now on. */
-    upload(userId: string, bytes: Uint8Array): Promise<string> {
-      return save(userId, bytes, 'upload')
+    async upload(userId: string, bytes: Uint8Array): Promise<string> {
+      await save(userId, bytes, { from: 'upload' })
+      return pictureAddress(userId, bytes)
     },
 
     /** Goes back to initials. */
@@ -197,7 +209,7 @@ export function createUserPictures(database: Kysely<CloudDatabase>, options: Use
         })
         const bytes = response.ok ? await boundedBody(response, CLOUD_PICTURE_MAX_BYTES) : null
         if (!bytes) throw new PictureInvalidError()
-        await save(userId, bytes, 'provider')
+        await save(userId, bytes, { from: 'provider', shown: current?.image ?? null })
       } catch (error) {
         console.warn('Keeping a linked account picture failed', error)
         await database
