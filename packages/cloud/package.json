@@ -42,6 +42,7 @@
     "#cloud/server/internal": "./src/server/internal/index.ts",
     "#cloud/server/invitations": "./src/server/invitations/index.ts",
     "#cloud/server/objects": "./src/server/objects/index.ts",
+    "#cloud/server/pictures": "./src/server/pictures/index.ts",
     "#cloud/server/policy": "./src/server/policy/index.ts",
     "#cloud/server/quota": "./src/server/quota/index.ts",
     "#cloud/server/rate-limit": "./src/server/rate-limit/index.ts",
