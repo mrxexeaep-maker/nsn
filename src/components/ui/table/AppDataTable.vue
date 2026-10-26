@@ -21,13 +21,16 @@ const {
   table,
   label,
   hidden = [],
-  loading = false
+  loading = false,
+  loadingLabel
 } = defineProps<{
   table: Table<Features, Row>
   /** What the table lists, for assistive technology. */
   label: string
   hidden?: readonly string[]
   loading?: 'first' | 'refresh' | false
+  /** What assistive technology announces while the table loads, such as “Loading…”. */
+  loadingLabel?: string
 }>()
 defineSlots<{ empty?: () => unknown; footer?: () => unknown }>()
 
@@ -53,7 +56,7 @@ const columns = computed(() =>
 </script>
 
 <template>
-  <AppTable :label="label" :loading="loading">
+  <AppTable :label="label" :loading="loading" :loading-label="loadingLabel">
     <AppTableHeader>
       <AppTableRow v-for="group in headers" :key="group.id">
         <AppTableHead

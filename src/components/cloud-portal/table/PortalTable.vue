@@ -96,7 +96,13 @@ function countOf(value: string) {
         <template #leading><icon-lucide-search class="size-3.5" /></template>
       </AppInput>
     </div>
-    <AppDataTable :table="table" :label="label" :hidden="hidden" :loading="loading">
+    <AppDataTable
+      :table="table"
+      :label="label"
+      :hidden="hidden"
+      :loading="loading"
+      :loading-label="messages.loading"
+    >
       <!-- A failed load says so above the table; it does not mean nothing matched. -->
       <template v-if="!error" #empty>
         <AppPlaceholder
@@ -108,7 +114,8 @@ function countOf(value: string) {
           <template #icon><slot name="icon" /></template>
         </AppPlaceholder>
       </template>
-      <template v-if="total" #footer>
+      <!-- After a failed load the rows are gone, so the last range would no longer be true. -->
+      <template v-if="total && !error" #footer>
         <AppTablePagination
           :range="range"
           :can-previous="table.getCanPreviousPage()"

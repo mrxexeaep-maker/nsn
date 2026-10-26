@@ -11,12 +11,15 @@ import { useTableUI, type TableUI } from './ui'
 const {
   label,
   loading = false,
+  loadingLabel,
   ui
 } = defineProps<{
   /** What the table lists, for assistive technology. */
   label: string
   /** `first` before any rows have loaded, `refresh` while newer rows replace the shown ones. */
   loading?: 'first' | 'refresh' | false
+  /** What assistive technology announces while the table loads, such as “Loading…”. */
+  loadingLabel?: string
   ui?: TableUI
 }>()
 const cls = useTableUI(ui)
@@ -25,6 +28,8 @@ const placeholders = skeleton()
 
 <template>
   <div data-slot="table" :class="cls.root" :aria-busy="loading ? true : undefined">
+    <!-- The placeholders and the bar are for the eye; this says it to assistive technology. -->
+    <span v-if="loadingLabel" role="status" class="sr-only">{{ loading ? loadingLabel : '' }}</span>
     <div
       v-if="loading === 'refresh'"
       :class="[cls.refresh, placeholders.group()]"

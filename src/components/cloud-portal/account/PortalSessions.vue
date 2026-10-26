@@ -165,6 +165,7 @@ function confirm() {
         :table="sessionTable"
         :label="messages.activeSessions"
         :loading="loading"
+        :loading-label="messages.loading"
         :hidden="manage ? [] : ['actions']"
       >
         <template #empty>
@@ -176,7 +177,12 @@ function confirm() {
     <SettingsSection>
       <template #title>{{ messages.recentSignIns }}</template>
       <template v-if="manage" #description>{{ messages.recentSignInsDescription }}</template>
-      <AppDataTable :table="signInTable" :label="messages.recentSignIns" :loading="loading">
+      <AppDataTable
+        :table="signInTable"
+        :label="messages.recentSignIns"
+        :loading="loading"
+        :loading-label="messages.loading"
+      >
         <template #empty>
           <p class="text-center text-xs text-muted">{{ messages.noSignIns }}</p>
         </template>

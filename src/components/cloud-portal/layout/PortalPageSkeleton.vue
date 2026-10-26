@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useCloudPortalMessages } from '@open-pencil/vue/i18n'
+
 import SettingsGroup from '@/components/settings/layout/SettingsGroup.vue'
 import AppSkeleton from '@/components/ui/feedback/AppSkeleton.vue'
 import { skeleton } from '@/components/ui/feedback/skeleton'
@@ -9,9 +11,12 @@ import { skeleton } from '@/components/ui/feedback/skeleton'
  */
 const { avatar = false, groups } = defineProps<{ avatar?: boolean; groups: readonly number[] }>()
 const placeholders = skeleton()
+const messages = useCloudPortalMessages()
 </script>
 
 <template>
+  <!-- The bars are for the eye; the status says it to assistive technology. -->
+  <span role="status" class="sr-only">{{ messages.loading }}</span>
   <div :class="[placeholders.group(), 'flex max-w-2xl flex-col gap-6']" aria-hidden="true">
     <div v-if="avatar" class="flex items-center gap-3">
       <AppSkeleton class="size-12 rounded-full" />
