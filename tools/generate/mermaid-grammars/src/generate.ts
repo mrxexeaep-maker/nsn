@@ -43,8 +43,8 @@ if (process.argv.includes('--check')) {
   }
   for (const grammar of GRAMMARS) {
     await compare(
-      `${grammar.name}.jison`,
-      await Bun.file(join(root, GRAMMAR_DIR, `${grammar.name}.jison`)).text(),
+      `${grammar.parser}.jison`,
+      await Bun.file(join(root, GRAMMAR_DIR, `${grammar.parser}.jison`)).text(),
       await download(sourceURL(grammar.source, latest.commit))
     )
   }
@@ -71,9 +71,9 @@ const dir = join(root, GRAMMAR_DIR)
 await Bun.write(join(dir, 'MERMAID-LICENSE.txt'), licence)
 for (const [index, grammar] of GRAMMARS.entries()) {
   const source = sources[index] ?? ''
-  await Bun.write(join(dir, `${grammar.name}.jison`), source)
-  await Bun.write(join(dir, `${grammar.name}.js`), parserModule(grammar, source))
+  await Bun.write(join(dir, `${grammar.parser}.jison`), source)
+  await Bun.write(join(dir, `${grammar.parser}.js`), parserModule(grammar, source))
 }
 console.log(
-  `${GRAMMARS.map((grammar) => grammar.name).join(', ')} written from ${MERMAID_RELEASE.tag}`
+  `${GRAMMARS.map((grammar) => grammar.parser).join(', ')} written from ${MERMAID_RELEASE.tag}`
 )

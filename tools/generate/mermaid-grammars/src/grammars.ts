@@ -21,13 +21,13 @@ export const MERMAID_RELEASE = {
 
 export interface Grammar {
   /** The parser's file name under `packages/mermaid/src/grammar/`. */
-  name: string
+  parser: string
   /** The grammar's path in Mermaid's repository. */
   source: string
 }
 
 export const GRAMMARS: Grammar[] = [
-  { name: 'flow', source: 'packages/mermaid/src/diagrams/flowchart/parser/flow.jison' }
+  { parser: 'flow', source: 'packages/mermaid/src/diagrams/flowchart/parser/flow.jison' }
 ]
 
 /**
