@@ -30,6 +30,27 @@ describe('page snapshot graphs', () => {
     expect(editor.graph.getNode(label.id)?.text).toBe('Changed')
   })
 
+  test('restores and rebuilds the variables the page had, keeping live records in place', () => {
+    const { editor, pageId } = setup()
+    const kept = editor.graph.createCollection('Kept')
+    const before = editor.snapshotPage(pageId)
+    const keptRecord = editor.graph.variableCollections.get(kept.id)
+    editor.graph.renameMode(kept.id, kept.defaultModeId, 'Renamed')
+    const added = editor.graph.createCollection('Added')
+    editor.graph.createVariable('Ink', 'COLOR', added.id)
+
+    const past = expectDefined(graphFromPageSnapshot(editor.graph, before), 'past graph')
+    expect([...past.variableCollections.values()].map((item) => item.name)).toEqual(['Kept'])
+
+    editor.restorePageFromSnapshot(before)
+    expect([...editor.graph.variableCollections.values()].map((item) => item.name)).toEqual([
+      'Kept'
+    ])
+    expect(editor.graph.variables.size).toBe(0)
+    expect(editor.graph.variableCollections.get(kept.id)).toBe(keptRecord)
+    expect(keptRecord?.modes[0].name).toBe('Mode 1')
+  })
+
   test('renders both states of a region at one size and finds the changed pixels', async () => {
     const { editor, pageId, card } = setup()
     editor.graph.updateNode(card.id, {

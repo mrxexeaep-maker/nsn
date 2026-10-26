@@ -37,7 +37,7 @@ export function documentSnapshot(page: Page) {
   return page.evaluate(() => {
     const store = window.openPencil?.getStore?.()
     if (!store) throw new Error('Editor unavailable')
-    return { nodes: [...store.snapshotPage()], undo: store.undo.canUndo }
+    return { nodes: [...store.snapshotPage().nodes], undo: store.undo.canUndo }
   })
 }
 
