@@ -261,7 +261,10 @@ private let operators: CGPDFOperatorTableRef = {
   on("b*") { _, info in reader(info).unsupported.insert("b*") }
   on("sh") { _, info in reader(info).unsupported.insert("sh") }
   on("BI") { _, info in reader(info).unsupported.insert("BI") }
-  on("BT") { _, info in reader(info).unsupported.insert("BT") }
+  on("Tj") { _, info in reader(info).unsupported.insert("Tj") }
+  on("TJ") { _, info in reader(info).unsupported.insert("TJ") }
+  on("'") { _, info in reader(info).unsupported.insert("'") }
+  on("\"") { _, info in reader(info).unsupported.insert("\"") }
   return table
 }()
 
