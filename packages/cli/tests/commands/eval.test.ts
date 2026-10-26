@@ -2,13 +2,12 @@ import { describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { inflateRawSync } from 'node:zlib'
 
+import { figThumbnailSize } from '#cli-tests/helpers/fig'
 import { CLI_ENTRY, FIXTURES } from '#cli-tests/helpers/paths'
 import * as v from 'valibot'
 
 import { getTextMeasurer } from '@open-pencil/core/layout'
-import type { Size } from '@open-pencil/scene-graph/primitives'
 
 import { loadDocument, measureDocumentText } from '#cli/headless'
 
@@ -25,24 +24,6 @@ async function cli(args: string[], stdin?: string) {
     new Response(proc.stderr).text()
   ])
   return { stdout: stdout.trim(), stderr: stderr.trim(), exitCode: await proc.exited }
-}
-
-/** The size of the `thumbnail.png` in a `.fig`, read from the archive's ZIP entries. */
-function figThumbnailSize(fig: Buffer): Size {
-  let at = 0
-  while (fig.readUInt32LE(at) === 0x04034b50) {
-    const method = fig.readUInt16LE(at + 8)
-    const size = fig.readUInt32LE(at + 18)
-    const nameEnd = at + 30 + fig.readUInt16LE(at + 26)
-    const start = nameEnd + fig.readUInt16LE(at + 28)
-    if (fig.toString('utf8', at + 30, nameEnd) === 'thumbnail.png') {
-      const stored = fig.subarray(start, start + size)
-      const png = method === 8 ? inflateRawSync(stored) : stored
-      return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) }
-    }
-    at = start + size
-  }
-  throw new Error('The archive has no thumbnail.png')
 }
 
 describe('eval CLI', () => {
