@@ -41,7 +41,16 @@ jobs:
           ref: ${{ env.RELEASE_TAG || github.sha }}
           persist-credentials: false
 
-      # vX.Y.Z is tagged X.Y.Z, X.Y, and latest; a prerelease only its version and next.
+      # A rebuild of an older release must not move latest back to it.
+      - name: Find the latest release
+        id: latest
+        if: env.PUBLISH == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)" >> "$GITHUB_OUTPUT"
+
+      # vX.Y.Z is tagged X.Y.Z, X.Y, and latest if it is the latest release; a prerelease only its
+      # version and next.
       - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302
         id: meta
         with:
@@ -51,6 +60,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},value=${{ env.RELEASE_TAG }}
             type=raw,value=next,enable=${{ contains(env.RELEASE_TAG, '-') }}
             type=ref,event=pr
+          flavor: latest=${{ env.PUBLISH == 'true' && steps.latest.outputs.tag == env.RELEASE_TAG }}
           labels: |
             org.opencontainers.image.licenses=Apache-2.0 AND MIT
 
