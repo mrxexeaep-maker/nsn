@@ -5,6 +5,7 @@ import { drawnFontAxes, type DrawnFontAxis } from '@open-pencil/core/canvas'
 import type { FontVariation, SceneNode } from '@open-pencil/scene-graph'
 
 import { MIXED, type MixedValue } from '#vue/controls/node-props/use'
+import { useUndoBatch } from '#vue/controls/undo-batch/use'
 
 /** An axis of the selected text's variable font, with the value every layer draws it at. */
 export interface TypographyAxis extends Omit<DrawnFontAxis, 'value'> {
@@ -81,8 +82,11 @@ export function createTypographyAxes(editor: Editor, nodes: ComputedRef<SceneNod
   // both to the selected characters, and records the step with what was typed.
   type AxisValues = Pick<SceneNode, 'fontVariations' | 'opticalSizeFromFontSize'>
   const beforePreview = new Map<string, AxisValues>()
+  // The previews belong to the step the commit records, so undoing it leaves nothing unsaved.
+  const batch = useUndoBatch(editor.undo, () => editor.beginInteractiveEdit())
 
   function previewEach(changes: (node: SceneNode) => Partial<SceneNode>) {
+    batch.ensure('typography:axes', 'Change font axes')
     for (const target of nodes.value) {
       if (!beforePreview.has(target.id)) {
         const { fontVariations, opticalSizeFromFontSize } = target
@@ -98,6 +102,7 @@ export function createTypographyAxes(editor: Editor, nodes: ComputedRef<SceneNod
       for (const [id, before] of beforePreview) editor.commitNodeUpdate(id, before, label)
     })
     beforePreview.clear()
+    batch.flush()
   }
 
   /** Draws the text at `value` on `axis` while it is dragged or typed. */
@@ -109,6 +114,7 @@ export function createTypographyAxes(editor: Editor, nodes: ComputedRef<SceneNod
   function cancelAxis() {
     for (const [id, before] of beforePreview) editor.updateNode(id, before)
     beforePreview.clear()
+    batch.flush()
     editor.requestRender()
   }
 

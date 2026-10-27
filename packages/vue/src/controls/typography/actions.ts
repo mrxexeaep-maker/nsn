@@ -23,6 +23,7 @@ import { MIXED, type MixedValue } from '#vue/controls/node-props/use'
 import { styleFontVariations } from '#vue/controls/typography/axes'
 import { useFamilyFaces } from '#vue/controls/typography/faces'
 import type { UseTypographyOptions } from '#vue/controls/typography/use'
+import { useUndoBatch } from '#vue/controls/undo-batch/use'
 import { selectedNodesAsShown } from '#vue/editor/selection-state/nodes'
 import { useSceneComputed } from '#vue/internal/scene-computed/use'
 import { useNodeFontStatus } from '#vue/shared/font-status/use'
@@ -142,6 +143,9 @@ export function createTypographyActions({
   options
 }: TypographyActionOptions) {
   const lists = createTextListActions(editor)
+  // A dragged field's previews belong to the step its commit records, so they are not edits of
+  // their own that keep the document unsaved after that step is undone.
+  const batch = useUndoBatch(editor.undo, () => editor.beginInteractiveEdit())
   type Preview = { value: SceneNode[keyof SceneNode]; textStyleId: string | null }
   let previewKey: keyof SceneNode | undefined
   const beforePreview = new Map<string, Preview>()
@@ -372,6 +376,7 @@ export function createTypographyActions({
   }
 
   function updateProp(key: keyof SceneNode, value: PropValue) {
+    batch.ensure(`typography:${String(key)}`, `Change ${String(key)}`)
     if (previewKey !== key) {
       previewKey = key
       beforePreview.clear()
@@ -402,6 +407,7 @@ export function createTypographyActions({
     })
     previewKey = undefined
     beforePreview.clear()
+    batch.flush()
   }
 
   return {
