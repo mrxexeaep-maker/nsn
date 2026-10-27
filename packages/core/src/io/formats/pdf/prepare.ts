@@ -1,12 +1,14 @@
 import type { ShapedTextGlyph } from '@open-pencil/fig/node-change'
-import type { SceneGraph } from '@open-pencil/scene-graph'
+import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 
+import { characterFace } from '#core/canvas/text/placed'
 import { withTextShaper } from '#core/canvas/text/shape'
 import { getCanvasKit } from '#core/canvaskit'
 import { populateFigPage } from '#core/io/formats/fig'
-import type { SVGCharacterEdges, SVGTextLayout } from '#core/io/formats/svg'
+import type { SVGCharacterEdges, SVGFallbackFace, SVGTextLayout } from '#core/io/formats/svg'
 import { computeAllLayouts } from '#core/layout'
 import { shownText } from '#core/text/case'
+import { EMOJI_METRICS_FAMILY } from '#core/text/emoji'
 import type { DocumentFontStatus } from '#core/text/font/status'
 import { fontManager } from '#core/text/fonts'
 import { prepareGraphFonts } from '#core/text/prepare'
@@ -84,16 +86,36 @@ export async function withPDFTextLayout<T>(
       const shaped = shape(node)
       if (!shaped?.baselines.length) return null
       const characters = characterEdges(shaped.glyphs)
+      const fallbacks = fallbackFaces(node, characters)
       return shaped.baselines.map((line) => ({
         start: line.firstCharacter,
         end: line.endCharacter,
         x: line.position.x,
         y: line.position.y,
         width: line.width,
-        characters
+        characters,
+        fallbacks
       }))
     })
   )
+}
+
+/**
+ * The face of each drawn character the canvas draws in a fallback font, such as Chinese in Inter.
+ * Emoji keep their own family: the face the canvas lays them out with has no glyphs to embed.
+ */
+function fallbackFaces(
+  node: SceneNode,
+  characters: ReadonlyMap<number, SVGCharacterEdges>
+): Map<number, SVGFallbackFace> {
+  const text = shownText(node)
+  const fallbacks = new Map<number, SVGFallbackFace>()
+  for (const index of characters.keys()) {
+    const face = characterFace(node, text, index)
+    if (face?.fallback && face.family !== EMOJI_METRICS_FAMILY)
+      fallbacks.set(index, { family: face.family, style: face.style })
+  }
+  return fallbacks
 }
 
 /** The left and right edges of the glyphs each character is drawn with. */

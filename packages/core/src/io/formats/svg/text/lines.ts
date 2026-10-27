@@ -22,6 +22,18 @@ export interface SVGTextLine {
    * after the span before it, which a renderer measures in fonts of its own.
    */
   characters?: ReadonlyMap<number, SVGCharacterEdges>
+  /**
+   * The face that draws each character the editor draws in a fallback font instead of its own,
+   * such as Chinese in a Latin family, by index in `node.text`. Spans then name that face, for a
+   * renderer that draws only the fonts it is given.
+   */
+  fallbacks?: ReadonlyMap<number, SVGFallbackFace>
+}
+
+/** A face that draws characters their own family has no glyphs for. */
+export interface SVGFallbackFace {
+  family: string
+  style: string
 }
 
 export interface SVGCharacterEdges {
@@ -36,7 +48,8 @@ export interface SVGCharacterEdges {
 export type SVGTextLayout = (node: SceneNode) => readonly SVGTextLine[] | null
 
 export type SpanAttrs = (
-  style: CharacterStyleOverride
+  style: CharacterStyleOverride,
+  fallback?: SVGFallbackFace
 ) => Record<string, string | number | undefined>
 
 interface TextPiece {
@@ -84,6 +97,32 @@ function spanEdges(line: SVGTextLine, from: number, to: number): SVGCharacterEdg
   return left <= right ? { left, right } : null
 }
 
+interface FallbackSegment {
+  from: number
+  to: number
+  fallback?: SVGFallbackFace
+}
+
+const sameFace = (a?: SVGFallbackFace, b?: SVGFallbackFace) =>
+  a?.family === b?.family && a?.style === b?.style
+
+/** The characters from `from` to `to` cut where the face that draws them changes. */
+function fallbackSegments(line: SVGTextLine, from: number, to: number): FallbackSegment[] {
+  const { fallbacks, characters } = line
+  if (!fallbacks?.size) return [{ from, to }]
+  const segments: FallbackSegment[] = []
+  for (let index = from; index < to; index++) {
+    const last = segments.at(-1)
+    // A character with no glyph of its own, such as the second half of a surrogate pair, goes
+    // with the one before it.
+    const fallback =
+      fallbacks.get(index) ?? (characters && !characters.has(index) ? last?.fallback : undefined)
+    if (last && sameFace(last.fallback, fallback)) last.to = index + 1
+    else segments.push({ from: index, to: index + 1, fallback })
+  }
+  return segments
+}
+
 function lineSpans(
   node: SceneNode,
   pieces: readonly TextPiece[],
@@ -100,16 +139,20 @@ function lineSpans(
   const y = round(line.y)
   const spans: SVGNode[] = []
   for (const piece of pieces) {
-    const from = Math.max(piece.from, line.start)
-    const to = Math.min(piece.to, end)
-    if (to <= from) continue
-    const attrs = piece.style ? spanAttrs(piece.style) : {}
-    // Every span starts at its left edge, in either direction, since renderers disagree on
-    // which side `text-anchor` and `direction` place. Without character edges the first span of
-    // a line starts at the line's left edge, and the rest follow on from it.
-    const left = spanEdges(line, from, to)?.left ?? (spans.length === 0 ? line.x : null)
-    const position = left === null ? {} : { x: round(left), y }
-    spans.push(svg('tspan', { ...position, ...attrs }, shownTextSlice(node, from, to)))
+    for (const { from, to, fallback } of fallbackSegments(
+      line,
+      Math.max(piece.from, line.start),
+      Math.min(piece.to, end)
+    )) {
+      if (to <= from) continue
+      const attrs = piece.style || fallback ? spanAttrs(piece.style ?? {}, fallback) : {}
+      // Every span starts at its left edge, in either direction, since renderers disagree on
+      // which side `text-anchor` and `direction` place. Without character edges the first span
+      // of a line starts at the line's left edge, and the rest follow on from it.
+      const left = spanEdges(line, from, to)?.left ?? (spans.length === 0 ? line.x : null)
+      const position = left === null ? {} : { x: round(left), y }
+      spans.push(svg('tspan', { ...position, ...attrs }, shownTextSlice(node, from, to)))
+    }
   }
   return spans
 }

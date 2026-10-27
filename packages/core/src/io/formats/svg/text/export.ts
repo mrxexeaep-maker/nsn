@@ -14,7 +14,8 @@ import {
   explicitNewlineLines,
   laidOutTextSpans,
   textStyleSpans,
-  type SpanAttrs
+  type SpanAttrs,
+  type SVGFallbackFace
 } from '#core/io/formats/svg/text/lines'
 import { shownText } from '#core/text/case'
 import { textFontFace } from '#core/text/requirements'
@@ -79,10 +80,19 @@ function aliasedFontAttrs(
   }
 }
 
-/** The face a run of `node` is drawn in, with the size and axes its instance follows. */
-function fontRequest(node: SceneNode, style: CharacterStyleOverride = {}): SVGFontRequest {
+/**
+ * The face a run of `node` is drawn in, or the fallback face that draws its characters instead,
+ * with the size and axes its instance follows. A fallback keeps the run's weight and slant,
+ * which set a variable fallback's axes as the canvas draws it.
+ */
+function fontRequest(
+  node: SceneNode,
+  style: CharacterStyleOverride = {},
+  fallback?: SVGFallbackFace
+): SVGFontRequest {
   return {
     ...textFontFace(node, style),
+    ...fallback,
     fontSize: style.fontSize ?? node.fontSize,
     variations: style.fontVariations ?? node.fontVariations,
     opticalSizeFromFontSize: node.opticalSizeFromFontSize
@@ -171,9 +181,9 @@ export function renderTextNode(
     'letter-spacing': letterSpacing ? round(letterSpacing) : undefined,
     ...(fontAlias ? aliasedFontAttrs(fontRequest(node), fontAlias) : {})
   }
-  const spanAttrs = (style: CharacterStyleOverride) => ({
+  const spanAttrs = (style: CharacterStyleOverride, fallback?: SVGFallbackFace) => ({
     ...styleOverrideToTspanAttrs(style, colorSpace, fillOpacity, node),
-    ...(fontAlias ? aliasedFontAttrs(fontRequest(node, style), fontAlias) : {})
+    ...(fontAlias ? aliasedFontAttrs(fontRequest(node, style, fallback), fontAlias) : {})
   })
 
   if (laidOut) {

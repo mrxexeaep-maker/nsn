@@ -1,8 +1,12 @@
 import { expect, test } from 'bun:test'
+import { join } from 'node:path'
+
+import { FIXTURES } from '#core-tests/helpers/paths'
 
 import { SceneGraph } from '@open-pencil/scene-graph'
 
 import { exportPDFDocument } from '#core/io/formats/pdf'
+import { fontManager } from '#core/text/fonts'
 
 /** A page with a red square and a gradient, drawn without a browser DOM, as the CLI exports. */
 function card() {
@@ -52,4 +56,35 @@ test('exports several PDFs at once', async () => {
   const results = await Promise.all(exports)
   expect(results.map((result) => result?.pages.length)).toEqual([1, 1, 1])
   expect('document' in globalThis).toBe(false)
+})
+
+test('embeds the fallback font that draws characters the text’s own font lacks', async () => {
+  const cjk = await Bun.file(join(FIXTURES, 'fonts', 'NotoSansSC-Regular.ttf')).arrayBuffer()
+  await fontManager.markLoaded('PDF Test CJK', 'Regular', cjk)
+  fontManager.setCJKFallbackFamily('PDF Test CJK')
+  const graph = new SceneGraph()
+  const pageId = graph.getPages()[0].id
+  const text = graph.createNode('TEXT', pageId, {
+    text: 'Hello 中文',
+    fontFamily: 'Inter',
+    fontSize: 32,
+    textAutoResize: 'WIDTH_AND_HEIGHT'
+  })
+  // Offline, so the fallback is the one loaded here and not a web font.
+  const providers = fontManager.enabledOnlineFontProviders()
+  fontManager.setOnlineFontProviders({})
+  try {
+    const result = await exportPDFDocument(
+      graph,
+      [{ pageId, nodeIds: [text.id], label: 'Text' }],
+      { embedFonts: true, layOutPages: true }
+    )
+    // Inter has no Chinese, which the canvas draws in the CJK fallback; the PDF embeds it too.
+    expect(result?.fonts?.embedded).toContain('PDF Test CJK Regular')
+    expect(result?.fonts?.fallback).toEqual([])
+  } finally {
+    fontManager.setOnlineFontProviders(
+      Object.fromEntries(providers.map((provider) => [provider, true]))
+    )
+  }
 })
