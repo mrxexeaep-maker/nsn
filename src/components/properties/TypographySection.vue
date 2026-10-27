@@ -11,6 +11,7 @@ import { appMenuShortcutLabel } from '@/app/shell/menu/shortcut'
 import FontPicker from '@/components/font-picker/FontPicker.vue'
 import NumberField from '@/components/inputs/NumberField.vue'
 import SharedStyleField from '@/components/properties/shared-style/SharedStyleField.vue'
+import FontAxisField from '@/components/properties/typography/FontAxisField.vue'
 import LetterSpacingField from '@/components/properties/typography/LetterSpacingField.vue'
 import LineHeightField from '@/components/properties/typography/LineHeightField.vue'
 import VariableNumberField from '@/components/properties/VariableNumberField.vue'
@@ -140,6 +141,24 @@ function picked<T>(value: MixedValue<T>): T | '' {
             binding-path="fontSize"
             @update:model-value="ctx.actions.updateProp('fontSize', $event)"
             @commit="(v: number, p: number) => ctx.actions.commitProp('fontSize', v, p)"
+          />
+        </PanelFieldGroup>
+      </PanelGrid>
+
+      <PanelGrid
+        v-if="ctx.axes.value.length > 0"
+        :columns="2"
+        class="mb-3"
+        data-property="variable-axes"
+      >
+        <PanelFieldGroup v-for="axis in ctx.axes.value" :key="axis.tag" :label="axis.name">
+          <FontAxisField
+            :axis="axis"
+            :optical-size-auto="ctx.opticalSizeAuto.value"
+            @preview="ctx.actions.previewAxis(axis.tag, $event)"
+            @commit="ctx.actions.setAxis(axis.tag, $event)"
+            @cancel="ctx.actions.cancelAxis()"
+            @update:optical-size-auto="ctx.actions.setOpticalSizeAuto($event)"
           />
         </PanelFieldGroup>
       </PanelGrid>
@@ -371,42 +390,6 @@ function picked<T>(value: MixedValue<T>): T | '' {
             </PanelGrid>
           </div>
         </PanelFieldGroup>
-      </div>
-
-      <div
-        v-if="ctx.axes.value.length > 0"
-        class="border-t border-border pt-3"
-        data-property="variable-axes"
-      >
-        <PanelFieldGroup :label="panels.variableAxes" class="mb-3">
-          <PanelGrid :columns="2">
-            <PanelFieldGroup v-for="axis in ctx.axes.value" :key="axis.tag" :label="axis.name">
-              <NumberField
-                :model-value="axis.value"
-                :aria-label="axis.name"
-                :min="axis.min"
-                :max="axis.max"
-                :disabled="axis.tag === 'opsz' && ctx.opticalSizeAuto.value === true"
-                :data-property="`font-axis-${axis.tag}`"
-                @update:model-value="ctx.actions.previewAxis(axis.tag, $event)"
-                @cancel="ctx.actions.cancelAxis()"
-                @commit="(value: number) => ctx.actions.setAxis(axis.tag, value)"
-              />
-            </PanelFieldGroup>
-          </PanelGrid>
-        </PanelFieldGroup>
-        <label
-          v-if="ctx.axes.value.some((axis) => axis.tag === 'opsz')"
-          class="mb-3 flex items-center justify-between gap-1.5 text-[11px] text-muted"
-        >
-          <span>{{ panels.opticalSizeAuto }}</span>
-          <AppSwitch
-            :model-value="ctx.opticalSizeAuto.value === true"
-            :label="panels.opticalSizeAuto"
-            data-property="optical-size-auto"
-            @update:model-value="ctx.actions.setOpticalSizeAuto($event)"
-          />
-        </label>
       </div>
 
       <div class="grid gap-2.5 border-t border-border pt-3">

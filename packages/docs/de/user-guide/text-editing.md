@@ -40,7 +40,7 @@ Die Schriftauswahl unterstützt Suche, Vorschau, virtuelles Scrollen und das Ans
 
 ## Variable Schriften
 
-Ist die Schrift variabel, etwa Inter, zeigt der Bereich Typografie ihre Achsen (Stärke, optische Größe, Breite und weitere) mit dem Wert, in dem sie gezeichnet werden. Ein eingegebener oder gezogener Wert setzt die Achse; eine neue Stärke, Neigung oder Familie setzt die Achsen auf die des Schnitts zurück. Die optische Größe folgt der Schriftgröße, bis sie gesetzt oder **Optische Größe automatisch festlegen** ausgeschaltet wird.
+Ist die Schrift variabel, etwa Inter, zeigt der Bereich Typografie ihre Achsen (Stärke, optische Größe, Breite und weitere) mit dem Wert, in dem sie gezeichnet werden. Ein eingegebener oder gezogener Wert setzt die Achse; eine neue Stärke, Neigung oder Familie setzt die Achsen auf die des Schnitts zurück. Die optische Größe zeigt **Automatisch**, solange sie der Schriftgröße folgt; ein Wert oder **Fest** in ihrem Menü hält sie, **Automatisch** lässt sie wieder folgen.
 
 ## Schriftquellen
 

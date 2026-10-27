@@ -79,7 +79,7 @@ Change the font weight in the Typography section of the properties panel. Availa
 
 ## Variable Fonts
 
-When the text's font is variable, such as Inter, the Typography section lists its axes (weight, optical size, width, and any others the font has) with the value each is drawn at. Type or drag a value to set it; choosing a weight, slant, or family puts the axes back at that style's own. Optical size follows the font size until you set it, or until you turn off **Set optical size automatically**.
+When the text's font is variable, such as Inter, the Typography section lists its axes (weight, optical size, width, and any others the font has) with the value each is drawn at. Type or drag a value to set it; choosing a weight, slant, or family puts the axes back at that style's own. Optical size reads **Auto** while it follows the font size; set a value, or choose **Fixed** from its menu, to hold it, and **Auto** to follow the size again.
 
 ## Font Sources
 
