@@ -87,7 +87,7 @@ const ARRANGE_GROUPS = [
 ] satisfies readonly (readonly EditorCommandId[])[]
 
 function arrangeItem({ commandMenuItem, selection, t }: CanvasMenuOptions): MenuEntry[] {
-  if (!selection.canArrange.value) return []
+  if (!selection.canAutoArrange.value) return []
   const sub = ARRANGE_GROUPS.flatMap((group, index) => [
     ...(index > 0 ? [separator()] : []),
     ...group.map((command) => commandMenuItem(command))

@@ -54,8 +54,8 @@ export function useSelectionState() {
     return !!slotOwner(editor.graph, first)
   })
 
-  /** Whether the selection holds layers the arrange commands can move. */
-  const canArrange = useSceneComputed(() => editor.canArrangeNodes([...selectedIds.value]))
+  /** Whether the selection holds layers the Auto Arrange layouts take. */
+  const canAutoArrange = useSceneComputed(() => editor.canAutoArrangeNodes([...selectedIds.value]))
 
   return {
     editor,
@@ -70,6 +70,6 @@ export function useSelectionState() {
     isGroup,
     canCreateComponentSet,
     canCreateSlot,
-    canArrange
+    canAutoArrange
   }
 }

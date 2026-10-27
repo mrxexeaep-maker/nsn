@@ -326,7 +326,7 @@ export function createSelectionCommands({
       get label() {
         return t.value.arrangeSpread
       },
-      enabled: capabilities.canArrange,
+      enabled: capabilities.canAutoArrange,
       run: () => arrangeSelection({ layout: 'spread' })
     },
     'selection.arrangeCompact': {
@@ -334,7 +334,7 @@ export function createSelectionCommands({
       get label() {
         return t.value.arrangeCompact
       },
-      enabled: capabilities.canArrange,
+      enabled: capabilities.canAutoArrange,
       run: () => arrangeSelection({ layout: 'compact' })
     },
     'selection.arrangePack': {
@@ -342,7 +342,7 @@ export function createSelectionCommands({
       get label() {
         return t.value.arrangePack
       },
-      enabled: capabilities.canArrange,
+      enabled: capabilities.canAutoArrange,
       run: () => arrangeSelection({ layout: 'pack' })
     },
     'selection.arrangeFlowDown': {
@@ -350,7 +350,7 @@ export function createSelectionCommands({
       get label() {
         return t.value.arrangeFlowDown
       },
-      enabled: capabilities.canArrange,
+      enabled: capabilities.canAutoArrange,
       run: () => arrangeSelection({ layout: 'flow', direction: 'TB' })
     },
     'selection.arrangeFlowRight': {
@@ -358,7 +358,7 @@ export function createSelectionCommands({
       get label() {
         return t.value.arrangeFlowRight
       },
-      enabled: capabilities.canArrange,
+      enabled: capabilities.canAutoArrange,
       run: () => arrangeSelection({ layout: 'flow', direction: 'LR' })
     },
     'selection.arrangeTreeDown': {
@@ -366,7 +366,7 @@ export function createSelectionCommands({
       get label() {
         return t.value.arrangeTreeDown
       },
-      enabled: capabilities.canArrange,
+      enabled: capabilities.canAutoArrange,
       run: () => arrangeSelection({ layout: 'tree', direction: 'TB' })
     },
     'selection.arrangeTreeRight': {
@@ -374,7 +374,7 @@ export function createSelectionCommands({
       get label() {
         return t.value.arrangeTreeRight
       },
-      enabled: capabilities.canArrange,
+      enabled: capabilities.canAutoArrange,
       run: () => arrangeSelection({ layout: 'tree', direction: 'LR' })
     },
     'selection.arrangeRadial': {
@@ -382,7 +382,7 @@ export function createSelectionCommands({
       get label() {
         return t.value.arrangeRadial
       },
-      enabled: capabilities.canArrange,
+      enabled: capabilities.canAutoArrange,
       run: () => arrangeSelection({ layout: 'radial' })
     },
     'selection.arrangeNetwork': {
@@ -390,7 +390,7 @@ export function createSelectionCommands({
       get label() {
         return t.value.arrangeNetwork
       },
-      enabled: capabilities.canArrange,
+      enabled: capabilities.canAutoArrange,
       run: () => arrangeSelection({ layout: 'network' })
     },
     'selection.booleanUnion': {

@@ -265,7 +265,7 @@ export function createAlignmentActions(ctx: EditorContext) {
     ctx.requestRender()
   }
 
-  /** Whether layers can be tidied, packed, or arranged: two or more that can move freely. */
+  /** Whether layers can be tidied or packed: two or more that can move freely. */
   function canArrangeNodes(nodeIds: string[]): boolean {
     return positionableNodes(nodeIds) !== null
   }
@@ -315,12 +315,18 @@ export function createAlignmentActions(ctx: EditorContext) {
   }
 
   const { flipNodes, rotateNodes } = createFlipRotateActions(ctx)
-  const { arrangeNodes } = createArrangeActions(ctx)
+  const arrange = createArrangeActions(ctx)
+
+  /** Whether ELK's layouts take these layers: ones that can be tidied, sharing a parent. */
+  function canAutoArrangeNodes(nodeIds: string[]): boolean {
+    return canArrangeNodes(nodeIds) && arrange.canAutoArrangeNodes(nodeIds)
+  }
 
   return {
     alignNodes,
-    arrangeNodes,
+    arrangeNodes: arrange.arrangeNodes,
     canArrangeNodes,
+    canAutoArrangeNodes,
     canDistributeNodes,
     distributeNodes,
     selectionSpacing,

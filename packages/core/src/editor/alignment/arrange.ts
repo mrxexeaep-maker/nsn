@@ -6,6 +6,7 @@ import {
 import type { EditorContext } from '#core/editor/types'
 import {
   arrangeLayers,
+  arrangeProblem,
   type ArrangeLayersOptions,
   type LayerArrangement
 } from '#core/layout/arrange/layers'
@@ -13,28 +14,36 @@ import {
 export function createArrangeActions(ctx: EditorContext) {
   /**
    * Arranges layers with one of ELK's layouts, along the connectors joining them, as one undo
-   * step that also covers the sections it resizes and the connectors it reroutes. Rejects, having
-   * moved nothing, when the layers cannot be arranged together or change while the layout runs.
+   * step that also covers the sections it resizes and the connectors it reroutes. Only the moves
+   * made once the layout has finished are recorded, so edits made while it runs stay their own.
+   * Rejects, having moved nothing, when the layers cannot be arranged together or change while
+   * the layout runs.
    */
   async function arrangeNodes(
     nodeIds: string[],
     options: ArrangeLayersOptions
   ): Promise<LayerArrangement> {
-    const finish = captureDocumentChange(ctx.graph, ctx.state.currentPageId)
     try {
-      return await arrangeLayers(ctx.graph, nodeIds, options)
-    } finally {
-      const change = finish()
-      if (!isEmptyDocumentChange(change)) {
+      return await arrangeLayers(ctx.graph, nodeIds, options, (apply) => {
+        const finish = captureDocumentChange(ctx.graph, ctx.state.currentPageId)
+        apply()
+        const change = finish()
+        if (isEmptyDocumentChange(change)) return
         ctx.undo.push({
           label: 'Arrange',
           forward: () => restoreDocumentChange(ctx, change, 'after'),
           inverse: () => restoreDocumentChange(ctx, change, 'before')
         })
-      }
+      })
+    } finally {
       ctx.requestRender()
     }
   }
 
-  return { arrangeNodes }
+  /** Whether ELK's layouts take these layers: they must share a parent, but for chosen sections. */
+  function canAutoArrangeNodes(nodeIds: string[]): boolean {
+    return arrangeProblem(ctx.graph, nodeIds, 'spread') === null
+  }
+
+  return { arrangeNodes, canAutoArrangeNodes }
 }

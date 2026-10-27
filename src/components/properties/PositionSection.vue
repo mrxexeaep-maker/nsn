@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useSelectionState } from '@open-pencil/vue/editor/selection-state'
+import { useEditorCommands } from '@open-pencil/vue/editor/commands'
 import { useI18n } from '@open-pencil/vue/i18n'
 import { PositionControlsRoot } from '@open-pencil/vue/primitives/PositionControls'
 
@@ -13,7 +13,8 @@ import PanelSection from '@/components/ui/panel/PanelSection.vue'
 
 const { panels } = useI18n()
 const store = useEditorStore()
-const { canArrange } = useSelectionState()
+const { getCommand } = useEditorCommands()
+const canTidy = getCommand('selection.tidyUp').enabled
 
 function handleAlign(
   nodeAlign: (axis: 'horizontal' | 'vertical', pos: 'min' | 'center' | 'max') => void,
@@ -98,7 +99,7 @@ function handleAlign(
           >
             <icon-lucide-align-end-horizontal class="size-3.5" />
           </IconButton>
-          <AlignmentActionsMenu v-if="canArrange" />
+          <AlignmentActionsMenu v-if="canTidy" />
         </div>
       </div>
 

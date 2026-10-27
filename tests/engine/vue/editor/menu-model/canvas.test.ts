@@ -16,7 +16,7 @@ function selection(overrides: Partial<CanvasMenuOptions['selection']> = {}) {
     isIcon: ref(false),
     canCreateComponentSet: ref(false),
     canCreateSlot: ref(false),
-    canArrange: ref(false),
+    canAutoArrange: ref(false),
     ...overrides
   } as CanvasMenuOptions['selection']
 }
@@ -89,7 +89,7 @@ describe('buildCanvasContextMenu', () => {
 
   test('offers Auto arrange for layers that can be arranged', () => {
     const menu = buildCanvasContextMenu(
-      options({ selection: selection({ canArrange: computed(() => true) }) })
+      options({ selection: selection({ canAutoArrange: computed(() => true) }) })
     )
     const arrange = menu.at(-1)
     expect(arrange && !arrange.separator ? arrange.label : undefined).toBe('Auto arrange')
