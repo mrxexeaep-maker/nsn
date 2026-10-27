@@ -373,6 +373,41 @@ function picked<T>(value: MixedValue<T>): T | '' {
         </PanelFieldGroup>
       </div>
 
+      <div
+        v-if="ctx.axes.value.length > 0"
+        class="border-t border-border pt-3"
+        data-property="variable-axes"
+      >
+        <PanelFieldGroup :label="panels.variableAxes" class="mb-3">
+          <PanelGrid :columns="2">
+            <PanelFieldGroup v-for="axis in ctx.axes.value" :key="axis.tag" :label="axis.name">
+              <NumberField
+                :model-value="axis.value"
+                :aria-label="axis.name"
+                :min="axis.min"
+                :max="axis.max"
+                :disabled="axis.tag === 'opsz' && ctx.opticalSizeAuto.value === true"
+                :data-property="`font-axis-${axis.tag}`"
+                @update:model-value="ctx.actions.previewAxis(axis.tag, $event)"
+                @commit="(value: number) => ctx.actions.setAxis(axis.tag, value)"
+              />
+            </PanelFieldGroup>
+          </PanelGrid>
+        </PanelFieldGroup>
+        <label
+          v-if="ctx.axes.value.some((axis) => axis.tag === 'opsz')"
+          class="mb-3 flex items-center justify-between gap-1.5 text-[11px] text-muted"
+        >
+          <span>{{ panels.opticalSizeAuto }}</span>
+          <AppSwitch
+            :model-value="ctx.opticalSizeAuto.value === true"
+            :label="panels.opticalSizeAuto"
+            data-property="optical-size-auto"
+            @update:model-value="ctx.actions.setOpticalSizeAuto($event)"
+          />
+        </label>
+      </div>
+
       <div class="grid gap-2.5 border-t border-border pt-3">
         <label
           v-for="feature in commonFeatures"

@@ -72,6 +72,10 @@ Otwórz wybór czcionki w sekcji „Typografia”.
 
 Dostępne odmiany zależą od rodziny, na przykład Regular, Medium, Bold i Black.
 
+## Czcionki zmienne
+
+Gdy czcionka jest zmienna, na przykład Inter, sekcja Typografia pokazuje jej osie (grubość, rozmiar optyczny, szerokość i inne) z wartością, w jakiej są rysowane. Wpisana lub przeciągnięta wartość ustawia oś; wybór odmiany lub rodziny przywraca osie tej odmiany. Rozmiar optyczny podąża za rozmiarem czcionki, dopóki go nie ustawisz lub nie wyłączysz **Ustawiaj rozmiar optyczny automatycznie**.
+
 ## Źródła czcionek
 
 - **Domyślnie:** Inter jest ładowany automatycznie.

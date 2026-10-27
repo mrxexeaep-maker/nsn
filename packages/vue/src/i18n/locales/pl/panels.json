@@ -59,6 +59,8 @@
   "openTypeFeatures": "Funkcje czcionki",
   "standardLigatures": "Ligatury standardowe",
   "contextualAlternates": "Alternatywy kontekstowe",
+  "variableAxes": "Osie zmienne",
+  "opticalSizeAuto": "Ustawiaj rozmiar optyczny automatycznie",
   "kerning": "Kerning",
   "textFormatting": "Formatowanie tekstu",
   "pageBackground": "Tło strony",

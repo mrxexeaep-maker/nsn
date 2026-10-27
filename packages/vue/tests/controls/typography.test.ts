@@ -7,6 +7,7 @@ import { DEFAULT_WEB_FONT_PROVIDER_SETTINGS, fontManager } from '@open-pencil/co
 import type { SceneNode } from '@open-pencil/scene-graph'
 
 import { createTypographyActions } from '#vue/controls/typography/actions'
+import { createTypographyAxes } from '#vue/controls/typography/axes'
 import { useFamilyFaces } from '#vue/controls/typography/faces'
 
 // The faces Figma lists for these families (desktop 126), given as installed fonts so no test
@@ -180,4 +181,77 @@ test('the weight list follows a font catalog that arrives after the first lookup
   expect(weights.value.map((weight) => weight.value)).toEqual([400, 700])
   stop()
   fontManager.setHostFontCatalog(CATALOG)
+})
+
+/** A text layer in the bundled variable Inter, which has weight and optical size axes. */
+async function variableText(fontSize = 24) {
+  await fontManager.loadFont('Inter', 'Regular')
+  const editor = createEditor()
+  const text = editor.graph.createNode('TEXT', editor.state.currentPageId, {
+    text: 'a',
+    fontFamily: 'Inter',
+    fontSize
+  })
+  const scope = effectScope()
+  const axes = scope.run(() => createTypographyAxes(editor, computed(() => [text])))
+  if (!axes) throw new Error('Expected the axes')
+  return { editor, text, axes, stop: () => scope.stop() }
+}
+
+test('lists the variable font’s axes at the values the text is drawn at', async () => {
+  const { axes, stop } = await variableText()
+  const values = Object.fromEntries(axes.axes.value.map((axis) => [axis.tag, axis.value]))
+  // Regular is weight 400, and the optical size follows the font size.
+  expect(values).toMatchObject({ wght: 400, opsz: 24 })
+  expect(axes.opticalSizeAuto.value).toBe(true)
+  stop()
+})
+
+test('an axis set by hand is one undo step, and an optical size set by hand stops following', async () => {
+  const { editor, text, axes, stop } = await variableText()
+  axes.previewAxis('wght', 520)
+  axes.previewAxis('wght', 560)
+  axes.setAxis('wght', 560)
+  axes.setAxis('opsz', 16)
+  expect(text.fontVariations).toEqual([
+    { axis: 'wght', value: 560 },
+    { axis: 'opsz', value: 16 }
+  ])
+  expect(text.opticalSizeFromFontSize).toBe(false)
+  editor.undo.undo()
+  editor.undo.undo()
+  expect(text.fontVariations).toEqual([])
+  expect(text.opticalSizeFromFontSize).toBe(true)
+  stop()
+})
+
+test('turning automatic optical size off holds the size it is drawn at', async () => {
+  const { text, axes, stop } = await variableText(20)
+  axes.setOpticalSizeAuto(false)
+  expect(text.fontVariations).toEqual([{ axis: 'opsz', value: 20 }])
+  axes.setOpticalSizeAuto(true)
+  expect(text.fontVariations).toEqual([])
+  stop()
+})
+
+test('a named weight draws at its own axes, keeping an optical size set by hand', async () => {
+  const { editor, text, stop } = await variableText()
+  editor.graph.updateNode(text.id, {
+    fontVariations: [
+      { axis: 'wght', value: 560 },
+      { axis: 'opsz', value: 16 }
+    ],
+    opticalSizeFromFontSize: false
+  })
+  const actions = createTypographyActions({
+    editor,
+    nodes: computed(() => [text]),
+    activeFormatting: computed(() => []),
+    supports: () => true,
+    options: {}
+  })
+  await actions.setWeight(700)
+  expect(text.fontWeight).toBe(700)
+  expect(text.fontVariations).toEqual([{ axis: 'opsz', value: 16 }])
+  stop()
 })

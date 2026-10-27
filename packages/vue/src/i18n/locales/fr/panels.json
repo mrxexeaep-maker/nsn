@@ -59,6 +59,8 @@
   "openTypeFeatures": "Propriétés de police",
   "standardLigatures": "Ligatures standard",
   "contextualAlternates": "Variantes contextuelles",
+  "variableAxes": "Axes variables",
+  "opticalSizeAuto": "Définir la taille optique automatiquement",
   "kerning": "Crénage",
   "textFormatting": "Mise en forme du texte",
   "pageBackground": "Arrière-plan de la page",

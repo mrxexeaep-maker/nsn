@@ -20,6 +20,7 @@ import {
   paragraphSpacingOf
 } from '#vue/canvas/text-edit/paragraphs'
 import { MIXED, type MixedValue } from '#vue/controls/node-props/use'
+import { styleFontVariations } from '#vue/controls/typography/axes'
 import { useFamilyFaces } from '#vue/controls/typography/faces'
 import type { UseTypographyOptions } from '#vue/controls/typography/use'
 import { selectedNodesAsShown } from '#vue/editor/selection-state/nodes'
@@ -208,7 +209,12 @@ export function createTypographyActions({
         const fontWeight = face?.weight ?? target.fontWeight
         const italic = face?.italic ?? target.italic
         await options.fontLoader?.load(family, weightToStyle(fontWeight, italic))
-        return { fontFamily: family, fontWeight, italic }
+        return {
+          fontFamily: family,
+          fontWeight,
+          italic,
+          fontVariations: styleFontVariations(target)
+        }
       }
     )
   }
@@ -220,7 +226,7 @@ export function createTypographyActions({
       ['fontWeight'],
       async (target) => {
         await options.fontLoader?.load(target.fontFamily, weightToStyle(weight, target.italic))
-        return { fontWeight: weight }
+        return { fontWeight: weight, fontVariations: styleFontVariations(target) }
       },
       targets
     )
@@ -340,7 +346,7 @@ export function createTypographyActions({
       ['italic'],
       async (target) => {
         await options.fontLoader?.load(target.fontFamily, weightToStyle(target.fontWeight, italic))
-        return { italic }
+        return { italic, fontVariations: styleFontVariations(target) }
       },
       nodes.value.filter((target) => supports(target, target.fontWeight, italic))
     )
