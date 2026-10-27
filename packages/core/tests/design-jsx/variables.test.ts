@@ -224,6 +224,45 @@ return <Frame name="Card" flex="col" mode={roomy} p={space.Base} />`
     expect(exported).toContain('pt={4} pr={space.M} pb={space.L} pl={space.M}')
     expect(exported).not.toContain('bind=')
   })
+
+  test('writes a binding in bind where its prop would change the layer it renders', async () => {
+    const graph = new SceneGraph()
+    const [row] = await renderJSX(
+      graph,
+      `const s = defineVars("Space", { M: 8 })
+return <Frame name="Row" flex="row" w={200} h={50} p={s.M}>
+  <Frame name="Bar" w={20} h="fill" />
+  <Frame name="Card" rounded={8} w={40} h={40} />
+</Frame>`
+    )
+    const m = expectDefined(collectionNamed(graph, 'Space').variableIds[0])
+    const child = (name: string) =>
+      expectDefined(graph.getChildren(row.id).find((node) => node.name === name))
+    graph.bindVariable(child('Bar').id, 'height', m)
+    graph.bindVariable(child('Card').id, 'topLeftRadius', m)
+    const [loose] = await renderJSX(graph, '<Frame name="Loose" w={40} h={40} />')
+    graph.updateNode(loose.id, { paddingLeft: 8 })
+    graph.bindVariable(loose.id, 'paddingLeft', m)
+
+    const exported = sceneNodeToJSX(row.id, graph)
+    // The bar keeps filling the row, and the card's other corners keep their radius.
+    expect(exported).toContain('w={20} h="fill" bind={{ height: space.M }}')
+    expect(exported).toContain('roundedTL={space.M} roundedTR={8} roundedBR={8} roundedBL={8}')
+    // A padding prop would give the frame auto layout.
+    expect(sceneNodeToJSX(loose.id, graph)).toContain('bind={{ paddingLeft: space.M }}')
+
+    const [copy] = await renderJSX(graph, exported)
+    const bar = expectDefined(graph.getChildren(copy.id).find((node) => node.name === 'Bar'))
+    expect(bar.height).toBe(child('Bar').height)
+    const card = expectDefined(graph.getChildren(copy.id).find((node) => node.name === 'Card'))
+    expect(pick(card, ['topLeftRadius', 'topRightRadius', 'bottomRightRadius'])).toEqual({
+      topLeftRadius: 8,
+      topRightRadius: 8,
+      bottomRightRadius: 8
+    })
+    const [looseCopy] = await renderJSX(graph, sceneNodeToJSX(loose.id, graph))
+    expect(graph.getNode(looseCopy.id)?.layoutMode).toBe('NONE')
+  })
 })
 
 test('artwork drawn in a variable binds its paths and resolves in its own mode', async () => {

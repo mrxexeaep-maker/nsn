@@ -14,6 +14,8 @@ import type { VariableExport } from './variables'
 
 /** Sizes are not added when the export left them out, as a fixed size would replace Hug or Fill. */
 const NOT_ADDED = new Set(['width', 'height'])
+/** The corner props, which make the corners independent wherever one of them is written. */
+const CORNER_PROPS = ['roundedTL', 'roundedTR', 'roundedBR', 'roundedBL']
 
 function bindingContext(node: SceneNode): BindingContext {
   return {
@@ -27,15 +29,19 @@ function bindingContext(node: SceneNode): BindingContext {
  * The prop `field` is written through on `node`: one the export printed that sets that field
  * alone, or else the last number prop that does, as rendering reads it, or none, when only
  * `bind` can set it. A paint prop is printed only for a single solid paint, which a colour
- * variable can stand for.
+ * variable can stand for; a number prop printed as a word, such as `w="fill"`, keeps it.
  */
 function fieldProp(node: SceneNode, field: string, props: JSXProp[]) {
   const context = bindingContext(node)
   const sets = ({ fields }: BoundProp) => fields.length === 1 && fields[0] === field
   const scalar = scalarProps(context).filter(sets)
-  const printed = [...scalar, ...paintProps(context).filter(sets)].find(({ prop }) =>
-    props.some(([name]) => name === prop)
-  )
+  const printedAs = (prop: string, numeric: boolean) =>
+    props.some(([name, value]) => name === prop && (!numeric || typeof value === 'number'))
+  const printed =
+    scalar.find(({ prop }) => printedAs(prop, true)) ??
+    paintProps(context)
+      .filter(sets)
+      .find(({ prop }) => printedAs(prop, false))
   if (printed) return { prop: printed.prop, add: false }
   const last = scalar.at(-1)
   return last && !NOT_ADDED.has(field) ? { prop: last.prop, add: true } : undefined
@@ -89,8 +95,31 @@ function writePadding(
 }
 
 /**
+ * Write corners printed together as `rounded` one by one when a corner is bound, since the
+ * bound corner's own prop makes the corners independent and the others would then be 0.
+ */
+function expandCorners(
+  node: SceneNode,
+  props: JSXProp[],
+  remaining: Map<string, string>,
+  named: (variableId: string) => boolean
+): void {
+  const corners = new Set(
+    scalarProps(bindingContext(node))
+      .filter(({ prop }) => CORNER_PROPS.includes(prop))
+      .flatMap(({ fields }) => fields)
+  )
+  const bound = [...remaining].some(([field, id]) => corners.has(field) && named(id))
+  const index = props.findIndex(([prop]) => prop === 'rounded')
+  if (!bound || index === -1) return
+  const [, radius] = props[index]
+  props.splice(index, 1, ...CORNER_PROPS.map((prop): JSXProp => [prop, radius]))
+}
+
+/**
  * Write the variables `node` binds through the props that set those fields, such as
- * `bg={theme.Surface}` and `p={density.Pad}`, and the rest in `bind`.
+ * `bg={theme.Surface}` and `p={density.Pad}`, and the rest in `bind`. Padding stays in `bind`
+ * on a layer without auto layout, where a padding prop would turn it on.
  */
 export function collectBindingProps(
   node: SceneNode,
@@ -100,9 +129,11 @@ export function collectBindingProps(
   const remaining = new Map(Object.entries(node.boundVariables))
   // A variable only `bind` can name, by its ID, is not written in a prop, which reads a string.
   const named = (variableId: string) => typeof variables.variable(variableId) !== 'string'
-  writePadding(node, props, remaining, variables, named)
+  const laidOut = node.layoutMode !== 'NONE'
+  if (laidOut) writePadding(node, props, remaining, variables, named)
+  expandCorners(node, props, remaining, named)
   for (const [field, variableId] of remaining) {
-    if (!named(variableId)) continue
+    if (!named(variableId) || (!laidOut && PADDING_FIELDS.includes(field))) continue
     const target = fieldProp(node, field, props)
     if (target && setProp(props, target.prop, variables.variable(variableId), target.add))
       remaining.delete(field)
