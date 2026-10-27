@@ -1,0 +1,1 @@
+- AI and MCP agents lay out shapes and connectors they drew by hand with `arrange_diagram`, which places them along their connectors so nothing overlaps and reroutes the connectors between them.
