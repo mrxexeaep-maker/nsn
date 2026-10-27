@@ -35,4 +35,4 @@ Los estilos parciales se guardan como intervalos y participan en deshacer y reha
 
 OpenPencil detecta fuentes del sistema cuando el entorno lo permite. Si falta una fuente, muestra su estado y usa una alternativa hasta que esté disponible.
 
-Cuando la fuente es variable, como Inter, la sección Tipografía muestra sus ejes (grosor, tamaño óptico, anchura y otros) con el valor con que se dibuja cada uno; elegir un grosor o una familia los devuelve a los del estilo. El tamaño óptico sigue al tamaño de fuente hasta que se fija a mano o se desactiva **Ajustar el tamaño óptico automáticamente**.
+Cuando la fuente es variable, como Inter, la sección Tipografía muestra sus ejes (grosor, tamaño óptico, anchura y otros) con el valor con que se dibuja cada uno; elegir un grosor, una inclinación o una familia los devuelve a los del estilo. El tamaño óptico sigue al tamaño de fuente hasta que se fija a mano o se desactiva **Ajustar el tamaño óptico automáticamente**.
