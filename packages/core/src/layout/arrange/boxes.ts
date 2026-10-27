@@ -26,12 +26,11 @@ export type ArrangeDirection = 'TB' | 'BT' | 'LR' | 'RL'
 export interface ArrangeMember {
   id: string
   group?: string
-}
-
-export interface ArrangeBox extends ArrangeMember, Size {
   /** Where it is now, in the arrangement's axes, which `spread` and `compact` start from. */
   position?: Vector
 }
+
+export interface ArrangeBox extends ArrangeMember, Size {}
 
 /** A box around boxes and other groups, sized to hold them. */
 export type ArrangeGroup = ArrangeMember
@@ -198,6 +197,7 @@ function elkGraph(input: ArrangeInput): ElkNode {
   for (const group of input.groups) {
     elk.set(group.id, {
       id: group.id,
+      ...group.position,
       children: [],
       edges: [],
       layoutOptions: flow ? { ...options, 'elk.portConstraints': 'FIXED_SIDE' } : options,

@@ -1,3 +1,5 @@
+import { uniq } from 'es-toolkit'
+
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 import { connectorsAffectedBy, layoutConnector } from '@open-pencil/scene-graph/connectors'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
@@ -53,6 +55,27 @@ function groupsAmong(graph: SceneGraph, chosen: Set<string>): Set<string> {
     if (children.length > 0 && children.every((child) => chosen.has(child.id))) groups.add(id)
   }
   return groups
+}
+
+/**
+ * Whether a chosen layer sits inside another chosen layer that moves as one box, rather than one
+ * laid out around its children, and so moves with it.
+ */
+function movesWithAncestor(
+  graph: SceneGraph,
+  node: SceneNode,
+  given: SceneNode[],
+  groups: Set<string>
+): boolean {
+  const ids = new Set(given.map((candidate) => candidate.id))
+  for (
+    let ancestor = node.parentId ? graph.getNode(node.parentId) : undefined;
+    ancestor;
+    ancestor = ancestor.parentId ? graph.getNode(ancestor.parentId) : undefined
+  ) {
+    if (ids.has(ancestor.id) && !groups.has(ancestor.id)) return true
+  }
+  return false
 }
 
 /** The chosen layer a connector end joins: the layer itself, or the nearest chosen ancestor. */
@@ -122,12 +145,15 @@ export async function arrangeLayers(
   ids: string[],
   options: ArrangeLayersOptions
 ): Promise<LayerArrangement> {
-  const nodes = ids
+  const given = uniq(ids)
     .map((id) => graph.getNode(id))
     .filter(
       (node): node is SceneNode =>
         node !== undefined && node.type !== 'CONNECTOR' && node.type !== 'CANVAS'
     )
+  const groups = groupsAmong(graph, new Set(given.map((node) => node.id)))
+  // A layer inside another chosen layer that is not laid out around it moves with that layer.
+  const nodes = given.filter((node) => !movesWithAncestor(graph, node, given, groups))
   const chosen = new Set(nodes.map((node) => node.id))
   const relayout = () => {
     const moved = connectorsAffectedBy(graph, chosen)
@@ -138,11 +164,14 @@ export async function arrangeLayers(
     return moved.length
   }
   if (options.layout === 'grid' || options.layout === 'row' || options.layout === 'column') {
+    // These place layers in their parents' axes, so the layers must share one.
+    if (new Set(nodes.map((node) => node.parentId)).size > 1) {
+      throw new Error('Layers to place in a grid, row, or column must share a parent')
+    }
     line(nodes, graph, options)
     return { layers: nodes.length, groups: 0, connectors: relayout() }
   }
 
-  const groups = groupsAmong(graph, chosen)
   const inGroup = (node: SceneNode) => node.parentId !== null && groups.has(node.parentId)
   const top = nodes.filter((node) => !inGroup(node))
   if (new Set(top.map((node) => node.parentId)).size > 1) {
@@ -174,7 +203,7 @@ export async function arrangeLayers(
       })),
     groups: nodes
       .filter((node) => groups.has(node.id))
-      .map((node) => ({ id: node.id, group: groupOf(node) })),
+      .map((node) => ({ id: node.id, position: position(node), group: groupOf(node) })),
     edges
   }
   const topLeft = {

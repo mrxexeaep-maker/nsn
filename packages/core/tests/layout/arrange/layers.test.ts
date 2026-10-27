@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import { expectDefined } from '#core-tests/helpers/assert'
 
 import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
-import { boundEndpoint, createConnector } from '@open-pencil/scene-graph/connectors'
+import { boundEndpoint, connectorRoute, createConnector } from '@open-pencil/scene-graph/connectors'
 import type { Rect } from '@open-pencil/scene-graph/primitives'
 
 import { arrangeLayers } from '#core/layout/arrange/layers'
@@ -165,5 +165,78 @@ describe('arrangeLayers', () => {
       [230, 100],
       [100, 160]
     ])
+  })
+
+  test('bends a page connector between layers inside a frame where the layers are', async () => {
+    const { graph, pageId, box, join } = pile()
+    const frame = graph.createNode('FRAME', pageId, { x: 500, y: 300, width: 900, height: 600 })
+    const [a, b, c] = [box('A', frame.id), box('B', frame.id), box('C', frame.id)]
+    const connectors = [join(a, b), join(a, c)]
+
+    await arrangeLayers(graph, [a.id, b.id, c.id], { layout: 'flow' })
+
+    const world = (layer: SceneNode) => {
+      const placed = node(graph, layer.id)
+      return { ...placed, x: placed.x + 500, y: placed.y + 300 }
+    }
+    const top = world(a)
+    for (const [connector, target] of [
+      [connectors[0], b],
+      [connectors[1], c]
+    ] as const) {
+      const route = expectDefined(connectorRoute(graph, node(graph, connector.id)))
+      const bottom = world(target)
+      // Every bend lies between the source's bottom and the target's top, in page axes.
+      for (const piece of route.pieces.slice(1)) {
+        expect(piece.from.y).toBeGreaterThan(top.y + top.height)
+        expect(piece.from.y).toBeLessThan(bottom.y)
+      }
+    }
+  })
+
+  test('counts a layer given twice once', async () => {
+    const { graph, box, join } = pile()
+    const [a, b] = [box('A'), box('B')]
+    join(a, b)
+    expect(await arrangeLayers(graph, [a.id, a.id, b.id], { layout: 'flow' })).toMatchObject({
+      layers: 2
+    })
+  })
+
+  test('moves a chosen layer with a chosen section that is not laid out around it', async () => {
+    const { graph, pageId, box, join } = pile()
+    const start = box('Start')
+    const section = graph.createNode('SECTION', pageId, { x: 600, y: 600, width: 400, height: 300 })
+    const [one] = [box('One', section.id), box('Two', section.id)]
+    join(start, section)
+
+    expect(
+      await arrangeLayers(graph, [start.id, section.id, one.id], { layout: 'flow' })
+    ).toMatchObject({ layers: 2, groups: 0 })
+    expect(node(graph, one.id)).toMatchObject({ x: 100, y: 100 })
+  })
+
+  test('places grid, row, and column layers only within one parent', async () => {
+    const { graph, pageId, box } = pile()
+    const frame = graph.createNode('FRAME', pageId, { x: 500, y: 0, width: 300, height: 200 })
+    await expect(
+      arrangeLayers(graph, [box('Page').id, box('Framed', frame.id).id], { layout: 'row' })
+    ).rejects.toThrow('must share a parent')
+  })
+
+  test('spread starts a section from where it is, like the layers beside it', async () => {
+    const { graph, pageId, box } = pile()
+    const near = box('Near')
+    const section = graph.createNode('SECTION', pageId, {
+      x: 1500,
+      y: 100,
+      width: 300,
+      height: 200
+    })
+    const inside = box('Inside', section.id)
+
+    await arrangeLayers(graph, [near.id, section.id, inside.id], { layout: 'spread' })
+
+    expect(node(graph, section.id).x - node(graph, near.id).x).toBeGreaterThan(1000)
   })
 })

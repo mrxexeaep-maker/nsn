@@ -1,5 +1,7 @@
 import type { SceneGraph } from '@open-pencil/scene-graph'
 import { boundEndpoint, layoutConnector } from '@open-pencil/scene-graph/connectors'
+import { getParentWorldMatrix } from '@open-pencil/scene-graph/coordinate'
+import Matrix from '@open-pencil/scene-graph/matrix'
 import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
 
 import type { ArrangeInput, ArrangedRoute, Arrangement } from './boxes'
@@ -29,7 +31,7 @@ function bounds(boxes: Rect[]): Rect {
 
 /**
  * Joins a connector to the layers at its edge's ends by the sides the route takes: an elbow runs
- * along the route, moved by `shift` into the parent's axes, a curve bends between those sides,
+ * along the route, which `place` carries into the connector's parent's axes, a curve bends between those sides,
  * and a straight line keeps its ends.
  */
 function joinConnector(
@@ -37,7 +39,7 @@ function joinConnector(
   connectorId: string,
   [start, end]: [string, string],
   route: ArrangedRoute | undefined,
-  shift: Vector
+  place: (point: Vector) => Vector
 ): void {
   const connector = graph.getNode(connectorId)
   if (!connector) return
@@ -56,11 +58,7 @@ function joinConnector(
     if (curve) layoutConnector(graph, curve)
     return
   }
-  runConnectorAlong(
-    graph,
-    connectorId,
-    (route?.points ?? []).map((point) => ({ x: point.x + shift.x, y: point.y + shift.y }))
-  )
+  runConnectorAlong(graph, connectorId, (route?.points ?? []).map(place))
 }
 
 /**
@@ -91,6 +89,10 @@ export function applyArrangement(
   const groupOf = new Map(
     [...input.boxes, ...input.groups].map((member) => [member.id, member.group])
   )
+  // The layer the arrangement's top-level layers share.
+  const topLayer = [...layers.boxes].find(([id]) => groupOf.get(id) === undefined)?.[1]
+  const parentId = topLayer ? graph.getNode(topLayer)?.parentId : null
+  const parent = parentId ? graph.getNode(parentId) : undefined
   for (const [id, layerId] of layers.boxes) {
     const box = boxes.get(id)
     if (!box) continue
@@ -111,6 +113,15 @@ export function applyArrangement(
     const start = layers.boxes.get(edge.from)
     const end = layers.boxes.get(edge.to)
     if (!connectorId || !start || !end) continue
-    joinConnector(graph, connectorId, [start, end], arrangement.edges.get(edge.id), shift)
+    // The route is in the arrangement's parent's axes; the connector may live in another layer.
+    const connector = graph.getNode(connectorId)
+    const into = Matrix.multiply(
+      Matrix.invert(getParentWorldMatrix(graph.getNode(connector?.parentId ?? ''), graph)) ??
+        Matrix.identity(),
+      getParentWorldMatrix(parent, graph)
+    )
+    const place = (point: Vector) =>
+      Matrix.mapPoint(into, { x: point.x + shift.x, y: point.y + shift.y })
+    joinConnector(graph, connectorId, [start, end], arrangement.edges.get(edge.id), place)
   }
 }
