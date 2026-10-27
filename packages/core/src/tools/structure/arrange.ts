@@ -46,11 +46,15 @@ Connectors between the layers are found automatically. Include a section and all
     direction: v.optional(
       v.pipe(
         v.picklist(['TB', 'BT', 'LR', 'RL']),
-        v.description('Direction of a flow or tree: top to bottom (default), bottom to top, left to right, right to left')
+        v.description(
+          'Direction of a flow or tree: top to bottom (default), bottom to top, left to right, right to left'
+        )
       )
     ),
     gap: v.optional(
-      toolNumber(v.pipe(v.number(), v.minValue(0), v.description('Spacing between layers (default: 40)')))
+      toolNumber(
+        v.pipe(v.number(), v.minValue(0), v.description('Spacing between layers (default: 40)'))
+      )
     ),
     cols: v.optional(
       toolNumber(
