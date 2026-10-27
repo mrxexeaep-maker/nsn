@@ -6,7 +6,9 @@ import { computeAbsoluteBounds } from '@open-pencil/scene-graph/geometry'
 import Matrix from '@open-pencil/scene-graph/matrix'
 import type { Vector } from '@open-pencil/scene-graph/primitives'
 
+import { createArrangeActions } from '#core/editor/alignment/arrange'
 import { createFlipRotateActions } from '#core/editor/alignment/flip-rotate'
+import { packPositions, tidyPositions, type PlacedBox } from '#core/editor/alignment/tidy'
 
 import { collectNodePositions, commitPositionChange } from './history/position'
 import type { EditorContext } from './types'
@@ -263,15 +265,69 @@ export function createAlignmentActions(ctx: EditorContext) {
     ctx.requestRender()
   }
 
+  /** Whether layers can be tidied, packed, or arranged: two or more that can move freely. */
+  function canArrangeNodes(nodeIds: string[]): boolean {
+    return positionableNodes(nodeIds) !== null
+  }
+
+  /** Moves each layer so its box on the page starts where `plan` puts it, as one undo step. */
+  function placeBoxes(
+    nodeIds: string[],
+    label: string,
+    plan: (boxes: PlacedBox[]) => Map<string, Vector>
+  ) {
+    const nodes = positionableNodes(nodeIds)
+    if (!nodes) return
+    const boxes = nodes.map((node) => {
+      const bounds = getAbsolutePositionFull(node, ctx.graph)
+      return {
+        id: node.id,
+        x: bounds.boundX,
+        y: bounds.boundY,
+        width: bounds.width,
+        height: bounds.height
+      }
+    })
+    const targets = plan(boxes)
+    const originals = collectNodePositions(
+      ctx,
+      nodes.map((node) => node.id)
+    )
+    for (const [index, node] of nodes.entries()) {
+      const box = boxes[index]
+      const target = targets.get(node.id)
+      if (!target) continue
+      const delta = parentLocalDelta(ctx, node, { x: target.x - box.x, y: target.y - box.y })
+      if (delta) ctx.graph.updateNode(node.id, { x: node.x + delta.x, y: node.y + delta.y })
+    }
+    commitPositionChange(ctx, label, originals)
+    ctx.requestRender()
+  }
+
+  /** Figma's Tidy Up: lines layers up in rows and columns with even spacing. */
+  function tidyNodes(nodeIds: string[]) {
+    placeBoxes(nodeIds, 'Tidy up', tidyPositions)
+  }
+
+  /** Figma's Pack Horizontal and Pack Vertical: layers edge to edge, with no gap. */
+  function packNodes(nodeIds: string[], axis: Axis) {
+    placeBoxes(nodeIds, 'Pack', (boxes) => packPositions(boxes, axis))
+  }
+
   const { flipNodes, rotateNodes } = createFlipRotateActions(ctx)
+  const { arrangeNodes } = createArrangeActions(ctx)
 
   return {
     alignNodes,
+    arrangeNodes,
+    canArrangeNodes,
     canDistributeNodes,
     distributeNodes,
     selectionSpacing,
     setSelectionSpacing,
     flipNodes,
-    rotateNodes
+    packNodes,
+    rotateNodes,
+    tidyNodes
   }
 }
