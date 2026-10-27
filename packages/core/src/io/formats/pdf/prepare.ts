@@ -1,3 +1,5 @@
+import { uniq } from 'es-toolkit'
+
 import type { ShapedTextGlyph } from '@open-pencil/fig/node-change'
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 
@@ -9,25 +11,45 @@ import type { SVGCharacterEdges, SVGFallbackFace, SVGTextLayout } from '#core/io
 import { computeAllLayouts } from '#core/layout'
 import { shownText } from '#core/text/case'
 import { EMOJI_METRICS_FAMILY } from '#core/text/emoji'
+import { ARABIC_CHARACTER } from '#core/text/fallbacks'
 import type { DocumentFontStatus } from '#core/text/font/status'
 import { fontManager } from '#core/text/fonts'
 import { prepareGraphFonts } from '#core/text/prepare'
+import { collectGraphFontRequirements } from '#core/text/requirements'
 
 import type { PDFFontFace } from './fonts'
 import type { PDFPageSpec } from './plan'
 
 /**
  * Loads every font the text of these pages draws with, as the canvas does: the faces, the
- * characters remote fonts must cover, and the script and emoji fallbacks.
+ * characters remote fonts must cover, and the script and emoji fallbacks. Fonts loaded for some
+ * characters only cover the ones jsPDF writes too.
  */
-export function preparePDFFonts(
+export async function preparePDFFonts(
   graph: SceneGraph,
   specs: readonly PDFPageSpec[]
 ): Promise<DocumentFontStatus> {
-  return prepareGraphFonts(
-    graph,
-    specs.flatMap((spec) => spec.nodeIds)
-  )
+  const nodeIds = specs.flatMap((spec) => spec.nodeIds)
+  return prepareGraphFonts(graph, nodeIds, await pdfWrittenCharacters(graph, nodeIds))
+}
+
+/**
+ * Characters jsPDF writes for the text besides its own: it writes Arabic letters as their
+ * presentation forms, picked by the letters around them, so the embedded fonts must map those.
+ */
+async function pdfWrittenCharacters(
+  graph: SceneGraph,
+  nodeIds: readonly string[]
+): Promise<string> {
+  const texts = collectGraphFontRequirements(graph, nodeIds)
+    .nodes.filter((node) => node.type === 'TEXT')
+    .map(shownText)
+    .filter((text) => ARABIC_CHARACTER.test(text))
+  if (texts.length === 0) return ''
+  const { jsPDF } = await import('jspdf')
+  // jsPDF adds its Arabic parser to each document it makes, as the one it writes the text with.
+  const writer = new jsPDF()
+  return uniq(texts.flatMap((text) => Array.from(writer.processArabic(text)))).join('')
 }
 
 /**

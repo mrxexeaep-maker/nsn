@@ -150,3 +150,48 @@ test('embeds each file of a split web font the text draws from', async () => {
     )
   }
 })
+
+test('asks a web font for the forms jsPDF writes Arabic letters in', async () => {
+  const family = 'PDF Test Arabic'
+  const fontURL = 'https://fonts.gstatic.com/s/test/pdf-arabic.ttf'
+  const naskh = await Bun.file(join(FIXTURES, 'fonts', 'NotoNaskhArabic-Regular.ttf')).arrayBuffer()
+  const asked: string[] = []
+  const providers = fontManager.enabledOnlineFontProviders()
+  fontManager.setOnlineFontProviders({ google: true })
+  fontManager.setWebFontFetch(async (url) => {
+    if (url.startsWith('https://fonts.google.com/metadata/fonts'))
+      return Response.json({ familyMetadataList: [{ family, fonts: { '400': {} }, axes: [] }] })
+    if (url.startsWith('https://fonts.google.com/metadata/icons'))
+      return new Response(`)]}'\n${JSON.stringify({ families: [] })}`)
+    if (url.startsWith('https://fonts.googleapis.com/css2')) {
+      asked.push(new URL(url).searchParams.get('text') ?? '')
+      return new Response(
+        `@font-face { font-family: '${family}'; font-weight: 400; src: url(${fontURL}) format('truetype'); }`
+      )
+    }
+    return url === fontURL ? new Response(naskh.slice(0)) : new Response(null, { status: 404 })
+  })
+  try {
+    const graph = new SceneGraph()
+    const pageId = graph.getPages()[0].id
+    const text = graph.createNode('TEXT', pageId, {
+      text: 'مرحبا',
+      fontFamily: family,
+      fontSize: 32,
+      textAutoResize: 'WIDTH_AND_HEIGHT'
+    })
+    await exportPDFDocument(graph, [{ pageId, nodeIds: [text.id], label: 'Text' }], {
+      embedFonts: true,
+      layOutPages: true
+    })
+    // jsPDF writes مرحبا as ﻣﺮﺣﺒﺎ, so a font subset to the typed letters alone would draw nothing.
+    expect(asked.some((characters) => [...'ﻣﺮﺣﺒﺎ'].every((form) => characters.includes(form)))).toBe(
+      true
+    )
+  } finally {
+    fontManager.setWebFontFetch(null)
+    fontManager.setOnlineFontProviders(
+      Object.fromEntries(providers.map((provider) => [provider, true]))
+    )
+  }
+})
