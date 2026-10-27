@@ -1,7 +1,9 @@
 import type { CharacterStyleOverride, SceneNode } from '@open-pencil/scene-graph'
+import { parseFontStyle } from '@open-pencil/scene-graph/font-style'
 import { textLengthPixels } from '@open-pencil/scene-graph/text'
 import { resolveNodeTextDirection } from '@open-pencil/scene-graph/text/direction'
 
+import { drawnFontVariations } from '#core/canvas/text/font-families'
 import {
   formatColor,
   type SVGExportContext,
@@ -96,20 +98,27 @@ function spanFontAttrs(
 
 /**
  * The face a run of `node` is drawn in, or the fallback face that draws its characters instead,
- * with the size and axes its instance follows. A fallback keeps the run's weight and slant,
- * which set a variable fallback's axes as the canvas draws it.
+ * with the size and axes its instance follows. A fallback is drawn at the axes the run's own font
+ * is drawn at, as the paragraph draws every font it falls back to.
  */
 function fontRequest(
   node: SceneNode,
   style: CharacterStyleOverride = {},
   fallback?: SVGFallbackFace
 ): SVGFontRequest {
-  return {
+  const own: SVGFontRequest = {
     ...textFontFace(node, style),
-    ...fallback,
     fontSize: style.fontSize ?? node.fontSize,
     variations: style.fontVariations ?? node.fontVariations,
     opticalSizeFromFontSize: node.opticalSizeFromFontSize
+  }
+  if (!fallback) return own
+  return {
+    ...own,
+    ...fallback,
+    ...parseFontStyle(fallback.style),
+    variations: drawnFontVariations(own),
+    opticalSizeFromFontSize: false
   }
 }
 
