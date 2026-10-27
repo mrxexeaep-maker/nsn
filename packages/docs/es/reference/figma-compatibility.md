@@ -113,7 +113,7 @@ Comparación entre las funciones de Figma Design y el estado actual de OpenPenci
 | Ajustes de imagen | 🔲 | Sin exposición, contraste o saturación |
 | Recorte | 🟡 | El modo Recortar del selector de relleno de imagen conserva el recorte; sin tiradores de recorte en el lienzo |
 | Cuentagotas | 🔲 | No toma colores del lienzo |
-| Colores de selección mixta | ✅ | Colores de la selección cambia un color en toda una selección múltiple |
+| Colores de selección mixta | ✅ | La función Colores de la selección cambia un color en toda una selección múltiple |
 | Modelos de color | ✅ | Campos hexadecimal, RGB, HSL, HSB y OkHCL con avisos de gama |
 
 ## Efectos y propiedades

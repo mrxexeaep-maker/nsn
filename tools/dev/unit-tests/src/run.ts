@@ -41,8 +41,8 @@ if (lightGroups.length === 0 && heavyFiles.length === 0) {
   process.exit(0)
 }
 
-async function runBunTest(files: string[]): Promise<number> {
-  const child = Bun.spawn([process.execPath, 'test', ...bunTestArgs, ...files], {
+async function runBunTest(files: string[], args: string[]): Promise<number> {
+  const child = Bun.spawn([process.execPath, 'test', ...args, ...files], {
     stdio: ['inherit', 'inherit', 'inherit'],
     env: { ...process.env, BUN_HEAVY_TESTS: includeHeavy ? 'true' : 'false' }
   })
@@ -59,9 +59,11 @@ const batches = coverage
       ...lightGroups.map(({ name, files }) => ({ label: `${name} quick tests`, files })),
       ...heavyFiles.map((file) => ({ label: file, files: [file] }))
     ]
+// A name filter may match tests in only some of the batches; the others then have none to run.
+const args = batches.length > 1 ? [...bunTestArgs, '--pass-with-no-tests'] : bunTestArgs
 const failed: string[] = []
 for (const { label, files } of batches) {
-  if ((await runBunTest(files)) !== 0) failed.push(label)
+  if ((await runBunTest(files, args)) !== 0) failed.push(label)
 }
 if (failed.length > 0) console.error(`\nFailed: ${failed.join(', ')}`)
 process.exit(failed.length > 0 ? 1 : 0)
