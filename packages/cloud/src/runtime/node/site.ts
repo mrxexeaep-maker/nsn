@@ -4,8 +4,11 @@ import { resolve, sep } from 'node:path'
 import type { SiteFiles } from '#cloud/runtime/site/server'
 import { getMimeType } from 'hono/utils/mime'
 
-/** Request headers a development server would answer with 304 or an encoding the reply drops. */
-const UNFORWARDED_HEADERS = ['host', 'if-none-match', 'if-modified-since', 'accept-encoding']
+/**
+ * The only request headers Vite reads to pick a reply: which module, style, or page form to send.
+ * Others stay behind, such as credentials, ranges, and validators that would get a partial or 304.
+ */
+const FORWARDED_HEADERS = ['accept', 'sec-fetch-dest']
 
 /** The built site's files in `directory`, never anything outside it. */
 export function nodeSiteFiles(directory: string): SiteFiles {
@@ -41,8 +44,11 @@ export function developmentSiteFiles(origin: string): SiteFiles {
     const requested = new URL(request.url)
     // Vite tells module requests apart by their query, such as `?import` or `?t=`.
     if (requested.pathname === path) url.search = requested.search
-    const headers = new Headers(request.headers)
-    for (const name of UNFORWARDED_HEADERS) headers.delete(name)
+    const headers = new Headers()
+    for (const name of FORWARDED_HEADERS) {
+      const value = request.headers.get(name)
+      if (value !== null) headers.set(name, value)
+    }
     try {
       const response = await fetch(url, { headers })
       if (!response.ok || !response.body) return null

@@ -44,14 +44,14 @@ describe('Node site files', () => {
 })
 
 describe('development site files', () => {
-  const asked: { url: string; ifNoneMatch: string | null }[] = []
+  const asked: { url: string; headers: Headers }[] = []
   const development = Bun.serve({
     port: 0,
     fetch(request) {
       const url = new URL(request.url)
       asked.push({
         url: url.pathname + url.search,
-        ifNoneMatch: request.headers.get('If-None-Match')
+        headers: request.headers
       })
       if (url.pathname === '/missing.js') return new Response('', { status: 404 })
       return new Response('export {}', { headers: { 'Content-Type': 'text/javascript' } })
@@ -63,12 +63,25 @@ describe('development site files', () => {
   test('asks the development server for the requested file, query and all, never cached', async () => {
     asked.length = 0
     const module = new Request('https://cloud.example/src/main.ts?t=1', {
-      headers: { 'If-None-Match': 'W/"stale"' }
+      headers: {
+        Accept: '*/*',
+        'Sec-Fetch-Dest': 'script',
+        Cookie: 'session=secret',
+        Authorization: 'Bearer secret',
+        Range: 'bytes=0-9',
+        'If-None-Match': 'W/"stale"'
+      }
     })
     const file = await files('/src/main.ts', module)
     expect(file?.type).toBe('text/javascript')
     expect(file?.cacheControl).toBe('no-cache')
-    expect(asked).toEqual([{ url: '/src/main.ts?t=1', ifNoneMatch: null }])
+    expect(asked.map(({ url }) => url)).toEqual(['/src/main.ts?t=1'])
+    const forwarded = asked[0]?.headers
+    expect(forwarded?.get('Accept')).toBe('*/*')
+    expect(forwarded?.get('Sec-Fetch-Dest')).toBe('script')
+    for (const name of ['Cookie', 'Authorization', 'Range', 'If-None-Match']) {
+      expect(forwarded?.has(name)).toBe(false)
+    }
   })
 
   test('asks for a page the server routes there without the address query', async () => {

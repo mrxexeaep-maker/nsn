@@ -22,8 +22,7 @@ export const WATCH_IGNORED = [
 ]
 
 function hmrOptions(host: string | undefined, hmrURL: string | undefined): ServerOptions['hmr'] {
-  if (host) return { protocol: 'ws', host, port: 1421 }
-  if (!hmrURL) return undefined
+  if (!hmrURL) return host ? { protocol: 'ws', host, port: 1421 } : undefined
   const url = new URL(hmrURL)
   const secure = url.protocol === 'https:'
   return {
