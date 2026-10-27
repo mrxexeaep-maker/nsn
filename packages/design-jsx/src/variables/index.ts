@@ -115,7 +115,10 @@ export function defineMode(
   return Object.freeze({ [MODE_SYMBOL]: true as const, name, collection: definition })
 }
 
-/** A mode of a collection the document already has, by their names. */
+/**
+ * A mode of a collection the document already has, by their names, or by the collection's ID
+ * when several collections share its name.
+ */
 export function designMode(collection: string, mode: string): DesignMode {
   return Object.freeze({ [MODE_SYMBOL]: true as const, name: mode, collection })
 }

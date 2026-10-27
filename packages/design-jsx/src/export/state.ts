@@ -62,12 +62,18 @@ function collectBindingProps(node: SceneNode, graph: SceneGraph, props: JSXProp[
   ])
 }
 
-/** The modes a layer pins, as `designMode` names them; one is written without a list. */
+/**
+ * The modes a layer pins, as `designMode` names them: by the collection's name when it is unique
+ * in the document and by its ID otherwise. One is written without a list.
+ */
 function collectModeProps(node: SceneNode, graph: SceneGraph, props: JSXProp[]): void {
+  const collections = [...graph.variableCollections.values()]
   const modes = Object.entries(node.variableModes).flatMap(([collectionId, modeId]) => {
     const collection = graph.variableCollections.get(collectionId)
     const mode = collection?.modes.find((item) => item.modeId === modeId)
-    return collection && mode ? [helperCall('designMode', collection.name, mode.name)] : []
+    if (!collection || !mode) return []
+    const unique = collections.filter((item) => item.name === collection.name).length === 1
+    return [helperCall('designMode', unique ? collection.name : collection.id, mode.name)]
   })
   if (modes.length > 0) props.push(['mode', modes.length === 1 ? modes[0] : modes])
 }

@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
+import { expectDefined } from '#core-tests/helpers/assert'
+
 import { renderJSX, renderTree } from '@open-pencil/core/design-jsx'
 import { defineMode, defineVars, Frame, Rectangle, sceneNodeToJSX } from '@open-pencil/design-jsx'
 import { SceneGraph, type VariableCollection } from '@open-pencil/scene-graph'
@@ -195,6 +197,14 @@ test('a collection name several collections share is an error, not the first of 
       'More than one variable collection is named Twin; rename one to use it'
     )
   }
+  // Export names such a collection by its ID, which renders back into the same mode.
+  const twin = expectDefined([...graph.variableCollections.values()].at(-1))
+  const [frame] = await renderJSX(graph, '<Frame w={10} h={10} />')
+  graph.updateNode(frame.id, { variableModes: { [twin.id]: twin.defaultModeId } })
+  const exported = sceneNodeToJSX(frame.id, graph)
+  expect(exported).toContain(`mode={designMode("${twin.id}", "Mode 1")}`)
+  const [copy] = await renderJSX(graph, exported)
+  expect(graph.getNode(copy.id)?.variableModes).toEqual({ [twin.id]: twin.defaultModeId })
 })
 
 test('a sticky note pins its mode and reads its values in it, as any layer does', async () => {

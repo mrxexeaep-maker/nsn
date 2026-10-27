@@ -204,7 +204,9 @@ export function variableModes(graph: SceneGraph, value: unknown): VariableModeMa
   for (const mode of modes) {
     if (!isMode(mode)) throw new Error('mode takes defineMode() or designMode() modes')
     const name = typeof mode.collection === 'string' ? mode.collection : mode.collection.name
-    const collection = collectionNamed(graph, name)
+    const collection =
+      (typeof mode.collection === 'string' && graph.variableCollections.get(name)) ||
+      collectionNamed(graph, name)
     if (!collection)
       throw new Error(
         `Unknown variable collection: ${name}. A defineVars() collection is added once a layer binds one of its variables`
