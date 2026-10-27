@@ -9,24 +9,24 @@ const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url))
 /** `?script` among an id's query, which Vite extends, as with `?t=…&script` after a hot update. */
 const SCRIPT_QUERY = /[?&]script(?:&|$)/
 
+/** An id without its query, as Vite's own `cleanUrl`. */
+const withoutQuery = (id: string) => id.replace(/[?#].*$/s, '')
+
 /**
  * `import source from './entry.ts?script'`: the module and everything it imports bundled into
  * one classic script, as a string. It is for code that can run only inline, such as the code
- * panel's sandbox, whose opaque-origin frame can start a worker only from a `blob:` URL. The
- * script is built the same way in dev and in a build, minified in a build.
+ * panel's sandbox, whose opaque-origin frame can start a worker only from a `blob:` URL. Vite's
+ * `?worker&inline` inlines only in a build, so the script is bundled the same way in dev and in
+ * a build, as Vite bundles an inline worker, and minified in a build.
  */
 export function inlineScriptPlugin(): Plugin {
-  let minify = false
   return {
     name: 'open-pencil-inline-script',
-    configResolved(config) {
-      minify = config.command === 'build'
-    },
     load: {
       filter: { id: SCRIPT_QUERY },
       async handler(id) {
-        const entry = id.slice(0, id.indexOf('?'))
-        const output = await build({
+        const entry = withoutQuery(id)
+        const result = await build({
           configFile: false,
           root: REPO_ROOT,
           publicDir: false,
@@ -36,20 +36,19 @@ export function inlineScriptPlugin(): Plugin {
           plugins: [inlineScriptPlugin()],
           build: {
             write: false,
-            minify,
+            minify: this.environment.config.command === 'build',
             target: viteBuildTarget(),
             emptyOutDir: false,
             copyPublicDir: false,
             lib: { entry, formats: ['iife'], name: 'openPencilInlineScript' }
           }
         })
-        const chunks = (Array.isArray(output) ? output : [output]).flatMap((result) =>
-          'output' in result ? result.output : []
-        )
-        const chunk = chunks.find((item) => item.type === 'chunk' && item.isEntry)
-        if (chunk?.type !== 'chunk') throw new Error(`Could not bundle ${entry} as a script`)
+        // One IIFE entry builds one chunk, which comes first.
+        const [output] = [result].flat()
+        const chunk = 'output' in output ? output.output[0] : undefined
+        if (!chunk) throw new Error(`Could not bundle ${entry} as a script`)
         for (const moduleId of chunk.moduleIds) {
-          if (!moduleId.startsWith('\0')) this.addWatchFile(moduleId.split('?')[0])
+          if (!moduleId.startsWith('\0')) this.addWatchFile(withoutQuery(moduleId))
         }
         return { code: `export default ${JSON.stringify(chunk.code)}`, map: null }
       }
