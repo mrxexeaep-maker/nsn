@@ -60,8 +60,9 @@ export async function recordEditAsync<T>(
   options: RecordEditOptions,
   run: () => Promise<T>
 ): Promise<T> {
-  const close = ctx.undo.openEdit()
+  // Capturing can throw; the edit opens only once it has, so a failure never leaves it open.
   const finish = begin(ctx, options)
+  const close = ctx.undo.openEdit()
   try {
     return await run()
   } finally {
