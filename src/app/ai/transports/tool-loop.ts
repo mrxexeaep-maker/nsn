@@ -1,9 +1,16 @@
 import { useEventListener } from '@vueuse/core'
-import { createUIMessageStream, DirectChatTransport, stepCountIs, ToolLoopAgent } from 'ai'
+import {
+  createUIMessageStream,
+  DirectChatTransport,
+  stepCountIs,
+  ToolLoopAgent,
+  wrapLanguageModel
+} from 'ai'
 import type { ChatTransport, LanguageModel, ToolExecutionOptions, UIMessage } from 'ai'
 import { toMerged } from 'es-toolkit'
 
 import type { AIProviderID, ReasoningEffort } from '@open-pencil/core/constants'
+import type { ToolImageUploader } from '@open-pencil/core/tools'
 
 import { resumableTransport } from '@/app/ai/chat/history/continuation'
 import { maxAgentSteps } from '@/app/ai/chat/preferences'
@@ -20,6 +27,8 @@ import { recordModelStepCompleted } from '@/app/diagnostics/events'
 import type { AIDiagnosticContext } from '@/app/diagnostics/events/ai'
 import type { getActiveEditorStore } from '@/app/editor/active-store'
 
+import { createToolImageFiles, type ImageUploads } from './tool-images'
+
 type EditorStore = ReturnType<typeof getActiveEditorStore>
 
 export type ToolLoopTransportOptions = {
@@ -35,6 +44,9 @@ export type ToolLoopTransportOptions = {
   diagnosticContext?: AIDiagnosticContext
   /** Records each run so a saved trace can rebuild its requests. */
   recorder?: RunRecorder
+  imageUploader?: ToolImageUploader
+  /** Saves tool results whose image was uploaded again into the chat. */
+  updateToolOutputs?: (uploads: ImageUploads) => void
 }
 
 function callSettings(
@@ -66,9 +78,12 @@ export function createToolLoopTransport({
   thinkingLevel,
   onError,
   diagnosticContext = {},
-  recorder
+  recorder,
+  imageUploader,
+  updateToolOutputs
 }: ToolLoopTransportOptions) {
-  const tools = createAITools(store, diagnosticContext)
+  const images = imageUploader && createToolImageFiles(imageUploader, updateToolOutputs)
+  const tools = createAITools(store, diagnosticContext, images?.uploader)
   // The reply in progress; a transport sends one message at a time.
   let run = currentRun(store)
   // While JSX streams, the chat's agent moves through the elements as they appear, here and
@@ -83,7 +98,10 @@ export function createToolLoopTransport({
   const cacheProviderOptions = promptCachingOptions(providerID, effectiveModelID)
   let recording: RunRecording | undefined
   const agent = new ToolLoopAgent({
-    model,
+    model:
+      images && typeof model !== 'string'
+        ? wrapLanguageModel({ model, middleware: images.middleware })
+        : model,
     instructions: SYSTEM_PROMPT,
     tools,
     maxOutputTokens,
@@ -177,7 +195,8 @@ export function createToolLoopTransport({
       // DirectChatTransport handles error chunks, but not a rejected underlying stream.
       return createUIMessageStream<UIMessage>({
         execute: async ({ writer }) => {
-          writer.merge(await transport.sendMessages(options))
+          const messages = images ? await images.prepare(options.messages, abortSignal) : undefined
+          writer.merge(await transport.sendMessages(messages ? { ...options, messages } : options))
         },
         onError: handleError
       })

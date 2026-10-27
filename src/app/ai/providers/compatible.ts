@@ -3,7 +3,11 @@ import { createOpenAI } from '@ai-sdk/openai'
 
 import { IS_TAURI } from '@open-pencil/core/constants'
 
-import type { ModelConfig, ModelProviderAdapter } from '@/app/ai/providers/types'
+import type {
+  ModelConfig,
+  ModelProviderAdapter,
+  ModelProviderRuntime
+} from '@/app/ai/providers/types'
 
 // Anthropic omits CORS headers unless the caller opts in, so browser requests fail with an
 // opaque "failed to fetch". The desktop build goes through tauriFetch and is not subject to CORS.
@@ -18,6 +22,7 @@ type OpenAICompatibleOptions = {
 
 type AnthropicCompatibleOptions = {
   baseURL?: CompatibleEndpoint
+  filesAPI?: boolean
 }
 
 function resolveEndpoint(endpoint: CompatibleEndpoint | undefined, config: ModelConfig) {
@@ -49,15 +54,17 @@ export function createOpenAICompatibleAdapter(
 export function createAnthropicCompatibleAdapter(
   options: AnthropicCompatibleOptions = {}
 ): ModelProviderAdapter {
+  const provider = (config: ModelConfig, runtime: ModelProviderRuntime) =>
+    createAnthropic({
+      apiKey: config.apiKey,
+      baseURL: resolveEndpoint(options.baseURL, config),
+      fetch: runtime.fetch,
+      headers: IS_TAURI ? undefined : BROWSER_ACCESS_HEADERS
+    })
   return {
     create(config, runtime) {
-      const provider = createAnthropic({
-        apiKey: config.apiKey,
-        baseURL: resolveEndpoint(options.baseURL, config),
-        fetch: runtime.fetch,
-        headers: IS_TAURI ? undefined : BROWSER_ACCESS_HEADERS
-      })
-      return provider(config.customModelID.trim() || config.modelID)
-    }
+      return provider(config, runtime)(config.customModelID.trim() || config.modelID)
+    },
+    files: options.filesAPI ? (config, runtime) => provider(config, runtime).files() : undefined
   }
 }

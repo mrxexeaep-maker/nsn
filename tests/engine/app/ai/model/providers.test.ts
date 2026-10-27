@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 
 import type { LanguageModel } from 'ai'
+import { fromUint8Array } from 'js-base64'
 
 import { AI_PROVIDERS } from '@open-pencil/core/constants'
 import type { AIProviderID } from '@open-pencil/core/constants'
 
-import { resolveLanguageModelID } from '@/app/ai/models/language-model'
+import { createToolImageUploader, resolveLanguageModelID } from '@/app/ai/models/language-model'
 import { resolveProviderModel } from '@/app/ai/models/reasoning/floors'
 import { reasoningCallSettings } from '@/app/ai/models/reasoning/settings'
 import type { ThinkingLevel } from '@/app/ai/models/types'
@@ -13,6 +14,8 @@ import { createAnthropicCompatibleAdapter } from '@/app/ai/providers/compatible'
 import { modelProviderAdapter } from '@/app/ai/providers/registry'
 import type { ModelConfig } from '@/app/ai/providers/types'
 import type { FetchFunction } from '@/app/http/types'
+
+import { expectDefined } from '#tests/helpers/assert'
 
 function languageModelInstance(model: LanguageModel): Exclude<LanguageModel, string> {
   if (typeof model === 'string') throw new Error(`Expected a model instance, got ${model}`)
@@ -193,4 +196,146 @@ describe('anthropic compatible adapter', () => {
       'true'
     )
   })
+})
+
+describe('tool image uploads', () => {
+  const anthropic: ModelConfig = {
+    providerID: 'anthropic',
+    apiKey: 'test-key',
+    modelID: 'claude-sonnet-4.6',
+    customModelID: '',
+    customBaseURL: '',
+    customAPIType: 'completions'
+  }
+  const png = new Uint8Array([137, 80, 78, 71])
+
+  test('Anthropic uploads a tool image to its files API and gets back the file and its expiry', async () => {
+    const requests: Request[] = []
+    const files: FetchFunction = async (input, init) => {
+      requests.push(new Request(input, init))
+      return Response.json({
+        id: 'file_1',
+        type: 'file',
+        filename: 'image.png',
+        mime_type: 'image/png',
+        size_bytes: png.length,
+        created_at: '2026-10-27T00:00:00Z',
+        expires_at: '2026-11-26T00:00:00Z'
+      })
+    }
+    const uploader = expectDefined(
+      createToolImageUploader(anthropic, 'connection', { fetch: files })
+    )
+    const file = await uploader.upload({ data: fromUint8Array(png), mediaType: 'image/png' })
+
+    expect(file).toEqual({ reference: { anthropic: 'file_1' }, expiresAt: '2026-11-26T00:00:00Z' })
+    const request = expectDefined(requests[0])
+    expect(request.url).toBe('https://api.anthropic.com/v1/files')
+    expect(request.headers.get('anthropic-beta')).toBe('files-api-2025-04-14')
+    const form = await request.formData()
+    const sent = form.get('file')
+    if (!(sent instanceof File)) throw new Error('The upload carries no file')
+    expect(sent.name).toBe('image.png')
+    expect(new Uint8Array(await sent.arrayBuffer())).toEqual(png)
+    // Anthropic keeps a file until it is deleted unless the upload says otherwise.
+    expect(form.get('expires_in_seconds')).toBe(String(30 * 24 * 60 * 60))
+  })
+
+  test('an Anthropic-compatible endpoint gets no expiry field it may refuse', async () => {
+    const forms: FormData[] = []
+    const files: FetchFunction = async (input, init) => {
+      forms.push(await new Request(input, init).formData())
+      return Response.json({
+        id: 'file_1',
+        type: 'file',
+        filename: 'image.png',
+        mime_type: 'image/png',
+        size_bytes: png.length,
+        created_at: '2026-10-27T00:00:00Z'
+      })
+    }
+    const uploader = expectDefined(
+      createToolImageUploader(
+        {
+          ...anthropic,
+          providerID: 'anthropic-compatible',
+          customBaseURL: 'https://proxy.example/v1'
+        },
+        'connection',
+        { fetch: files }
+      )
+    )
+    await uploader.upload({ data: fromUint8Array(png), mediaType: 'image/png' })
+    expect(forms[0]?.has('file')).toBe(true)
+    expect(forms[0]?.has('expires_in_seconds')).toBe(false)
+  })
+
+  test('Anthropic reads a referenced tool image by its file id', async () => {
+    let body = ''
+    const fetchSpy: FetchFunction = async (_input, init) => {
+      body = String(init?.body)
+      throw new Error('stop')
+    }
+    const model = languageModelInstance(
+      createAnthropicCompatibleAdapter().create(anthropic, { fetch: fetchSpy })
+    )
+    if (model.specificationVersion !== 'v4') throw new Error('Expected an AI SDK v4 model')
+    await Promise.resolve(
+      model.doGenerate({
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'Export it' }] },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'tool-call', toolCallId: 'call', toolName: 'export_image', input: {} }
+            ]
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call',
+                toolName: 'export_image',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: { type: 'reference', reference: { anthropic: 'file_1' } }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      })
+    ).catch(() => undefined)
+
+    const sent: unknown = JSON.parse(body)
+    expect(sent).toMatchObject({
+      messages: [
+        { role: 'user' },
+        { role: 'assistant' },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              content: [{ type: 'image', source: { type: 'file', file_id: 'file_1' } }]
+            }
+          ]
+        }
+      ]
+    })
+  })
+
+  test.each(['openai', 'zai'] as const)(
+    '%s gets no uploader, having no files API',
+    (providerID) => {
+      expect(createToolImageUploader({ ...anthropic, providerID }, 'connection')).toBeUndefined()
+    }
+  )
 })

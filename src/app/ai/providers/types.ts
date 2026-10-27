@@ -1,4 +1,4 @@
-import type { LanguageModel } from 'ai'
+import type { LanguageModel, uploadFile } from 'ai'
 
 import type { AIProviderID } from '@open-pencil/core/constants'
 
@@ -25,6 +25,9 @@ export type ModelProviderRuntime = {
   credentials?: ModelCredentialStore
 }
 
+export type ModelFilesAPI = Parameters<typeof uploadFile>[0]['api']
+
 export interface ModelProviderAdapter {
   create(config: ModelConfig, runtime: ModelProviderRuntime): LanguageModel
+  files?: (config: ModelConfig, runtime: ModelProviderRuntime) => ModelFilesAPI
 }
