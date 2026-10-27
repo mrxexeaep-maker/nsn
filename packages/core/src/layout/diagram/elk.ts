@@ -1,7 +1,5 @@
 import type { ELK, ElkNode } from 'elkjs/lib/elk-api'
 
-import { IS_BROWSER } from '#core/constants'
-
 /** A worker a runtime can stop counting as a reason to stay alive, as Bun's can. */
 interface Unreffable {
   ref(): void
@@ -23,26 +21,19 @@ let engine: Promise<Engine> | null = null
 let running = 0
 
 /**
- * Whether ELK's bundle would take this thread for a worker of its own, as it does wherever
- * `self` exists outside a page: in Bun, Deno, and Web Workers. It then answers messages instead
- * of laying out in place.
+ * ELK in a worker of its own, so a large diagram does not hold up the page, or, where a runtime
+ * has no workers, in place.
  */
-function looksLikeWorker(): boolean {
-  return !IS_BROWSER && 'self' in globalThis
-}
-
 async function load(): Promise<Engine> {
-  if (!looksLikeWorker()) {
+  if (typeof Worker === 'undefined') {
     const { default: BundledELK } = await import('elkjs/lib/elk.bundled.js')
     return { elk: new BundledELK(), worker: () => null }
   }
-  // There, ELK's worker script runs in a real worker.
   const { default: WorkerELK } = await import('elkjs/lib/elk-api.js')
-  const script = import.meta.resolve('elkjs/lib/elk-worker.min.js')
   let held: Unreffable | null = null
   const elk = new WorkerELK({
     workerFactory: () => {
-      const worker = new Worker(script)
+      const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })
       held = unreffable(worker)
       // An idle worker must not keep a script or command from finishing.
       held?.unref()
