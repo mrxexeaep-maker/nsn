@@ -76,42 +76,46 @@ export function createTypographyAxes(editor: Editor, nodes: ComputedRef<SceneNod
       : MIXED
   })
 
-  type AxisPreview = Pick<SceneNode, 'fontVariations' | 'opticalSizeFromFontSize'>
-  const beforePreview = new Map<string, AxisPreview>()
+  // A drag or a typed value is previewed, then committed as one undo step from the values it
+  // started at, as the other typography fields are. While text is edited, the editor applies
+  // both to the selected characters, and records the step with what was typed.
+  type AxisValues = Pick<SceneNode, 'fontVariations' | 'opticalSizeFromFontSize'>
+  const beforePreview = new Map<string, AxisValues>()
 
-  function restorePreview() {
-    for (const [id, before] of beforePreview) editor.updateNode(id, before)
-    beforePreview.clear()
-  }
-
-  /** Draws the text at `value` on `axis` while it is dragged or typed, without an undo step. */
-  function previewAxis(axis: string, value: number) {
+  function previewEach(changes: (node: SceneNode) => Partial<SceneNode>) {
     for (const target of nodes.value) {
       if (!beforePreview.has(target.id)) {
         const { fontVariations, opticalSizeFromFontSize } = target
         beforePreview.set(target.id, { fontVariations, opticalSizeFromFontSize })
       }
-      editor.updateNode(target.id, axisChanges(target, axis, value))
+      editor.updateNode(target.id, changes(target))
     }
     editor.requestRender()
   }
 
+  function commitPreview(label: string) {
+    editor.undo.runBatch(label, () => {
+      for (const [id, before] of beforePreview) editor.commitNodeUpdate(id, before, label)
+    })
+    beforePreview.clear()
+  }
+
+  /** Draws the text at `value` on `axis` while it is dragged or typed. */
+  function previewAxis(axis: string, value: number) {
+    previewEach((node) => axisChanges(node, axis, value))
+  }
+
   /** Puts back the axes a cancelled edit previewed. */
   function cancelAxis() {
-    restorePreview()
+    for (const [id, before] of beforePreview) editor.updateNode(id, before)
+    beforePreview.clear()
     editor.requestRender()
   }
 
   /** Sets `axis` to `value` on every selected text layer in one undo step. */
   function setAxis(axis: string, value: number) {
-    restorePreview()
-    const targets = nodes.value
-    if (targets.length === 0) return
-    const label = `Change ${axis} axis`
-    editor.undo.runBatch(label, () => {
-      for (const target of targets)
-        editor.updateNodeWithUndo(target.id, axisChanges(target, axis, value), label)
-    })
+    previewAxis(axis, value)
+    commitPreview(`Change ${axis} axis`)
   }
 
   /**
@@ -119,22 +123,14 @@ export function createTypographyAxes(editor: Editor, nodes: ComputedRef<SceneNod
    * Figma's "Set optical size automatically" does.
    */
   function setOpticalSizeAuto(auto: boolean) {
-    const targets = nodes.value
-    if (targets.length === 0) return
-    const label = 'Change optical size'
-    editor.undo.runBatch(label, () => {
-      for (const target of targets) {
-        const drawn = drawnAxes(target)?.find((axis) => axis.tag === OPTICAL_SIZE)
-        const rest = target.fontVariations.filter(({ axis }) => axis !== OPTICAL_SIZE)
-        const fontVariations =
-          auto || !drawn ? rest : [...rest, { axis: OPTICAL_SIZE, value: drawn.value }]
-        editor.updateNodeWithUndo(
-          target.id,
-          { opticalSizeFromFontSize: auto, fontVariations },
-          label
-        )
-      }
+    previewEach((node) => {
+      const drawn = drawnAxes(node)?.find((axis) => axis.tag === OPTICAL_SIZE)
+      const rest = node.fontVariations.filter(({ axis }) => axis !== OPTICAL_SIZE)
+      const fontVariations =
+        auto || !drawn ? rest : [...rest, { axis: OPTICAL_SIZE, value: drawn.value }]
+      return { opticalSizeFromFontSize: auto, fontVariations }
     })
+    commitPreview('Change optical size')
   }
 
   return { axes, opticalSizeAuto, previewAxis, cancelAxis, setAxis, setOpticalSizeAuto }

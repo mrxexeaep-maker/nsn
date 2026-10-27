@@ -3,6 +3,8 @@ import { afterAll, beforeAll, expect, test } from 'bun:test'
 import { computed, effectScope, nextTick, shallowRef } from 'vue'
 
 import { createEditor } from '@open-pencil/core'
+import { SkiaRenderer } from '@open-pencil/core/canvas'
+import { initCanvasKit } from '@open-pencil/core/io/formats/raster'
 import { DEFAULT_WEB_FONT_PROVIDER_SETTINGS, fontManager } from '@open-pencil/core/text'
 import type { SceneNode } from '@open-pencil/scene-graph'
 
@@ -264,4 +266,44 @@ test('a cancelled axis edit puts back the axes it previewed', async () => {
   expect(text.fontVariations).toEqual([])
   expect(text.opticalSizeFromFontSize).toBe(true)
   stop()
+})
+
+test('an axis set while text is edited styles the selected characters, and undoes', async () => {
+  await fontManager.loadFont('Inter', 'Regular')
+  const ck = await initCanvasKit()
+  const surface = ck.MakeSurface(200, 200)
+  if (!surface) throw new Error('Expected a surface')
+  const renderer = new SkiaRenderer(ck, surface)
+  const editor = createEditor()
+  editor.setCanvasKit(ck, renderer)
+  await renderer.loadFonts()
+  const text = editor.graph.createNode('TEXT', editor.state.currentPageId, {
+    text: 'Hello world',
+    fontFamily: 'Inter',
+    width: 200,
+    height: 20
+  })
+  editor.startTextEditing(text.id)
+  const state = editor.textEditor?.state
+  if (!state) throw new Error('Expected a text editor')
+  state.selectionAnchor = 6
+  state.cursor = 11
+  const scope = effectScope()
+  const axes = scope.run(() => createTypographyAxes(editor, computed(() => [text])))
+  if (!axes) throw new Error('Expected the axes')
+  const node = () => editor.graph.getNode(text.id)
+  try {
+    axes.previewAxis('wght', 500)
+    axes.setAxis('wght', 600)
+    expect(node()?.fontVariations).toEqual([])
+    expect(node()?.styleRuns).toEqual([
+      { start: 6, length: 5, style: { fontVariations: [{ axis: 'wght', value: 600 }] } }
+    ])
+    editor.undoAction()
+    expect(node()?.styleRuns).toEqual([])
+  } finally {
+    scope.stop()
+    editor.dispose()
+    renderer.destroy()
+  }
 })
