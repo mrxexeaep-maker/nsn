@@ -101,8 +101,9 @@ export async function withPDFTextLayout<T>(
 }
 
 /**
- * The face of each drawn character the canvas draws in a fallback font, such as Chinese in Inter.
- * Emoji keep their own family: the face the canvas lays them out with has no glyphs to embed.
+ * The face of each drawn character the canvas draws from another file than its text's own: a
+ * fallback font, such as for Chinese in Inter, or a shard of a font split by unicode-range. Emoji
+ * keep their own family: the face the canvas lays them out with has no glyphs to embed.
  */
 function fallbackFaces(
   node: SceneNode,
@@ -112,8 +113,9 @@ function fallbackFaces(
   const fallbacks = new Map<number, SVGFallbackFace>()
   for (const index of characters.keys()) {
     const face = characterFace(node, text, index)
-    if (face?.fallback && face.family !== EMOJI_METRICS_FAMILY)
-      fallbacks.set(index, { family: face.family, style: face.style })
+    if (!face || (!face.fallback && face.file === 0) || face.family === EMOJI_METRICS_FAMILY)
+      continue
+    fallbacks.set(index, { family: face.family, style: face.style, file: face.file })
   }
   return fallbacks
 }

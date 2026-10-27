@@ -91,3 +91,62 @@ test('embeds the fallback font that draws characters the text’s own font lacks
     )
   }
 })
+
+test('embeds each file of a split web font the text draws from', async () => {
+  const family = 'PDF Test Split'
+  const files = {
+    'https://fonts.gstatic.com/s/test/pdf-latin.ttf': {
+      range: 'U+0000-00FF',
+      data: await Bun.file(join(FIXTURES, 'fonts', 'InterVariable-Latin.ttf')).arrayBuffer()
+    },
+    'https://fonts.gstatic.com/s/test/pdf-han.ttf': {
+      range: 'U+4E00-9FFF',
+      data: await Bun.file(join(FIXTURES, 'fonts', 'NotoSansSC-Regular.ttf')).arrayBuffer()
+    }
+  }
+  const providers = fontManager.enabledOnlineFontProviders()
+  fontManager.setOnlineFontProviders({ google: true })
+  fontManager.setWebFontFetch(async (url) => {
+    if (url.startsWith('https://fonts.google.com/metadata/fonts'))
+      return Response.json({ familyMetadataList: [{ family, fonts: { '400': {} }, axes: [] }] })
+    if (url.startsWith('https://fonts.google.com/metadata/icons'))
+      return new Response(`)]}'\n${JSON.stringify({ families: [] })}`)
+    if (url.startsWith('https://fonts.googleapis.com/css2'))
+      return new Response(
+        Object.entries(files)
+          .map(
+            ([src, { range }]) =>
+              `@font-face { font-family: '${family}'; font-weight: 400; src: url(${src}) format('truetype'); unicode-range: ${range}; }`
+          )
+          .join('\n')
+      )
+    const file = Object.entries(files).find(([src]) => src === url)?.[1]
+    return file ? new Response(file.data.slice(0)) : new Response(null, { status: 404 })
+  })
+  try {
+    const graph = new SceneGraph()
+    const pageId = graph.getPages()[0].id
+    const text = graph.createNode('TEXT', pageId, {
+      text: 'Split 中文',
+      fontFamily: family,
+      fontSize: 32,
+      textAutoResize: 'WIDTH_AND_HEIGHT'
+    })
+    const result = await exportPDFDocument(
+      graph,
+      [{ pageId, nodeIds: [text.id], label: 'Text' }],
+      { embedFonts: true, layOutPages: true }
+    )
+    // The Chinese is in the family's second file, which the canvas draws it from. The first is
+    // variable, so it is embedded as the instance the text draws.
+    expect(result?.fonts?.embedded.toSorted()).toEqual([
+      `${family} Regular (file 2)`,
+      `${family} Regular (opsz 32, wght 400)`
+    ])
+  } finally {
+    fontManager.setWebFontFetch(null)
+    fontManager.setOnlineFontProviders(
+      Object.fromEntries(providers.map((provider) => [provider, true]))
+    )
+  }
+})

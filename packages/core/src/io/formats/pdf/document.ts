@@ -31,7 +31,10 @@ export async function exportPDFDocument(
     renderPagesToPDFDetailed(graph, specs, {
       fonts,
       textLayout,
-      fallbackFile: (family, style) => fontManager.loadedData(family, style),
+      fallbackFile: (family, style, file) =>
+        file === 0
+          ? fontManager.loadedData(family, style)
+          : (fontManager.shardData(family, style)[file - 1] ?? null),
       title: options.title
     })
   )

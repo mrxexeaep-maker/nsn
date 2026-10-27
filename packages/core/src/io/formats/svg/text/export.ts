@@ -81,6 +81,20 @@ function aliasedFontAttrs(
 }
 
 /**
+ * The font attributes of a span: its face's alias where there is one, otherwise the family of the
+ * fallback face that draws it, if any.
+ */
+function spanFontAttrs(
+  node: SceneNode,
+  style: CharacterStyleOverride,
+  fallback: SVGFallbackFace | undefined,
+  fontAlias: SVGFontAlias | undefined
+): Record<string, string | number> {
+  if (fontAlias) return aliasedFontAttrs(fontRequest(node, style, fallback), fontAlias)
+  return fallback ? { 'font-family': fallback.family } : {}
+}
+
+/**
  * The face a run of `node` is drawn in, or the fallback face that draws its characters instead,
  * with the size and axes its instance follows. A fallback keeps the run's weight and slant,
  * which set a variable fallback's axes as the canvas draws it.
@@ -183,7 +197,7 @@ export function renderTextNode(
   }
   const spanAttrs = (style: CharacterStyleOverride, fallback?: SVGFallbackFace) => ({
     ...styleOverrideToTspanAttrs(style, colorSpace, fillOpacity, node),
-    ...(fontAlias ? aliasedFontAttrs(fontRequest(node, style, fallback), fontAlias) : {})
+    ...spanFontAttrs(node, style, fallback, fontAlias)
   })
 
   if (laidOut) {

@@ -23,17 +23,20 @@ export interface SVGTextLine {
    */
   characters?: ReadonlyMap<number, SVGCharacterEdges>
   /**
-   * The face that draws each character the editor draws in a fallback font instead of its own,
-   * such as Chinese in a Latin family, by index in `node.text`. Spans then name that face, for a
-   * renderer that draws only the fonts it is given.
+   * The face that draws each character the editor draws from another file than its text's own,
+   * by index in `node.text`: a fallback font, such as for Chinese in a Latin family, or a shard of
+   * a font split by unicode-range. Spans then name that face, for a renderer that draws only the
+   * fonts it is given.
    */
   fallbacks?: ReadonlyMap<number, SVGFallbackFace>
 }
 
-/** A face that draws characters their own family has no glyphs for. */
+/** A face, and which of its style's files, that draws characters their own file has no glyphs for. */
 export interface SVGFallbackFace {
   family: string
   style: string
+  /** 0 for the style's own file, then its shards. */
+  file: number
 }
 
 export interface SVGCharacterEdges {
@@ -104,7 +107,7 @@ interface FallbackSegment {
 }
 
 const sameFace = (a?: SVGFallbackFace, b?: SVGFallbackFace) =>
-  a?.family === b?.family && a?.style === b?.style
+  a?.family === b?.family && a?.style === b?.style && a?.file === b?.file
 
 /** The characters from `from` to `to` cut where the face that draws them changes. */
 function fallbackSegments(line: SVGTextLine, from: number, to: number): FallbackSegment[] {
