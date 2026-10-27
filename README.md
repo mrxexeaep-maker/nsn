@@ -190,7 +190,7 @@ For documentation-aware agents, the docs site publishes [llms.txt](https://openp
 
 ## Collaboration
 
-Share a link to co-edit in real time. Rooms need no server or account — peers connect directly via WebRTC. Documents on [OpenPencil Cloud](https://openpencil.dev/user-guide/openpencil-cloud#share-a-document) are shared by invitation and edited together through their server.
+Share a link to co-edit in real time. No server, no account — peers connect directly via WebRTC.
 
 1. Click the share button in the top-right panel
 2. Share the generated link (`app.openpencil.dev/rooms/<room-id>`)
