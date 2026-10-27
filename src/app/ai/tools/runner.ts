@@ -1,4 +1,4 @@
-import { isEmptyDocumentChange, type DocumentChange } from '@open-pencil/core'
+import { executeAtomicTool, isEmptyDocumentChange, type DocumentChange } from '@open-pencil/core'
 import type { FigmaAPI } from '@open-pencil/core/figma-api'
 import { isAtomicTool, toolChangesDocument, type ToolDef } from '@open-pencil/core/tools'
 
@@ -10,7 +10,7 @@ import {
   recordRunUndoEntry,
   type Run
 } from '@/app/ai/reply/run'
-import { AUTOMATION_UNDO_LABEL, executeAtomicEditorTool } from '@/app/automation/execution/editor'
+import { AUTOMATION_UNDO_LABEL, loadAtomicToolFonts } from '@/app/automation/execution/editor'
 import type { EditorStore } from '@/app/editor/active-store'
 import { ensureGraphFonts } from '@/app/editor/fonts'
 
@@ -66,15 +66,8 @@ function writtenPageId(figma: FigmaAPI, args: Record<string, unknown>): string {
   return page?.id ?? figma.currentPageId
 }
 
-async function execute(call: EditorToolCall, pageId: string, prefix: string): Promise<unknown> {
+async function execute(call: EditorToolCall, pageId: string): Promise<unknown> {
   const { store, figma, def, args } = call
-  if (isAtomicTool(def)) {
-    return executeAtomicEditorTool(store, figma, def, args, {
-      label: prefix,
-      signal: call.signal,
-      isLive: call.isLive
-    })
-  }
   return store.runMutationWithLayout(
     () => def.execute(figma, args),
     pageId,
@@ -125,19 +118,27 @@ async function editAndRecord(call: EditorToolCall, reply: ReplyCall | null): Pro
   const prefix = reply ? AI_UNDO_PREFIX : (call.source ?? AUTOMATION_UNDO_LABEL)
   const undoBefore = store.undo.peekUndo()
   const recorded: { change?: DocumentChange } = {}
+  const options = {
+    label: `${prefix}: ${def.name}`,
+    pageId,
+    onRecorded: (change: DocumentChange) => {
+      recorded.change = change
+    }
+  }
   try {
-    return await store.recordEditAsync(
-      {
-        label: `${prefix}: ${def.name}`,
-        pageId,
-        // Atomic tools record their own entry.
-        push: !isAtomicTool(def),
-        onRecorded: (change) => {
-          recorded.change = change
-        }
-      },
-      () => execute(call, pageId, prefix)
-    )
+    if (isAtomicTool(def)) {
+      // An atomic tool commits its own step at once; loading its fonts after is not part of it.
+      const result = store.recordEdit({ ...options, push: false }, () =>
+        executeAtomicTool(store, figma, def, args, {
+          label: prefix,
+          signal: call.signal,
+          isLive: call.isLive
+        })
+      )
+      await loadAtomicToolFonts(store, figma, args, { isLive: call.isLive })
+      return result
+    }
+    return await store.recordEditAsync(options, () => execute(call, pageId))
   } finally {
     if (reply && recorded.change) {
       await recordReplyCall(call, reply, recorded.change, undoBefore, viewPageId)
