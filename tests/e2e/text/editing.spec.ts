@@ -163,3 +163,25 @@ test('Enter key opens text editing and selects all without erasing', async () =>
   })
   expect(after).toBe('Keep this text')
 })
+
+test('the undo shortcut undoes a panel edit made while text is edited', async () => {
+  const runs = () =>
+    editor.page.evaluate(() => {
+      const store = window.openPencil?.getStore?.()
+      if (!store) throw new Error('OpenPencil store not initialized')
+      const id = store.state.editingTextId
+      return id ? (store.graph.getNode(id)?.styleRuns ?? null) : null
+    })
+  expect(await runs()).toEqual([])
+
+  // The edit has every character selected, so the size styles them; Enter leaves the field.
+  const size = editor.page.getByRole('spinbutton', { name: 'Font size' })
+  await size.click()
+  await editor.page.keyboard.press('ControlOrMeta+a')
+  await editor.page.keyboard.type('30')
+  await editor.page.keyboard.press('Enter')
+  await expect.poll(runs).toEqual([{ start: 0, length: 14, style: { fontSize: 30 } }])
+
+  await editor.page.keyboard.press('ControlOrMeta+z')
+  await expect.poll(runs).toEqual([])
+})
