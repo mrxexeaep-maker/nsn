@@ -66,6 +66,14 @@ export function createTypographyAxes(editor: Editor, nodes: ComputedRef<SceneNod
     })
   })
 
+  /**
+   * Whether the optical size can be set: not while text is edited, since whether it follows the
+   * font size belongs to the layer, which selected characters cannot set for themselves.
+   */
+  const opticalSizeEditable = computed(() =>
+    nodes.value.every((node) => editor.state.editingTextId !== node.id)
+  )
+
   /** Whether the optical size follows the font size on every layer, MIXED when they differ. */
   const opticalSizeAuto = computed<MixedValue<boolean>>(() => {
     const first = nodes.value.at(0)
@@ -107,6 +115,7 @@ export function createTypographyAxes(editor: Editor, nodes: ComputedRef<SceneNod
 
   /** Draws the text at `value` on `axis` while it is dragged or typed. */
   function previewAxis(axis: string, value: number) {
+    if (axis === OPTICAL_SIZE && !opticalSizeEditable.value) return
     previewEach((node) => axisChanges(node, axis, value))
   }
 
@@ -120,6 +129,7 @@ export function createTypographyAxes(editor: Editor, nodes: ComputedRef<SceneNod
 
   /** Sets `axis` to `value` on every selected text layer in one undo step. */
   function setAxis(axis: string, value: number) {
+    if (axis === OPTICAL_SIZE && !opticalSizeEditable.value) return
     previewAxis(axis, value)
     commitPreview(`Change ${axis} axis`)
   }
@@ -129,6 +139,7 @@ export function createTypographyAxes(editor: Editor, nodes: ComputedRef<SceneNod
    * Figma's "Set optical size automatically" does.
    */
   function setOpticalSizeAuto(auto: boolean) {
+    if (!opticalSizeEditable.value) return
     previewEach((node) => {
       const drawn = drawnAxes(node)?.find((axis) => axis.tag === OPTICAL_SIZE)
       const rest = node.fontVariations.filter(({ axis }) => axis !== OPTICAL_SIZE)
@@ -139,5 +150,13 @@ export function createTypographyAxes(editor: Editor, nodes: ComputedRef<SceneNod
     commitPreview('Change optical size')
   }
 
-  return { axes, opticalSizeAuto, previewAxis, cancelAxis, setAxis, setOpticalSizeAuto }
+  return {
+    axes,
+    opticalSizeAuto,
+    opticalSizeEditable,
+    previewAxis,
+    cancelAxis,
+    setAxis,
+    setOpticalSizeAuto
+  }
 }
