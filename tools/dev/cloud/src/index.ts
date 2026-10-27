@@ -6,7 +6,6 @@ import { resolveWorkspaceRoot } from '@open-pencil/package-artifacts-tools'
 import { randomHex } from '@open-pencil/scene-graph/random'
 
 import { composeProjectName, localCloudDeploymentTOML } from './config'
-import { serveSiteBuilds } from './site'
 
 const root = await resolveWorkspaceRoot(import.meta.dir)
 const composeFile = join(root, 'packages/cloud/deploy/compose.yml')
@@ -77,8 +76,9 @@ async function authSecret(): Promise<string> {
 }
 
 async function start(project: string): Promise<void> {
-  const [cloudURL, mailURL, objectStorageURL, editorURL] = await Promise.all([
+  const [cloudURL, siteURL, mailURL, objectStorageURL, editorURL] = await Promise.all([
     portlessURL('cloud.open-pencil'),
+    portlessURL('cloud-site.open-pencil'),
     portlessURL('mail.open-pencil'),
     portlessURL('s3.open-pencil'),
     portlessURL('open-pencil')
@@ -127,8 +127,12 @@ async function start(project: string): Promise<void> {
   ])
 
   const betterAuthSecret = await authSecret()
-  // The server serves the editor and its own pages from this build, rebuilt on every change.
-  const site = await serveSiteBuilds(root)
+  // The server serves the editor and its own pages from Vite's development server, so an edit
+  // shows at once, through hot updates, with no build.
+  const site = Bun.spawn(
+    ['bunx', 'portless', 'run', '--name', 'cloud-site.open-pencil', 'vite', '--mode', 'cloud'],
+    { cwd: root, stdout: 'inherit', stderr: 'inherit' }
+  )
 
   console.warn(`OpenPencil Cloud: ${cloudURL}`)
   console.warn(`Captured email:  ${mailURL}`)
@@ -152,7 +156,7 @@ async function start(project: string): Promise<void> {
           ...process.env,
           HOST: '127.0.0.1',
           OPENPENCIL_CLOUD_CONFIG: generatedConfig,
-          OPENPENCIL_CLOUD_SITE_DIR: join(root, 'dist-cloud'),
+          OPENPENCIL_CLOUD_DEV_SITE_URL: siteURL,
           DATABASE_URL: `postgresql://openpencil:${POSTGRES_PASSWORD}@127.0.0.1:${postgresPort}/openpencil`,
           BETTER_AUTH_SECRET: betterAuthSecret,
           S3_ACCESS_KEY_ID,
@@ -161,8 +165,8 @@ async function start(project: string): Promise<void> {
       }
     )
   } finally {
-    // The builds stop with the server however the server ends.
-    site.stop()
+    // The development server stops with the Cloud server however that ends.
+    site.kill()
   }
 }
 

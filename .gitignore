@@ -97,8 +97,7 @@ packages/feedback/.dev.vars
 # OpenPencil Cloud local and build outputs
 packages/cloud/deploy/generated/
 packages/cloud/dist-standalone/
-dist-cloud
-dist-cloud.builds/
+dist-cloud/
 dist-metrics/
 
 # SwiftPM output of desktop Swift packages built by hand
