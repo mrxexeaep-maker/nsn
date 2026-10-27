@@ -6,7 +6,7 @@ import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
 import { boundEndpoint, createConnector } from '@open-pencil/scene-graph/connectors'
 import type { Rect } from '@open-pencil/scene-graph/primitives'
 
-import { arrangeDiagram } from '#core/layout/diagram/arrange'
+import { arrangeLayers } from '#core/layout/arrange/layers'
 
 function overlap(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
@@ -29,16 +29,16 @@ function pile() {
 
 const node = (graph: SceneGraph, id: string) => expectDefined(graph.getNode(id))
 
-describe('arrangeDiagram', () => {
+describe('arrangeLayers', () => {
   test('spreads piled layers into ranks along the flow and reroutes their connectors', async () => {
     const { graph, box, join } = pile()
     const [a, b, c] = [box('A'), box('B'), box('C')]
     const ab = join(a, b)
     const ac = join(a, c)
 
-    const result = await arrangeDiagram(graph, [a.id, b.id, c.id], 'TB')
+    const result = await arrangeLayers(graph, [a.id, b.id, c.id], { layout: 'flow' })
 
-    expect(result).toEqual({ nodes: 3, groups: 0, connectors: 2 })
+    expect(result).toEqual({ layers: 3, groups: 0, connectors: 2 })
     const [placedA, placedB, placedC] = [a, b, c].map((layer) => node(graph, layer.id))
     expect(overlap(placedB, placedC)).toBe(false)
     expect(placedA.y + placedA.height).toBeLessThan(Math.min(placedB.y, placedC.y))
@@ -66,9 +66,12 @@ describe('arrangeDiagram', () => {
     join(start, one)
     join(one, two)
 
-    expect(await arrangeDiagram(graph, [start.id, section.id, one.id, two.id], 'LR')).toMatchObject(
-      { nodes: 3, groups: 1 }
-    )
+    expect(
+      await arrangeLayers(graph, [start.id, section.id, one.id, two.id], {
+        layout: 'flow',
+        direction: 'LR'
+      })
+    ).toMatchObject({ layers: 3, groups: 1 })
     const placed = node(graph, section.id)
     for (const inner of [one, two]) {
       const child = node(graph, inner.id)
@@ -88,10 +91,12 @@ describe('arrangeDiagram', () => {
     })
     const inside = other.box('Inside', held.id)
     other.join(first, held)
-    expect(await arrangeDiagram(other.graph, [first.id, held.id], 'TB')).toMatchObject({
-      nodes: 2,
-      groups: 0
-    })
+    expect(await arrangeLayers(other.graph, [first.id, held.id], { layout: 'flow' })).toMatchObject(
+      {
+        layers: 2,
+        groups: 0
+      }
+    )
     expect(node(other.graph, held.id)).toMatchObject({ width: 300, height: 200 })
     expect(node(other.graph, inside.id)).toMatchObject({ x: 100, y: 100 })
   })
@@ -105,10 +110,10 @@ describe('arrangeDiagram', () => {
     const straight = join(target, box('Next'), 'STRAIGHT')
     const before = node(graph, straight.id)
 
-    const result = await arrangeDiagram(
+    const result = await arrangeLayers(
       graph,
       [frame.id, target.id, expectDefined(before.connectorEnd?.nodeId)],
-      'TB'
+      { layout: 'flow' }
     )
 
     expect(result.connectors).toBe(1)
@@ -121,7 +126,44 @@ describe('arrangeDiagram', () => {
     const { graph, pageId, box } = pile()
     const frame = graph.createNode('FRAME', pageId, { width: 300, height: 200 })
     await expect(
-      arrangeDiagram(graph, [box('Page').id, box('Framed', frame.id).id], 'TB')
+      arrangeLayers(graph, [box('Page').id, box('Framed', frame.id).id], { layout: 'flow' })
     ).rejects.toThrow('must share a parent')
+  })
+
+  test('spread unpiles layers without connectors and keeps the pile’s corner', async () => {
+    const { graph, box } = pile()
+    const layers = ['A', 'B', 'C', 'D'].map((name) => box(name))
+
+    await arrangeLayers(
+      graph,
+      layers.map((layer) => layer.id),
+      { layout: 'spread' }
+    )
+
+    const placed = layers.map((layer) => node(graph, layer.id))
+    for (const [i, a] of placed.entries()) {
+      for (const b of placed.slice(i + 1)) expect(overlap(a, b)).toBe(false)
+    }
+    expect(Math.min(...placed.map((layer) => layer.x))).toBe(100)
+    expect(Math.min(...placed.map((layer) => layer.y))).toBe(100)
+  })
+
+  test('grid, row, and column place layers in order from the first, and connectors follow', async () => {
+    const { graph, box, join } = pile()
+    const [a, b, c] = [box('A'), box('B'), box('C')]
+    const ab = join(a, b)
+
+    await arrangeLayers(graph, [a.id, b.id, c.id], { layout: 'row', spacing: 10 })
+    expect([a, b, c].map((layer) => node(graph, layer.id).x)).toEqual([100, 230, 360])
+    // The connector between them was laid out again where they now are.
+    const routed = node(graph, ab.id)
+    expect(routed.x).toBeGreaterThanOrEqual(100 + 120)
+
+    await arrangeLayers(graph, [a.id, b.id, c.id], { layout: 'grid', columns: 2, spacing: 10 })
+    expect([a, b, c].map((layer) => [node(graph, layer.id).x, node(graph, layer.id).y])).toEqual([
+      [100, 100],
+      [230, 100],
+      [100, 160]
+    ])
   })
 })

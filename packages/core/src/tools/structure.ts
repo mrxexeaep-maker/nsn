@@ -18,6 +18,6 @@ export { nodeAncestors, nodeBindings, nodeChildren, nodeTree } from './structure
 
 export { nodeReplaceWith } from './structure/replace'
 
-export { arrangeDiagramTool, arrangeNodes } from './structure/arrange'
+export { arrangeNodes } from './structure/arrange'
 
 export { batchUpdate } from './structure/batch'

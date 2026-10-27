@@ -2,19 +2,19 @@ import type { SceneGraph } from '@open-pencil/scene-graph'
 import { boundEndpoint, layoutConnector } from '@open-pencil/scene-graph/connectors'
 import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
 
-import type { DiagramInput, DiagramLayout, DiagramRoute } from './index'
+import type { ArrangeInput, ArrangedRoute, Arrangement } from './boxes'
 import { runConnectorAlong } from './routes'
 
-/** The layers that draw a diagram, by the diagram's ids. */
-export interface DiagramLayers {
-  /** The layer drawing each node and group. */
+/** The layers that draw an arrangement's boxes and edges, by their ids. */
+export interface ArrangedLayers {
+  /** The layer drawing each box and group. */
   boxes: Map<string, string>
-  /** The connector drawing each edge; an edge drawn by none only shapes the layout. */
+  /** The connector drawing each edge; an edge drawn by none only shapes the arrangement. */
   connectors: Map<string, string>
 }
 
-/** Where a diagram goes in its parent: by its top-left corner or by its centre. */
-export type DiagramPlacement = { topLeft: Vector } | { center: Vector }
+/** Where an arrangement goes in its parent: by its top-left corner or by its centre. */
+export type ArrangePlacement = { topLeft: Vector } | { center: Vector }
 
 function bounds(boxes: Rect[]): Rect {
   const x = Math.min(...boxes.map((box) => box.x))
@@ -36,7 +36,7 @@ function joinConnector(
   graph: SceneGraph,
   connectorId: string,
   [start, end]: [string, string],
-  route: DiagramRoute | undefined,
+  route: ArrangedRoute | undefined,
   shift: Vector
 ): void {
   const connector = graph.getNode(connectorId)
@@ -64,20 +64,20 @@ function joinConnector(
 }
 
 /**
- * Puts a diagram's layers where `layout` placed it, the drawing at `placement` in its parent:
- * each node's layer at its box and each group's at its box and size, in the axes of the group
+ * Puts the layers that draw an arrangement where it placed them, the whole at `placement` in its
+ * parent: each box's layer at its box and each group's at its box and size, in the axes of the group
  * holding it, if any. Each edge's connector is joined to the layers at its ends by the sides the
- * layout chose: an elbow runs along the route it gave, a curve bends between those sides, and a
+ * arrangement chose: an elbow runs along the route a flow gave, a curve bends between those sides, and a
  * straight line keeps its ends.
  */
-export function applyDiagramLayout(
+export function applyArrangement(
   graph: SceneGraph,
-  input: DiagramInput,
-  layout: DiagramLayout,
-  layers: DiagramLayers,
-  placement: DiagramPlacement
+  input: ArrangeInput,
+  arrangement: Arrangement,
+  layers: ArrangedLayers,
+  placement: ArrangePlacement
 ): void {
-  const boxes = new Map<string, Rect>([...layout.groups, ...layout.nodes])
+  const boxes = new Map<string, Rect>([...arrangement.groups, ...arrangement.boxes])
   if (boxes.size === 0) return
   const drawing = bounds([...boxes.values()])
   const origin =
@@ -89,7 +89,7 @@ export function applyDiagramLayout(
       : placement.topLeft
   const shift = { x: origin.x - drawing.x, y: origin.y - drawing.y }
   const groupOf = new Map(
-    [...input.nodes, ...input.groups].map((member) => [member.id, member.group])
+    [...input.boxes, ...input.groups].map((member) => [member.id, member.group])
   )
   for (const [id, layerId] of layers.boxes) {
     const box = boxes.get(id)
@@ -99,8 +99,8 @@ export function applyDiagramLayout(
     const position = outer
       ? { x: box.x - outer.x, y: box.y - outer.y }
       : { x: box.x + shift.x, y: box.y + shift.y }
-    // A group's layer takes the size the layout gave it; a node's keeps its own.
-    if (layout.groups.has(id)) {
+    // A group's layer takes the size the arrangement gave it; a box's keeps its own.
+    if (arrangement.groups.has(id)) {
       graph.updateNode(layerId, { ...position, width: box.width, height: box.height })
     } else {
       graph.updateNode(layerId, position)
@@ -111,6 +111,6 @@ export function applyDiagramLayout(
     const start = layers.boxes.get(edge.from)
     const end = layers.boxes.get(edge.to)
     if (!connectorId || !start || !end) continue
-    joinConnector(graph, connectorId, [start, end], layout.edges.get(edge.id), shift)
+    joinConnector(graph, connectorId, [start, end], arrangement.edges.get(edge.id), shift)
   }
 }
