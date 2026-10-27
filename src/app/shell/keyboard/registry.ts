@@ -115,10 +115,6 @@ function hasOpenDismissableLayer(allowPickers = false) {
 }
 
 /**
- * Other shortcuts wait for open popovers to close, but undo and redo work while a fill, stroke,
- * or colour picker is open, as in Figma; a text field in it keeps its own undo.
- */
-/**
  * While text is edited its input handles the keys, undo and redo among them. Focus can leave it
  * for a panel field while the edit stays open, as after a typed font size; undo and redo then
  * run on the editor's history, which records the text edit's steps, rather than go nowhere.
@@ -128,6 +124,10 @@ function editingTextHandles(options: KeyboardShortcutOptions, history: boolean) 
   return !history || isCanvasTextInput(document.activeElement)
 }
 
+/**
+ * Other shortcuts wait for open popovers to close, but undo and redo work while a fill, stroke,
+ * or colour picker is open, as in Figma; a text field in it keeps its own undo.
+ */
 function shouldIgnoreShortcut(
   event: KeyboardEvent,
   options: KeyboardShortcutOptions,
