@@ -63,6 +63,7 @@ import {
 import type { ToolDef } from '#core/tools/schema'
 import { getStatuses, setStatus } from '#core/tools/statuses'
 import {
+  arrangeDiagramTool,
   arrangeNodes,
   cloneNode,
   flattenNodes,
@@ -180,6 +181,7 @@ export const EXTENDED_TOOLS: ToolDef[] = [
   nodeTree,
   nodeBindings,
   nodeReplaceWith,
+  arrangeDiagramTool,
   arrangeNodes,
   // Variables
   listVariables,

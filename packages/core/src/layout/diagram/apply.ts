@@ -1,8 +1,8 @@
 import type { SceneGraph } from '@open-pencil/scene-graph'
-import { boundEndpoint } from '@open-pencil/scene-graph/connectors'
+import { boundEndpoint, layoutConnector } from '@open-pencil/scene-graph/connectors'
 import type { Rect, Vector } from '@open-pencil/scene-graph/primitives'
 
-import type { DiagramInput, DiagramLayout } from './index'
+import type { DiagramInput, DiagramLayout, DiagramRoute } from './index'
 import { runConnectorAlong } from './routes'
 
 /** The layers that draw a diagram, by the diagram's ids. */
@@ -28,10 +28,47 @@ function bounds(boxes: Rect[]): Rect {
 }
 
 /**
+ * Joins a connector to the layers at its edge's ends by the sides the route takes: an elbow runs
+ * along the route, moved by `shift` into the parent's axes, a curve bends between those sides,
+ * and a straight line keeps its ends.
+ */
+function joinConnector(
+  graph: SceneGraph,
+  connectorId: string,
+  [start, end]: [string, string],
+  route: DiagramRoute | undefined,
+  shift: Vector
+): void {
+  const connector = graph.getNode(connectorId)
+  if (!connector) return
+  if (connector.connectorLineType === 'STRAIGHT') {
+    layoutConnector(graph, connector)
+    return
+  }
+  graph.updateNode(connectorId, {
+    connectorStart: boundEndpoint(start, route?.startSide ?? 'AUTO'),
+    connectorEnd: boundEndpoint(end, route?.endSide ?? 'AUTO'),
+    connectorCurveHandles: null,
+    connectorControlPoints: []
+  })
+  if (connector.connectorLineType === 'CURVED') {
+    const curve = graph.getNode(connectorId)
+    if (curve) layoutConnector(graph, curve)
+    return
+  }
+  runConnectorAlong(
+    graph,
+    connectorId,
+    (route?.points ?? []).map((point) => ({ x: point.x + shift.x, y: point.y + shift.y }))
+  )
+}
+
+/**
  * Puts a diagram's layers where `layout` placed it, the drawing at `placement` in its parent:
  * each node's layer at its box and each group's at its box and size, in the axes of the group
  * holding it, if any. Each edge's connector is joined to the layers at its ends by the sides the
- * layout chose and runs along the route it gave.
+ * layout chose: an elbow runs along the route it gave, a curve bends between those sides, and a
+ * straight line keeps its ends.
  */
 export function applyDiagramLayout(
   graph: SceneGraph,
@@ -74,15 +111,6 @@ export function applyDiagramLayout(
     const start = layers.boxes.get(edge.from)
     const end = layers.boxes.get(edge.to)
     if (!connectorId || !start || !end) continue
-    const route = layout.edges.get(edge.id)
-    graph.updateNode(connectorId, {
-      connectorStart: boundEndpoint(start, route?.startSide ?? 'AUTO'),
-      connectorEnd: boundEndpoint(end, route?.endSide ?? 'AUTO')
-    })
-    runConnectorAlong(
-      graph,
-      connectorId,
-      (route?.points ?? []).map((point) => ({ x: point.x + shift.x, y: point.y + shift.y }))
-    )
+    joinConnector(graph, connectorId, [start, end], layout.edges.get(edge.id), shift)
   }
 }

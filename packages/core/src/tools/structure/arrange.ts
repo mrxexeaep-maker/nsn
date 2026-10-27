@@ -1,6 +1,7 @@
 import * as v from 'valibot'
 
 import type { FigmaNodeProxy } from '#core/figma-api'
+import { arrangeDiagram } from '#core/layout/diagram/arrange'
 import { toolNumber, defineTool } from '#core/tools/schema'
 
 export const arrangeNodes = defineTool({
@@ -106,3 +107,34 @@ function arrangeGrid(
     rowHeight = Math.max(rowHeight, node.height)
   }
 }
+
+export const arrangeDiagramTool = defineTool({
+  name: 'arrange_diagram',
+
+  description:
+    'Lay out layers joined by connectors as a diagram, so nothing overlaps and connectors run between layers rather than through them: layers in ranks along the flow, each chosen section around the chosen layers it holds, and each elbowed connector rerouted with right-angled bends. Connectors between the layers are found automatically. Use it after drawing shapes and connectors by hand; the drawing keeps its top-left corner.',
+  execution: { kind: 'async', mutation: 'document' },
+  input: v.strictObject({
+    ids: v.pipe(
+      v.array(v.string()),
+      v.minLength(1),
+      v.description(
+        'Layers to lay out, sharing a parent; include a section and all its children to lay them out inside it'
+      )
+    ),
+    direction: v.optional(
+      v.pipe(
+        v.picklist(['TB', 'BT', 'LR', 'RL']),
+        v.description('Flow: top to bottom (default), bottom to top, left to right, right to left')
+      ),
+      'TB'
+    )
+  }),
+  execute: async (figma, args) => {
+    try {
+      return await arrangeDiagram(figma.graph, args.ids, args.direction)
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) }
+    }
+  }
+})
