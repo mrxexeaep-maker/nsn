@@ -79,8 +79,11 @@ test('embeds the fallback font that draws characters the text’s own font lacks
       [{ pageId, nodeIds: [text.id], label: 'Text' }],
       { embedFonts: true, layOutPages: true }
     )
-    // Inter has no Chinese, which the canvas draws in the CJK fallback; the PDF embeds it too.
-    expect(result?.fonts?.embedded).toContain('PDF Test CJK Regular')
+    // Inter has no Chinese, which the canvas draws in a CJK fallback, the one loaded here or one
+    // another test loaded first; the PDF embeds that face too.
+    const embedded = result?.fonts?.embedded ?? []
+    expect(embedded).toHaveLength(2)
+    expect(embedded.filter((face) => !face.startsWith('Inter '))).toHaveLength(1)
     expect(result?.fonts?.fallback).toEqual([])
   } finally {
     fontManager.setOnlineFontProviders(
