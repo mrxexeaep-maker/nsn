@@ -38,6 +38,7 @@ const actions = {
   toggleItalic: ctx.toggleItalic,
   toggleDecoration: ctx.toggleDecoration,
   previewAxis: ctx.previewAxis,
+  cancelAxis: ctx.cancelAxis,
   setAxis: ctx.setAxis,
   setOpticalSizeAuto: ctx.setOpticalSizeAuto
 }

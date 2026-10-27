@@ -96,6 +96,12 @@ export function createTypographyAxes(editor: Editor, nodes: ComputedRef<SceneNod
     editor.requestRender()
   }
 
+  /** Puts back the axes a cancelled edit previewed. */
+  function cancelAxis() {
+    restorePreview()
+    editor.requestRender()
+  }
+
   /** Sets `axis` to `value` on every selected text layer in one undo step. */
   function setAxis(axis: string, value: number) {
     restorePreview()
@@ -131,5 +137,5 @@ export function createTypographyAxes(editor: Editor, nodes: ComputedRef<SceneNod
     })
   }
 
-  return { axes, opticalSizeAuto, previewAxis, setAxis, setOpticalSizeAuto }
+  return { axes, opticalSizeAuto, previewAxis, cancelAxis, setAxis, setOpticalSizeAuto }
 }

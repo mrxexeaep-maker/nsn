@@ -255,3 +255,13 @@ test('a named weight draws at its own axes, keeping an optical size set by hand'
   expect(text.fontVariations).toEqual([{ axis: 'opsz', value: 16 }])
   stop()
 })
+
+test('a cancelled axis edit puts back the axes it previewed', async () => {
+  const { text, axes, stop } = await variableText()
+  axes.previewAxis('opsz', 18)
+  expect(text.opticalSizeFromFontSize).toBe(false)
+  axes.cancelAxis()
+  expect(text.fontVariations).toEqual([])
+  expect(text.opticalSizeFromFontSize).toBe(true)
+  stop()
+})

@@ -389,6 +389,7 @@ function picked<T>(value: MixedValue<T>): T | '' {
                 :disabled="axis.tag === 'opsz' && ctx.opticalSizeAuto.value === true"
                 :data-property="`font-axis-${axis.tag}`"
                 @update:model-value="ctx.actions.previewAxis(axis.tag, $event)"
+                @cancel="ctx.actions.cancelAxis()"
                 @commit="(value: number) => ctx.actions.setAxis(axis.tag, value)"
               />
             </PanelFieldGroup>
