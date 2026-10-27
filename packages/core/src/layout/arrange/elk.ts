@@ -15,8 +15,10 @@ interface Engine {
   elk: ELK
   /** ELK's worker, when it has one the runtime would otherwise wait for. */
   worker: () => Unreffable | null
-  /** Rejects when ELK's worker fails, which elkjs does not report to the layouts it holds. */
-  failed: Promise<never>
+  /** How ELK's worker failed, which elkjs does not report to the layouts it holds. */
+  error: Error | null
+  /** Rejects the layouts in flight. */
+  waiting: Set<(error: Error) => void>
 }
 
 /** Starts ELK's worker, or is `null` where a runtime has no workers and ELK runs in place. */
@@ -35,31 +37,33 @@ export function createElkLayout(startWorker: StartElkWorker): (graph: ElkNode) =
   async function load(drop: () => void): Promise<Engine> {
     if (!startWorker) {
       const { default: BundledELK } = await import('elkjs/lib/elk.bundled.js')
-      return { elk: new BundledELK(), worker: () => null, failed: new Promise<never>(noop) }
+      return { elk: new BundledELK(), worker: () => null, error: null, waiting: new Set() }
     }
     const { default: WorkerELK } = await import('elkjs/lib/elk-api.js')
     let held: Unreffable | null = null
-    let fail: (error: Error) => void = noop
-    const failed = new Promise<never>((_, reject) => {
-      fail = reject
-    })
-    // A failure before any layout waits for it must not surface as an unhandled rejection.
-    failed.catch(noop)
-    const elk = new WorkerELK({
-      workerFactory: () => {
-        const worker = startWorker()
-        worker.addEventListener('error', (event) => {
-          worker.terminate()
-          drop()
-          fail(new Error(`ELK's worker failed: ${event.message}`))
-        })
-        held = unreffable(worker)
-        // An idle worker must not keep a script or command from finishing.
-        held?.unref()
-        return worker
-      }
-    })
-    return { elk, worker: () => held, failed }
+    const waiting = new Set<(error: Error) => void>()
+    const loaded: Engine = {
+      elk: new WorkerELK({
+        workerFactory: () => {
+          const worker = startWorker()
+          worker.addEventListener('error', (event) => {
+            worker.terminate()
+            drop()
+            loaded.error = new Error(`ELK's worker failed: ${event.message}`)
+            for (const reject of waiting) reject(loaded.error)
+            waiting.clear()
+          })
+          held = unreffable(worker)
+          // An idle worker must not keep a script or command from finishing.
+          held?.unref()
+          return worker
+        }
+      }),
+      worker: () => held,
+      error: null,
+      waiting
+    }
+    return loaded
   }
 
   function elkEngine(): Promise<Engine> {
@@ -79,12 +83,18 @@ export function createElkLayout(startWorker: StartElkWorker): (graph: ElkNode) =
    * layouts. Its worker, where it has one, keeps the process alive only while a layout runs.
    */
   return async (graph) => {
-    const { elk, worker, failed } = await elkEngine()
-    const layout = elk.layout(graph)
+    const { elk, worker, error, waiting } = await elkEngine()
+    if (error) throw error
+    let reject: (error: Error) => void = noop
+    const failed = new Promise<never>((_, rejectLayout) => {
+      reject = rejectLayout
+    })
+    waiting.add(reject)
     if (running++ === 0) worker()?.ref()
     try {
-      return await Promise.race([layout, failed])
+      return await Promise.race([elk.layout(graph), failed])
     } finally {
+      waiting.delete(reject)
       if (--running === 0) worker()?.unref()
     }
   }
