@@ -133,6 +133,18 @@ describe('arrangeBoxes', () => {
     expect(area(bounds(compacted))).toBeLessThan(area(bounds([...spread.boxes.values()])))
   })
 
+  test('compact starts from where the spread put each group, so no group lands on a box', async () => {
+    const arrangement = await arrangeBoxes({
+      layout: 'compact',
+      boxes: [box('a', 0, 0), box('b', 900, 0), box('inner', 30, 70, 'g')],
+      groups: [{ id: 'g', position: { x: 10, y: 10 } }],
+      edges: []
+    })
+    const group = expectDefined(arrangement.groups.get('g'))
+    for (const id of ['a', 'b'])
+      expect(overlap(group, expectDefined(arrangement.boxes.get(id)))).toBe(false)
+  })
+
   test('pack fills rows in the boxes’ order, the given space apart', async () => {
     const arrangement = await arrangeBoxes({
       layout: 'pack',

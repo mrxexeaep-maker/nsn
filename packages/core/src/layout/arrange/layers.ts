@@ -134,11 +134,35 @@ function connectorEdges(graph: SceneGraph, pageId: string, chosen: Set<string>) 
 }
 
 /**
+ * What an arrangement read from the graph: each layer's parent and box, and each connector's
+ * ends, so a result computed from them can tell whether they still hold.
+ */
+function geometryOf(
+  graph: SceneGraph,
+  nodes: SceneNode[],
+  connectors: Map<string, string>
+): string {
+  const layer = (id: string) => {
+    const node = graph.getNode(id)
+    return node ? [node.parentId, node.x, node.y, node.width, node.height] : null
+  }
+  const connector = (id: string) => {
+    const node = graph.getNode(id)
+    return node ? [node.parentId, node.connectorStart?.nodeId, node.connectorEnd?.nodeId] : null
+  }
+  return JSON.stringify([
+    nodes.map((node) => layer(node.id)),
+    [...connectors.keys()].map(connector)
+  ])
+}
+
+/**
  * Arranges the layers `ids` in `options.layout`. ELK layouts take the connectors that join the
  * layers into account: each layer is a box at its own size, each chosen section is laid out
  * around the chosen layers it holds, and the whole keeps its top-left corner. Layers not inside a
  * chosen section must share a parent. Connectors are found, not chosen: those joined to the
  * layers are joined anew, routed when they flow, and any other connector on what moved follows.
+ * Throws, moving nothing, when the layers change while the layout runs.
  */
 export async function arrangeLayers(
   graph: SceneGraph,
@@ -210,7 +234,12 @@ export async function arrangeLayers(
     x: Math.min(...top.map((node) => node.x)),
     y: Math.min(...top.map((node) => node.y))
   }
+  const before = geometryOf(graph, nodes, joined)
   const arrangement = await arrangeBoxes(input)
+  // Someone may have moved or removed a layer while the layout ran; its result is stale then.
+  if (geometryOf(graph, nodes, joined) !== before) {
+    throw new Error('The layers changed while they were being arranged; nothing was moved')
+  }
   applyArrangement(
     graph,
     input,

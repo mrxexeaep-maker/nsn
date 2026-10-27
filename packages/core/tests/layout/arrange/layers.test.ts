@@ -239,4 +239,18 @@ describe('arrangeLayers', () => {
 
     expect(node(graph, section.id).x - node(graph, near.id).x).toBeGreaterThan(1000)
   })
+
+  test('moves nothing when a layer changes while the layout runs', async () => {
+    const { graph, box, join } = pile()
+    const [a, b] = [box('A'), box('B')]
+    join(a, b)
+
+    const arranging = arrangeLayers(graph, [a.id, b.id], { layout: 'flow' })
+    // A user drags A before the layout comes back.
+    graph.updateNode(a.id, { x: 700 })
+
+    await expect(arranging).rejects.toThrow('changed while they were being arranged')
+    expect(node(graph, a.id).x).toBe(700)
+    expect(node(graph, b.id)).toMatchObject({ x: 100, y: 100 })
+  })
 })

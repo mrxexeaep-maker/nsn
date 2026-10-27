@@ -330,7 +330,7 @@ function collect(result: ElkNode, input: ArrangeInput): Arrangement {
   return arrangement
 }
 
-/** The input again, each box where `result` put it, for a second pass to start from. */
+/** The input again, each box and group where `result` put it, for a second pass to start from. */
 function placedAt(input: ArrangeInput, result: ElkNode): ArrangeInput {
   const positions = new Map<string, Vector>()
   const walk = (node: ElkNode) => {
@@ -340,10 +340,11 @@ function placedAt(input: ArrangeInput, result: ElkNode): ArrangeInput {
     }
   }
   walk(result)
-  return {
-    ...input,
-    boxes: input.boxes.map((box) => ({ ...box, position: positions.get(box.id) ?? box.position }))
-  }
+  const at = <Member extends ArrangeMember>(member: Member): Member => ({
+    ...member,
+    position: positions.get(member.id) ?? member.position
+  })
+  return { ...input, boxes: input.boxes.map(at), groups: input.groups.map(at) }
 }
 
 /**
