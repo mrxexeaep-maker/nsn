@@ -1,4 +1,4 @@
-import { executeAtomicTool, isEmptyDocumentChange } from '@open-pencil/core'
+import { executeAtomicTool } from '@open-pencil/core'
 import type { FigmaAPI } from '@open-pencil/core/figma-api'
 import type { ToolDef } from '@open-pencil/core/tools'
 
@@ -52,18 +52,5 @@ export async function executeWithDocumentUndo<T>(
   label: string,
   run: () => Promise<T>
 ): Promise<T> {
-  const finishChange = store.captureDocumentChange(pageId)
-  try {
-    return await run()
-  } finally {
-    const change = finishChange()
-    // Read-only scripts and no-op edits must not leave empty steps in the user's history.
-    if (!isEmptyDocumentChange(change)) {
-      store.pushUndoStep({
-        label,
-        forward: () => store.restoreDocumentChange(change, 'after'),
-        inverse: () => store.restoreDocumentChange(change, 'before')
-      })
-    }
-  }
+  return store.recordEditAsync({ label, pageId }, run)
 }

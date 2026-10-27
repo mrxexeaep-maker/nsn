@@ -1,4 +1,4 @@
-import { isEmptyDocumentChange } from '@open-pencil/core'
+import { isEmptyDocumentChange, type DocumentChange } from '@open-pencil/core'
 import type { FigmaAPI } from '@open-pencil/core/figma-api'
 import { isAtomicTool, toolChangesDocument, type ToolDef } from '@open-pencil/core/tools'
 
@@ -89,7 +89,7 @@ async function execute(call: EditorToolCall, pageId: string, prefix: string): Pr
 async function recordReplyCall(
   call: EditorToolCall,
   reply: ReplyCall,
-  change: ReturnType<ReturnType<EditorStore['captureDocumentChange']>>,
+  change: DocumentChange,
   undoBefore: ReturnType<EditorStore['undo']['peekUndo']>,
   viewPageId: string
 ): Promise<void> {
@@ -124,20 +124,24 @@ async function editAndRecord(call: EditorToolCall, reply: ReplyCall | null): Pro
   }
   const prefix = reply ? AI_UNDO_PREFIX : (call.source ?? AUTOMATION_UNDO_LABEL)
   const undoBefore = store.undo.peekUndo()
-  const finishChange = store.captureDocumentChange(pageId)
+  const recorded: { change?: DocumentChange } = {}
   try {
-    return await execute(call, pageId, prefix)
-  } finally {
-    const change = finishChange()
-    // Atomic tools record their own entry; an edit that changed nothing records none.
-    if (!isAtomicTool(def) && !isEmptyDocumentChange(change)) {
-      store.pushUndoStep({
+    return await store.recordEditAsync(
+      {
         label: `${prefix}: ${def.name}`,
-        forward: () => store.restoreDocumentChange(change, 'after'),
-        inverse: () => store.restoreDocumentChange(change, 'before')
-      })
+        pageId,
+        // Atomic tools record their own entry.
+        push: !isAtomicTool(def),
+        onRecorded: (change) => {
+          recorded.change = change
+        }
+      },
+      () => execute(call, pageId, prefix)
+    )
+  } finally {
+    if (reply && recorded.change) {
+      await recordReplyCall(call, reply, recorded.change, undoBefore, viewPageId)
     }
-    if (reply) await recordReplyCall(call, reply, change, undoBefore, viewPageId)
   }
 }
 
