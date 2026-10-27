@@ -25,6 +25,8 @@ Or download from the [releases page](https://github.com/open-pencil/open-pencil/
 
 Requires macOS 13 or later with current Safari updates, Windows 10 or later, or Linux with WebKitGTK 2.40+; the web app needs Chrome 111, Edge 111, Firefox 128, or Safari 16.4 or later. See [system requirements](https://openpencil.dev/getting-started#system-requirements).
 
+Official builds send one anonymous ping a day and share usage stats only if you agree. The [privacy page](https://openpencil.dev/overview/privacy) lists every field, everything else the app sends, and how to turn it off.
+
 ## What it does
 
 - **Opens `.fig` and `.pen` files** — read and write native Figma files, open supported Pencil documents from the app or OS file browser, copy & paste nodes between apps
@@ -36,7 +38,8 @@ Requires macOS 13 or later with current Safari updates, Windows 10 or later, or 
 - **Image vectorization** — convert image layers into editable vector layers with Recraft or fal.ai
 - **Design-to-code export** — export selections as JSX/Tailwind, generate token outputs, and map designs into component-oriented code workflows
 - **Vue SDK for custom editors** — headless components and composables for embedding OpenPencil into other apps or building workflow-specific editing surfaces. [Read the SDK docs →](https://openpencil.dev/programmable/sdk/)
-- **Real-time collaboration** — P2P via WebRTC, no server, no account. Cursors, presence, follow mode, voice calls
+- **Real-time collaboration** — share a peer-to-peer room over WebRTC with no server or account, or edit Cloud documents together. Cursors, presence, follow mode, voice calls
+- **Optional Cloud** — keep documents on your team's own [OpenPencil Cloud](https://openpencil.dev/user-guide/openpencil-cloud) server, or on the hosted service once it opens, and share them by invitation
 - **Auto layout & CSS Grid** — flex and grid layout via Yoga WASM, with gap, padding, alignment, track sizing
 - **~15 MB desktop app** — Tauri v2 for macOS, Windows, Linux. Also runs in the browser as a PWA
 
@@ -200,7 +203,7 @@ For documentation-aware agents, the docs site publishes [llms.txt](https://openp
 
 ## Collaboration
 
-Share a link to co-edit in real time. No server, no account — peers connect directly via WebRTC.
+Share a link to co-edit in real time. Rooms need no server or account — peers connect directly via WebRTC. Documents on [OpenPencil Cloud](https://openpencil.dev/user-guide/openpencil-cloud#share-a-document) are shared by invitation and edited together through their server.
 
 1. Click the share button in the top-right panel
 2. Share the generated link (`app.openpencil.dev/rooms/<room-id>`)
@@ -213,8 +216,6 @@ Share a link to co-edit in real time. No server, no account — peers connect di
 Figma is a closed platform that actively fights programmatic access. Their MCP server is read-only. [figma-use](https://github.com/dannote/figma-use) added full read/write automation via CDP — then [Figma 126 killed CDP](https://forum.figma.com/report-a-problem-6/remote-debugging-port-not-working-in-figma-desktop-126-1-2-50858). Your design files are in a proprietary binary format that only their software can fully read. Your workflows break when they decide to ship a point release.
 
 OpenPencil is the alternative: open source (MIT), local-first, reads .fig files natively, and every operation is scriptable.
-
-Official builds send one anonymous ping a day and, only if you agree, usage stats; the [privacy page](https://openpencil.dev/overview/privacy) lists every field and how to turn it off.
 
 See the [roadmap](https://openpencil.dev/development/roadmap) for product direction and current Figma compatibility gaps.
 
@@ -232,7 +233,7 @@ bun run dev:portless  # Web editor at https://open-pencil.localhost
 bun run tauri dev     # Desktop app (requires Rust)
 ```
 
-[CONTRIBUTING.md](CONTRIBUTING.md) covers setup, quality gates, pull requests, and commits. [AGENTS.md](AGENTS.md) maps the repository and links the guide inside each package. Desktop builds need [Rust](https://rustup.rs/) and the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/); run `bun run tauri build`. Set `VITE_OPENPENCIL_CLOUD=off` to build the web or desktop editor without OpenPencil Cloud.
+[CONTRIBUTING.md](CONTRIBUTING.md) covers setup, quality gates, pull requests, and commits. [AGENTS.md](AGENTS.md) maps the repository and links the guide inside each package. Desktop builds need [Rust](https://rustup.rs/) and the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/); run `bun run tauri build`.
 
 ### Tech stack
 
