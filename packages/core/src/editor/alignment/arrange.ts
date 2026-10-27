@@ -23,8 +23,13 @@ export function createArrangeActions(ctx: EditorContext) {
     nodeIds: string[],
     options: ArrangeLayersOptions
   ): Promise<LayerArrangement> {
+    const graph = ctx.graph
     try {
-      return await arrangeLayers(ctx.graph, nodeIds, options, (apply) => {
+      return await arrangeLayers(graph, nodeIds, options, (apply) => {
+        // Another document may have replaced this one while the layout ran.
+        if (ctx.graph !== graph) {
+          throw new Error('The document changed while the layers were being arranged')
+        }
         const finish = captureDocumentChange(ctx.graph, ctx.state.currentPageId)
         apply()
         const change = finish()

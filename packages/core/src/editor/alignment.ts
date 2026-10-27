@@ -276,8 +276,14 @@ export function createAlignmentActions(ctx: EditorContext) {
     label: string,
     plan: (boxes: PlacedBox[]) => Map<string, Vector>
   ) {
-    const nodes = positionableNodes(nodeIds)
-    if (!nodes) return
+    const chosen = positionableNodes(nodeIds)
+    if (!chosen) return
+    // A layer inside another chosen layer moves with it, rather than being placed twice.
+    const ids = new Set(chosen.map((node) => node.id))
+    const nodes = chosen.filter(
+      (node) =>
+        !node.parentId || !ctx.graph.closest(node.parentId, (ancestor) => ids.has(ancestor.id))
+    )
     const boxes = nodes.map((node) => {
       const bounds = getAbsolutePositionFull(node, ctx.graph)
       return {

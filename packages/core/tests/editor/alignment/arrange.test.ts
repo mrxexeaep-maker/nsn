@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { createEditor } from '@open-pencil/core'
+import { SceneGraph } from '@open-pencil/scene-graph'
 
 type Editor = ReturnType<typeof createEditor>
 
@@ -62,6 +63,37 @@ describe('editor arrange actions', () => {
       [0, 70],
       [100, 140]
     ])
+  })
+
+  test('moves a chosen layer inside another chosen layer with it, once', () => {
+    const editor = createEditor()
+    const pageId = editor.state.currentPageId
+    const frame = editor.graph.createNode('FRAME', pageId, { x: 300, width: 100, height: 70 })
+    const inside = editor.graph.createNode('RECTANGLE', frame.id, {
+      x: 10,
+      y: 10,
+      width: 20,
+      height: 20
+    })
+    const [first] = rectangles(editor, [0, 0])
+
+    editor.packNodes([first, frame.id, inside.id], 'horizontal')
+
+    expect(editor.graph.getNode(frame.id)?.x).toBe(100)
+    expect(editor.graph.getNode(inside.id)).toMatchObject({ x: 10, y: 10 })
+  })
+
+  test('arranges nothing when the document is replaced while the layout runs', async () => {
+    const editor = createEditor()
+    const ids = rectangles(editor, [0, 0], [20, 10], [40, 20])
+    const original = editor.graph
+
+    const arranged = editor.arrangeNodes(ids, { layout: 'spread' })
+    editor.replaceGraph(new SceneGraph())
+
+    await expect(arranged).rejects.toThrow('document changed')
+    expect(ids.map((id) => original.getNode(id)?.x)).toEqual([0, 20, 40])
+    expect(editor.undo.canUndo).toBe(false)
   })
 
   test('only offers arranging for two or more movable layers', () => {
