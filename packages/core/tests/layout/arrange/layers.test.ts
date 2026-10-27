@@ -253,4 +253,28 @@ describe('arrangeLayers', () => {
     expect(node(graph, a.id).x).toBe(700)
     expect(node(graph, b.id)).toMatchObject({ x: 100, y: 100 })
   })
+
+  test('moves nothing when a connector or a section child is added while the layout runs', async () => {
+    const joined = pile()
+    const [a, b, c] = [joined.box('A'), joined.box('B'), joined.box('C')]
+    joined.join(a, b)
+    const arranging = arrangeLayers(joined.graph, [a.id, b.id, c.id], { layout: 'flow' })
+    joined.join(b, c)
+    await expect(arranging).rejects.toThrow('changed while they were being arranged')
+
+    const held = pile()
+    const section = held.graph.createNode('SECTION', held.pageId, {
+      x: 0,
+      y: 0,
+      width: 300,
+      height: 200
+    })
+    const inside = held.box('Inside', section.id)
+    const outside = held.box('Outside')
+    const layingOut = arrangeLayers(held.graph, [section.id, inside.id, outside.id], {
+      layout: 'flow'
+    })
+    held.box('Added', section.id)
+    await expect(layingOut).rejects.toThrow('changed while they were being arranged')
+  })
 })

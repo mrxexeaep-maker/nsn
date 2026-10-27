@@ -134,25 +134,30 @@ function connectorEdges(graph: SceneGraph, pageId: string, chosen: Set<string>) 
 }
 
 /**
- * What an arrangement read from the graph: each layer's parent and box, and each connector's
- * ends, so a result computed from them can tell whether they still hold.
+ * What an arrangement read from the graph: each layer's parent and box, each chosen section's
+ * children, and the connectors between the layers with their ends, so a result computed from
+ * them can tell whether they still hold.
  */
-function geometryOf(
+function readFrom(
   graph: SceneGraph,
+  pageId: string,
   nodes: SceneNode[],
-  connectors: Map<string, string>
+  groups: Set<string>
 ): string {
+  const chosen = new Set(nodes.map((node) => node.id))
   const layer = (id: string) => {
     const node = graph.getNode(id)
-    return node ? [node.parentId, node.x, node.y, node.width, node.height] : null
+    if (!node) return null
+    const box = [node.parentId, node.x, node.y, node.width, node.height]
+    return groups.has(id) ? [...box, node.childIds] : box
   }
   const connector = (id: string) => {
     const node = graph.getNode(id)
-    return node ? [node.parentId, node.connectorStart?.nodeId, node.connectorEnd?.nodeId] : null
+    return node ? [id, node.parentId, node.connectorStart?.nodeId, node.connectorEnd?.nodeId] : null
   }
   return JSON.stringify([
     nodes.map((node) => layer(node.id)),
-    [...connectors.keys()].map(connector)
+    connectorEdges(graph, pageId, chosen).edges.map((edge) => connector(edge.id))
   ])
 }
 
@@ -234,10 +239,10 @@ export async function arrangeLayers(
     x: Math.min(...top.map((node) => node.x)),
     y: Math.min(...top.map((node) => node.y))
   }
-  const before = geometryOf(graph, nodes, joined)
+  const before = readFrom(graph, pageId, nodes, groups)
   const arrangement = await arrangeBoxes(input)
   // Someone may have moved or removed a layer while the layout ran; its result is stale then.
-  if (geometryOf(graph, nodes, joined) !== before) {
+  if (readFrom(graph, pageId, nodes, groups) !== before) {
     throw new Error('The layers changed while they were being arranged; nothing was moved')
   }
   applyArrangement(
