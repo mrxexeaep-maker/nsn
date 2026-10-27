@@ -51,6 +51,21 @@ describe('page snapshot graphs', () => {
     expect(keptRecord?.modes[0].name).toBe('Mode 1')
   })
 
+  test('gives layers on other pages the values of the variables it restores', () => {
+    const { editor, pageId } = setup()
+    const collection = editor.graph.createCollection('Shape')
+    const radius = editor.graph.createVariable('Radius', 'FLOAT', collection.id, 12)
+    const other = editor.graph.addPage('Other')
+    const tile = editor.graph.createNode('FRAME', other.id, { name: 'Tile', cornerRadius: 12 })
+    editor.graph.bindVariable(tile.id, 'cornerRadius', radius.id)
+    const before = editor.snapshotPage(pageId)
+    editor.updateVariableValue(radius.id, collection.defaultModeId, 16)
+    expect(editor.graph.getNode(tile.id)?.cornerRadius).toBe(16)
+
+    editor.restorePageFromSnapshot(before)
+    expect(editor.graph.getNode(tile.id)?.cornerRadius).toBe(12)
+  })
+
   test('renders both states of a region at one size and finds the changed pixels', async () => {
     const { editor, pageId, card } = setup()
     editor.graph.updateNode(card.id, {
