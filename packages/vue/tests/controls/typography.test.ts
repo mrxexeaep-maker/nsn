@@ -313,6 +313,20 @@ test('an axis set while text is edited styles the selected characters, and undoe
     ])
     editor.undoAction()
     expect(node()?.styleRuns).toEqual([])
+
+    // A typed optical size goes to the selected characters too, and stays when the edit ends.
+    axes.setAxis('opsz', 20)
+    const typed = {
+      start: 6,
+      length: 5,
+      style: { fontVariations: [{ axis: 'opsz', value: 20 }], opticalSizeFromFontSize: false }
+    }
+    expect(node()?.styleRuns).toEqual([typed])
+    expect(node()?.opticalSizeFromFontSize).toBe(true)
+    expect(node()?.fontVariations).toEqual([])
+    editor.commitTextEdit()
+    expect(editor.state.editingTextId).toBeNull()
+    expect(node()?.styleRuns).toEqual([typed])
   } finally {
     scope.stop()
     editor.dispose()
