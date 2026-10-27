@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { useSelectionState } from '@open-pencil/vue/editor/selection-state'
 import { useI18n } from '@open-pencil/vue/i18n'
 import { PositionControlsRoot } from '@open-pencil/vue/primitives/PositionControls'
 
 import { useEditorStore } from '@/app/editor/active-store'
 import NumberField from '@/components/inputs/NumberField.vue'
+import AlignmentActionsMenu from '@/components/properties/AlignmentActionsMenu.vue'
 import IconButton from '@/components/ui/button/IconButton.vue'
 import Tip from '@/components/ui/overlay/Tip.vue'
 import PanelGrid from '@/components/ui/panel/PanelGrid.vue'
@@ -11,6 +13,7 @@ import PanelSection from '@/components/ui/panel/PanelSection.vue'
 
 const { panels } = useI18n()
 const store = useEditorStore()
+const { canArrange } = useSelectionState()
 
 function handleAlign(
   nodeAlign: (axis: 'horizontal' | 'vertical', pos: 'min' | 'center' | 'max') => void,
@@ -95,6 +98,7 @@ function handleAlign(
           >
             <icon-lucide-align-end-horizontal class="size-3.5" />
           </IconButton>
+          <AlignmentActionsMenu v-if="canArrange" />
         </div>
       </div>
 
