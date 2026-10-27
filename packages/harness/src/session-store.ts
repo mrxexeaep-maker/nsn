@@ -64,7 +64,7 @@ export class FileResumeStateStore implements ResumeStateStore {
       throw new Error('Harness state exceeds the persistence size limit')
     }
     await mkdir(dirname(path), { recursive: true, mode: 0o700 })
-    await writeFileAtomic(path, content, { mode: 0o600, symlink: 'replace' })
+    await writeFileAtomic(path, content, { mode: 0o600 })
   }
 
   async remove(sessionId: string): Promise<void> {

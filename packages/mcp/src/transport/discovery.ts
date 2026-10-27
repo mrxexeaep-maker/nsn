@@ -66,7 +66,7 @@ export function parseDiscoveryInfo(raw: string): DiscoveryInfo | null {
 export async function writeDiscoveryFile(info: DiscoveryInfo): Promise<void> {
   const path = await getDiscoveryPath()
   const json = JSON.stringify(info, null, 2)
-  await writeFileAtomic(path, json, { mode: 0o600, symlink: 'replace' })
+  await writeFileAtomic(path, json, { mode: 0o600 })
 }
 
 /**

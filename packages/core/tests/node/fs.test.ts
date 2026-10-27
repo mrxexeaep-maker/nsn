@@ -33,30 +33,45 @@ describe('writeFileAtomic', () => {
     expect((await stat(path)).mode & 0o777).toBe(0o600)
   })
 
-  test('writes through a symlink to the file it points at', async () => {
+  test('writes a document through a symlink to the file it points at when asked', async () => {
     const dir = await scratch()
     const target = join(dir, 'real.fig')
     const link = join(dir, 'link.fig')
     await writeFile(target, 'old')
     await symlink(target, link)
 
-    await writeFileAtomic(link, 'new')
+    await writeFileAtomic(link, 'new', { symlink: 'follow' })
 
     expect((await lstat(link)).isSymbolicLink()).toBe(true)
     expect(await readFile(target, 'utf8')).toBe('new')
   })
 
-  test('replaces a symlink instead when asked, leaving the file it pointed at', async () => {
+  test('replaces a symlink by default, leaving the file it pointed at', async () => {
     const dir = await scratch()
     const target = join(dir, 'elsewhere')
     const link = join(dir, 'discovery.json')
     await writeFile(target, 'untouched')
     await symlink(target, link)
 
-    await writeFileAtomic(link, 'token', { mode: 0o600, symlink: 'replace' })
+    await writeFileAtomic(link, 'token', { mode: 0o600 })
 
     expect((await lstat(link)).isSymbolicLink()).toBe(false)
     expect(await readFile(link, 'utf8')).toBe('token')
     expect(await readFile(target, 'utf8')).toBe('untouched')
+  })
+
+  test('writes an existing file in place where its directory takes no new files', async () => {
+    const dir = await scratch()
+    const path = join(dir, 'doc.fig')
+    await writeFile(path, 'old')
+    await chmod(dir, 0o500)
+    try {
+      await writeFileAtomic(path, 'new', { symlink: 'follow' })
+    } finally {
+      await chmod(dir, 0o700)
+    }
+
+    expect(await readFile(path, 'utf8')).toBe('new')
+    expect(await readdir(dir)).toEqual(['doc.fig'])
   })
 })
