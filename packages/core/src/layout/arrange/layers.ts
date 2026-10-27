@@ -135,8 +135,8 @@ function connectorEdges(graph: SceneGraph, pageId: string, chosen: Set<string>) 
 
 /**
  * What an arrangement read from the graph: each layer's parent and box, each chosen section's
- * children, and the connectors between the layers with their ends, so a result computed from
- * them can tell whether they still hold.
+ * children, and the connectors between the layers with their ends, line types, and label sizes,
+ * so a result computed from them can tell whether they still hold.
  */
 function readFrom(
   graph: SceneGraph,
@@ -151,9 +151,18 @@ function readFrom(
     const box = [node.parentId, node.x, node.y, node.width, node.height]
     return groups.has(id) ? [...box, node.childIds] : box
   }
+  // Everything the arrangement reads from a connector or rewrites on it.
   const connector = (id: string) => {
     const node = graph.getNode(id)
-    return node ? [id, node.parentId, node.connectorStart?.nodeId, node.connectorEnd?.nodeId] : null
+    if (!node) return null
+    return [
+      id,
+      node.parentId,
+      node.connectorStart,
+      node.connectorEnd,
+      node.connectorLineType,
+      connectorLabelSize(graph, id)
+    ]
   }
   return JSON.stringify([
     nodes.map((node) => layer(node.id)),

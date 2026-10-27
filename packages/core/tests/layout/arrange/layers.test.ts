@@ -3,7 +3,12 @@ import { describe, expect, test } from 'bun:test'
 import { expectDefined } from '#core-tests/helpers/assert'
 
 import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
-import { boundEndpoint, connectorRoute, createConnector } from '@open-pencil/scene-graph/connectors'
+import {
+  boundEndpoint,
+  connectorRoute,
+  connectorSublayers,
+  createConnector
+} from '@open-pencil/scene-graph/connectors'
 import type { Rect } from '@open-pencil/scene-graph/primitives'
 
 import { arrangeLayers } from '#core/layout/arrange/layers'
@@ -275,6 +280,24 @@ describe('arrangeLayers', () => {
       layout: 'flow'
     })
     held.box('Added', section.id)
+    await expect(layingOut).rejects.toThrow('changed while they were being arranged')
+  })
+
+  test('moves nothing when a connector is re-pinned or relabelled while the layout runs', async () => {
+    const pinned = pile()
+    const [a, b] = [pinned.box('A'), pinned.box('B')]
+    const ab = pinned.join(a, b)
+    const arranging = arrangeLayers(pinned.graph, [a.id, b.id], { layout: 'flow' })
+    pinned.graph.updateNode(ab.id, { connectorEnd: boundEndpoint(b.id, 'LEFT') })
+    await expect(arranging).rejects.toThrow('changed while they were being arranged')
+    expect(node(pinned.graph, ab.id).connectorEnd?.magnet).toBe('LEFT')
+
+    const labelled = pile()
+    const [c, d] = [labelled.box('C'), labelled.box('D')]
+    const cd = labelled.join(c, d)
+    const label = expectDefined(connectorSublayers(labelled.graph, cd)).label
+    const layingOut = arrangeLayers(labelled.graph, [c.id, d.id], { layout: 'flow' })
+    labelled.graph.updateNode(label.id, { text: 'A much longer label', width: 160, height: 24 })
     await expect(layingOut).rejects.toThrow('changed while they were being arranged')
   })
 })
