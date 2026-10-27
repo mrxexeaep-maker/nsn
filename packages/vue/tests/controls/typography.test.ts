@@ -301,12 +301,17 @@ test('an axis set while text is edited styles the selected characters, and undoe
     ])
     editor.undoAction()
     expect(node()?.styleRuns).toEqual([])
-    // Whether optical size follows the font size is the layer's, which selected characters
-    // cannot set for themselves.
-    expect(axes.opticalSizeEditable.value).toBe(false)
+    // Whether optical size follows the font size is the selected characters' own, as in Figma.
     axes.setOpticalSizeAuto(false)
-    axes.setAxis('opsz', 20)
     expect(node()?.opticalSizeFromFontSize).toBe(true)
+    expect(node()?.styleRuns).toEqual([
+      {
+        start: 6,
+        length: 5,
+        style: { opticalSizeFromFontSize: false, fontVariations: [{ axis: 'opsz', value: 14 }] }
+      }
+    ])
+    editor.undoAction()
     expect(node()?.styleRuns).toEqual([])
   } finally {
     scope.stop()
