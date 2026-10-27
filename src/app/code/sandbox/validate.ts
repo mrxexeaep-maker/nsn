@@ -1,4 +1,4 @@
-import type { DesignJSXValidationLimits } from '@/app/code/sandbox/types'
+import type { DesignJSXValidationLimits } from '@/app/code/sandbox/schema'
 
 const BLOCKED_KEYS = new Set(['__proto__', 'prototype', 'constructor'])
 

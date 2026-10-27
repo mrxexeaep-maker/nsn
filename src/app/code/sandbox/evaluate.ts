@@ -1,3 +1,5 @@
+import * as v from 'valibot'
+
 import { IS_BROWSER } from '@open-pencil/core/constants'
 import {
   DESIGN_JSX_ELEMENTS,
@@ -9,6 +11,12 @@ import {
 import { sandboxDocument } from '@/app/code/sandbox/document'
 import frameScript from '@/app/code/sandbox/frame.ts?script'
 import {
+  SANDBOX_READY,
+  SANDBOX_RUN,
+  sandboxFrameMessageSchema,
+  type SandboxRunRequest
+} from '@/app/code/sandbox/schema'
+import {
   DESIGN_JSX_DEFAULT_READY_TIMEOUT_MS,
   DESIGN_JSX_DEFAULT_TIMEOUT_MS,
   DESIGN_JSX_MAX_SOURCE_BYTES,
@@ -17,7 +25,6 @@ import {
   type DesignJSXSandboxResult
 } from '@/app/code/sandbox/types'
 import { validateDesignJSXOutput } from '@/app/code/sandbox/validate'
-import type { SandboxRunRequest } from '@/app/code/sandbox/worker/run'
 
 function sourceByteLength(source: string): number {
   return new TextEncoder().encode(source).byteLength
@@ -65,17 +72,12 @@ export async function evaluateDesignJSX(
       // eslint-disable-next-line promise/no-multiple-resolved -- settled guard makes completion single-shot
       resolve(result)
     }
-    const onMessage = (event: MessageEvent) => {
+    const onMessage = (event: MessageEvent<unknown>) => {
       if (event.source !== iframe.contentWindow || event.origin !== 'null') return
-      const message = event.data as {
-        type?: string
-        id?: string
-        ok?: boolean
-        value?: unknown
-        collections?: unknown
-        error?: string
-      }
-      if (message.type === 'open-pencil-design-jsx-ready') {
+      const parsed = v.safeParse(sandboxFrameMessageSchema, event.data)
+      if (!parsed.success) return
+      const message = parsed.output
+      if (message.type === SANDBOX_READY) {
         clearTimeout(timer)
         // eslint-disable-next-line promise/no-multiple-resolved -- finish has a settled guard
         timer = setTimeout(
@@ -91,23 +93,18 @@ export async function evaluateDesignJSX(
           helpers: DESIGN_JSX_HELPERS.map(({ name }) => name),
           limits: validationLimits
         }
-        iframe.contentWindow?.postMessage({ type: 'open-pencil-design-jsx-run', ...request }, '*')
+        iframe.contentWindow?.postMessage({ type: SANDBOX_RUN, ...request }, '*')
         return
       }
-      if (message.type !== 'open-pencil-design-jsx-result' || message.id !== id) return
+      if (message.id !== id) return
       if (!message.ok) {
-        finish({ ok: false, error: message.error ?? 'Design JSX execution failed.' })
+        finish({ ok: false, error: message.error })
         return
       }
       try {
-        const collections = message.collections ?? []
+        const { collections } = message
         const roots = validateDesignJSXOutput(message.value, validationLimits, collections)
-        finish({
-          ok: true,
-          roots,
-          collections: Array.isArray(collections) ? collections : [],
-          lineOffset: program.lineOffset
-        })
+        finish({ ok: true, roots, collections, lineOffset: program.lineOffset })
       } catch (error) {
         finish({ ok: false, error: error instanceof Error ? error.message : String(error) })
       }

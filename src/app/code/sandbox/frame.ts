@@ -3,39 +3,39 @@
  * and reports its result. The frame has an opaque origin, so it starts the worker from its
  * bundled source rather than a URL of the app.
  */
+import * as v from 'valibot'
+
+import {
+  SANDBOX_READY,
+  SANDBOX_RESULT,
+  sandboxHostMessageSchema,
+  sandboxRunResultSchema,
+  type SandboxRunResult
+} from '@/app/code/sandbox/schema'
+
 import workerSource from './worker/index.ts?script'
-import type { SandboxRunRequest } from './worker/run'
 
 const workerURL = URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }))
 
-function isRunRequest(value: unknown): value is { type: string } & SandboxRunRequest {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'type' in value &&
-    value.type === 'open-pencil-design-jsx-run' &&
-    'id' in value &&
-    typeof value.id === 'string'
-  )
-}
-
 addEventListener('message', (event: MessageEvent<unknown>) => {
-  const message = event.data
-  if (!isRunRequest(message)) return
-  const { type: _type, ...request } = message
+  const message = v.safeParse(sandboxHostMessageSchema, event.data)
+  if (!message.success) return
+  const { type: _type, ...request } = message.output
   const worker = new Worker(workerURL)
-  worker.onmessage = ({ data }: MessageEvent<object>) => {
-    parent.postMessage({ type: 'open-pencil-design-jsx-result', ...data }, '*')
+  const report = (result: SandboxRunResult) => {
+    parent.postMessage({ type: SANDBOX_RESULT, ...result }, '*')
     worker.terminate()
   }
-  worker.onerror = () => {
-    const error = 'Design JSX execution failed.'
-    parent.postMessage(
-      { type: 'open-pencil-design-jsx-result', id: request.id, ok: false, error },
-      '*'
-    )
-    worker.terminate()
+  const failed = (): SandboxRunResult => ({
+    id: request.id,
+    ok: false,
+    error: 'Design JSX execution failed.'
+  })
+  worker.onmessage = ({ data }: MessageEvent<unknown>) => {
+    const result = v.safeParse(sandboxRunResultSchema, data)
+    report(result.success ? result.output : failed())
   }
+  worker.onerror = () => report(failed())
   worker.postMessage(request)
 })
-parent.postMessage({ type: 'open-pencil-design-jsx-ready' }, '*')
+parent.postMessage({ type: SANDBOX_READY }, '*')

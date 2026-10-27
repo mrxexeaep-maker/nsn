@@ -1,19 +1,6 @@
-import type { DesignJSXHelperDescriptor, DesignJSXValidationLimits } from '@/app/code/sandbox/types'
+import type { SandboxRunRequest, SandboxRunResult } from '@/app/code/sandbox/schema'
+import type { DesignJSXHelperDescriptor } from '@/app/code/sandbox/types'
 import { validateStructuredData } from '@/app/code/sandbox/validate'
-
-/** What the host asks the sandbox to run. */
-export type SandboxRunRequest = {
-  id: string
-  code: string
-  /** Element names, such as `Frame` or `Button.Root`, by the runtime type they create. */
-  elements: Record<string, string>
-  helpers: string[]
-  limits: DesignJSXValidationLimits
-}
-
-export type SandboxRunResult =
-  | { id: string; ok: true; value: unknown; collections: unknown[] }
-  | { id: string; ok: false; error: string }
 
 type Element = {
   type: unknown
