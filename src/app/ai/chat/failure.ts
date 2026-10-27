@@ -1,11 +1,14 @@
 import { APICallError, StreamProviderError } from 'ai'
 
+import { AgentNotInstalledError } from '@/app/ai/agents/setup/readiness'
+
 export type AIChatFailureReason =
   | 'authentication'
   | 'forbidden'
   | 'insufficient-credit'
   | 'cloud-credits-exhausted'
   | 'model-not-found'
+  | 'agent-not-installed'
   | 'network'
   | 'output-limit'
   | 'rate-limit'
@@ -124,6 +127,9 @@ export function classifyAIChatError(
   error: unknown,
   { signInOnly = false }: { signInOnly?: boolean } = {}
 ): AIChatFailure {
+  if (error instanceof AgentNotInstalledError) {
+    return { reason: 'agent-not-installed', detail: errorText(error) }
+  }
   const reason = failureReason(error)
   return {
     reason: signInOnly ? signInFailureReason(reason) : reason,

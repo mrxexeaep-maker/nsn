@@ -1,12 +1,28 @@
 /** ACP agents, direct AI providers, and the models each provider recommends. */
 
-export type ACPAgentID = 'claude-code' | 'codex' | 'gemini-cli'
+export type ACPAgentID = 'claude-code' | 'codex' | 'gemini-cli' | 'cursor'
+
+/** A user API key the desktop app stores and passes to the agent as an environment variable. */
+export interface ACPAgentAPIKey {
+  /** Credential-store integration id. Segments cannot contain `:`. */
+  integrationId: string
+  /** Environment variable set on the agent process when a key is saved. */
+  env: string
+  /** Page where the person creates a personal user API key. */
+  url: string
+  placeholder: string
+}
 
 export interface ACPAgentDef {
   id: ACPAgentID
   name: string
   command: string
   args: string[]
+  /**
+   * Other executable names for the same program, used when `command` is not on PATH.
+   * The first name lookup finds is the one that is started.
+   */
+  commandAliases?: string[]
   /** The agent's own CLI, when the ACP program is a separate adapter for it. */
   cliCommand?: string
   /** npm package that provides `command` when it is an adapter. */
@@ -20,6 +36,8 @@ export interface ACPAgentDef {
    * which the desktop shell scope pins under `<command>-sign-in`.
    */
   signIn?: { via: 'acp'; method: string } | { via: 'terminal'; method: string; args: string[] }
+  /** Present when the agent accepts a pasted user API key instead of only its own login. */
+  apiKey?: ACPAgentAPIKey
 }
 
 export const ACP_AGENTS: ACPAgentDef[] = [
@@ -56,8 +74,27 @@ export const ACP_AGENTS: ACPAgentDef[] = [
     args: ['--acp'],
     setupURL: 'https://geminicli.com/docs/get-started/installation/',
     installCommand: 'npm i -g @google/gemini-cli'
+  },
+  {
+    id: 'cursor',
+    name: 'Cursor',
+    command: 'agent',
+    args: ['acp'],
+    commandAliases: ['cursor-agent'],
+    setupURL: 'https://cursor.com/docs/cli/installation',
+    apiKey: {
+      integrationId: 'acp-cursor',
+      env: 'CURSOR_API_KEY',
+      url: 'https://cursor.com/dashboard',
+      placeholder: 'User API key'
+    }
   }
 ]
+
+/** The ACP agent a provider id names, such as `acp:cursor`. */
+export function acpAgentForProvider(providerID: string): ACPAgentDef | undefined {
+  return ACP_AGENTS.find((agent) => `acp:${agent.id}` === providerID)
+}
 
 export type AIProviderID =
   | 'openrouter'

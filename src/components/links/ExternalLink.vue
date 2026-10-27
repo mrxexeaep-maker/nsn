@@ -29,7 +29,13 @@ function navigate(event: MouseEvent) {
 </script>
 
 <template>
-  <a :href="href" target="_blank" rel="noopener noreferrer" :class="styles.base" @click="navigate">
+  <a
+    :href="href"
+    :target="IS_TAURI ? undefined : '_blank'"
+    rel="noopener noreferrer"
+    :class="styles.base"
+    @click="navigate"
+  >
     <slot />
     <icon-lucide-external-link :class="styles.icon" aria-hidden="true" />
   </a>

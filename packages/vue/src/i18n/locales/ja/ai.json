@@ -170,6 +170,8 @@
   "chatInsufficientCredit": "プロバイダーのアカウントに十分なクレジットまたは割り当てがありません。チャージして再試行してください。",
   "chatOutputLimit": "推論中にモデルの出力トークンが上限に達しました。最大出力トークンを増やすか、推論の強度を下げてください。",
   "chatRequestFailed": "モデルへのリクエストに失敗しました。プロバイダー設定を確認して再試行してください。",
+  "chatAgentNotInstalled": "コーディングエージェントがインストールされていません。設定でインストールしてから、もう一度お試しください。",
+  "cursorUserKeyHint": "ダッシュボードの個人用 Cursor ユーザー API キーです。Grok API キーや、Cursor（レガシー）または管理者キーではありません。",
   "visionModelUnavailable": "画像を添付する前に、設定でビジョンモデルを選択してください。",
   "chatPiCompanionMissing": "Pi には Harness コンパニオンが必要です。ガイド付きセットアップを実行してインストールしてください。",
   "chatPiCompanionOutdated": "Harness コンパニオンがこのバージョンの OpenPencil と一致しません。ガイド付きセットアップを実行して更新してください。",

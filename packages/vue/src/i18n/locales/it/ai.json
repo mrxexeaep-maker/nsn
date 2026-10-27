@@ -170,6 +170,8 @@
   "chatInsufficientCredit": "L’account del provider non dispone di credito o quota sufficiente. Ricaricalo e riprova.",
   "chatOutputLimit": "Il modello ha esaurito i token di output durante il ragionamento. Aumenta i token di output massimi o riduci lo sforzo di ragionamento.",
   "chatRequestFailed": "La richiesta al modello non è riuscita. Controlla le impostazioni del provider e riprova.",
+  "chatAgentNotInstalled": "L’agente di programmazione non è installato. Installalo in Impostazioni e riprova.",
+  "cursorUserKeyHint": "Una chiave utente Cursor personale dalla dashboard. Non una chiave API Grok e non una chiave Cursor (legacy) o di amministrazione.",
   "visionModelUnavailable": "Scegli un modello Vision nelle Impostazioni prima di allegare immagini.",
   "chatPiCompanionMissing": "Pi richiede il companion Harness. Avvia la configurazione guidata per installarlo.",
   "chatPiCompanionOutdated": "Il companion Harness non corrisponde a questa versione di OpenPencil. Avvia la configurazione guidata per aggiornarlo.",

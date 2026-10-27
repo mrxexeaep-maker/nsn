@@ -2,9 +2,17 @@ import { describe, expect, test, mock } from 'bun:test'
 
 import type { ACPAgentDef } from '@open-pencil/core/constants'
 
-import { createAgentDiscovery, detectedAgents } from '@/app/ai/agents/setup/discovery'
+import {
+  createAgentDiscovery,
+  detectedAgents,
+  resolveAgentCommand,
+  spawnCommandFromLookup
+} from '@/app/ai/agents/setup/discovery'
 import type { AgentLookup } from '@/app/ai/agents/setup/native'
+import { AgentNotInstalledError } from '@/app/ai/agents/setup/readiness'
 import { createDeferred } from '@/app/runtime/deferred'
+
+import { expectDefined } from '#tests/helpers/assert'
 
 // Installed companions report the version of the app under test, as matching ones do.
 const COMPANION_PACKAGES: Record<string, string> = {
@@ -145,7 +153,8 @@ describe('local agent discovery', () => {
     expect(agents.map((agent) => [agent.definition.id, agent.status])).toEqual([
       ['claude-code', 'needs-adapter'],
       ['codex', 'available'],
-      ['gemini-cli', 'not-installed']
+      ['gemini-cli', 'not-installed'],
+      ['cursor', 'not-installed']
     ])
   })
 
@@ -154,8 +163,51 @@ describe('local agent discovery', () => {
     expect(agents.map((agent) => [agent.definition.id, agent.status])).toEqual([
       ['claude-code', 'needs-adapter'],
       ['codex', 'needs-adapter'],
-      ['gemini-cli', 'not-installed']
+      ['gemini-cli', 'not-installed'],
+      ['cursor', 'not-installed']
     ])
+  })
+
+  test('starts the name lookup found and refuses a lookup that found none', () => {
+    const agents = detectedAgents(lookup())
+    const cursor = expectDefined(
+      agents.find((agent) => agent.definition.id === 'cursor'),
+      'Cursor'
+    )
+    const gemini = expectDefined(
+      agents.find((agent) => agent.definition.id === 'gemini-cli'),
+      'Gemini CLI'
+    )
+    expect(spawnCommandFromLookup(cursor.definition, { 'cursor-agent': '/bin/cursor-agent' })).toBe(
+      'cursor-agent'
+    )
+    expect(
+      spawnCommandFromLookup(cursor.definition, {
+        agent: '/bin/agent',
+        'cursor-agent': '/bin/cursor-agent'
+      })
+    ).toBe('agent')
+    expect(spawnCommandFromLookup(cursor.definition, null)).toBe('agent')
+    expect(() =>
+      spawnCommandFromLookup(cursor.definition, { agent: null, 'cursor-agent': null })
+    ).toThrow(AgentNotInstalledError)
+    expect(() => spawnCommandFromLookup(gemini.definition, { gemini: null })).toThrow(
+      AgentNotInstalledError
+    )
+  })
+
+  test('starts cursor-agent when agent itself is not installed', () => {
+    const found = lookup('cursor-agent')
+    const cursor = detectedAgents(found).find((agent) => agent.definition.id === 'cursor')
+    expect(cursor?.status).toBe('available')
+    if (!cursor) return
+    expect(resolveAgentCommand(cursor.definition, found.executables)).toBe('cursor-agent')
+    expect(
+      resolveAgentCommand(cursor.definition, {
+        ...found.executables,
+        agent: '/test/bin/agent'
+      })
+    ).toBe('agent')
   })
 
   test('browser discovery performs no native operations', async () => {

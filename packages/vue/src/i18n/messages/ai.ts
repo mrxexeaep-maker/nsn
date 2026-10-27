@@ -210,6 +210,10 @@ export const aiMessageDefaults = {
   chatNetworkFailed: 'OpenPencil could not reach the provider. Check your connection and endpoint.',
   chatRateLimited: 'The provider rate limit was reached. Wait a moment and try again.',
   chatRequestFailed: 'The model request failed. Check the provider settings and try again.',
+  chatAgentNotInstalled:
+    'The coding agent is not installed. Install it in Settings, then try again.',
+  cursorUserKeyHint:
+    'A personal Cursor user API key from the dashboard. Not a Grok API key, and not a Cursor (legacy) or admin key.',
   openProviderSettingsAction: 'Open settings',
   cloudWorkspace: 'Workspace',
   cloudWorkspaceHint: 'The workspace whose plan pays for these requests.',

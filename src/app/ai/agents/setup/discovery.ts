@@ -28,6 +28,7 @@ import {
   lookupAgents,
   type AgentLookup
 } from './native'
+import { AgentNotInstalledError } from './not-installed'
 
 export type DetectedAgent = {
   definition: ACPAgentDef
@@ -36,10 +37,47 @@ export type DetectedAgent = {
   status: 'available' | 'needs-adapter' | 'not-installed'
 }
 
+/** `command`, then any alias, so the canonical name wins when both are installed. */
+export function agentCommandNames(agent: ACPAgentDef): string[] {
+  return [agent.command, ...(agent.commandAliases ?? [])]
+}
+
+/** The executable to start: the first listed name that lookup found, or `command` when none did. */
+export function resolveAgentCommand(
+  agent: ACPAgentDef,
+  executables: AgentLookup['executables']
+): string {
+  return agentCommandNames(agent).find((name) => executables[name]) ?? agent.command
+}
+
+/**
+ * The executable to spawn from a finished lookup. `null` means the lookup itself failed, so the
+ * canonical command is tried. A lookup that found none of the names refuses to start.
+ */
+export function spawnCommandFromLookup(
+  agent: ACPAgentDef,
+  executables: AgentLookup['executables'] | null
+): string {
+  if (!executables) return agent.command
+  const found = agentCommandNames(agent).find((name) => executables[name])
+  if (!found) throw new AgentNotInstalledError(agent)
+  return found
+}
+
+export async function resolveSpawnCommand(agent: ACPAgentDef): Promise<string> {
+  try {
+    return spawnCommandFromLookup(agent, (await lookupAgents()).executables)
+  } catch (error) {
+    if (error instanceof AgentNotInstalledError) throw error
+    return agent.command
+  }
+}
+
 export function detectedAgents(lookup: AgentLookup): DetectedAgent[] {
   return ACP_AGENTS.map((definition) => {
+    const command = resolveAgentCommand(definition, lookup.executables)
     const cliPath = lookup.executables[definition.cliCommand ?? definition.command] ?? null
-    const adapterPath = lookup.executables[definition.command] ?? null
+    const adapterPath = lookup.executables[command] ?? null
     // An adapter package carries its agent, so it installs whether or not the CLI is there.
     const unavailableStatus = definition.adapterPackage ? 'needs-adapter' : 'not-installed'
     return {

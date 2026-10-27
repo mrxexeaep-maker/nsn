@@ -570,3 +570,5 @@ ja:ai.connectionTestCloudCreditsExhausted
 zh-cn:ai.chatCloudAllowanceUsed
 zh-cn:ai.chatCloudAllowanceUsedUntil
 zh-cn:ai.connectionTestCloudCreditsExhausted
+ja:ai.cursorUserKeyHint
+zh-cn:ai.cursorUserKeyHint

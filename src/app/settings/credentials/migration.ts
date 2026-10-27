@@ -1,4 +1,4 @@
-import { AI_PROVIDERS, type AIProviderID } from '@open-pencil/core/constants'
+import { acpAgentForProvider, AI_PROVIDERS, type AIProviderID } from '@open-pencil/core/constants'
 
 import { appCredentialStore } from '@/app/settings/credentials/app'
 import { credentialKey, credentialRef } from '@/app/settings/credentials/reference'
@@ -14,10 +14,14 @@ export function providerCredentialRef(
   providerId: AIProviderID,
   profileId = 'default'
 ): CredentialRef {
-  if (providerId.startsWith('acp:')) {
+  const agentKey = providerId.startsWith('acp:')
+    ? acpAgentForProvider(providerId)?.apiKey
+    : undefined
+  if (providerId.startsWith('acp:') && !agentKey) {
     throw new Error('ACP agents do not use API-key credentials')
   }
-  const integrationId = providerId === 'harness:pi' ? 'harness-pi' : providerId
+  const integrationId =
+    providerId === 'harness:pi' ? 'harness-pi' : (agentKey?.integrationId ?? providerId)
   return credentialRef(integrationId, 'api-key', profileId)
 }
 

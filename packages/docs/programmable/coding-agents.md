@@ -1,6 +1,6 @@
 # Coding agents
 
-The OpenPencil desktop app can use a coding agent you already have — Claude Code, Codex, Gemini CLI, or [Pi](#pi) — as its design agent. The agent runs on your computer with your own subscription and chooses its own model; OpenPencil starts it when you send a message, through the [Agent Client Protocol](https://agentclientprotocol.com/) or, for Pi, its Harness companion, and gives it the canvas tools through OpenPencil's local [MCP server](./mcp-server).
+The OpenPencil desktop app can use a coding agent you already have — Claude Code, Codex, Gemini CLI, [Cursor](#cursor), or [Pi](#pi) — as its design agent. The agent runs on your computer with your own subscription and chooses its own model; OpenPencil starts it when you send a message, through the [Agent Client Protocol](https://agentclientprotocol.com/) or, for Pi, its Harness companion, and gives it the canvas tools through OpenPencil's local [MCP server](./mcp-server).
 
 Coding agents need the desktop app; the browser cannot start programs on your computer. They take only the **Design agent** role. Visual review, plan reviews, and fast background work need an API model, which guided setup can add for you.
 
@@ -14,7 +14,7 @@ Coding agents need the desktop app; the browser cannot start programs on your co
    npm install -g @open-pencil/mcp
    ```
 
-4. The agent signed in to your account. Pi can use an AI Gateway key instead (see [Pi](#pi)).
+4. The agent signed in to your account. Pi can use an AI Gateway key instead (see [Pi](#pi)), and Cursor a personal user API key (see [Cursor](#cursor)).
 
 Then open **Settings → AI & agents → Run guided setup**, choose the agent under **Coding agents on this computer**, and check that both the agent and the MCP server show as installed. **Install adapter** runs the npm command shown under it. Once the ACP program is installed, guided setup asks the agent which account it uses and shows what it reports, such as the plan and email; when it is not signed in, **Sign in** opens the agent's own login in your browser. For a signed-in agent, **OpenPencil tools** shows whether a session reaches OpenPencil's MCP server, checked the way a chat starts, without sending a message. **Check again** repeats the check after you install something or sign in elsewhere.
 
@@ -47,6 +47,18 @@ npm install -g @google/gemini-cli
 ```
 
 Gemini CLI speaks ACP itself, so there is no separate program. Run `gemini` once and choose a sign-in method.
+
+## Cursor
+
+Cursor's CLI speaks ACP itself, so there is no separate program. Install it from the [CLI installation guide](https://cursor.com/docs/cli/installation):
+
+```sh
+curl https://cursor.com/install -fsS | bash
+```
+
+On Windows, use the PowerShell command on that page. The program is `agent`, usually `~/.local/bin/agent`. Some installs name it `cursor-agent` instead. OpenPencil starts whichever is on your `PATH`, preferring `agent`.
+
+Paste a personal user API key from [Cursor Dashboard → API Keys](https://cursor.com/dashboard) into the Cursor model's settings. OpenPencil passes it only as `CURSOR_API_KEY` when it starts the agent. A team Admin key does not work. If no key is saved, a previous `agent login` or `cursor-agent login` is used.
 
 ## Pi
 
