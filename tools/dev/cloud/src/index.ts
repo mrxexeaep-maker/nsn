@@ -6,6 +6,7 @@ import { resolveWorkspaceRoot } from '@open-pencil/package-artifacts-tools'
 import { randomHex } from '@open-pencil/scene-graph/random'
 
 import { composeProjectName, localCloudDeploymentTOML } from './config'
+import { serveSiteBuilds } from './site'
 
 const root = await resolveWorkspaceRoot(import.meta.dir)
 const composeFile = join(root, 'packages/cloud/deploy/compose.yml')
@@ -127,11 +128,7 @@ async function start(project: string): Promise<void> {
 
   const betterAuthSecret = await authSecret()
   // The server serves the editor and its own pages from this build, rebuilt on every change.
-  const site = Bun.spawn(['bun', 'run', 'build:cloud', '--watch'], {
-    cwd: root,
-    stdout: 'inherit',
-    stderr: 'inherit'
-  })
+  const site = await serveSiteBuilds(root)
 
   console.warn(`OpenPencil Cloud: ${cloudURL}`)
   console.warn(`Captured email:  ${mailURL}`)
@@ -164,8 +161,8 @@ async function start(project: string): Promise<void> {
       }
     )
   } finally {
-    // The watcher stops with the server however the server ends.
-    site.kill()
+    // The builds stop with the server however the server ends.
+    site.stop()
   }
 }
 
