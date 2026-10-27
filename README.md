@@ -256,6 +256,6 @@ Thanks to [Anthropic](https://www.anthropic.com) for supporting the project thro
 
 ## License
 
-OpenPencil is licensed under the [MIT License](./LICENSE), except OpenPencil Cloud's server and its sign-in and administration pages, which are licensed under the [Apache License 2.0](./LICENSES/Apache-2.0.txt). [`REUSE.toml`](./REUSE.toml) lists the exact paths.
+OpenPencil is licensed under the [MIT License](./LICENSE), except OpenPencil Cloud, which is licensed under the [Apache License 2.0](./LICENSES/Apache-2.0.txt). [`REUSE.toml`](./REUSE.toml) lists the exact paths.
 
 Copyright (c) 2026 Danila Poyarkov and OpenPencil contributors.
