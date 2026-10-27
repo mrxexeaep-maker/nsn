@@ -74,7 +74,8 @@ function moveToPageItem({ otherPages, moveSelectionToPage, selection, t }: Canva
   return [{ label: t.moveToPage, sub } satisfies MenuActionNode]
 }
 
-const ARRANGE_GROUPS = [
+/** The Auto Arrange layouts, in the groups every arrange menu shows them in. */
+export const AUTO_ARRANGE_GROUPS = [
   ['selection.arrangeSpread', 'selection.arrangeCompact', 'selection.arrangePack'],
   [
     'selection.arrangeFlowDown',
@@ -88,7 +89,7 @@ const ARRANGE_GROUPS = [
 
 function arrangeItem({ commandMenuItem, selection, t }: CanvasMenuOptions): MenuEntry[] {
   if (!selection.canAutoArrange.value) return []
-  const sub = ARRANGE_GROUPS.flatMap((group, index) => [
+  const sub = AUTO_ARRANGE_GROUPS.flatMap((group, index) => [
     ...(index > 0 ? [separator()] : []),
     ...group.map((command) => commandMenuItem(command))
   ])
