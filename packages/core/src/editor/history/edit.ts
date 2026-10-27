@@ -13,6 +13,12 @@ export interface RecordEditOptions {
   pageId?: string
   /** False for an edit that records its own steps, such as an atomic tool's. */
   push?: boolean
+  /**
+   * Records the step on its own, settling any batch first, rather than as part of an open batch.
+   * An edit that finishes after an await needs this: a batch open by then belongs to another
+   * edit, such as a picker drag. `recordEditAsync` always does.
+   */
+  ownStep?: boolean
   /** Receives what the edit changed, also when it fails, before its step closes. */
   onRecorded?: (change: DocumentChange) => void
 }
@@ -23,11 +29,13 @@ function begin(ctx: EditorContext, options: RecordEditOptions) {
     const change = finish()
     // An edit that changed nothing, such as a read-only script, leaves no empty step behind.
     if (options.push !== false && !isEmptyDocumentChange(change)) {
-      ctx.undo.pushStep({
+      const entry = {
         label: options.label,
         forward: () => restoreDocumentChange(ctx, change, 'after'),
         inverse: () => restoreDocumentChange(ctx, change, 'before')
-      })
+      }
+      if (options.ownStep) ctx.undo.pushStep(entry)
+      else ctx.undo.push(entry)
     }
     options.onRecorded?.(change)
   }
@@ -36,7 +44,7 @@ function begin(ctx: EditorContext, options: RecordEditOptions) {
 /**
  * Runs a synchronous edit as one undo step of everything it changed in the document, also when
  * it throws part way, so what it did stays undoable. Its step is recorded in the same task as its
- * changes, as the document's unsaved state expects of an edit.
+ * changes, as the document's unsaved state expects of an edit, and joins a batch open around it.
  */
 export function recordEdit<T>(ctx: EditorContext, options: RecordEditOptions, run: () => T): T {
   const finish = begin(ctx, options)
@@ -61,7 +69,7 @@ export async function recordEditAsync<T>(
   run: () => Promise<T>
 ): Promise<T> {
   // Capturing can throw; the edit opens only once it has, so a failure never leaves it open.
-  const finish = begin(ctx, options)
+  const finish = begin(ctx, { ...options, ownStep: true })
   const close = ctx.undo.openEdit()
   try {
     return await run()

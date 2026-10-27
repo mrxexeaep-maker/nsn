@@ -23,6 +23,24 @@ describe('recordEdit', () => {
     expect(editor.undo.canUndo).toBe(false)
   })
 
+  test('joins a batch open around it, unless it records its own step', () => {
+    const { editor, card } = setup()
+
+    editor.undo.beginBatch('Drag')
+    editor.recordEdit({ label: 'Move' }, () => editor.graph.updateNode(card.id, { x: 40 }))
+    editor.undo.rollbackBatch()
+    expect(editor.graph.getNode(card.id)?.x).toBe(0)
+    expect(editor.undo.canUndo).toBe(false)
+
+    editor.undo.beginBatch('Drag')
+    editor.recordEdit({ label: 'Arrange', ownStep: true }, () =>
+      editor.graph.updateNode(card.id, { x: 60 })
+    )
+    editor.undo.rollbackBatch()
+    expect(editor.graph.getNode(card.id)?.x).toBe(60)
+    expect(editor.undo.undo()).toBe('Arrange')
+  })
+
   test('records what an edit did before it threw', () => {
     const { editor, card } = setup()
 

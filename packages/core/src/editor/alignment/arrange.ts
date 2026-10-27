@@ -26,7 +26,8 @@ export function createArrangeActions(ctx: EditorContext) {
         if (ctx.graph !== graph) {
           throw new Error('The document changed while the layers were being arranged')
         }
-        recordEdit(ctx, { label: 'Arrange' }, apply)
+        // The moves land after the layout's await, so any batch open now is another edit's.
+        recordEdit(ctx, { label: 'Arrange', ownStep: true }, apply)
       })
     } finally {
       ctx.requestRender()
