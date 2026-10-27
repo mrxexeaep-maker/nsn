@@ -176,13 +176,7 @@ export class FontManager {
     }
   }
 
-  detachProvider(provider?: TypefaceFontProvider | null): void {
-    if (!provider) {
-      this.fontProviders.clear()
-      this.fontProvider = null
-      this.providerRegistrations = new WeakMap()
-      return
-    }
+  detachProvider(provider: TypefaceFontProvider): void {
     this.fontProviders.delete(provider)
     this.providerRegistrations.delete(provider)
     if (this.fontProvider === provider) {
@@ -697,6 +691,11 @@ export class FontManager {
     return (this.supplementalFamilyData.get(`${family}|${style}`) ?? []).map((data) =>
       this.fileFamily(family, data)
     )
+  }
+
+  /** The files of `style` of `family` after its own, such as the shards of a split web font. */
+  shardData(family: string, style: string): readonly ArrayBuffer[] {
+    return this.supplementalFamilyData.get(`${family}|${style}`) ?? []
   }
 
   /** The name one file of `family` is registered under on its own. */
