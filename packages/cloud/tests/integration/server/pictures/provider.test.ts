@@ -79,6 +79,9 @@ describe('provider pictures', () => {
       // Signing in again rewrites the account's token; the picture the account shows stays.
       await adapter.updateAccount(account.id, { idToken })
       expect(requested).toHaveLength(1)
+      const kept = await image(user.id)
+      await adapter.updateUser(user.id, { image: GOOGLE_PICTURE, name: 'Renamed' })
+      expect(await image(user.id)).toBe(kept)
     } finally {
       await runtime.close()
     }
@@ -140,6 +143,14 @@ describe('a provider picture fetched meanwhile', () => {
   test('does not undo a removal', async () => {
     // An account from before the server kept pictures shows Google's address until it signs in.
     const { shown } = await copyWhile(GOOGLE_PICTURE, (pictures, userId) => pictures.remove(userId))
+    expect(shown).toBeNull()
+  })
+
+  test('does not undo an upload removed again', async () => {
+    const { shown } = await copyWhile(null, async (pictures, userId) => {
+      await pictures.upload(userId, pngHeader(256, 256))
+      await pictures.remove(userId)
+    })
     expect(shown).toBeNull()
   })
 })
