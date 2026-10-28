@@ -1,0 +1,1 @@
+- An AI chat that exports many images no longer stops at the request size limit: Anthropic connections send tool images as Files API references and upload a file again when it expires or goes missing.
