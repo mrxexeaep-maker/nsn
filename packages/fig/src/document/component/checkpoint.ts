@@ -15,8 +15,13 @@ export function checkpointComponent(
   const nodes: ComponentCheckpoint['nodes'] = []
   const visit = (occurrence: InstanceOccurrence, path: string[]): void => {
     const node = component.materialized.nodes.get(occurrence)
-    if (!node) throw new Error('Missing checkpoint occurrence')
-    nodes.push({ path, nodeId: node.id, mainComponentId: occurrence.mainComponentId })
+    // Keep the last archive identity as a tombstone when the live node was deleted. This lets
+    // export discover the deletion, while the recursive walk still preserves surviving children
+    // that were reparented out of a deleted ancestor.
+    if (!node && path.length === 0) throw new Error('Missing checkpoint occurrence')
+    const nodeId = node?.id ?? component.deletedNodeIds?.get(occurrence)
+    if (!nodeId) throw new Error('Missing checkpoint occurrence')
+    nodes.push({ path, nodeId, mainComponentId: occurrence.mainComponentId })
     const ids = new Set<string>()
     for (const child of occurrence.children) {
       if (ids.has(child.sourceId)) throw new Error(`Ambiguous checkpoint child ${child.sourceId}`)
@@ -45,6 +50,7 @@ export function restoreComponentCheckpoint(
   }
   visitCurrent(root, [])
   const nodes = new Map<InstanceOccurrence, SceneNode>()
+  const deletedNodeIds = new Map<InstanceOccurrence, string>()
   for (const entry of checkpoint.nodes) {
     let target = occurrence
     for (const id of entry.path) {
@@ -52,10 +58,18 @@ export function restoreComponentCheckpoint(
       if (matches.length !== 1) throw new Error(`Invalid checkpoint source path ${id}`)
       target = matches[0]
     }
-    const node = graph.getNode(entry.nodeId) ?? currentlyMaterialized.get(entry.path.join('/'))
-    if (!node) continue
-    if (nodes.has(target) || target.mainComponentId !== entry.mainComponentId) {
+    if (
+      nodes.has(target) ||
+      deletedNodeIds.has(target) ||
+      target.mainComponentId !== entry.mainComponentId
+    ) {
       throw new Error(`Invalid checkpoint occurrence ${entry.nodeId}`)
+    }
+    const node = graph.getNode(entry.nodeId) ?? currentlyMaterialized.get(entry.path.join('/'))
+    if (!node) {
+      if (entry.path.length === 0) throw new Error(`Invalid checkpoint root ${entry.nodeId}`)
+      deletedNodeIds.set(target, entry.nodeId)
+      continue
     }
     nodes.set(target, node)
   }
@@ -66,5 +80,5 @@ export function restoreComponentCheckpoint(
   }
   validate(occurrence)
   if (nodes.get(occurrence) !== root) throw new Error('Invalid checkpoint root')
-  return { occurrence, materialized: { root, nodes } }
+  return { occurrence, materialized: { root, nodes }, deletedNodeIds }
 }

@@ -108,6 +108,35 @@ test('compact checkpoint reconnects source paths without overwriting live edits'
   expect(checkpoint.nodes[1].path).toEqual(['1:2'])
 })
 
+test('repeated checkpoints retain deleted node identities without restoring them', () => {
+  const { graph, occurrence, materialized, checkpoint } = setup()
+  const childOccurrence = occurrence.children[0]
+  const child = graph.getChildren(materialized.root.id)[0]
+  graph.deleteNode(child.id)
+  const restored = restoreComponentCheckpoint(graph, occurrence, checkpoint)
+  expect(restored.materialized.nodes.has(childOccurrence)).toBe(false)
+  expect(graph.getNode(child.id)).toBeUndefined()
+  const afterDelete = checkpointComponent(restored)
+  expect(afterDelete.nodes).toEqual(checkpoint.nodes)
+
+  const repeated = checkpointComponent(restoreComponentCheckpoint(graph, occurrence, afterDelete))
+  expect(repeated.nodes).toEqual(afterDelete.nodes)
+})
+
+test.each(['duplicate', 'component'] as const)(
+  'rejects %s checkpoint corruption for a deleted descendant',
+  (corruption) => {
+    const { graph, occurrence, checkpoint } = setup()
+    const child = checkpoint.nodes[1]
+    graph.deleteNode(child.nodeId)
+    if (corruption === 'duplicate') checkpoint.nodes.push(child)
+    else child.mainComponentId = 'other'
+    const before = structuredClone([...graph.nodes])
+    expect(() => restoreComponentCheckpoint(graph, occurrence, checkpoint)).toThrow()
+    expect([...graph.nodes]).toEqual(before)
+  }
+)
+
 for (const corruption of ['missing', 'duplicate', 'path', 'component', 'root'] as const) {
   test(`reports ${corruption} checkpoint handling before graph mutation`, () => {
     const { graph, occurrence, checkpoint } = setup()
