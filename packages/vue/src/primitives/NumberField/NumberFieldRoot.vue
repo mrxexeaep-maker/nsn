@@ -37,7 +37,8 @@ const {
   ariaLabel,
   disabled: disabledProp = false,
   bound: boundProp = false,
-  editPolicy = 'editable'
+  editPolicy = 'editable',
+  units = []
 } = defineProps<NumberFieldRootProps>()
 const emit = defineEmits<NumberFieldRootEmits>()
 defineSlots<NumberFieldRootSlots>()
@@ -80,6 +81,8 @@ const ariaLabelValue = computed(() => ariaLabel)
 let interactionStartValue = 0
 let interactionStartedMixed = false
 let mutationRequested = false
+/** The draft the arrow keys last wrote, whose value is already absolute: `-1` is not "minus 1". */
+let steppedDraft: string | null = null
 let stopMove: (() => void) | undefined
 let stopUp: (() => void) | undefined
 let stopCancel: (() => void) | undefined
@@ -107,6 +110,7 @@ function beginInteraction() {
   interactionStartedMixed = isMixed.value
   workingValue.value = numericValue.value
   mutationRequested = false
+  steppedDraft = null
   invalidReason.value = null
 }
 
@@ -127,7 +131,7 @@ function restoreInteractionValue() {
   }
 }
 
-function finishCommit(value: number) {
+function finishCommit(value: number, unit?: string) {
   updateValue(value)
   editing.value = false
   if (
@@ -135,7 +139,7 @@ function finishCommit(value: number) {
     workingValue.value !== interactionStartValue ||
     interactionStartedMixed
   ) {
-    emit('commit', workingValue.value, interactionStartValue)
+    emit('commit', workingValue.value, interactionStartValue, unit)
   }
   binding?.actions.commitMutation()
 }
@@ -162,10 +166,24 @@ function onInput(event: Event) {
   setDraft(inputValue(event))
 }
 
+/** The typed expression without a unit from `units` it ends with, and that unit. */
+function splitUnit(expression: string): { value: string; unit?: string } {
+  const source = expression.trim()
+  const unit = [...units]
+    .sort((a, b) => b.length - a.length)
+    .find((candidate) => source.toLowerCase().endsWith(candidate.toLowerCase()))
+  return unit ? { value: source.slice(0, -unit.length), unit } : { value: source }
+}
+
 function commitEdit() {
   if (!editing.value) return
   const expression = draftValue.value
-  const result = evaluateNumberExpression(expression, {
+  const { value, unit } = splitUnit(expression)
+  if (expression === steppedDraft) {
+    finishCommit(workingValue.value, unit)
+    return
+  }
+  const result = evaluateNumberExpression(value, {
     current: interactionStartValue,
     max,
     mixed: interactionStartedMixed
@@ -179,7 +197,7 @@ function commitEdit() {
     emit('invalid', expression, result.error)
     return
   }
-  finishCommit(result.value)
+  finishCommit(result.value, unit)
 }
 
 function cancelEdit() {
@@ -270,13 +288,16 @@ function stepValueFromKeyboard(event: KeyboardEvent) {
   if (!requestMutation('step')) return true
   event.preventDefault()
 
-  const draftResult = editing.value
-    ? evaluateNumberExpression(draftValue.value, {
-        current: interactionStartValue,
-        max,
-        mixed: interactionStartedMixed
-      })
-    : undefined
+  // A unit typed after the value stays on it, for the commit to report.
+  const draft = editing.value ? splitUnit(draftValue.value) : undefined
+  const draftResult =
+    draft && draftValue.value !== steppedDraft
+      ? evaluateNumberExpression(draft.value, {
+          current: interactionStartValue,
+          max,
+          mixed: interactionStartedMixed
+        })
+      : undefined
   const base = draftResult?.ok ? draftResult.value : workingValue.value
   const next = stepNumberValue(
     base,
@@ -287,7 +308,8 @@ function stepValueFromKeyboard(event: KeyboardEvent) {
     max
   )
   updateValue(next)
-  draftValue.value = String(next)
+  draftValue.value = `${next}${draft?.unit ?? ''}`
+  steppedDraft = draftValue.value
 
   if (!editing.value) {
     emit('commit', next, interactionStartValue)
