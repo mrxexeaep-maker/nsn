@@ -128,6 +128,7 @@ export function createCloudStorageAdapter(
         })
         const committed = await cloud.commitUpload(upload.uploadId, {
           checksum,
+          name: metadata.name,
           multipart: upload.multipart,
           images: named.map((image) => ({ name: image.name, checksum: image.checksum }))
         })

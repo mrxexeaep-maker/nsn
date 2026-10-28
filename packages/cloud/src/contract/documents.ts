@@ -189,6 +189,8 @@ export const completedUploadPartSchema = v.object({
 
 export const commitUploadSchema = v.object({
   checksum: checksumSchema,
+  /** The document title captured with this revision; omitted by older clients. */
+  name: v.optional(createDocumentSchema.entries.name),
   multipart: v.optional(
     v.object({
       uploadId: v.pipe(v.string(), v.minLength(1)),

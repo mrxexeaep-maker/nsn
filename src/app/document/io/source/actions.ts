@@ -128,6 +128,13 @@ export function createDocumentSourceActions({
     setSavedVersion(changes.capture())
   }
 
+  function renameDocument(name: string) {
+    const trimmed = name.trim()
+    if (state.readOnly || !trimmed || trimmed === state.documentName) return
+    state.documentName = trimmed
+    changes.markChanged()
+  }
+
   function setDocumentSource(
     fileName: string,
     sourceFormat: string,
@@ -256,6 +263,7 @@ export function createDocumentSourceActions({
   }
 
   return {
+    renameDocument,
     setDocumentSource,
     setStorageDocumentSource,
     setPlannedFilePath,
