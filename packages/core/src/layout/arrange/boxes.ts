@@ -151,14 +151,19 @@ function inputOrder(input: ArrangeInput): Map<string, number> {
 }
 
 /**
- * The edges of a spanning forest of the boxes, taken breadth first from the boxes no edge enters,
- * in the input's order, then from the first box still unreached: the tree a tree or radial layout
+ * The edges of a spanning forest of the boxes and groups, taken breadth first from those no edge
+ * enters, in the input's order, then from the first still unreached: the tree a tree or radial layout
  * lays out. ELK's radial layout recurses without end on a loop, and a tree reads from its start;
- * the edges left out, such as one looping back, still join their boxes. Only edges between boxes
- * in the same group count, as these layouts arrange each group on its own.
+ * the edges left out, such as one looping back, still join their boxes. Only edges within one
+ * group count, as these layouts arrange each group on its own.
  */
 function treeEdges(input: ArrangeInput): Set<string> {
-  const groupOf = new Map(input.boxes.map((box) => [box.id, box.group]))
+  // A group laid out around its members is a node of its parent's layout, as a box is.
+  const order = inputOrder(input)
+  const members = [...input.groups, ...input.boxes].sort(
+    (a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)
+  )
+  const groupOf = new Map(members.map((member) => [member.id, member.group]))
   const edges = input.edges.filter(
     (edge) =>
       edge.from !== edge.to &&
@@ -169,8 +174,8 @@ function treeEdges(input: ArrangeInput): Set<string> {
   const outgoing = groupBy(edges, (edge) => edge.from)
   const entered = new Set(edges.map((edge) => edge.to))
   const starts = [
-    ...input.boxes.filter((box) => !entered.has(box.id)),
-    ...input.boxes.filter((box) => entered.has(box.id))
+    ...members.filter((member) => !entered.has(member.id)),
+    ...members.filter((member) => entered.has(member.id))
   ]
   const reached = new Set<string>()
   const tree = new Set<string>()
@@ -179,7 +184,8 @@ function treeEdges(input: ArrangeInput): Set<string> {
     reached.add(start.id)
     const queue = [start.id]
     for (let at = queue.shift(); at !== undefined; at = queue.shift()) {
-      for (const edge of outgoing[at] ?? []) {
+      // An id such as `constructor` must not read a property every object has.
+      for (const edge of Object.hasOwn(outgoing, at) ? outgoing[at] : []) {
         if (reached.has(edge.to)) continue
         reached.add(edge.to)
         tree.add(edge.id)

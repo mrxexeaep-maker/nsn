@@ -190,18 +190,44 @@ describe('arrangeBoxes', () => {
     expect([...arrangement.edges.keys()].sort()).toEqual(['ac', 'ra', 'rb'])
   })
 
-  test.each(['tree', 'radial'] satisfies BoxLayout[])(
-    '%s lays out a diagram whose edges loop, from the box nothing enters',
-    async (layout) => {
-      const arrangement = await arrangeBoxes({
-        layout,
-        ...TREE,
-        // c → a and a → c loop; a box nothing enters is still the root.
-        edges: [...TREE.edges, { id: 'ca', from: 'c', to: 'a' }, { id: 'cr', from: 'c', to: 'r' }]
-      })
-      expect([...arrangement.boxes.keys()].sort()).toEqual(['a', 'b', 'c', 'r'])
+  test('tree and radial lay out a looping diagram from the box nothing enters', async () => {
+    // a → c and c → a loop below the root r, which nothing enters.
+    const looping = { ...TREE, edges: [...TREE.edges, { id: 'ca', from: 'c', to: 'a' }] }
+    const tree = await arrangeBoxes({ layout: 'tree', ...looping })
+    const root = expectDefined(tree.boxes.get('r'))
+    for (const id of ['a', 'b', 'c']) {
+      expect(root.y + root.height).toBeLessThan(expectDefined(tree.boxes.get(id)).y)
     }
-  )
+    const radial = await arrangeBoxes({ layout: 'radial', ...looping })
+    const centre = (rect: Rect) => ({ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 })
+    const middle = centre(bounds([...radial.boxes.values()]))
+    const distance = (id: string) => {
+      const point = centre(expectDefined(radial.boxes.get(id)))
+      return Math.hypot(point.x - middle.x, point.y - middle.y)
+    }
+    expect(distance('r')).toBeLessThan(distance('c'))
+  })
+
+  test('tree lays out an edge from a group to a box beside it', async () => {
+    const arrangement = await arrangeBoxes({
+      layout: 'tree',
+      boxes: [box('inside', 0, 0, 'g'), box('below')],
+      groups: [{ id: 'g' }],
+      edges: [{ id: 'gb', from: 'g', to: 'below' }]
+    })
+    const group = expectDefined(arrangement.groups.get('g'))
+    expect(group.y + group.height).toBeLessThan(expectDefined(arrangement.boxes.get('below')).y)
+  })
+
+  test('tree reads a box whose id names an object property', async () => {
+    const arrangement = await arrangeBoxes({
+      layout: 'tree',
+      boxes: [box('root'), box('constructor')],
+      groups: [],
+      edges: [{ id: 'e', from: 'root', to: 'constructor' }]
+    })
+    expect(arrangement.boxes.size).toBe(2)
+  })
 
   test('radial lays out a loop that every box is part of', async () => {
     const arrangement = await arrangeBoxes({
