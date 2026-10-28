@@ -197,9 +197,6 @@ export function useAppMenu() {
     'next-tab': () => switchAdjacentTab(1),
     settings: openSettingsDialog,
     variables: () => openVariablesDialog(store),
-    'insert-icon': () => {
-      store.state.iconPickerOpen = true
-    },
     'export-png': () => exportSelection('png'),
     'export-svg': () => exportSelection('svg'),
     'export-pptx': () => exportSelection('pptx'),

@@ -2,12 +2,17 @@
 import { useFileDialog } from '@vueuse/core'
 import { computed } from 'vue'
 
+import type { StockPhotoResult } from '@open-pencil/core/tools'
 import type { Fill, ImageScaleMode } from '@open-pencil/scene-graph'
 import { coverImageTransform } from '@open-pencil/scene-graph/images'
 import { useI18n } from '@open-pencil/vue/i18n'
 
 import { useEditorStore } from '@/app/editor/active-store'
+import { downloadPhoto } from '@/app/editor/photos/download'
+import type { PhotoService } from '@/app/editor/photos/search'
+import { toast } from '@/app/shell/ui'
 import NumberField from '@/components/inputs/NumberField.vue'
+import PhotoPicker from '@/components/photo-picker/PhotoPicker.vue'
 import AppButton from '@/components/ui/button/AppButton.vue'
 import IconButton from '@/components/ui/button/IconButton.vue'
 import AppSelect from '@/components/ui/select/AppSelect.vue'
@@ -40,10 +45,7 @@ const { open: pickImage, onChange: onFileChange } = useFileDialog({
   multiple: false
 })
 
-onFileChange(async (files) => {
-  const file = files?.[0]
-  if (!file) return
-  const bytes = new Uint8Array(await file.arrayBuffer())
+function fillWith(bytes: Uint8Array) {
   const hash = store.storeImage(bytes)
   emit('update', {
     ...fill,
@@ -51,7 +53,20 @@ onFileChange(async (files) => {
     imageHash: hash,
     imageScaleMode: fill.imageScaleMode ?? 'FILL'
   })
+}
+
+onFileChange(async (files) => {
+  const file = files?.[0]
+  if (file) fillWith(new Uint8Array(await file.arrayBuffer()))
 })
+
+async function fillWithPhoto(photo: StockPhotoResult, service: PhotoService) {
+  try {
+    fillWith((await downloadPhoto(service, photo)).bytes)
+  } catch {
+    toast.error(panels.value.insertPhotoFailed)
+  }
+}
 
 /**
  * Figma keeps a crop through other modes, which ignore it, but a new crop starts over from the
@@ -86,21 +101,49 @@ function rotate() {
 
 <template>
   <div class="space-y-2">
+    <!--
+      As Figma's image fill: the image, with its actions in the middle. With no image they show at
+      once; over an image they show on hover or when the keyboard reaches them.
+    -->
     <div
-      v-if="imagePreviewURL"
-      class="flex h-24 items-center justify-center overflow-hidden rounded border border-border"
+      class="group relative flex h-28 items-center justify-center overflow-hidden rounded border border-border bg-panel-secondary"
+      :data-empty="imagePreviewURL ? undefined : ''"
+      data-test-id="fill-picker-image-well"
     >
-      <img :src="imagePreviewURL" class="max-h-full max-w-full object-contain" />
+      <img
+        v-if="imagePreviewURL"
+        :src="imagePreviewURL"
+        alt=""
+        class="max-h-full max-w-full object-contain"
+      />
+      <div
+        class="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/45 opacity-0 transition-opacity group-hover:opacity-100 group-data-[empty]:bg-transparent group-data-[empty]:opacity-100 has-[:focus-visible]:opacity-100 motion-reduce:transition-none"
+      >
+        <AppButton
+          size="sm"
+          variant="outline"
+          class="w-32 bg-panel"
+          data-test-id="fill-picker-choose-image"
+          @click="pickImage()"
+        >
+          <template #leading><icon-lucide-upload class="size-3" /></template>
+          {{ fill.imageHash ? 'Replace' : 'Choose image' }}
+        </AppButton>
+        <PhotoPicker :heading="panels.stockPhoto" @select="fillWithPhoto">
+          <template #trigger>
+            <AppButton
+              size="sm"
+              variant="outline"
+              class="w-32 bg-panel"
+              data-test-id="fill-picker-stock-photo"
+            >
+              <template #leading><icon-lucide-image-plus class="size-3" /></template>
+              {{ panels.stockPhoto }}
+            </AppButton>
+          </template>
+        </PhotoPicker>
+      </div>
     </div>
-    <AppButton
-      variant="outline"
-      class="w-full"
-      data-test-id="fill-picker-choose-image"
-      @click="pickImage()"
-    >
-      <template #leading><icon-lucide-image class="size-3" /></template>
-      {{ fill.imageHash ? 'Replace' : 'Choose image' }}
-    </AppButton>
     <div class="flex items-center gap-1.5">
       <AppSelect
         :ui="{ trigger: 'min-w-0 flex-1' }"
