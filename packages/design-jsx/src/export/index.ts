@@ -3,6 +3,7 @@ import { compact } from 'es-toolkit/array'
 import { jsx, type SyntaxNode } from '@open-pencil/emit'
 import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 import { isGeneratedFrame, type GeneratedFrameType } from '@open-pencil/scene-graph/generated'
+import { instanceMainComponent } from '@open-pencil/scene-graph/instances'
 
 import {
   connectorExportScope,
@@ -15,6 +16,7 @@ import { elementTag } from '../elements'
 import { shapeWithTextLabelText, shapeWithTextProps } from '../shapes-with-text'
 import { stickyBody, stickyProps } from '../stickies'
 import { rekaExport, type RekaExport } from './behaviours'
+import { componentReferences } from './component-references'
 import { iconProps } from './icons'
 import { collectProps, positionProps, presenceProps } from './props'
 import { textChildren } from './text'
@@ -115,6 +117,12 @@ function ownElement(
   return isGeneratedFrame(node) ? OWN_ELEMENTS[node.type](graph, node, scope) : undefined
 }
 
+/** An unresolved library instance cannot be recreated, so retain the existing frame fallback. */
+function exportTag(node: SceneNode, graph: SceneGraph): string | undefined {
+  if (node.type === 'INSTANCE' && !instanceMainComponent(graph, node)) return 'Frame'
+  return elementTag(node.type)
+}
+
 /** The layers an export writes, by the roots it starts from. */
 function nodeToJSX(
   node: SceneNode,
@@ -122,10 +130,11 @@ function nodeToJSX(
   depth: number,
   scope: ConnectorExportScope,
   variables: VariableExport,
+  componentRefs: ReturnType<typeof componentReferences>,
   layerIds?: Array<string | null>,
   outer: RekaExport = NO_REKA
 ): SyntaxNode[] {
-  const reka = mergeReka(outer, rekaExport(graph, node))
+  const reka = mergeReka(outer, rekaExport(graph, node, componentRefs))
   const ref = scope.refs.get(node.id)
   // A layer a connector joins by a ref is marked with it, after its own props.
   const withRef = (props: JSXProp[]): JSXProp[] =>
@@ -134,7 +143,9 @@ function nodeToJSX(
   const children = (childDepth: number) =>
     graph
       .getChildren(node.id)
-      .flatMap((child) => nodeToJSX(child, graph, childDepth, scope, variables, layerIds, reka))
+      .flatMap((child) =>
+        nodeToJSX(child, graph, childDepth, scope, variables, componentRefs, layerIds, reka)
+      )
   if (reka.flatten.has(node.id)) return children(depth)
   // An icon is written by name; its paths are the icon set's to draw again.
   const icon = iconProps(node, graph)
@@ -142,7 +153,7 @@ function nodeToJSX(
     layerIds?.push(node.id)
     return [jsx.element('Icon', withRef(icon).map(propAttribute), [], depth)]
   }
-  const tag = reka.tags.get(node.id) ?? elementTag(node.type)
+  const tag = reka.tags.get(node.id) ?? exportTag(node, graph)
   if (!tag) return []
   layerIds?.push(node.id)
   const own = ownElement(graph, node, scope)
@@ -154,9 +165,10 @@ function nodeToJSX(
   // An item names its component; the instance's own layers are the component's to write.
   if (ownProps?.some(([name]) => name === 'of'))
     return [jsx.element(tag, withRef(ownProps).map(propAttribute), [], depth)]
-  const attributes = withRef([...collectProps(node, graph, variables), ...(ownProps ?? [])]).map(
-    propAttribute
-  )
+  const attributes = withRef([
+    ...collectProps(node, graph, variables, componentRefs),
+    ...(ownProps ?? [])
+  ]).map(propAttribute)
   if (node.type === 'TEXT') {
     const { children: content, inline } = textChildren(node, depth)
     for (let count = elementCount(content); count > 0; count--) layerIds?.push(null)
@@ -186,7 +198,7 @@ export function sceneNodeAttributes(
   graph: SceneGraph
 ): JSXAttributeSource[] | null {
   const node = graph.getNode(nodeId)
-  if (!node || !elementTag(node.type)) return null
+  if (!node || !exportTag(node, graph)) return null
   const own = ownElement(graph, node)
   const props = own ? own.props : collectProps(node, graph)
   if (node.type === 'TEXT') props.push(['text', node.text])
@@ -223,7 +235,7 @@ function contentBetween(tag: string, children: SyntaxNode[], inline: boolean): s
 
 export function designJSXElement(nodeId: string, graph: SceneGraph): DesignJSXElement | null {
   const node = graph.getNode(nodeId)
-  const tag = node && elementTag(node.type)
+  const tag = node && exportTag(node, graph)
   const printed = sceneNodeAttributes(nodeId, graph)
   if (!node || !tag || !printed) return null
   // A text layer's content, a connector's label, or a sticky note's body is written as its
@@ -278,10 +290,13 @@ export function selectionToJSXWithLayers(
   const declare = options.declarations ?? true
   const scope = connectorExportScope(graph, nodeIds, declare)
   const variables = variableExport(graph, nodeIds, declare)
+  const componentRefs = componentReferences(graph, nodeIds)
   const roots = compact(
     nodeIds.map((id) => {
       const node = graph.getNode(id)
-      const syntax = node ? nodeToJSX(node, graph, 0, scope, variables, layerIds).at(0) : undefined
+      const syntax = node
+        ? nodeToJSX(node, graph, 0, scope, variables, componentRefs, layerIds).at(0)
+        : undefined
       return syntax ? jsx.printJSX(syntax) : ''
     })
   )

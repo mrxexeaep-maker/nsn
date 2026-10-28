@@ -2,12 +2,14 @@ import { isEqual, omitBy, pick } from 'es-toolkit'
 
 import type { ArcData, SceneGraph, SceneNode } from '@open-pencil/scene-graph'
 import { DEFAULT_FONT_FAMILY } from '@open-pencil/scene-graph/constants'
+import { instanceMainComponent } from '@open-pencil/scene-graph/instances'
 import { layoutSizing } from '@open-pencil/scene-graph/layout'
 import { createDefaultNode } from '@open-pencil/scene-graph/node-defaults'
 import { resolveNodeTextDirection } from '@open-pencil/scene-graph/text/direction'
 
 import { BLEND_MODE, TEXT_ALIGN, TEXT_ALIGN_VERTICAL, TEXT_CASE, TEXT_DECORATION } from '../enums'
 import { textLengthJSX } from '../overrides/text'
+import { componentReference, type ComponentReferenceMap } from './component-references'
 import { collectDecorationProps } from './decoration'
 import { collectFontSettingProps, FONT_SETTING_FIELDS } from './font'
 import {
@@ -19,7 +21,7 @@ import {
 } from './helpers'
 import { collectEffectProps, collectFillProps, collectStrokeProps } from './paint'
 import { collectStateProps } from './state'
-import type { JSXProp } from './value'
+import { plainValue, type JSXProp } from './value'
 import { variableReferences, type VariableExport } from './variables'
 
 export type { JSXProp } from './value'
@@ -338,7 +340,8 @@ function collectShapeNodeProps(node: SceneNode, props: JSXProp[]): void {
 export function collectProps(
   node: SceneNode,
   graph: SceneGraph,
-  variables: VariableExport = variableReferences(graph)
+  variables: VariableExport = variableReferences(graph),
+  componentRefs: ComponentReferenceMap = new Map()
 ): JSXProp[] {
   const props: JSXProp[] = []
   const ctx = getNodeContext(node, graph)
@@ -357,6 +360,23 @@ export function collectProps(
   }
   collectShapeNodeProps(node, props)
   collectStateProps(node, ctx, props, variables)
+
+  if (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET') {
+    if (node.componentPropertyDefinitions.length > 0)
+      props.push(['properties', plainValue(node.componentPropertyDefinitions)])
+  }
+  if (node.type === 'INSTANCE') {
+    const component = instanceMainComponent(graph, node)
+    if (component) {
+      props.push(['of', componentReference(component, componentRefs)])
+      if (Object.keys(node.componentPropertyAssignments).length > 0)
+        props.push(['properties', plainValue(node.componentPropertyAssignments)])
+    }
+  }
+  if (node.type !== 'INSTANCE' || instanceMainComponent(graph, node)) {
+    if (node.componentPropertyReferences.length > 0)
+      props.push(['propertyRefs', plainValue(node.componentPropertyReferences)])
+  }
 
   return props
 }
