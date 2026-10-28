@@ -157,7 +157,9 @@ export const setFontRange = defineTool({
     const node = figma.getNodeById(args.id)
     if (!node) return []
     const font = args.family || args.style || args.variations ? rangeFont(node, args) : null
-    return [...(font ? [font] : []), ...textFonts(figma, args.id)]
+    // A colour alone is a paint and lays nothing out, so text in a missing font can still take it.
+    const laysOut = font !== null || args.size !== undefined
+    return [...(font ? [font] : []), ...(laysOut ? textFonts(figma, args.id) : [])]
   },
   execute: (figma, args) => {
     const node = figma.getNodeById(args.id)

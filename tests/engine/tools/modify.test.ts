@@ -365,4 +365,18 @@ describe('text tools load fonts first', () => {
     ).toEqual({ error: 'The font "Nowhere Sans Bold" could not be loaded' })
     expect(getNodeOrThrow(graph, text.id)).toEqual(before)
   })
+
+  test('a range colour needs no font, so text in a missing font can be recoloured', async () => {
+    const { figma, graph } = setupToolTest()
+    const text = figma.createText()
+    text.characters = 'Label'
+    graph.updateNode(text.id, { fontFamily: 'Nowhere Sans' })
+
+    expect(
+      await runTool(figma, 'set_font_range', { id: text.id, start: 0, end: 2, color: '#ff0000' })
+    ).toEqual({ id: text.id, range: { start: 0, end: 2 } })
+    expect(
+      await runTool(figma, 'set_font_range', { id: text.id, start: 0, end: 2, size: 20 })
+    ).toEqual({ error: 'The font "Nowhere Sans Regular" could not be loaded' })
+  })
 })
