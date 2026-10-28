@@ -57,7 +57,7 @@ export function createToolImageUploader(
   const send = runtime.fetch ?? desktopFetch() ?? globalThis.fetch
   return {
     // A file lives at the endpoint that stored it, and a connection's base URL can change.
-    scope: JSON.stringify([connectionId, config.customBaseURL ?? null]),
+    scope: JSON.stringify([connectionId, config.customBaseURL]),
     async upload({ data, mediaType }, { abortSignal } = {}) {
       // The AI SDK keeps only the file id of the answer, so its expiry is read here.
       let expiresAt: string | undefined
