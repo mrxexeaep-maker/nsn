@@ -1,4 +1,5 @@
 import type { ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs/lib/elk-api'
+import { groupBy } from 'es-toolkit'
 
 import type { ConnectorSide } from '@open-pencil/scene-graph/connectors'
 import type { Rect, Size, Vector } from '@open-pencil/scene-graph/primitives'
@@ -67,7 +68,7 @@ export interface ArrangedRoute {
 
 /**
  * Where everything went, in the arrangement's axes. A flow routes its edges, a tree gives only the
- * sides they leave and enter by, and other layouts leave edges to the connectors.
+ * sides its own edges leave and enter by, and other layouts leave edges to the connectors.
  */
 export interface Arrangement {
   boxes: Map<string, Rect>
@@ -147,6 +148,53 @@ function inputOrder(input: ArrangeInput): Map<string, number> {
     }
   }
   return order
+}
+
+/**
+ * The edges of a spanning forest of the boxes, taken breadth first from the boxes no edge enters,
+ * in the input's order, then from the first box still unreached: the tree a tree or radial layout
+ * lays out. ELK's radial layout recurses without end on a loop, and a tree reads from its start;
+ * the edges left out, such as one looping back, still join their boxes. Only edges between boxes
+ * in the same group count, as these layouts arrange each group on its own.
+ */
+function treeEdges(input: ArrangeInput): Set<string> {
+  const groupOf = new Map(input.boxes.map((box) => [box.id, box.group]))
+  const edges = input.edges.filter(
+    (edge) =>
+      edge.from !== edge.to &&
+      groupOf.has(edge.from) &&
+      groupOf.has(edge.to) &&
+      groupOf.get(edge.from) === groupOf.get(edge.to)
+  )
+  const outgoing = groupBy(edges, (edge) => edge.from)
+  const entered = new Set(edges.map((edge) => edge.to))
+  const starts = [
+    ...input.boxes.filter((box) => !entered.has(box.id)),
+    ...input.boxes.filter((box) => entered.has(box.id))
+  ]
+  const reached = new Set<string>()
+  const tree = new Set<string>()
+  for (const start of starts) {
+    if (reached.has(start.id)) continue
+    reached.add(start.id)
+    const queue = [start.id]
+    for (let at = queue.shift(); at !== undefined; at = queue.shift()) {
+      for (const edge of outgoing[at] ?? []) {
+        if (reached.has(edge.to)) continue
+        reached.add(edge.to)
+        tree.add(edge.id)
+        queue.push(edge.to)
+      }
+    }
+  }
+  return tree
+}
+
+/** The edges ELK lays out: a tree or radial layout's tree, every edge for the others. */
+function laidOutEdges(input: ArrangeInput): ArrangeInput['edges'] {
+  if (input.layout !== 'tree' && input.layout !== 'radial') return input.edges
+  const tree = treeEdges(input)
+  return input.edges.filter((edge) => tree.has(edge.id))
 }
 
 /** The layout options of the root and of each group, for the input's layout. */
@@ -242,7 +290,7 @@ function elkGraph(input: ArrangeInput): ElkNode {
     const node = elk.get(member.id)
     if (node) container(member.group).children?.push(node)
   }
-  for (const edge of input.edges) {
+  for (const edge of laidOutEdges(input)) {
     if (!elk.has(edge.from) || !elk.has(edge.to)) continue
     if (flow) {
       root.edges?.push({
@@ -291,11 +339,13 @@ function collect(result: ElkNode, input: ArrangeInput): Arrangement {
   }
   walk(result)
   if (input.layout === 'tree') {
-    // A tree runs one way, so its edges leave and enter boxes by the sides a flow would, with
-    // the connectors' own elbows between them.
+    // A tree runs one way, so its own edges leave and enter boxes by the sides a flow would, with
+    // the connectors' own elbows between them. An edge outside the tree, such as one looping
+    // back up, picks its sides itself rather than running the length of a branch.
     const [startSide, endSide] = FLOW_SIDES[input.direction ?? 'TB']
+    const tree = treeEdges(input)
     for (const edge of input.edges) {
-      if (arrangement.boxes.has(edge.from) && arrangement.boxes.has(edge.to)) {
+      if (tree.has(edge.id) && arrangement.boxes.has(edge.from) && arrangement.boxes.has(edge.to)) {
         arrangement.edges.set(edge.id, { startSide, endSide, points: [] })
       }
     }
@@ -358,6 +408,12 @@ export async function arrangeBoxes(input: ArrangeInput): Promise<Arrangement> {
     const spread = await layoutWithElk(elkGraph({ ...input, layout: 'spread' }))
     const compacted = placedAt(input, spread)
     return collect(await layoutWithElk(elkGraph(compacted)), compacted)
+  }
+  if (input.layout === 'radial' || input.layout === 'network') {
+    // These place boxes by their centres alone, so wide boxes can land on each other: pull them
+    // apart afterwards, as a spread does, keeping each near where the layout put it.
+    const placed = placedAt(input, await layoutWithElk(elkGraph(input)))
+    return collect(await layoutWithElk(elkGraph({ ...placed, layout: 'spread' })), placed)
   }
   return collect(await layoutWithElk(elkGraph(input)), input)
 }

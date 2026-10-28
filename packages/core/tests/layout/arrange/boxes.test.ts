@@ -181,6 +181,56 @@ describe('arrangeBoxes', () => {
     expect(arrangement.edges.get('ra')).toEqual({ startSide: 'RIGHT', endSide: 'LEFT', points: [] })
   })
 
+  test('tree leaves an edge outside the tree, such as one looping back, to pick its own sides', async () => {
+    const arrangement = await arrangeBoxes({
+      layout: 'tree',
+      ...TREE,
+      edges: [...TREE.edges, { id: 'cr', from: 'c', to: 'r' }, { id: 'bc', from: 'b', to: 'c' }]
+    })
+    expect([...arrangement.edges.keys()].sort()).toEqual(['ac', 'ra', 'rb'])
+  })
+
+  test.each(['tree', 'radial'] satisfies BoxLayout[])(
+    '%s lays out a diagram whose edges loop, from the box nothing enters',
+    async (layout) => {
+      const arrangement = await arrangeBoxes({
+        layout,
+        ...TREE,
+        // c → a and a → c loop; a box nothing enters is still the root.
+        edges: [...TREE.edges, { id: 'ca', from: 'c', to: 'a' }, { id: 'cr', from: 'c', to: 'r' }]
+      })
+      expect([...arrangement.boxes.keys()].sort()).toEqual(['a', 'b', 'c', 'r'])
+    }
+  )
+
+  test('radial lays out a loop that every box is part of', async () => {
+    const arrangement = await arrangeBoxes({
+      layout: 'radial',
+      boxes: [box('a'), box('b'), box('c')],
+      groups: [],
+      edges: [
+        { id: 'ab', from: 'a', to: 'b' },
+        { id: 'bc', from: 'b', to: 'c' },
+        { id: 'ca', from: 'c', to: 'a' }
+      ]
+    })
+    expect(arrangement.boxes.size).toBe(3)
+  })
+
+  test.each(['radial', 'network'] satisfies BoxLayout[])(
+    '%s keeps wide boxes off each other',
+    async (layout) => {
+      const wide = (id: string): ArrangeBox => ({ ...box(id), width: 360 })
+      const arrangement = await arrangeBoxes({
+        layout,
+        boxes: ['hub', 'a', 'b', 'c', 'd', 'e', 'f'].map(wide),
+        groups: [],
+        edges: ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id, from: 'hub', to: id }))
+      })
+      expect(overlapping([...arrangement.boxes.values()])).toBe(false)
+    }
+  )
+
   test('radial places the root nearer the middle than the leaf farthest down the tree', async () => {
     const arrangement = await arrangeBoxes({ layout: 'radial', ...TREE })
     const centre = (rect: Rect) => ({ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 })
