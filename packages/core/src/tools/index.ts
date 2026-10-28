@@ -25,8 +25,16 @@ export {
   type ToolExposure
 } from './schema'
 export { toolNumber } from './schema'
-export { toolsToAI, buildDebugLog } from './ai-adapter'
-export type { ToolLogEntry, ToolDebugLog, AIAdapterOptions, StepBudget } from './ai-adapter'
+export { toolsToAI, buildDebugLog, readToolImage } from './ai-adapter'
+export type {
+  ToolLogEntry,
+  ToolDebugLog,
+  AIAdapterOptions,
+  StepBudget,
+  ToolImageData,
+  ToolImageFile,
+  ToolImageUploader
+} from './ai-adapter'
 export {
   calcClusterConfidence,
   compileScript,

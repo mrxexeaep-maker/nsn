@@ -17,6 +17,7 @@ import { OPENPENCIL_AI_PROVIDER } from '@/app/ai/providers/openpencil/provider'
 import { settleMessage } from '@/app/ai/reply/settle'
 import { currentRun } from '@/app/ai/tools'
 import type { AgentTurnUsage } from '@/app/ai/transports/acp'
+import { withImageUploads } from '@/app/ai/transports/tool-images'
 import { createToolLoopTransport } from '@/app/ai/transports/tool-loop'
 import { restAgents } from '@/app/automation/agents'
 import { diagnosticErrorDetails } from '@/app/diagnostics'
@@ -222,7 +223,12 @@ export function createChatSessionManager({
       thinkingLevel: () => chatThinkingLevel.value,
       onError: captureProviderError,
       diagnosticContext,
-      recorder: runRecorder
+      recorder: runRecorder,
+      imageUploader: runtime.imageUploader,
+      // Kept with the conversation, so a reopened chat does not upload them again.
+      updateToolOutputs: (uploads) => {
+        if (chat) chat.messages = withImageUploads(chat.messages, uploads)
+      }
     })
   }
 

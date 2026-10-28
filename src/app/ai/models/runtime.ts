@@ -2,8 +2,13 @@ import type { LanguageModel } from 'ai'
 import { ref } from 'vue'
 
 import type { ReasoningEffort } from '@open-pencil/core/constants'
+import type { ToolImageUploader } from '@open-pencil/core/tools'
 
-import { createLanguageModel, resolveLanguageModelID } from '@/app/ai/models/language-model'
+import {
+  createLanguageModel,
+  createToolImageUploader,
+  resolveLanguageModelID
+} from '@/app/ai/models/language-model'
 import { resolveProviderModel } from '@/app/ai/models/reasoning/floors'
 import { modelConnection, resolveAIModelRole } from '@/app/ai/models/store'
 import type { AIModelConnection, AIModelRole, ResolvedAIModelRole } from '@/app/ai/models/types'
@@ -23,6 +28,7 @@ export type DirectAIModelRuntime = {
   role: ResolvedAIModelRole
   model: LanguageModel
   minReasoningEffort?: ReasoningEffort
+  imageUploader?: ToolImageUploader
 }
 
 export type ACPModelRuntime = {
@@ -134,20 +140,20 @@ export async function createAIModelRuntime(role: AIModelRole): Promise<AIModelRu
     providerID,
     resolveLanguageModelID({ providerID, ...resolved.profile })
   )
+  const config = {
+    providerID: resolved.connection.providerID,
+    apiKey,
+    modelID: resolved.profile.modelID,
+    customModelID: resolved.profile.customModelID,
+    customBaseURL: resolved.connection.customBaseURL,
+    customAPIType: resolved.connection.customAPIType
+  }
+  const runtime = { credentials: modelConnectionCredentialStore(resolved.connection.id) }
   return {
     kind: 'direct',
     role: resolved,
     minReasoningEffort: known?.minReasoningEffort,
-    model: createLanguageModel(
-      {
-        providerID: resolved.connection.providerID,
-        apiKey,
-        modelID: resolved.profile.modelID,
-        customModelID: resolved.profile.customModelID,
-        customBaseURL: resolved.connection.customBaseURL,
-        customAPIType: resolved.connection.customAPIType
-      },
-      { credentials: modelConnectionCredentialStore(resolved.connection.id) }
-    )
+    model: createLanguageModel(config, runtime),
+    imageUploader: createToolImageUploader(config, resolved.connection.id, runtime)
   }
 }

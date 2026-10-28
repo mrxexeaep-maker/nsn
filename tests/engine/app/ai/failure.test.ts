@@ -43,6 +43,9 @@ describe('AI chat failures', () => {
       reason: 'model-not-found',
       statusCode: 404
     })
+    expect(classifyAIChatError(apiError(404, 'File `file_011CgT` not found.')).reason).toBe(
+      'request-failed'
+    )
     expect(classifyAIChatError(apiError(429, 'Too many requests'))).toMatchObject({
       reason: 'rate-limit',
       statusCode: 429,

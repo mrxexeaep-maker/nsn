@@ -6,8 +6,9 @@
 
 // eslint-disable-next-line open-pencil/no-mixed-case-acronym-identifiers -- Upstream export spelling.
 import { toStandardJsonSchema as toStandardJSONSchema } from '@valibot/to-json-schema'
-import type { JSONValue, ToolResultPart, ToolSet, tool as createTool } from 'ai'
+import type { JSONValue, ProviderReference, ToolResultPart, ToolSet, tool as createTool } from 'ai'
 import { isEmptyObject } from 'es-toolkit'
+import * as v from 'valibot'
 
 import type { FigmaAPI } from '#core/figma-api'
 
@@ -48,6 +49,35 @@ export interface StepBudget {
   max: number
 }
 
+/**
+ * Uploads the images tools return to the chat provider's files API, so every later request
+ * names each image by its file id instead of carrying its bytes again.
+ */
+export interface ToolImageUploader {
+  /**
+   * The account and endpoint the files belong to. An image uploaded under another scope is
+   * sent as data again.
+   */
+  scope: string
+  /** Nothing when the uploader skips the image, which then goes as data. */
+  upload(
+    image: ToolImageData,
+    options?: { abortSignal?: AbortSignal }
+  ): Promise<ToolImageFile | undefined>
+}
+
+export interface ToolImageData {
+  /** Base64. */
+  data: string
+  mediaType: string
+}
+
+export interface ToolImageFile {
+  reference: ProviderReference
+  /** When the provider deletes the file, as an ISO date. */
+  expiresAt?: string
+}
+
 export interface AIAdapterOptions {
   getFigma: () => FigmaAPI
   onBeforeExecute?: (def: ToolDef) => void
@@ -61,6 +91,7 @@ export interface AIAdapterOptions {
   onFlashNodes?: (nodeIds: string[]) => void
   onToolLog?: (entry: ToolLogEntry) => void
   getStepBudget?: () => StepBudget
+  imageUploader?: ToolImageUploader
 }
 
 const STEP_WARNING_THRESHOLD = 5
@@ -165,6 +196,44 @@ function isImageOutput(
   )
 }
 
+const imageUploadSchema = v.object({
+  scope: v.string(),
+  reference: v.record(v.string(), v.string()),
+  expiresAt: v.optional(v.string())
+})
+
+/** The image a tool result carries, and the file it was uploaded as. */
+export function readToolImage(
+  output: unknown
+): (ToolImageData & { upload?: v.InferOutput<typeof imageUploadSchema> }) | undefined {
+  if (!isImageOutput(output)) return undefined
+  const upload = v.safeParse(imageUploadSchema, output.upload)
+  return {
+    data: output.base64,
+    mediaType: output.mimeType,
+    upload: upload.success ? upload.output : undefined
+  }
+}
+
+async function withUploadedImage(
+  result: unknown,
+  def: ToolDef,
+  uploader: ToolImageUploader | undefined,
+  abortSignal: AbortSignal | undefined
+): Promise<unknown> {
+  if (!uploader || !isImageOutput(result)) return result
+  try {
+    const image = { data: result.base64, mediaType: result.mimeType }
+    const file = await uploader.upload(image, { abortSignal })
+    if (!file) return result
+    const upload: v.InferOutput<typeof imageUploadSchema> = { scope: uploader.scope, ...file }
+    return { ...result, upload }
+  } catch (error) {
+    console.warn(`[AI] Sending the ${def.name} image as data, since its upload failed:`, error)
+    return result
+  }
+}
+
 export function toolsToAI(
   tools: ToolDef[],
   options: AIAdapterOptions,
@@ -180,7 +249,10 @@ export function toolsToAI(
     const toolOpts: Record<string, unknown> = {
       description: def.description,
       inputSchema: toStandardJSONSchema(def.input),
-      execute: async (args: Record<string, unknown>, { toolCallId }: { toolCallId: string }) => {
+      execute: async (
+        args: Record<string, unknown>,
+        { toolCallId, abortSignal }: { toolCallId: string; abortSignal?: AbortSignal }
+      ) => {
         const startTime = Date.now()
         const figma = options.getFigma()
         const nodeBefore =
@@ -188,9 +260,14 @@ export function toolsToAI(
 
         options.onBeforeExecute?.(def)
         try {
-          let execResult = options.executeTool
-            ? await options.executeTool(def, figma, args, { toolCallId })
-            : await def.execute(figma, args)
+          let execResult = await withUploadedImage(
+            options.executeTool
+              ? await options.executeTool(def, figma, args, { toolCallId })
+              : await def.execute(figma, args),
+            def,
+            options.imageUploader,
+            abortSignal
+          )
           if (def.mutates && options.onFlashNodes) {
             const ids = extractNodeIds(execResult)
             if (ids.length > 0) options.onFlashNodes(ids)
@@ -227,11 +304,15 @@ export function toolsToAI(
     // SDK, because a shape it does not know fails the next step's prompt validation.
     toolOpts.toModelOutput = ({ output }: { output: unknown }): ToolResultPart['output'] => {
       if (isImageOutput(output)) {
-        const { base64, mimeType, ...metadata } = output
+        const { base64, mimeType, upload, ...metadata } = output
+        const uploaded =
+          v.is(imageUploadSchema, upload) && upload.scope === options.imageUploader?.scope
         const image = {
           type: 'file' as const,
           mediaType: mimeType,
-          data: { type: 'data' as const, data: base64 }
+          data: uploaded
+            ? { type: 'reference' as const, reference: upload.reference }
+            : { type: 'data' as const, data: base64 }
         }
         return !isEmptyObject(metadata)
           ? {

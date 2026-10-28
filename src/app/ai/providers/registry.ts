@@ -27,7 +27,7 @@ const MODEL_PROVIDER_ADAPTERS = {
       return provider(config.customModelID.trim() || config.modelID)
     }
   },
-  anthropic: createAnthropicCompatibleAdapter(),
+  anthropic: createAnthropicCompatibleAdapter({ filesAPI: true }),
   openai: createOpenAICompatibleAdapter(),
   chatgpt: chatGPTAdapter,
   google: {
@@ -49,7 +49,8 @@ const MODEL_PROVIDER_ADAPTERS = {
     mode: 'configurable'
   }),
   'anthropic-compatible': createAnthropicCompatibleAdapter({
-    baseURL: (config) => config.customBaseURL
+    baseURL: (config) => config.customBaseURL,
+    filesAPI: true
   }),
   // The base URL and the token-carrying fetch come from Cloud's AI service, not from settings.
   openpencil: createOpenAICompatibleAdapter({

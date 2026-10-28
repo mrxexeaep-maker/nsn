@@ -85,7 +85,17 @@ function statusFailureReason(status: number | null): AIChatFailureReason | null 
   return null
 }
 
+/** The uploaded files Anthropic's 404 says it no longer has: "File `<id>` not found." */
+export function missingFileIds(error: unknown): string[] {
+  if (!APICallError.isInstance(error) || error.statusCode !== 404) return []
+  return Array.from(
+    error.message.matchAll(/\bFile `([^`]+)` not found/g),
+    (match) => match[1] ?? ''
+  )
+}
+
 function failureReason(error: unknown): AIChatFailureReason {
+  if (missingFileIds(error).length > 0) return 'request-failed'
   const statusReason = statusFailureReason(providerErrorStatus(error))
   if (statusReason) return statusReason
   if (isInsufficientCreditError(error)) return 'insufficient-credit'
