@@ -270,6 +270,14 @@ describe('tool image uploads', () => {
     expect(forms[0]?.has('expires_in_seconds')).toBe(false)
   })
 
+  test('a connection moved to another endpoint stops naming files the old one stored', () => {
+    const compatible = { ...anthropic, providerID: 'anthropic-compatible' as const }
+    const scopeAt = (customBaseURL: string) =>
+      expectDefined(createToolImageUploader({ ...compatible, customBaseURL }, 'connection')).scope
+    expect(scopeAt('https://a.example/v1')).toBe(scopeAt('https://a.example/v1'))
+    expect(scopeAt('https://b.example/v1')).not.toBe(scopeAt('https://a.example/v1'))
+  })
+
   test('Anthropic reads a referenced tool image by its file id', async () => {
     let body = ''
     const fetchSpy: FetchFunction = async (_input, init) => {
